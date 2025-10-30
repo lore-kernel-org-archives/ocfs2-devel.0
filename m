@@ -1,36 +1,36 @@
-Received: from forward500d.mail.yandex.net (forward500d.mail.yandex.net [178.154.239.208])
+Received: from forward501a.mail.yandex.net (forward501a.mail.yandex.net [178.154.239.81])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8E7113385A3
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 08:12:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.208
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9FE29306B3D
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 08:34:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.81
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761811933; cv=none; b=MdZLYtz+danWMbHFUTmwMSzJYPeTNIvfzDqHsUgN6vET7u86J3djaz/tKewrxcX6BV/e3SNHOlBqHawXpkHVbmcyhQvK1uBbe40sWaYddC//beKrN7Od84sGgvast+uXhHoEIMq6VFAQg65RGVCfK1gFKbZY31CwwBLqIWCFjDQ=
+	t=1761813268; cv=none; b=l4gNDL/xwHLBva01TIhB6RWaUSC23GpZNnV62uOHYqvFg4M1lupav6f+AWq9L5e3VJMCcNQqmTdxHh/mFnFMAZ0/DnyAZZpfLcY+zQ/c+4vvpfU56wVmPEtjksvgOd8UwiV+jb8E4q4UXY8xjE3juMU9XT0u5dvcULQz7II2i2Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761811933; c=relaxed/simple;
-	bh=8tcZvySeN/V2dt6sbobRc1JmD5E9TR9rrhkaCVMpA0U=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=R9KVoOomdSHtsg9HH3BL8GAwnRDwMQvw21ON7gbijJHWBKhuP4OOrZbhGViLzi6hTk/i4TIPfkQia+QxWNjixnd6ySLSpnsxtEfjrF4caqxnPwSV5sOWkw2KC7A0+s3/BNkBoUPRFRJHRrTC5NwX//SyZoHugo5YT6+3RMUcjuk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=FJkctWwl; arc=none smtp.client-ip=178.154.239.208
+	s=arc-20240116; t=1761813268; c=relaxed/simple;
+	bh=mLHd2nMXeVxUvGcMBq8irkGwDbRMTqCjcSr2IAtXiuo=;
+	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
+	 In-Reply-To:Content-Type; b=VhJRFGB881Q8qNmNp6N9TBFc1yw5jJ7lHDmSvkhs4lW/ogfx0YHskTq27yYDiqETTY1gIMLGVYjAUHzOzfCDJLMSr7qxTkas3i9+Ys29QvF0G8vluLeYEa/F89CvLnpcXJmPoKwkelbjUl3ZgF7v/g6IWeEcUn5HDw4gLTWaoys=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=N+/kTFFR; arc=none smtp.client-ip=178.154.239.81
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="FJkctWwl"
-Received: from mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net [IPv6:2a02:6b8:c0c:41d:0:640:f0c1:0])
-	by forward500d.mail.yandex.net (Yandex) with ESMTPS id 6A4008135F;
-	Thu, 30 Oct 2025 11:12:01 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id xBatpF4M0Os0-kcxnXRYx;
-	Thu, 30 Oct 2025 11:12:00 +0300
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="N+/kTFFR"
+Received: from mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1f:5d94:0:640:92d3:0])
+	by forward501a.mail.yandex.net (Yandex) with ESMTPS id 52EA180B93;
+	Thu, 30 Oct 2025 11:34:15 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id DYapdiBMrGk0-SidfcuwX;
+	Thu, 30 Oct 2025 11:34:14 +0300
 X-Yandex-Fwd: 1
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1761811920; bh=e6q27sdk07+eSwhn0qjSluT2Rw2Fu5NZwMC6rxZOdmI=;
-	h=In-Reply-To:To:From:Cc:Date:References:Subject:Message-ID;
-	b=FJkctWwlNKU+FG/VsrXzxz6yqkLufFTTGki938UFrWsNSvMY4A3PEpnc/Q0wLcsBb
-	 NyeXgytVpVOUYCYmyRjfQSLltwtw6tJBaqoSgty2Oq17Fh7x6csQZrImJBbNNxCiat
-	 1FYG57OWMhK1mHLtf90SPwehbM3bNqnt5bMSEZS8=
-Authentication-Results: mail-nwsmtp-smtp-production-main-84.iva.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-Message-ID: <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru>
-Date: Thu, 30 Oct 2025 11:11:59 +0300
+	t=1761813254; bh=mLHd2nMXeVxUvGcMBq8irkGwDbRMTqCjcSr2IAtXiuo=;
+	h=In-Reply-To:Cc:Date:References:To:From:Subject:Message-ID;
+	b=N+/kTFFRRW/v0LANo1ezGRM7oDuyFSYdMmzcW43Md1+mUf3pF4lnjpXsP1u2huDI3
+	 /rXAqjTzflivNlXGdtUnRMHxcVz++r9tf5Pv0Xbi4sQdu2dgoTXuJ6Ffo6JVCByreC
+	 uSAum+OZRpN3OI0Or9s63W/kyj0grjvjdKrCAZ1g=
+Authentication-Results: mail-nwsmtp-smtp-production-main-74.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <066fd295-a899-4ed0-a8eb-220557c45913@yandex.ru>
+Date: Thu, 30 Oct 2025 11:34:13 +0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -41,6 +41,7 @@ User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent
  divide-by-zero
 Content-Language: en-MW
+From: Dmitry Antipov <dmantipov@yandex.ru>
 To: Heming Zhao <heming.zhao@suse.com>,
  Deepanshu Kartikey <kartikey406@gmail.com>
 Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, akpm
@@ -59,7 +60,7 @@ References: <20251029055338.1192000-2-dmantipov@yandex.ru>
  <eba45ee8-1268-4c55-bfa1-c690b28c2e21@linux.alibaba.com>
  <CADhLXY5QK3vDcXhuW-xq5Bd72uPCVA1MeTnxn_991irOmvhRCg@mail.gmail.com>
  <x4g7symjachxmkyhjqx5x2dfdn4ybvfkbzjvqiso7qbtxdgov7@2xds57btyzt2>
-From: Dmitry Antipov <dmantipov@yandex.ru>
+ <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru>
 Autocrypt: addr=dmantipov@yandex.ru; keydata=
  xsDNBGBYjL8BDAC1iFIjCNMSvYkyi04ln+5sTl5TCU9O5Ot/kaKKCstLq3TZ1zwsyeqF7S/q
  vBVSmkWHQaj80BlT/1m7BnFECMNV0M72+cTGfrX8edesMSzv/id+M+oe0adUeA07bBc2Rq2V
@@ -94,48 +95,63 @@ Autocrypt: addr=dmantipov@yandex.ru; keydata=
  5TXWnMCmaYHDS/lP20obHMHW1MCItEYSIn0c5DaAIfD+IWAg8gn7n5NwrMj0iBrIVHBa5mRp
  KkzhwiUObL7NO2cnjzTQgAVUGt0MSN2YfJwmSWjKH6uppQ7bo4Z+ZEOToeBsl6waJnjCL38v
  A/UwwXBRuvydGV0=
-In-Reply-To: <x4g7symjachxmkyhjqx5x2dfdn4ybvfkbzjvqiso7qbtxdgov7@2xds57btyzt2>
+In-Reply-To: <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru>
 Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: base64
 
-On 10/30/25 7:22 AM, Heming Zhao wrote:
-
-> One way I considered uses the inode block number to bypass global_bitmap.
-> the code seems ugly (demo):
-> 
-> ```
-> osb = OCFS2_SB(sb);
-> inode = ocfs2_get_system_file_inode(osb, GLOBAL_BITMAP_SYSTEM_INODE, OCFS2_INVALID_SLOT)
-> 
-> if (OCFS2_I(inode)->ip_blkno != le64_to_cpu(fe->i_blkno))
->    goto by_pass_the_check;
-
-This is what happens in ocfs2_initialize_super(), and, IIUC, the global (cluster) bitmap
-is the only dinode which can have cl_bpc set to 1. So what about the following:
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 709afbfd1f9f..a8138c150d81 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1520,7 +1520,18 @@ int ocfs2_validate_inode_block(struct super_block *sb,
-                                          le16_to_cpu(cl->cl_next_free_rec));
-                         goto bail;
-                 }
--               if (le16_to_cpu(cl->cl_bpc) != bpc) {
-+
-+               if (OCFS2_SB(sb)->bitmap_blkno == 0 && le16_to_cpu(cl->cl_bpc) == 1)
-+                       /* This dinode represents a cluster bitmap, and we're reading
-+                        * it for the first time from ocfs2_initialize_super().
-+                        */
-+                       ;
-+               else if (OCFS2_SB(sb)->bitmap_blkno == le64_to_cpu(di->i_blkno))
-+                       /* This dinode represents a cluster bitmap, and we can
-+                        * recognize it by using the known block number.
-+                        */
-+                       ;
-+               else if (le16_to_cpu(cl->cl_bpc) != bpc) {
-                         rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
-                                          (unsigned long long)bh->b_blocknr,
-                                          le16_to_cpu(cl->cl_bpc));
-
-Dmitry
+T24gMTAvMzAvMjUgMTE6MTEgQU0sIERtaXRyeSBBbnRpcG92IHdyb3RlOg0KDQo+IFRoaXMg
+aXMgd2hhdCBoYXBwZW5zIGluIG9jZnMyX2luaXRpYWxpemVfc3VwZXIoKSwgYW5kLCBJSVVD
+LCB0aGUgZ2xvYmFsIChjbHVzdGVyKSBiaXRtYXANCj4gaXMgdGhlIG9ubHkgZGlub2RlIHdo
+aWNoIGNhbiBoYXZlIGNsX2JwYyBzZXQgdG8gMS4gU28gd2hhdCBhYm91dCB0aGUgZm9sbG93
+aW5nOg0KPiANCj4gZGlmZiAtLWdpdCBhL2ZzL29jZnMyL2lub2RlLmMgYi9mcy9vY2ZzMi9p
+bm9kZS5jDQo+IGluZGV4IDcwOWFmYmZkMWY5Zi4uYTgxMzhjMTUwZDgxIDEwMDY0NA0KPiAt
+LS0gYS9mcy9vY2ZzMi9pbm9kZS5jDQo+ICsrKyBiL2ZzL29jZnMyL2lub2RlLmMNCj4gQEAg
+LTE1MjAsNyArMTUyMCwxOCBAQCBpbnQgb2NmczJfdmFsaWRhdGVfaW5vZGVfYmxvY2soc3Ry
+dWN0IHN1cGVyX2Jsb2NrICpzYiwNCj4gIMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGxl
+MTZfdG9fY3B1KGNsLT5jbF9uZXh0X2ZyZWVfcmVjKSk7DQo+ICDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGdvdG8gYmFpbDsNCj4gIMKgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB9DQo+IC3CoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgIGlmIChsZTE2X3RvX2NwdShjbC0+Y2xfYnBjKSAhPSBicGMpIHsNCj4gKw0KPiArwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCBpZiAoT0NGUzJfU0Ioc2IpLT5iaXRtYXBfYmxr
+bm8gPT0gMCAmJiBsZTE2X3RvX2NwdShjbC0+Y2xfYnBjKSA9PSAxKQ0KPiArwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgLyogVGhpcyBkaW5vZGUgcmVw
+cmVzZW50cyBhIGNsdXN0ZXIgYml0bWFwLCBhbmQgd2UncmUgcmVhZGluZw0KPiArwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCAqIGl0IGZvciB0aGUg
+Zmlyc3QgdGltZSBmcm9tIG9jZnMyX2luaXRpYWxpemVfc3VwZXIoKS4NCj4gK8KgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgKi8NCj4gK8KgwqDCoMKg
+wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIDsNCj4gK8KgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqAgZWxzZSBpZiAoT0NGUzJfU0Ioc2IpLT5iaXRtYXBfYmxrbm8g
+PT0gbGU2NF90b19jcHUoZGktPmlfYmxrbm8pKQ0KPiArwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgLyogVGhpcyBkaW5vZGUgcmVwcmVzZW50cyBhIGNs
+dXN0ZXIgYml0bWFwLCBhbmQgd2UgY2FuDQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgICogcmVjb2duaXplIGl0IGJ5IHVzaW5nIHRoZSBrbm93
+biBibG9jayBudW1iZXIuDQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoMKgICovDQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
+wqDCoMKgwqDCoCA7DQo+ICvCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGVsc2UgaWYg
+KGxlMTZfdG9fY3B1KGNsLT5jbF9icGMpICE9IGJwYykgew0KPiAgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCByYyA9IG9jZnMyX2Vycm9yKHNiLCAi
+SW52YWxpZCBkaW5vZGUgJWxsdTogYml0cyBwZXIgY2x1c3RlciAldVxuIiwNCj4gIMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgICh1bnNpZ25lZCBsb25nIGxvbmcpYmgtPmJfYmxvY2tu
+ciwNCj4gIMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
+oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIGxlMTZfdG9fY3B1KGNsLT5jbF9i
+cGMpKTsNCg0KQmxhaC4gVGhpcyBvbmUgbG9va3MgbXVjaCBiZXR0ZXI6DQoNCmRpZmYgLS1n
+aXQgYS9mcy9vY2ZzMi9pbm9kZS5jIGIvZnMvb2NmczIvaW5vZGUuYw0KaW5kZXggNzA5YWZi
+ZmQxZjlmLi5hNmY0MTlmMGRkMzkgMTAwNjQ0DQotLS0gYS9mcy9vY2ZzMi9pbm9kZS5jDQor
+KysgYi9mcy9vY2ZzMi9pbm9kZS5jDQpAQCAtMTUyMCw3ICsxNTIwLDExIEBAIGludCBvY2Zz
+Ml92YWxpZGF0ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLA0KICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgbGUxNl90b19jcHUoY2wtPmNs
+X25leHRfZnJlZV9yZWMpKTsNCiAgICAgICAgICAgICAgICAgICAgICAgICBnb3RvIGJhaWw7
+DQogICAgICAgICAgICAgICAgIH0NCi0gICAgICAgICAgICAgICBpZiAobGUxNl90b19jcHUo
+Y2wtPmNsX2JwYykgIT0gYnBjKSB7DQorICAgICAgICAgICAgICAgaWYgKChsZTE2X3RvX2Nw
+dShjbC0+Y2xfYnBjKSA9PSAxKSAmJg0KKyAgICAgICAgICAgICAgICAgICAobGUxNl90b19j
+cHUoY2wtPmNsX2NwZykgPT0gb2NmczJfZ3JvdXBfYml0bWFwX3NpemUoc2IsIDAsIDApICog
+OCkpDQorICAgICAgICAgICAgICAgICAgICAgICAvKiBUaGlzIGRpbm9kZSByZXByZXNlbnRz
+IHRoZSB2YWxpZCBjbHVzdGVyIGJpdG1hcC4gKi8NCisgICAgICAgICAgICAgICAgICAgICAg
+IDsNCisgICAgICAgICAgICAgICBlbHNlIGlmIChsZTE2X3RvX2NwdShjbC0+Y2xfYnBjKSAh
+PSBicGMpIHsNCiAgICAgICAgICAgICAgICAgICAgICAgICByYyA9IG9jZnMyX2Vycm9yKHNi
+LCAiSW52YWxpZCBkaW5vZGUgJWxsdTogYml0cyBwZXIgY2x1c3RlciAldVxuIiwNCiAgICAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICh1bnNpZ25lZCBsb25nIGxv
+bmcpYmgtPmJfYmxvY2tuciwNCiAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAg
+ICAgICAgIGxlMTZfdG9fY3B1KGNsLT5jbF9icGMpKTsNCg0KRG1pdHJ5DQoNCg==
