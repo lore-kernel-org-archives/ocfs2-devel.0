@@ -1,105 +1,137 @@
-Received: from mail-yx1-f52.google.com (mail-yx1-f52.google.com [74.125.224.52])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5A9B13595B
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 11:05:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 12951244660
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 13:36:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761822306; cv=none; b=BEvlCcxQJU1M8Qd80om2e+IEHOGFoXpZAP+r5SOyEmfMQIk1mfP4ZFBBhRsNeUwA49SyNGR1h94Qf/OKAihL3jwY8dSZkaLx+gx0CXTF2JwbxSWx2YEReiq3PHL8N4jILTKAzV7dCQJf7QpOBCLTWPwUHdvn3sMugA/ygFmCzZk=
+	t=1761831365; cv=none; b=e4hMNj4vw+0IuMJyNDLPNpv/AKMKndkhNZWFVrx3qU/vXSbYcA7QPBOX/HAHAGwSJjz3cyOWzt8ErDv+4IH/iKsY7d2W0CVHdCT6R/f5WH49w0sTjO5vEGsPBmj5nyMLmIrsxdyNkXH1TFQvJt3tYUlB9Ju9PvsxHyG4jeuLhk0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761822306; c=relaxed/simple;
-	bh=mR0Md22AkfSetonbCNiACgcGe7ratHVxtXSz37ihgS0=;
+	s=arc-20240116; t=1761831365; c=relaxed/simple;
+	bh=946tCSyfwkcJEZIYbJYPYmAWxgbWBFpGqs507Chemqs=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=GgEvmcCI+X1b9mBVMyQcaxyatQeMgtQdUuO0Mvvx6m/5GTRkdE31oxvlE0AyOhOEb1PFE+rFLHoKSwe6jcsnfDXVDnSNHAJSUedLQTsY/r6W7Cm3em8MS2uGcmPMxgQceqpC8nXjKIUYYWzsKpibk8038pEGzE5poZ47B7hPvAg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ZoHqUK2e; arc=none smtp.client-ip=74.125.224.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	 To:Cc:Content-Type; b=tTZvCTJ0A8/CP5KH5q5MZs3XO6dGIG2lAR/xxsyyILLPEDlsQ6Ux6undvBdDyHQbhARyzQ4P8OVvhaU/IID1RJwnhatLa6L6sRXb04P2yedtgvlI9xNWh4A57oVAEHq2Omv9up2W/whioEPdzMP14+hjo/N6+wO6ckWCSUbaBEk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Mo4w8M+z; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ZoHqUK2e"
-Received: by mail-yx1-f52.google.com with SMTP id 956f58d0204a3-63e35e48a27so1011467d50.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 04:05:05 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1761822304; x=1762427104; darn=lists.linux.dev;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=yGdhx3Ml2+3imAeyVSKMzY5bBY7Ad7CiEF+v65sdE2s=;
-        b=ZoHqUK2eURLZPErr3air1UzTk5yy5snBTvUWsvSQtclLnXolTDbfUBtdiY0aggExnH
-         QAb3H82AvbmbszvY4dZsdGT0wJHzapJdBst5TRz2G3RibjD8pSOLVWLRC/lX3uUiX734
-         1R9tLo6OE4+Ik2gKgNGDQCiAPsrt2O1Y7Cq+FqvWZu1kfHmR45iq5AnjyG61Kus8Z+7T
-         i6amRMFv5cXuM0w6gVtGQPRTQwhSm2pVo/rD75WlYWMO40v0jF6DJJ7i5DWbBbRZf73h
-         xSjtQlX1WsXT0fqmI9tMeH0xHJQTj68zdGCKqtZWyUs0NquHMqkotYjUcAaTsDBACTyE
-         84Vw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761822304; x=1762427104;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to;
-        bh=yGdhx3Ml2+3imAeyVSKMzY5bBY7Ad7CiEF+v65sdE2s=;
-        b=f9DWgORnKT0mMKaurLM77Je/9jZvuat/VVjJfeQcJihm8wXmBgpRRinj1M7vYm9iQL
-         wh4kgGKbCc4xzCKQS5P6H5fcxYBwTiyt7knj7QdlAMWPJ191AejRKUROooGCz2iQBH+8
-         sIrQQYcDeyM3k3OrIySi/mTrLqokOR90g3AoE5F4JFFT6aVaoArcADntj3CO9cfg2qxG
-         auuhmr7Hljvyn087hSLG0KIKHhBCsEXmTveBnnnQnTVZG5AwwJKNWZJjqh2U3MIsfyvW
-         Z7PxxciHcyKbBlhuem34wa4Jx23PxgRPSwIv3bAy3YW+HunRX64yxPPELWA5OK9AkP3J
-         5Shw==
-X-Forwarded-Encrypted: i=1; AJvYcCX0bllrNnDDaJfxFEn4IokpNVwXaUSCQYKEcy4IWpUuRuJ030Q5TgqS6fmnuj4yKGnLsLeQBnjUKo1d5Q==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxFs+91JVnUmd1k6ahBQQ2z1lLdvmFf5nIyz7BSVgQbzffnzlWg
-	i0jyI1wPAl1zIh1qKQ5wT9ah0ODWicDTfoU0+bwn7gB47Y3PUBXXKZWFLN2xseyfSvLyIBUoR58
-	mskxtzCtntN21zOniORzOrALi+odAGDc=
-X-Gm-Gg: ASbGncsgPoAUkzW1pCxSB4COXipFjXv6sStIQGs9F5ZT9HDti7bYdGKOlw2GKAI3PwO
-	oAe1Q6dD4CQ7SCy3v93vyBD7eke/T4PHMWKKeYfZIciW4AE0AC6e/i3o2dFAJSepaKenZEF7X+J
-	c3zxyWwHKWp+u6ulVL1fXrmhJ9dQaWWVJKHxB09sFz9UybsKAzU6XKjds0SMzvY2KWPRF8R74ax
-	y3anYU8yv/8S9eBEKnARNfi5j0cX/l/a/6In46rCNkCIBjn0tOjOZ9vj/xwLl43xcuPWGGPVO+9
-	PRqIfx+bhPA0j3HMdyUyKDlTvw==
-X-Google-Smtp-Source: AGHT+IEFs8ig1J/CuPR6Ez6LQ34aRMVObm/bsZJUt1vGfV1XHUEh7fTJgKzlW2lZlLMN6PGnuwj9GsobiLgtYQ4z0As=
-X-Received: by 2002:a05:690e:d49:b0:63f:7617:e338 with SMTP id
- 956f58d0204a3-63f838e7568mr1543160d50.53.1761822304235; Thu, 30 Oct 2025
- 04:05:04 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Mo4w8M+z"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7DDDFC113D0
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 13:36:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1761831364;
+	bh=946tCSyfwkcJEZIYbJYPYmAWxgbWBFpGqs507Chemqs=;
+	h=References:In-Reply-To:From:Date:Subject:To:Cc:From;
+	b=Mo4w8M+zoG7x4VSKBHFBlkcNbJr8yuOPcibcxBBGoKKL/xxYP6SoTzLLo4MNs3B3W
+	 LXBRGiqiBcuymn4pvOVdEzE+RhAUAEeSzEzaMVgkWQfQdcCqM8chFRdyPlB8uyQjhI
+	 Sy04DC7qmGww/ewmG6nPtqVrjY2mNjujRFnNwL7bqfm0FwXXsFy8N/4MjZzNCTEKM6
+	 AH9cxSZFPyaoQjhLwB8gKrOvY8VBqCrViJzhsfAiHRlbe8Pd48ohtXcde5WYc+J+Ks
+	 xtnvYufRNIqRkyzqUNQQ8FGGMaRxPzAYxs8fhTOpNjbPwsbTzNyqAjyH/iSW6qfl8l
+	 9rr9LsibKVXjw==
+Received: by mail-lj1-f182.google.com with SMTP id 38308e7fff4ca-37a17d470dfso2742791fa.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 30 Oct 2025 06:36:04 -0700 (PDT)
+X-Forwarded-Encrypted: i=1; AJvYcCV1x2IEH9mODUpbH8OsysEaC/yuzvibbSJdigD6ZlEgtGE04gmFf/T4QOZ9X0kqO7u35SnLSDw09KC7rg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yy7HTIH1WNMwhjdzXOw4/MeFUb1Y/pLLWJPhJKCwM4kwlKI0OWJ
+	RLrKHesxldF5+IYBbrknVAdyRgyfM7Nq3hiRo/pGNYNETRL2eQKQkVYDGiVHksj4gjAAIJ2z8Yd
+	3C/ZLgp2pFsIWTAh3X7sFjiihV3gHvyY=
+X-Google-Smtp-Source: AGHT+IHPsQ63GACF+WTAXoqOco8sKMg1RRh6aHz0Br4Fnz15qbhOtOELzGrlJEWp65H1oXl/2WnpIpMcc/ndPgk67GM=
+X-Received: by 2002:a2e:9e56:0:b0:376:30c5:66ef with SMTP id
+ 38308e7fff4ca-37a1094a526mr7884761fa.16.1761831362808; Thu, 30 Oct 2025
+ 06:36:02 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20251029055338.1192000-2-dmantipov@yandex.ru> <632f9f46-785d-4da9-a422-546fe3d91af3@linux.alibaba.com>
- <523f1272-8bf8-41d4-afb1-36a7ceb11494@yandex.ru> <ruygrlyh5vq5tbcsolpgyxgs6r36yiyph4rzgoti4txq5d6xky@k2q2smssjekq>
- <CADhLXY6rVF8+gVCT3=SjRXB3EerBT3yC8qsk25VU+tjVRkWrcQ@mail.gmail.com>
- <eeee7189-c9ed-4c80-8312-d4d15e0260e4@linux.alibaba.com> <CADhLXY5TPHyVkgB3f9ZNzWUursXcOByEAEch7w4GpqP6CTzv6g@mail.gmail.com>
- <CADhLXY5zFHjm81iU5Jkv2iVYuUNg_18rYqVUmZ+-V=v=P6KjFQ@mail.gmail.com>
- <eba45ee8-1268-4c55-bfa1-c690b28c2e21@linux.alibaba.com> <CADhLXY5QK3vDcXhuW-xq5Bd72uPCVA1MeTnxn_991irOmvhRCg@mail.gmail.com>
- <x4g7symjachxmkyhjqx5x2dfdn4ybvfkbzjvqiso7qbtxdgov7@2xds57btyzt2>
- <f2323939-4939-439c-8fc3-773c60cc25e6@yandex.ru> <a5f617da-ab4a-414b-ba2b-a6f126708620@linux.alibaba.com>
-In-Reply-To: <a5f617da-ab4a-414b-ba2b-a6f126708620@linux.alibaba.com>
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-Date: Thu, 30 Oct 2025 16:34:52 +0530
-X-Gm-Features: AWmQ_bk9WBvZ21byIc30y1PqJeef0zmNl5m66Whdh32QhMFvb49Z6PwbxnsYr9g
-Message-ID: <CADhLXY6Ad6aRDENjraG6ZGnKZ_7yYw-ZDtb4MGbhhbFYOadmkg@mail.gmail.com>
-Subject: Re: [PATCH 2/2] ocfs2: validate cl_bpc in allocator inodes to prevent divide-by-zero
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Dmitry Antipov <dmantipov@yandex.ru>, Heming Zhao <heming.zhao@suse.com>, 
-	akpm <akpm@linux-foundation.org>, Mark Fasheh <mark@fasheh.com>, 
-	Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
-	lvc-project@linuxtesting.org, 
-	syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
+References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
+ <20251028004614.393374-23-viro@zeniv.linux.org.uk> <66300d81c5e127e3bca8c6c4d997da386b142004.camel@HansenPartnership.com>
+ <20251028174540.GN2441659@ZenIV> <20251028210805.GP2441659@ZenIV>
+ <CAMj1kXF6tvg6+CL_1x7h0HK1PoSGtxDjc0LQ1abGQBd5qrbffg@mail.gmail.com>
+ <9f079d0c8cffb150c0decb673a12bfe1b835efc9.camel@HansenPartnership.com> <20251029193755.GU2441659@ZenIV>
+In-Reply-To: <20251029193755.GU2441659@ZenIV>
+From: Ard Biesheuvel <ardb@kernel.org>
+Date: Thu, 30 Oct 2025 14:35:51 +0100
+X-Gmail-Original-Message-ID: <CAMj1kXHnEq97bzt-C=zKJdV3BK3EDJCPz3Pfyk52p2735-4wFA@mail.gmail.com>
+X-Gm-Features: AWmQ_bm2LrdVSSm_iuRDZ6ti_gfIvNqTw5CQZuyqzyGspRRRkaM_-X7LCT9AH9Q
+Message-ID: <CAMj1kXHnEq97bzt-C=zKJdV3BK3EDJCPz3Pfyk52p2735-4wFA@mail.gmail.com>
+Subject: Re: [PATCH v2 22/50] convert efivarfs
+To: Al Viro <viro@zeniv.linux.org.uk>, 
+	James Bottomley <james.bottomley@hansenpartnership.com>, brauner@kernel.org
+Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org, jack@suse.cz, 
+	raven@themaw.net, miklos@szeredi.hu, neil@brown.name, a.hindborg@kernel.org, 
+	linux-mm@kvack.org, linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
+	kees@kernel.org, rostedt@goodmis.org, gregkh@linuxfoundation.org, 
+	linux-usb@vger.kernel.org, paul@paul-moore.com, casey@schaufler-ca.com, 
+	linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com, 
+	selinux@vger.kernel.org, borntraeger@linux.ibm.com, bpf@vger.kernel.org
 Content-Type: text/plain; charset="UTF-8"
 
-Hi Joseph,
+On Wed, 29 Oct 2025 at 20:38, Al Viro <viro@zeniv.linux.org.uk> wrote:
+>
+> On Wed, Oct 29, 2025 at 02:57:51PM -0400, James Bottomley wrote:
+>
+> > I think this all looks OK.  The reason for the convolution is that
+> > simple_start/done_creating() didn't exist when I did the conversion ...
+> > although if they had, I'm not sure I'd have thought of reworking
+> > efivarfs_create_dentry to use them.  I tried to update some redundant
+> > bits, but it wasn't the focus of what I was trying to fix.
+> >
+> > So I think the cleanup works and looks nice.
+> >
+> > >
+> > > Relying on the -EEXIST return value to detect duplicates, and
+> > > combining the two callbacks seem like neat optimizations to me, so
+> > >
+> > > Acked-by: Ard Biesheuvel <ardb@kernel.org>
+> > >
+> > > but I have to confess I am slightly out of my depth when it comes to
+> > > VFS stuff.
+> >
+> > Yes, ack too.
+>
+>         Umm...  FWIW, I've got a few more followups on top of that (see
+> #untested.efivarfs, current head at 36051c773015).  Not sure what would
+> be the best way to deal with that stuff - I hope to get the main series
+> stabilized and merged in the coming window.  Right now I'm collecting
+> feedback (acked-by, etc.), and there's a couple of outright bugfixes
+> in front of the series, so I'd expect at least a rebase to -rc4...
+>
 
-Thank you for the solution! I'll implement the validation as you suggested:
+I pulled your code and tried to test it. It works fine for the
+ordinary case, but only now I realized that commit
 
-  if (OCFS2_SB(sb)->bitmap_blkno &&
-      (OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno)) &&
-      (le16_to_cpu(cl->cl_bpc) != expected_bpc))
+commit 0e4f9483959b785f65a36120bb0e4cf1407e492c
+Author: Christian Brauner <brauner@kernel.org>
+Date:   Mon Mar 31 14:42:12 2025 +0200
 
-This elegantly handles:
-1. Early initialization (when bitmap_blkno is not yet set)
-2. Skipping validation for global_bitmap (which uses cl_bpc=1 by design)
-3. Validating all other chain allocators
+    efivarfs: support freeze/thaw
 
-I'll test this with all block sizes (512, 1024, 2048, 4096) and verify
-they all mount successfully.
+actually broke James's implementation of the post-resume sync with the
+underlying variable store.
 
-Dmitry, should I send v4 as a standalone patch, or would you prefer to
-integrate this fix into your combined series?
+So I wonder what the point is of all this complexity if it does not
+work for the use case where it is the most important, i.e., resume
+from hibernation, where the system goes through an ordinary cold boot
+and so the EFI variable store may have gotten out of sync with the
+hibernated kernel's view of it.
 
-Thanks,
-Deepanshu
+If no freeze/thaw support in the suspend/resume path is forthcoming,
+would it be better to just revert that change? That would badly
+conflict with your changes, though, so I'd like to resolve this before
+going further down this path.
+
+
+I did need to apply a fixup to get the revert to compile:
+
+--- a/fs/efivarfs/super.c
++++ b/fs/efivarfs/super.c
+@@ -412,8 +412,7 @@
+ {
+        unsigned long size;
+        struct efivarfs_ctx *ectx = container_of(ctx, struct efivarfs_ctx, ctx);
+-       struct qstr qstr = { .name = name, .len = len };
+-       struct dentry *dentry = d_hash_and_lookup(ectx->sb->s_root, &qstr);
++       struct dentry *dentry = try_lookup_noperm(&QSTR_LEN(name,
+len), ectx->sb->s_root);
+        struct inode *inode;
+        struct efivar_entry *entry;
+        int err;
