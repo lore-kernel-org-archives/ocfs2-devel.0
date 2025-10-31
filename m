@@ -1,137 +1,111 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-io1-f44.google.com (mail-io1-f44.google.com [209.85.166.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64B3422172E
-	for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 08:32:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 604BF33BBA6
+	for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 13:54:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761899558; cv=none; b=uJ2sWGh39qdkWKswQkseOuj1y74EO1JhCJ5XMW6vbKqOZtxSqvbUROwGv3jxR9auEiAtcT0KjXXqzbPNWq2SSDIFQ1TBBSuOnW0Ct7CC730/KydttVo2+7P8FLOsbzx3r9a5tvq5l00e+eiGsWtrsyY6StVlypL4GUm02rOpGrs=
+	t=1761918885; cv=none; b=SwzxN1KRsXgI+X5mDUnpD/rxwzPiY8jGHWd4GC08aLqtEEmVK+5WrpYWsxvghXaAcg/dXaTm6Vp+x4LPXlEDSKl0NnZzhvIBauLc+isKa6dEZ5lCY2iv89nJZcdbrSIv6xuvD7J8m8AI3tHbFDfdAfnOqYEo0Wh6VZaCvYau9Yo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761899558; c=relaxed/simple;
-	bh=b7vHAbCcHRxyqdbN3XRc4ml+AVZ6cN6cWZgfVTtPXdo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=fujn3uEwGijFUzpjiNfpJT0PlSfLCB5D5nwxq7WWThido0Ho0y9He+B2YlCSkmULzC2hjjLZM1Ez8yf5QOVG+gw7DutdIyNscOFLx2HkzzNPSARDnbsIhZAnON7SpUANb+QC1JIlNQtYx6aX5IsXsAzhbIpmcJoNopsFrllJLng=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=U/Yg7iNd; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1761918885; c=relaxed/simple;
+	bh=FN2tQDX/wwLUC2mxidAL9H47bLyAFnJDpvPQlovcMVQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=ndfdivVxiqcUhTP4y6CgXNrb6exTsoBhlvp4NqviMb2VznSBXNO8QbKPnrSQJCX5G9AbBTAKru2zR2PK35fOMFFE0aMY+lr+ag/JvR+7EvWsekAuj7SMbwSdqxpCMTfLDSLmfLFLxeamxlYGk1e+vYExNu46mC82EIj8PZy09/s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PHDm6nyP; arc=none smtp.client-ip=209.85.166.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="U/Yg7iNd"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1761899551; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=So+QyyvcFw6SROHvS1ggpTmGxOOOOeKLV8IfJNcOBgU=;
-	b=U/Yg7iNdqetYhpdhg9Th8Q0ugj8s3VBNWHi38kzPkT303kJBloRnh1RflY7RFJ+/Hey+3K4tUQeErpRLXK/w0Rgtg9rHF7RHRSARtmTkcXkKWuil3stxQs/tLL2hkTGvjVMmhlQW/0ZU+B5WNhr2TBxbLtm71hNzlCs9PguEu6g=
-Received: from 30.221.128.132(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WrORofh_1761899550 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 31 Oct 2025 16:32:30 +0800
-Message-ID: <aab6f977-c2a2-491b-b231-b9396af56c9b@linux.alibaba.com>
-Date: Fri, 31 Oct 2025 16:32:29 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PHDm6nyP"
+Received: by mail-io1-f44.google.com with SMTP id ca18e2360f4ac-940d327df21so90715639f.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 06:54:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1761918883; x=1762523683; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=AIC+1h53umAhjFDxKUylX2ye8sI922EhJMx+ZKGKkKc=;
+        b=PHDm6nyPzKw72psKGfMNCTaYX1YXLyj7hhTaU9kj0RGpuI48jcX67eZ72vjhEQUpg5
+         jS3kvv4BwurElnU+r/wMxDdwBbqijSByPcKbb1W3QtXxc3o2KE76VvezFXfbwheNInR4
+         esDpM8MDg4Dw2x6JyuVws9EzgR47lJd4fX+0+HvS2zbjX6WlvzbEl0kwSOVLZwHoCHPd
+         2YlFvowLGh8UpJtFOlv841vwh7+AvD3yO3wY72RaMDoQPcpQL+HgdIdeuLcZ5s3J+oZ9
+         lkxq6OJzI6mV00DqV5tO24tUXDvfSer0sjd2Wv4OSu1LRGG7Qdlfab+yvW49SYqHHv+s
+         blWA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1761918883; x=1762523683;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=AIC+1h53umAhjFDxKUylX2ye8sI922EhJMx+ZKGKkKc=;
+        b=QhgDpFBpigIQDbOhnwtMty5CdaXO7COIxZ2jiXe8pZ/F6DU55lMM36JWk/ZmgOF9gI
+         84CSAY6I8i4mHD6+G9pVcuLGXjH7OEcvoQw7Db/OvcRqWxFg/G4Au1Cxe6w1Y8DzhgY8
+         z32Ey4+nkTNNWV96FSQma7M4gCvQtk6cyTY9tpqe/mktfULIBOZjHHMG880AujcRq+IQ
+         y7iMri2ToWOccn7iB0Hx+QRiGIGkitG8s68cyox2ix1Gq1/bZMjD1dEF9qG+dWuY6OBi
+         yPVbKUbCtjSfzQ2tmh8No31A6dX4MyU4nsn5xY+Wk1l+b0Swg2dEc97LYa+vSyFarlzb
+         KLAg==
+X-Forwarded-Encrypted: i=1; AJvYcCWL1NvyIaCAg5eLFa1bXhbhIVXFXpakJ+xFLpwuuzCAEhdEnuUq5jaM0wlqme264dqs3vAF+HkfVBRKCg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YynZbeV/wd0ws2Gz+WX+cm8qX8CuGBWUm5vRvI/gEUSfrvXCVX4
+	UoQsbgDtdpminR2yG5yuruubJcyjfbWuNb2SUEv4Zk/7EeQU8GrBCXcY
+X-Gm-Gg: ASbGnctVRxNNRV5uSOWowsO2N2I7EwUB0Kq4PFtUvKwzdeDcB+rhFacHVnqs3MqE+H2
+	vqwWDJ77D6XCMZY0AG2Id8sk4vzOEfSQMbnfR7fHYe1xGwuwTI+BG5U1GVM6JskCIUIL1Q2ZhTX
+	fN5+OQ9qACdQO+hjPWmgpPwovPsLPFV/79/zs81Uv4XFmbhQ4sLyXNL/rczjpAroegAvSwKE6G+
+	tv2Bmk4Snim2GodpstS72Hmlc29nARaqOfFyfX3gg07hObf48xN084nyUlsm+6CTFvEFBwMdsij
+	NaLDJGQ8mVmdxWREPnS6CdjY5OaXEwkAvNftW0wUJHfvnfLSJd9PmuMoj4uWHG5NvOPLDaqAUnx
+	0dctgARZp9EJsl1HZJtq5zWsS7qsuHaDfAhvs4hC8voB/qK3ctjr98gOvXI2ml6XYEVum8as=
+X-Google-Smtp-Source: AGHT+IHCzKlOoNPt0LzvrQC5mz1ulgeoDbMFZSeqzUEOGflwrunfIy79QuN9s2TzFHch5oRbAD1Y3A==
+X-Received: by 2002:a92:cd8c:0:b0:432:fd5c:df03 with SMTP id e9e14a558f8ab-4330d1eb232mr49401325ab.24.1761918883467;
+        Fri, 31 Oct 2025 06:54:43 -0700 (PDT)
+Received: from arch-box ([2607:fea8:54de:2200::c98d])
+        by smtp.gmail.com with ESMTPSA id 8926c6da1cb9f-5b6a34b63dfsm721718173.16.2025.10.31.06.54.42
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 31 Oct 2025 06:54:43 -0700 (PDT)
+Date: Fri, 31 Oct 2025 09:54:41 -0400
+From: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+To: Heming Zhao <heming.zhao@suse.com>
+Cc: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com,
+	jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
+	syzbot+b93b65ee321c97861072@syzkaller.appspotmail.com
+Subject: Re: [RFC RFT PATCH] ocfs2: Mark inode bad upon validation failure
+ during read
+Message-ID: <aQS_oUDXGt_nF__d@arch-box>
+References: <20251029225748.11361-2-eraykrdg1@gmail.com>
+ <wzykonhpj76qowdn24inwtaji4zfclesmc3lqnnc7cn6jkyjl4@oauagnarupov>
+ <CAHxJ8O_7-PfJRyGp9-1KOkwmYJWQDzCvvo_P-jxzbzHoqXyH9Q@mail.gmail.com>
+ <qfizhbe5rwzddwnoekr6xjy3gozbqbtl64c5xmfeuudxvficmv@onazesxv4ur6>
+ <aQQ0DLqL0iVN7D15@arch-box>
+ <leys5guzkcvlilaccjmsw7cvncm6o2vqo2wwezhuz7r6lcfjnk@va3cnphl4zf3>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 2/2] ocfs2: validate cl_bpc in allocator inodes to
- prevent divide-by-zero
-To: Dmitry Antipov <dmantipov@yandex.ru>, Heming Zhao <heming.zhao@suse.com>,
- Deepanshu Kartikey <kartikey406@gmail.com>, akpm <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org,
- syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
-References: <20251030153003.1934585-1-dmantipov@yandex.ru>
- <20251030153003.1934585-2-dmantipov@yandex.ru>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251030153003.1934585-2-dmantipov@yandex.ru>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <leys5guzkcvlilaccjmsw7cvncm6o2vqo2wwezhuz7r6lcfjnk@va3cnphl4zf3>
 
+Hi Heming,
 
+> I support adding make_bad_inode() in ocfs2_read_inode_block_full().
+> ocfs2_read_locked_inode() calls ocfs2_read_inode_block[_full] to read the inode
+> from disk. However, ocfs2_read_inode_block[_full] have many callers, and in
+> current code, only ocfs2_read_locked_inode() marks the inode as bad. All others
+> forget to set the bad_inode.
+> 
+> The 'forbid' write operations when read-only mode is worth another patch, and
+> I plan to create this patch. This patch adds a similar ext4_emergency_state()
+> function for ocfs2.
 
-On 2025/10/30 23:30, Dmitry Antipov wrote:
-> From: Deepanshu Kartikey <kartikey406@gmail.com>
-> 
-> The chain allocator field cl_bpc (blocks per cluster) is read from disk
-> and used in division operations without validation. A corrupted filesystem
-> image with cl_bpc=0 causes a divide-by-zero crash in the kernel:
-> 
->   divide error: 0000 [#1] PREEMPT SMP KASAN
->   RIP: 0010:ocfs2_bg_discontig_add_extent fs/ocfs2/suballoc.c:335 [inline]
->   RIP: 0010:ocfs2_block_group_fill+0x5bd/0xa70 fs/ocfs2/suballoc.c:386
->   Call Trace:
->    ocfs2_block_group_alloc+0x7e9/0x1330 fs/ocfs2/suballoc.c:703
->    ocfs2_reserve_suballoc_bits+0x20a6/0x4640 fs/ocfs2/suballoc.c:834
->    ocfs2_reserve_new_inode+0x4f4/0xcc0 fs/ocfs2/suballoc.c:1074
->    ocfs2_mknod+0x83c/0x2050 fs/ocfs2/namei.c:306
-> 
-> This patch adds validation in ocfs2_validate_inode_block() to ensure cl_bpc
-> matches the expected value calculated from the superblock's cluster size
-> and block size for chain allocator inodes (identified by OCFS2_CHAIN_FL).
-> 
-> Moving the validation to inode validation time (rather than allocation time)
-> has several benefits:
-> - Validates once when the inode is read, rather than on every allocation
-> - Protects all code paths that use cl_bpc (allocation, resize, etc.)
-> - Follows the existing pattern of inode validation in OCFS2
-> - Centralizes validation logic
-> 
-> The validation catches both:
-> - Zero values that cause divide-by-zero crashes
-> - Non-zero but incorrect values indicating filesystem corruption or
->   mismatched filesystem geometry
-> 
-> With this fix, mounting a corrupted filesystem produces:
-> 
->   OCFS2: ERROR (device loop0): ocfs2_validate_inode_block: Inode 74
->          has corrupted cl_bpc: ondisk=0 expected=16
-> 
-> instead of a kernel crash.
-> 
-> Link: https://lore.kernel.org/ocfs2-devel/20251026132625.12348-1-kartikey406@gmail.com/T/#u [v1]
-> Link: https://lore.kernel.org/all/20251027124131.10002-1-kartikey406@gmail.com/T/ [v2]
-> Reported-by: syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=fd8af97c7227fe605d95
-> Tested-by: syzbot+fd8af97c7227fe605d95@syzkaller.appspotmail.com
-> Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
-> [dmantipov: combine into the series and tweak
->  the message to fit the commonly used style]
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+We're working on this as part of the Linux Kernel Mentorship Program, and we'd
+love to take on implementing the read-only check if it's not overly
+complicated. We're just beginners, but we thought it would be a great learning
+experience to work on this following the ext4 pattern you mentioned - if you
+haven't already started working on it by the time you see this reply.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
-> v2: add extra check to bypass global bitmap dinode (Joseph Qi)
-> ---
->  fs/ocfs2/inode.c | 10 ++++++++++
->  1 file changed, 10 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 1b6bdd9d7755..08e18be4f1b9 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1505,6 +1505,8 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  
->  	if (le32_to_cpu(di->i_flags) & OCFS2_CHAIN_FL) {
->  		struct ocfs2_chain_list *cl = &di->id2.i_chain;
-> +		u16 bpc = 1 << (OCFS2_SB(sb)->s_clustersize_bits -
-> +				sb->s_blocksize_bits);
->  
->  		if (le16_to_cpu(cl->cl_count) != ocfs2_chain_recs_per_inode(sb)) {
->  			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list count %u\n",
-> @@ -1518,6 +1520,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  					 le16_to_cpu(cl->cl_next_free_rec));
->  			goto bail;
->  		}
-> +		if (OCFS2_SB(sb)->bitmap_blkno &&
-> +		    OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
-> +		    le16_to_cpu(cl->cl_bpc) != bpc) {
-> +			rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
-> +					 (unsigned long long)bh->b_blocknr,
-> +					 le16_to_cpu(cl->cl_bpc));
-> +			goto bail;
-> +		}
->  	}
->  
->  	rc = 0;
+> Therefore, your original patch looks good to me. I will provide my Reivewed-by
+> for it.
 
+Thank you so much for your review and the Reviewed-by tag
+
+Cheers,
+	Albin
