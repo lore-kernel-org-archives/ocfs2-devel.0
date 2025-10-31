@@ -1,79 +1,80 @@
-Received: from mail-io1-f44.google.com (mail-io1-f44.google.com [209.85.166.44])
+Received: from mail-wr1-f49.google.com (mail-wr1-f49.google.com [209.85.221.49])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 604BF33BBA6
-	for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 13:54:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B5E321FF25
+	for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 14:05:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1761918885; cv=none; b=SwzxN1KRsXgI+X5mDUnpD/rxwzPiY8jGHWd4GC08aLqtEEmVK+5WrpYWsxvghXaAcg/dXaTm6Vp+x4LPXlEDSKl0NnZzhvIBauLc+isKa6dEZ5lCY2iv89nJZcdbrSIv6xuvD7J8m8AI3tHbFDfdAfnOqYEo0Wh6VZaCvYau9Yo=
+	t=1761919522; cv=none; b=YZMqIMhl4jCIVNEW2VdzDE++6n6SESpOAye/1SxEIftyQIlRtFKyf0TPmp2h8j1XTRWj+RFi4TLfGhnZC3x6OnlOODYqcrsuVwvlrQlWEJMUc27i4Aewn/evJtCyP+TTZ6D7MLve6+TZV3AKjSikyePZ+70tDVbqNKc61kiA680=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1761918885; c=relaxed/simple;
-	bh=FN2tQDX/wwLUC2mxidAL9H47bLyAFnJDpvPQlovcMVQ=;
+	s=arc-20240116; t=1761919522; c=relaxed/simple;
+	bh=ckWEHSYzRMCQdSdV1+aItXg+MoosM9PmpiIfZ+3IkXk=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=ndfdivVxiqcUhTP4y6CgXNrb6exTsoBhlvp4NqviMb2VznSBXNO8QbKPnrSQJCX5G9AbBTAKru2zR2PK35fOMFFE0aMY+lr+ag/JvR+7EvWsekAuj7SMbwSdqxpCMTfLDSLmfLFLxeamxlYGk1e+vYExNu46mC82EIj8PZy09/s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PHDm6nyP; arc=none smtp.client-ip=209.85.166.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	 Content-Type:Content-Disposition:In-Reply-To; b=PDLRHEjafimp9HRdC2elgVs9SR1yFwNmAjTW4VcbCpsjx0BRGA7tAOMI3gniGJYut4S03iLjnVm6Mb0FsFfuQ/6WSIComak4VE+SyFTc8p/DhG+tiqqIU6/C6R7gseWcsvNfKAyf74GWZ0eK/5y7E2iYWbKWx8RN9KWsEawsmto=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=XLQX/EbB; arc=none smtp.client-ip=209.85.221.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PHDm6nyP"
-Received: by mail-io1-f44.google.com with SMTP id ca18e2360f4ac-940d327df21so90715639f.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 06:54:44 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="XLQX/EbB"
+Received: by mail-wr1-f49.google.com with SMTP id ffacd0b85a97d-42855f80f01so337829f8f.2
+        for <ocfs2-devel@lists.linux.dev>; Fri, 31 Oct 2025 07:05:20 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1761918883; x=1762523683; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1761919519; x=1762524319; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=AIC+1h53umAhjFDxKUylX2ye8sI922EhJMx+ZKGKkKc=;
-        b=PHDm6nyPzKw72psKGfMNCTaYX1YXLyj7hhTaU9kj0RGpuI48jcX67eZ72vjhEQUpg5
-         jS3kvv4BwurElnU+r/wMxDdwBbqijSByPcKbb1W3QtXxc3o2KE76VvezFXfbwheNInR4
-         esDpM8MDg4Dw2x6JyuVws9EzgR47lJd4fX+0+HvS2zbjX6WlvzbEl0kwSOVLZwHoCHPd
-         2YlFvowLGh8UpJtFOlv841vwh7+AvD3yO3wY72RaMDoQPcpQL+HgdIdeuLcZ5s3J+oZ9
-         lkxq6OJzI6mV00DqV5tO24tUXDvfSer0sjd2Wv4OSu1LRGG7Qdlfab+yvW49SYqHHv+s
-         blWA==
+        bh=UEEYMKZKM55egNcS9TLQLwdFtLgzGx5oRqh6S7KgDlc=;
+        b=XLQX/EbBD3N1SmlBrBKON/wekGUO+215v6c1zXlqLXHK2iUU5/cNCEDMs5rlq+2Nlx
+         8xWea5+6giQPS+aqSQa/xltvQ3fvfzOGK0m3N4Msstht4Zesq6e7iM6ZKKsuIpVWAVt3
+         3mYz3aghGHGkiSrNiNcMdUJfGn/5RrARMvUMxyyTNw7dmL6RMzm9xpX09x94eMnnhjVa
+         YLVaVS9Sos/6EA9lwBlOxAwLCaBTdzqNCczt3jY9s+YuBecItz0ETcKyaBowOxuSBUdX
+         oHS1qI7xoMBRpeT3Nt9MbjX3k7wqEbkeMY2tNIL8bIK9jm+VUKtVbMNRazG+jFFqqnba
+         bdFg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1761918883; x=1762523683;
+        d=1e100.net; s=20230601; t=1761919519; x=1762524319;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=AIC+1h53umAhjFDxKUylX2ye8sI922EhJMx+ZKGKkKc=;
-        b=QhgDpFBpigIQDbOhnwtMty5CdaXO7COIxZ2jiXe8pZ/F6DU55lMM36JWk/ZmgOF9gI
-         84CSAY6I8i4mHD6+G9pVcuLGXjH7OEcvoQw7Db/OvcRqWxFg/G4Au1Cxe6w1Y8DzhgY8
-         z32Ey4+nkTNNWV96FSQma7M4gCvQtk6cyTY9tpqe/mktfULIBOZjHHMG880AujcRq+IQ
-         y7iMri2ToWOccn7iB0Hx+QRiGIGkitG8s68cyox2ix1Gq1/bZMjD1dEF9qG+dWuY6OBi
-         yPVbKUbCtjSfzQ2tmh8No31A6dX4MyU4nsn5xY+Wk1l+b0Swg2dEc97LYa+vSyFarlzb
-         KLAg==
-X-Forwarded-Encrypted: i=1; AJvYcCWL1NvyIaCAg5eLFa1bXhbhIVXFXpakJ+xFLpwuuzCAEhdEnuUq5jaM0wlqme264dqs3vAF+HkfVBRKCg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YynZbeV/wd0ws2Gz+WX+cm8qX8CuGBWUm5vRvI/gEUSfrvXCVX4
-	UoQsbgDtdpminR2yG5yuruubJcyjfbWuNb2SUEv4Zk/7EeQU8GrBCXcY
-X-Gm-Gg: ASbGnctVRxNNRV5uSOWowsO2N2I7EwUB0Kq4PFtUvKwzdeDcB+rhFacHVnqs3MqE+H2
-	vqwWDJ77D6XCMZY0AG2Id8sk4vzOEfSQMbnfR7fHYe1xGwuwTI+BG5U1GVM6JskCIUIL1Q2ZhTX
-	fN5+OQ9qACdQO+hjPWmgpPwovPsLPFV/79/zs81Uv4XFmbhQ4sLyXNL/rczjpAroegAvSwKE6G+
-	tv2Bmk4Snim2GodpstS72Hmlc29nARaqOfFyfX3gg07hObf48xN084nyUlsm+6CTFvEFBwMdsij
-	NaLDJGQ8mVmdxWREPnS6CdjY5OaXEwkAvNftW0wUJHfvnfLSJd9PmuMoj4uWHG5NvOPLDaqAUnx
-	0dctgARZp9EJsl1HZJtq5zWsS7qsuHaDfAhvs4hC8voB/qK3ctjr98gOvXI2ml6XYEVum8as=
-X-Google-Smtp-Source: AGHT+IHCzKlOoNPt0LzvrQC5mz1ulgeoDbMFZSeqzUEOGflwrunfIy79QuN9s2TzFHch5oRbAD1Y3A==
-X-Received: by 2002:a92:cd8c:0:b0:432:fd5c:df03 with SMTP id e9e14a558f8ab-4330d1eb232mr49401325ab.24.1761918883467;
-        Fri, 31 Oct 2025 06:54:43 -0700 (PDT)
-Received: from arch-box ([2607:fea8:54de:2200::c98d])
-        by smtp.gmail.com with ESMTPSA id 8926c6da1cb9f-5b6a34b63dfsm721718173.16.2025.10.31.06.54.42
+        bh=UEEYMKZKM55egNcS9TLQLwdFtLgzGx5oRqh6S7KgDlc=;
+        b=kyFU0OwkL4YK+YVsHbw9pBbaRTz7B9HDVr/5u6nz9ESjuyEsdSV1fFuO0iwHIoSCf/
+         WBJqLp6xNUaCwfKMuvffohEb6U4RZTDFih9uFksK2r/KM9OwSuT+Re2ZImCzlK8ufDDN
+         fAGD1c3lUOeK5Cyfa4JgaVJANiet0D2D7D1SxgFNI6xuFtWkInogPx0ZZe9hBW2e54Zd
+         Bs35mX/u2eepAgCmHFsKrAGh4KI8DSB7KvxRX2p8LFGNH9P1RzbcoG3pe7yOLRBCpcM4
+         gkB1s2OSKwFURk91vFOgDPZ0qCAz5sKR8md5671KbDRDaGhy+WGcty3xGmunTk72ICae
+         6gUg==
+X-Forwarded-Encrypted: i=1; AJvYcCVIZdi/UMmIUmUxQfgwD+jqteJQFUTf9cWspPOvLh2Y/odY7NxEN/RwfiCMSTVXpuaGbc+/lgQURR0ltA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyD7lkszl3bdmSSX8zyGQSaLLnsXKxvDSodYat8YkcXTgT7GQYb
+	X0SaIUMVOnRumCyyHCSY9ifoCCOvLr6BMEvldAURK1dUJcXus4399E4iCbIV0X6Xv7M=
+X-Gm-Gg: ASbGncuyCENbKBL797e1/QEvblrODqVYV6vujVVtmVquvmflCoM5JKiTf6mhJS6FEJn
+	y5NYsLJDQlnXPCdVXwa5cgGrW328cMmXrGV9PUcLSe9XyNpi0yb6AVYiskvgWToBS+ACvD+59wm
+	zzWjOFcrHQoLBPemyW68WZMZ7Qj8lZvaKIY6EaNQwRBvcgxkC43VcTklIdLsNkkyEhzhcNTr5y1
+	wgfEniLV6EOQYeUpD6UqRq/QB3oyxvY4q5h9VlPyy9kdSq3uiv7XDS4MVqSrqWsI/30mh+aoD3B
+	mceDuUqp7HS3C4JFM2yaL5KSlXrtqmKxppjRocGL8w+weZOGg4CC2w/Ou5XM1L6ipdgLNAuQouU
+	p7CODTP9XHh8RS0oAStWxG+Y7YCd0JiF3xeiNHW/pR65AWNWITKfRz5ZWgjFs4YXrrs5zITY1fT
+	DaYBzCUNiFcQ==
+X-Google-Smtp-Source: AGHT+IE20aFgYfEmUsR0QvaAoacDC6fODutHzSvHSUQsADrC6Dw8Qfg3mMEOFdiGJnzQSF6ImIcR9g==
+X-Received: by 2002:a5d:5c89:0:b0:429:927e:f23 with SMTP id ffacd0b85a97d-429bd6a7a39mr1718841f8f.6.1761919518697;
+        Fri, 31 Oct 2025 07:05:18 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-295269c1c17sm24932505ad.108.2025.10.31.07.05.17
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 31 Oct 2025 06:54:43 -0700 (PDT)
-Date: Fri, 31 Oct 2025 09:54:41 -0400
-From: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com,
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
-	david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
+        Fri, 31 Oct 2025 07:05:18 -0700 (PDT)
+Date: Fri, 31 Oct 2025 22:05:14 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Cc: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com, 
+	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org, david.hunter.linux@gmail.com, skhan@linuxfoundation.org, 
 	syzbot+b93b65ee321c97861072@syzkaller.appspotmail.com
 Subject: Re: [RFC RFT PATCH] ocfs2: Mark inode bad upon validation failure
  during read
-Message-ID: <aQS_oUDXGt_nF__d@arch-box>
+Message-ID: <stmj7kbqis2idlscf5iwch23ft2azuyyr7q2kmelavjk5lnug4@66in667d6bym>
 References: <20251029225748.11361-2-eraykrdg1@gmail.com>
  <wzykonhpj76qowdn24inwtaji4zfclesmc3lqnnc7cn6jkyjl4@oauagnarupov>
  <CAHxJ8O_7-PfJRyGp9-1KOkwmYJWQDzCvvo_P-jxzbzHoqXyH9Q@mail.gmail.com>
  <qfizhbe5rwzddwnoekr6xjy3gozbqbtl64c5xmfeuudxvficmv@onazesxv4ur6>
  <aQQ0DLqL0iVN7D15@arch-box>
  <leys5guzkcvlilaccjmsw7cvncm6o2vqo2wwezhuz7r6lcfjnk@va3cnphl4zf3>
+ <aQS_oUDXGt_nF__d@arch-box>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -82,30 +83,35 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <leys5guzkcvlilaccjmsw7cvncm6o2vqo2wwezhuz7r6lcfjnk@va3cnphl4zf3>
+In-Reply-To: <aQS_oUDXGt_nF__d@arch-box>
 
-Hi Heming,
-
-> I support adding make_bad_inode() in ocfs2_read_inode_block_full().
-> ocfs2_read_locked_inode() calls ocfs2_read_inode_block[_full] to read the inode
-> from disk. However, ocfs2_read_inode_block[_full] have many callers, and in
-> current code, only ocfs2_read_locked_inode() marks the inode as bad. All others
-> forget to set the bad_inode.
+On Fri, Oct 31, 2025 at 09:54:41AM -0400, Albin Babu Varghese wrote:
+> Hi Heming,
 > 
-> The 'forbid' write operations when read-only mode is worth another patch, and
-> I plan to create this patch. This patch adds a similar ext4_emergency_state()
-> function for ocfs2.
+> > I support adding make_bad_inode() in ocfs2_read_inode_block_full().
+> > ocfs2_read_locked_inode() calls ocfs2_read_inode_block[_full] to read the inode
+> > from disk. However, ocfs2_read_inode_block[_full] have many callers, and in
+> > current code, only ocfs2_read_locked_inode() marks the inode as bad. All others
+> > forget to set the bad_inode.
+> > 
+> > The 'forbid' write operations when read-only mode is worth another patch, and
+> > I plan to create this patch. This patch adds a similar ext4_emergency_state()
+> > function for ocfs2.
+> 
+> We're working on this as part of the Linux Kernel Mentorship Program, and we'd
+> love to take on implementing the read-only check if it's not overly
+> complicated. We're just beginners, but we thought it would be a great learning
+> experience to work on this following the ext4 pattern you mentioned - if you
+> haven't already started working on it by the time you see this reply.
 
-We're working on this as part of the Linux Kernel Mentorship Program, and we'd
-love to take on implementing the read-only check if it's not overly
-complicated. We're just beginners, but we thought it would be a great learning
-experience to work on this following the ext4 pattern you mentioned - if you
-haven't already started working on it by the time you see this reply.
+I haven't started the patch job, you are welcome to take it.
 
-> Therefore, your original patch looks good to me. I will provide my Reivewed-by
-> for it.
-
-Thank you so much for your review and the Reviewed-by tag
-
-Cheers,
-	Albin
+- Heming
+> 
+> > Therefore, your original patch looks good to me. I will provide my Reivewed-by
+> > for it.
+> 
+> Thank you so much for your review and the Reviewed-by tag
+> 
+> Cheers,
+> 	Albin
