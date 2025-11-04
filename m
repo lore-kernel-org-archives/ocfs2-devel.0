@@ -1,98 +1,72 @@
-Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DD7F230CDA3
-	for <ocfs2-devel@lists.linux.dev>; Mon,  3 Nov 2025 13:10:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 459162264B1;
+	Tue,  4 Nov 2025 01:43:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762175437; cv=none; b=P8C6YKD+zrasF3Xr9A+lAdS3ER3hlgdmSDn4asEczdkAISvTi6VBcVNPnCwOeAfasXIfJ1V8Iimwj1vwkHN9pbcE7N1Lhol0ic+AetwHKyvDvTh0dqDdJMquYnDa7SR1yHcBUSxoQ0W6H80rk/IbDd14R7hF/n8SsEuy1il+KkU=
+	t=1762220625; cv=none; b=oNvQMNUM3JvAAZu57ruHrWiQcuy5E5YSgHiuTzt7PGpO6uvAnQBhv/0njyN/Tg3tfMcDk0CmyeXV3npuuIfVkoLW5GQVfUKmVm/ZQFgDwaU6M6Uyl4rmfCbnNJnXrrpk6OJFShGcjGhHFkQOiUNEUF6CzBOzE8rAwMx4NMOFrmc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762175437; c=relaxed/simple;
-	bh=OXOVdV7W/lso+SggOgvU+U8UHJEOSob6qb3AvgPoOIY=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=me1J818+obMa1VGAOSbP8JUEHtvB+p75DVrlfxzOTFI/p8r23z/oDGYgyULd4FNSS5AlOZytEyX1/eZeK3NVb11jnrnBZVuyZONa/m53oEK0yrjDGWs7qUr+Jx7lGaZwcVL8sjdXs0tF0CcwNMKGoOXviX2xp3UyR7UOlc147mA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-4330f62ef60so23647955ab.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 03 Nov 2025 05:10:35 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1762175435; x=1762780235;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=zeYYuyjJ6Kzb3Aak8HjT4HbxnAJaJ6aTQhKetjvoumI=;
-        b=TZFbWHgyq8ZimIGRvZPKaX9cK2e1lcHVTp7OUpzE5c+HAzLijvm4K+fAV4AQmbnpS+
-         L+DjecckaDUc7q8C3+Revzzs5w+C7Kw/uW5ImfUDcysZ4smq5iDkEJXDdVmLQ2TZ2LSE
-         XkV/VMdANJv0PpzddSRSkKmFwGDWhxJK447aAvx9v77JQ+poZMfzafQ+CNVfcyuvbZwo
-         XS49lzHXqBWL0hfBNsHlvLJLYBiP6wwaeDZ5LU10xBPLL6eBZuabYD6NuWJjArTSZkQm
-         oaKi6riUZgZdUKjVqa63qh1lKLWrBk2nhjrdZy4/chZFl9dcXSWIyuOUhRUGzycPBwyQ
-         NrlA==
-X-Forwarded-Encrypted: i=1; AJvYcCU54q2MFMJTH8cYux2dwXoeDKx7iZoWd7M1A4QmXaO+04eAgyc4Ijc3l2kGtu+UABUu1Fa/pXBAIX+bmQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxKhZhx9ps61GiHrHOfRv8NPTegJk2pVwstWk/F3KTzXQREtFKa
-	6bs/SgJTz9Ku++KtqpVzaY9ZkNuYOejjdys55KRaVHJjIKdFnmJr/lSt4jHF+EvFpCo6CA1V2qs
-	6Hoyksk+JjluRAK8njsVJCGsVhKvT+hZ1rOyBM8zpAfc1avdf2vaxrf1AXec=
-X-Google-Smtp-Source: AGHT+IFZaxk75JBJmqNMX3nF/Ut3FXrSED++Vz28gRoBhTH2+Z4YLt0co66+RnwUzfKzHcyBJrYnrG8WmlEcUJWjcjJsbmd5SpCk
+	s=arc-20240116; t=1762220625; c=relaxed/simple;
+	bh=BX0tUVsyY8ldvnds1/e/y6kgPKJqlyj2E8lWQ44dxfo=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=fwdL9Jp9t0vvYYiGRhOGpm12qex8sQ1gsraYDPHJad2Ys7IUuycMbvYFcUUKPBkydT3UhN9jTcsBvONe/hhRMQAYO2u+T9Ae55/eWiVVpGzkzykTh+2qhkTAkRpSDo3AbMZcuGFtNXff7FfDZtH7XCMvt8WNdDyBTsKlND2q/bM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=dY6b2MM6; arc=none smtp.client-ip=10.30.226.201
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="dY6b2MM6"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0699BC4CEFD;
+	Tue,  4 Nov 2025 01:43:45 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1762220625;
+	bh=BX0tUVsyY8ldvnds1/e/y6kgPKJqlyj2E8lWQ44dxfo=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=dY6b2MM6lvQesY8UEelJfXc71chFYKuoyIOZKssRUSMQJxDm9jXPKotxE9/ABbFPu
+	 XdSerDYLKzYzDqDQ6JtxN3d5froEQfTFFz5xPdBJiYV5fi7EtRoBao1e6KRqYwr3AY
+	 4WLnVKWA2sLfmr9+9HcGjMrprpXu64yk6i9qhfJk1xH3AdHuzSaP7REg2SZctZwFBT
+	 ziPcYiFBzusRmwzHTOosUeYKOg4gg5R34YL/8ezSb/+A5pYwNrmsMmzydnbJ1FjVaF
+	 jXaQc0pHgng9HvscIjQuljf8jrhjAvtPL5qfzHDAlZO3QJ8dh49y79v1EdVD6oFICv
+	 aPXmbZutFbm5Q==
+Date: Mon, 3 Nov 2025 17:43:44 -0800
+From: Kees Cook <kees@kernel.org>
+To: Al Viro <viro@zeniv.linux.org.uk>
+Cc: linux-fsdevel@vger.kernel.org, torvalds@linux-foundation.org,
+	brauner@kernel.org, jack@suse.cz, raven@themaw.net,
+	miklos@szeredi.hu, neil@brown.name, a.hindborg@kernel.org,
+	linux-mm@kvack.org, linux-efi@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev, rostedt@goodmis.org,
+	gregkh@linuxfoundation.org, linux-usb@vger.kernel.org,
+	paul@paul-moore.com, casey@schaufler-ca.com,
+	linuxppc-dev@lists.ozlabs.org, john.johansen@canonical.com,
+	selinux@vger.kernel.org, borntraeger@linux.ibm.com,
+	bpf@vger.kernel.org
+Subject: Re: [PATCH v2 18/50] convert pstore
+Message-ID: <202511031743.3F127F8@keescook>
+References: <20251028004614.393374-1-viro@zeniv.linux.org.uk>
+ <20251028004614.393374-19-viro@zeniv.linux.org.uk>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a92:c246:0:b0:433:306e:2c83 with SMTP id
- e9e14a558f8ab-433307d7042mr41424335ab.28.1762175435016; Mon, 03 Nov 2025
- 05:10:35 -0800 (PST)
-Date: Mon, 03 Nov 2025 05:10:35 -0800
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6908a9cb.050a0220.29fc44.0046.GAE@google.com>
-Subject: [syzbot] Monthly ocfs2 report (Nov 2025)
-From: syzbot <syzbot+list699dc14d87d84bf275ca@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251028004614.393374-19-viro@zeniv.linux.org.uk>
 
-Hello ocfs2 maintainers/developers,
+On Tue, Oct 28, 2025 at 12:45:37AM +0000, Al Viro wrote:
+> object creation by d_alloc_name()+d_add() in pstore_mkfile(), removal -
+> via normal VFS codepaths (with ->unlink() using simple_unlink()) or
+> in pstore_put_backend_records() via locked_recursive_removal()
+> 
+> Replace d_add() with d_make_persistent()+dput() - that's what really
+> happens there.  The reference that goes into record->dentry is valid
+> only until the unlink (and explicitly cleared by pstore_unlink()).
+> 
+> Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 
-This is a 31-day syzbot report for the ocfs2 subsystem.
-All related reports/information can be found at:
-https://syzkaller.appspot.com/upstream/s/ocfs2
+Thanks for the refactoring!
 
-During the period, 4 new issues were detected and 1 were fixed.
-In total, 62 issues are still open and 24 have already been fixed.
+Reviewed-by: Kees Cook <kees@kernel.org>
 
-Some of the still happening issues:
-
-Ref  Crashes Repro Title
-<1>  306918  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
-                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
-<2>  65246   Yes   possible deadlock in ocfs2_acquire_dquot
-                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
-<3>  34033   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
-                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
-<4>  21191   Yes   possible deadlock in ocfs2_init_acl
-                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
-<5>  20054   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
-                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
-<6>  13013   Yes   possible deadlock in ocfs2_setattr
-                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
-<7>  5612    No    possible deadlock in ocfs2_xattr_set
-                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
-<8>  4575    Yes   kernel BUG in ocfs2_write_cluster_by_desc
-                   https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
-<9>  3538    Yes   possible deadlock in ocfs2_lock_global_qf
-                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
-<10> 2549    Yes   possible deadlock in ocfs2_del_inode_from_orphan
-                   https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-To disable reminders for individual bugs, reply with the following command:
-#syz set <Ref> no-reminders
-
-To change bug's subsystems, reply with:
-#syz set <Ref> subsystems: new-subsystem
-
-You may send multiple commands in a single email message.
+-- 
+Kees Cook
