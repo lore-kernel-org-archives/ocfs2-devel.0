@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 23655347FD8;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7BE2346FD0;
 	Tue, 11 Nov 2025 06:55:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762844133; cv=none; b=MlvNJRnny1aZKx9RHdD7QtZETmDu2Ih3NyNQBTUVWnddqcChLmk8Fy56uPaZmQm+PWpR2wywvp2DNzK224eCY+0UIShAZN/LYpHpplkK1mcjZnjoc4p8zZJ+GoM5E+krI4IPFnTr2soBQuKO4DgXQ5Zu4014MA/zLJ/0fLbie4Y=
+	t=1762844133; cv=none; b=bdGdS/mzxO9cDsoSa1DnEwpfAto4GSdJ1B3Mn64jMZ9GB1Ocir6+9Nind+1wLbpjnUBMVbo+4M28YJkv+wju+CfcKBe5TkLp1JrDbwM5Jq8+M5lMRGAy3h12pH86EqT4rcyT+H4bHY/c4lST3eNGB46wUqbSxz779XWHIcHC7Dg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1762844133; c=relaxed/simple;
-	bh=g0DzPIcsJ7FGStG4d77ktIfa76GpIX47vIyEYt5ulTE=;
+	bh=UehzoAqkMMtpS1CZkgeVCnyi1TakQfRHnSW/Mdx4B8A=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=R2SG0uM59ksPfycyT/9pG2MlBqY4or6w56ayWMfFkg9Z1xVVQh76OIG6U3L+d/IgSWGvkv2dAHdazz+8zwq19LSBMh6jaEBKEtWwp1eYYqcZ7VKa7Fi+9p8QFmyH7WSjH17C0gesQY5VJHKmbczz6ugYzrsl5DpXL089gh+REs8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=tc0/LaWO; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=TPhOONZOvcOTItkqUjEkUqIimNLItS+g17P84QyxhGHGfy7lY9M+rrJCv0WNZRgq5APGkR3J64+svWBKKdJosqBZVPzQdxaiGVORNh6LPZsQrihpWVzWmt5BQ6BfJCcYIOZbhMP2bvxEkP9mOrTHeHUfZdqjTjJByYleF/VsPZk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=w3HzJj6d; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="tc0/LaWO"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="w3HzJj6d"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=0EOMkT/UFsYLOkQCFILn7xjwHlMa0Zq2h7YoVPTnFkU=; b=tc0/LaWOOgbMQ111+igu49CS2g
-	phQ+Ub498iuMr20TnISzkpSlI5Rh9m3XDKIHm7ttVNJWMNodhJrqScO1UChifsgTI0vp9a+TC0zQ6
-	wgIoJMLc1ZxBeW43ROXp06EFElt8QvwpbW5Lm+4FTnxcW0IJWyS8W4g9QDdJpt4Ef4wpnI+3bZwTD
-	/FrUz0/B80hWcmSL60mE+RJDBRevzP6gYz6fARP+/akZPB5L0nOP9JBP0eptP6MQFkY9iVmWnn0uy
-	48PTVG93EJ3fivCiWdovYzsAT+/N8eSgVEHVRP0vkxJajSkYrBjMF90xFvWKrIH4uI8kq34s1Uk3/
-	2di164SQ==;
+	bh=0rQmwI4wUCW4CFIUjCTrKY3EBmJE6MZ3qh3WAaCxCww=; b=w3HzJj6dIjUGvVtuH9EW2+M/oX
+	l2sQlAQ9o3B9CyZUYYA4OXaizv62M7NjTVobql1V02v22x7GXnZ8QNDFLN1uc/kCnoLwYhr9nAxZC
+	wCkoEamKxQMJPivBMdxeCtsVnuJHyct5ys4qSehrBLtSNh/JI5Z5el/50nGhUV9xnRpjcrtgRtQTM
+	jnxdeI8xRzQEVH9WzI6PB7UsboUJRoseob9UIqEJNKhXhJZfU1ddIPB6CYm9QPiWF17Htr5r4XITD
+	53c068+7s255nbfMCbX+eSz2Ms0ldTle1KLXxVXEVLlcDMewriy1w9Qfr89wD1ERdYdXtMTPhCuMU
+	0HRk00bw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vIiHm-0000000Bx00-0jJ1;
-	Tue, 11 Nov 2025 06:55:26 +0000
+	id 1vIiHi-0000000Bwx0-19u5;
+	Tue, 11 Nov 2025 06:55:22 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v3 30/50] autofs_{rmdir,unlink}: dentry->d_fsdata->dentry == dentry there
-Date: Tue, 11 Nov 2025 06:54:59 +0000
-Message-ID: <20251111065520.2847791-31-viro@zeniv.linux.org.uk>
+Subject: [PATCH v3 06/50] primitives for maintaining persisitency
+Date: Tue, 11 Nov 2025 06:54:35 +0000
+Message-ID: <20251111065520.2847791-7-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
 References: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
@@ -67,38 +67,178 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
+* d_make_persistent(dentry, inode) - bump refcount, mark persistent and
+make hashed positive.  Return value is a borrowed reference to dentry;
+it can be used until something removes persistency (at the very least,
+until the parent gets unlocked, but some filesystems may have stronger
+exclusion).
+
+* d_make_discardable() - remove persistency mark and drop reference.
+
+d_make_persistent() is similar to combination of d_instantiate(), dget()
+and setting flag.  The only difference is that unlike d_instantiate()
+it accepts hashed and unhashed negatives alike.  It is always called in
+strong locking environment (parent held exclusive, or, in some cases,
+dentry coming from d_alloc_name()); if we ever start using it with parent
+held only shared and dentry coming from d_alloc_parallel(), we'll need
+to copy the in-lookup logics from __d_add().
+
+d_make_discardable() is eqiuvalent to combination of removing flag and
+dput(); since flag removal requires ->d_lock, there's no point trying
+to avoid taking that for refcount decrement as fast_dput() does.
+The slow path of dput() has been taken into a helper and reused in
+d_make_discardable() instead.
+
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/autofs/root.c | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+ fs/dcache.c            | 74 +++++++++++++++++++++++++++++++++---------
+ include/linux/dcache.h |  2 ++
+ 2 files changed, 61 insertions(+), 15 deletions(-)
 
-diff --git a/fs/autofs/root.c b/fs/autofs/root.c
-index 174c7205fee4..39794633d484 100644
---- a/fs/autofs/root.c
-+++ b/fs/autofs/root.c
-@@ -623,12 +623,11 @@ static int autofs_dir_symlink(struct mnt_idmap *idmap,
- static int autofs_dir_unlink(struct inode *dir, struct dentry *dentry)
+diff --git a/fs/dcache.c b/fs/dcache.c
+index f2c9f4fef2a2..3cc6c3876177 100644
+--- a/fs/dcache.c
++++ b/fs/dcache.c
+@@ -869,6 +869,24 @@ static inline bool fast_dput(struct dentry *dentry)
+ 	return false;
+ }
+ 
++static void finish_dput(struct dentry *dentry)
++	__releases(dentry->d_lock)
++	__releases(RCU)
++{
++	while (lock_for_kill(dentry)) {
++		rcu_read_unlock();
++		dentry = __dentry_kill(dentry);
++		if (!dentry)
++			return;
++		if (retain_dentry(dentry, true)) {
++			spin_unlock(&dentry->d_lock);
++			return;
++		}
++		rcu_read_lock();
++	}
++	rcu_read_unlock();
++	spin_unlock(&dentry->d_lock);
++}
+ 
+ /* 
+  * This is dput
+@@ -906,22 +924,28 @@ void dput(struct dentry *dentry)
+ 		rcu_read_unlock();
+ 		return;
+ 	}
+-	while (lock_for_kill(dentry)) {
+-		rcu_read_unlock();
+-		dentry = __dentry_kill(dentry);
+-		if (!dentry)
+-			return;
+-		if (retain_dentry(dentry, true)) {
+-			spin_unlock(&dentry->d_lock);
+-			return;
+-		}
+-		rcu_read_lock();
+-	}
+-	rcu_read_unlock();
+-	spin_unlock(&dentry->d_lock);
++	finish_dput(dentry);
+ }
+ EXPORT_SYMBOL(dput);
+ 
++void d_make_discardable(struct dentry *dentry)
++{
++	spin_lock(&dentry->d_lock);
++	/*
++	 * By the end of the series we'll add
++	 * WARN_ON(!(dentry->d_flags & DCACHE_PERSISTENT);
++	 * here, but while object removal is done by a few common helpers,
++	 * object creation tends to be open-coded (if nothing else, new inode
++	 * needs to be set up), so adding a warning from the very beginning
++	 * would make for much messier patch series.
++	 */
++	dentry->d_flags &= ~DCACHE_PERSISTENT;
++	dentry->d_lockref.count--;
++	rcu_read_lock();
++	finish_dput(dentry);
++}
++EXPORT_SYMBOL(d_make_discardable);
++
+ static void to_shrink_list(struct dentry *dentry, struct list_head *list)
+ __must_hold(&dentry->d_lock)
  {
- 	struct autofs_sb_info *sbi = autofs_sbi(dir->i_sb);
--	struct autofs_info *ino = autofs_dentry_ino(dentry);
- 	struct autofs_info *p_ino;
+@@ -1939,7 +1963,6 @@ static void __d_instantiate(struct dentry *dentry, struct inode *inode)
+ 	unsigned add_flags = d_flags_for_inode(inode);
+ 	WARN_ON(d_in_lookup(dentry));
  
- 	p_ino = autofs_dentry_ino(dentry->d_parent);
- 	p_ino->count--;
--	dput(ino->dentry);
-+	dput(dentry);
+-	spin_lock(&dentry->d_lock);
+ 	/*
+ 	 * The negative counter only tracks dentries on the LRU. Don't dec if
+ 	 * d_lru is on another list.
+@@ -1952,7 +1975,6 @@ static void __d_instantiate(struct dentry *dentry, struct inode *inode)
+ 	__d_set_inode_and_type(dentry, inode, add_flags);
+ 	raw_write_seqcount_end(&dentry->d_seq);
+ 	fsnotify_update_flags(dentry);
+-	spin_unlock(&dentry->d_lock);
+ }
  
- 	d_inode(dentry)->i_size = 0;
- 	clear_nlink(d_inode(dentry));
-@@ -710,7 +709,7 @@ static int autofs_dir_rmdir(struct inode *dir, struct dentry *dentry)
+ /**
+@@ -1976,7 +1998,9 @@ void d_instantiate(struct dentry *entry, struct inode * inode)
+ 	if (inode) {
+ 		security_d_instantiate(entry, inode);
+ 		spin_lock(&inode->i_lock);
++		spin_lock(&entry->d_lock);
+ 		__d_instantiate(entry, inode);
++		spin_unlock(&entry->d_lock);
+ 		spin_unlock(&inode->i_lock);
+ 	}
+ }
+@@ -1995,7 +2019,9 @@ void d_instantiate_new(struct dentry *entry, struct inode *inode)
+ 	lockdep_annotate_inode_mutex_key(inode);
+ 	security_d_instantiate(entry, inode);
+ 	spin_lock(&inode->i_lock);
++	spin_lock(&entry->d_lock);
+ 	__d_instantiate(entry, inode);
++	spin_unlock(&entry->d_lock);
+ 	WARN_ON(!(inode->i_state & I_NEW));
+ 	inode->i_state &= ~I_NEW & ~I_CREATING;
+ 	/*
+@@ -2754,6 +2780,24 @@ void d_add(struct dentry *entry, struct inode *inode)
+ }
+ EXPORT_SYMBOL(d_add);
  
- 	p_ino = autofs_dentry_ino(dentry->d_parent);
- 	p_ino->count--;
--	dput(ino->dentry);
-+	dput(dentry);
- 	d_inode(dentry)->i_size = 0;
- 	clear_nlink(d_inode(dentry));
++struct dentry *d_make_persistent(struct dentry *dentry, struct inode *inode)
++{
++	WARN_ON(!hlist_unhashed(&dentry->d_u.d_alias));
++	WARN_ON(!inode);
++	security_d_instantiate(dentry, inode);
++	spin_lock(&inode->i_lock);
++	spin_lock(&dentry->d_lock);
++	__d_instantiate(dentry, inode);
++	dentry->d_flags |= DCACHE_PERSISTENT;
++	dget_dlock(dentry);
++	if (d_unhashed(dentry))
++		__d_rehash(dentry);
++	spin_unlock(&dentry->d_lock);
++	spin_unlock(&inode->i_lock);
++	return dentry;
++}
++EXPORT_SYMBOL(d_make_persistent);
++
+ static void swap_names(struct dentry *dentry, struct dentry *target)
+ {
+ 	if (unlikely(dname_external(target))) {
+diff --git a/include/linux/dcache.h b/include/linux/dcache.h
+index 94b58655322a..6ec4066825e3 100644
+--- a/include/linux/dcache.h
++++ b/include/linux/dcache.h
+@@ -611,5 +611,7 @@ static inline struct dentry *d_next_sibling(const struct dentry *dentry)
+ }
  
+ void set_default_d_op(struct super_block *, const struct dentry_operations *);
++struct dentry *d_make_persistent(struct dentry *, struct inode *);
++void d_make_discardable(struct dentry *dentry);
+ 
+ #endif	/* __LINUX_DCACHE_H */
 -- 
 2.47.3
 
