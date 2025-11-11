@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C549F346FA7;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A7E12345CBD;
 	Tue, 11 Nov 2025 06:55:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762844133; cv=none; b=Fzb3F6+lDfj/20G8OlLce4PXI1TwNXuMu0wpXkonXN/bYmZCqjibKBMITzmuYMC0YEb8gkaZs6xtKa/frsmpBbQjrU11DQZOaqBqAbge5JPzl2E3FQcqmii/Ym9W77jW/r5mKYAPVqVcHii1gjgRGn4pBOb8cinctrTCbYHKyKU=
+	t=1762844133; cv=none; b=Rf0rpdX+P+HQAoZrN1ZFSqBjNshjoKsiKVD9xfhBy68bXVg8gfgB8XCt+DBaOoyG09IRvtqNBW3te44yTmT44jABmhkjh1mNZG2xHaQreagS6uSs+QHFaPswh8DvsHSPwta0q++sA63ufJxGUmX8QPFfFdWPDpc1rXsde0BIrGQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1762844133; c=relaxed/simple;
-	bh=Zkw5PIqzgZo1iaAu+8HqtP/RCpmxhagt1hjrnfFaxjo=;
+	bh=rBis+ehDQQlMMa8Sh/rbTbSBnIM0TaWvYjqlG29vpK8=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=r9Mh6ugjDirhPJR5jWqeLxuGinals6vb0i7hYiLl6syz8Ds9l4nxB4hyfKYkj7cJVtJCvvG3Zf1/GvATqgOF3NB/6l4QQXGq8ulnFKhibSN/VmXEQD6fEuSerCMi4lM9+zSD64HOvNurmA91rPifKLK8ypQ3eFWaQvVchopaoDs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=TqkcMEiv; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=Tnrl3dBmHtoRn4ADu8AKZF83zylIh+AjduO8jyt/jkQdNb8i4uPF+Mw2Fe5sFm7tGlZp7+3+uRhuEJKbM+8+9Mq+4qUuvSM8eh7dwzoKrE9craAu3+dEsGtkZjugUzqv2o0Ebmhii/4NCvCSmrEeMqFeOh/RAdttETT8TzY+aMQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=wefX/RwZ; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="TqkcMEiv"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="wefX/RwZ"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=NeGicC5Z67ZOycdylyHVP58sPv/wzz9kpKbtM8vrBao=; b=TqkcMEivZIXJYaF6ZOIHxmt9Vk
-	ohKhWrAsLkuIVUzpRtv9GAOLw4PKTjGu0cDrLfq1aZdI1jpzLIeVbQJUtimjnqiyE4l28biMeXbU0
-	SIQ9Rb3j150+dScnH4j4C3q+qtBcOCjEBfpcd3R4Jx8kW1fQP3eCjEpoPGCq/C7xzApDvTnyKJR98
-	PXZAThOhk5zfcqKAsI5C3RZlC5f1Axfu8UDfOLsCHtAoj7mqx27DDYDiOSKPtcPe+a8s9ij06CBms
-	M0WHQ4bUWJL0ApP+7L+eWUGoTAFk9bqmcTwUs5BYke3+24aoCR67UP1bIbQcrW5ESQ9Z9sGcWideo
-	fsqkHMSQ==;
+	bh=nSvwG6RsfCAVSbS4+/4CBqqk98DhL2WOLYlzO7apNsA=; b=wefX/RwZfv4dtD69RnkIvTZIqG
+	PTG9ZHWW0bW4yX7BJNMx9wJ7AcDjxOPZ6mjVbD4CD7BuvVWvQMZWwS9FOaVlQbm4I+8IkYhfOsXlM
+	LgAZbd4hEKtquq0INN1Hk/j7AThuKTggf/CXmrE8+aLBpMOzJ+dusy+dlWnpKk/WOKN+JT0pQ754g
+	vwcnMguWJwt8rzuweaSc75VPeWvEKDrpB3XyL32RFnJstyZqvdfTe5Gw+9cBZ54VZCTp+8o5rC9hI
+	YtwPtgJegXuyGqE0TaBkvEIYqX6np1Vq3VZldMhc7DFvG2ZPaj3ELNQUELCXJPOcMQ6DUTDp0hZz0
+	oBUOoPcA==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vIiHj-0000000BwyO-2vqR;
-	Tue, 11 Nov 2025 06:55:23 +0000
+	id 1vIiHj-0000000Bwyb-3vRs;
+	Tue, 11 Nov 2025 06:55:24 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v3 15/50] convert bpf
-Date: Tue, 11 Nov 2025 06:54:44 +0000
-Message-ID: <20251111065520.2847791-16-viro@zeniv.linux.org.uk>
+Subject: [PATCH v3 18/50] convert pstore
+Date: Tue, 11 Nov 2025 06:54:47 +0000
+Message-ID: <20251111065520.2847791-19-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
 References: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
@@ -67,66 +67,52 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-object creation goes through the normal VFS paths or approximation
-thereof (user_path_create()/done_path_create() in case of bpf_obj_do_pin(),
-open-coded simple_{start,done}_creating() in bpf_iter_link_pin_kernel()
-at mount time), removals go entirely through the normal VFS paths (and
-->unlink() is simple_unlink() there).
+object creation by d_alloc_name()+d_add() in pstore_mkfile(), removal -
+via normal VFS codepaths (with ->unlink() using simple_unlink()) or
+in pstore_put_backend_records() via locked_recursive_removal()
 
-Enough to have bpf_dentry_finalize() use d_make_persistent() instead
-of dget() and we are done.
+Replace d_add() with d_make_persistent()+dput() - that's what really
+happens there.  The reference that goes into record->dentry is valid
+only until the unlink (and explicitly cleared by pstore_unlink()).
 
-Convert bpf_iter_link_pin_kernel() to simple_{start,done}_creating(),
-while we are at it.
-
+Reviewed-by: Kees Cook <kees@kernel.org>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- kernel/bpf/inode.c | 15 +++++----------
- 1 file changed, 5 insertions(+), 10 deletions(-)
+ fs/pstore/inode.c | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/kernel/bpf/inode.c b/kernel/bpf/inode.c
-index 81780bcf8d25..9f866a010dad 100644
---- a/kernel/bpf/inode.c
-+++ b/kernel/bpf/inode.c
-@@ -144,8 +144,7 @@ static int bpf_inode_type(const struct inode *inode, enum bpf_type *type)
- static void bpf_dentry_finalize(struct dentry *dentry, struct inode *inode,
- 				struct inode *dir)
- {
--	d_instantiate(dentry, inode);
--	dget(dentry);
-+	d_make_persistent(dentry, inode);
+diff --git a/fs/pstore/inode.c b/fs/pstore/inode.c
+index b4e55c90f8dc..71deffcc3356 100644
+--- a/fs/pstore/inode.c
++++ b/fs/pstore/inode.c
+@@ -373,7 +373,7 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
+ 	if (!dentry)
+ 		return -ENOMEM;
  
- 	inode_set_mtime_to_ts(dir, inode_set_ctime_current(dir));
- }
-@@ -420,16 +419,12 @@ static int bpf_iter_link_pin_kernel(struct dentry *parent,
- 	struct dentry *dentry;
- 	int ret;
+-	private->dentry = dentry;
++	private->dentry = dentry; // borrowed
+ 	private->record = record;
+ 	inode->i_size = private->total_size = size;
+ 	inode->i_private = private;
+@@ -382,7 +382,8 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
+ 		inode_set_mtime_to_ts(inode,
+ 				      inode_set_ctime_to_ts(inode, record->time));
  
--	inode_lock(parent->d_inode);
--	dentry = lookup_noperm(&QSTR(name), parent);
--	if (IS_ERR(dentry)) {
--		inode_unlock(parent->d_inode);
-+	dentry = simple_start_creating(parent, name);
-+	if (IS_ERR(dentry))
- 		return PTR_ERR(dentry);
--	}
- 	ret = bpf_mkobj_ops(dentry, mode, link, &bpf_link_iops,
- 			    &bpf_iter_fops);
--	dput(dentry);
--	inode_unlock(parent->d_inode);
-+	simple_done_creating(dentry);
- 	return ret;
- }
+-	d_add(dentry, no_free_ptr(inode));
++	d_make_persistent(dentry, no_free_ptr(inode));
++	dput(dentry);
  
-@@ -1080,7 +1075,7 @@ static void bpf_kill_super(struct super_block *sb)
- {
- 	struct bpf_mount_opts *opts = sb->s_fs_info;
+ 	list_add(&(no_free_ptr(private))->list, &records_list);
+ 
+@@ -465,7 +466,7 @@ static void pstore_kill_sb(struct super_block *sb)
+ 	guard(mutex)(&pstore_sb_lock);
+ 	WARN_ON(pstore_sb && pstore_sb != sb);
  
 -	kill_litter_super(sb);
 +	kill_anon_super(sb);
- 	kfree(opts);
- }
+ 	pstore_sb = NULL;
  
+ 	guard(mutex)(&records_list_lock);
 -- 
 2.47.3
 
