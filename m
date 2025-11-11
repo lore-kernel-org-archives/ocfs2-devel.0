@@ -1,34 +1,33 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7BE2346FD0;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D9564347BA7;
 	Tue, 11 Nov 2025 06:55:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762844133; cv=none; b=bdGdS/mzxO9cDsoSa1DnEwpfAto4GSdJ1B3Mn64jMZ9GB1Ocir6+9Nind+1wLbpjnUBMVbo+4M28YJkv+wju+CfcKBe5TkLp1JrDbwM5Jq8+M5lMRGAy3h12pH86EqT4rcyT+H4bHY/c4lST3eNGB46wUqbSxz779XWHIcHC7Dg=
+	t=1762844133; cv=none; b=Bf8naPhV57omuzm0TH7iJtXkL84z7aVvdqS3yqFkMtjs/Q9EOw28l5nSNMxeJopw+vW8PrWzvWCyArUgrn82yghY6R8Wrd/zu05yrvLtgpptVyubx1ta3tEMLpZmccBU7tmmn1913VbIFJeOSlLnnuP1otN8wo+YezgD6RqA4U4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1762844133; c=relaxed/simple;
-	bh=UehzoAqkMMtpS1CZkgeVCnyi1TakQfRHnSW/Mdx4B8A=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=TPhOONZOvcOTItkqUjEkUqIimNLItS+g17P84QyxhGHGfy7lY9M+rrJCv0WNZRgq5APGkR3J64+svWBKKdJosqBZVPzQdxaiGVORNh6LPZsQrihpWVzWmt5BQ6BfJCcYIOZbhMP2bvxEkP9mOrTHeHUfZdqjTjJByYleF/VsPZk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=w3HzJj6d; arc=none smtp.client-ip=62.89.141.173
+	bh=76utv+v6hAue0oAKoeyxG4KBaw0uyktirE097PvBq7M=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=jk9VqzltsBj58QT98jSxbBicQLiDIvvPtrDnGFnevFJFlxiNIvsSIEZJqrottVW5IChDRlAEgmM17K9KydhL1BY1lK2HUkwDgdjRAnYXWqHvWfQX34w1cz0a7Kr6Zu9oFDey5b6PPn+hxkJZxu4ltzF43aJOCsHXbnHyCc2lJNw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=g/CU5/uH; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="w3HzJj6d"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="g/CU5/uH"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
-	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
-	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=0rQmwI4wUCW4CFIUjCTrKY3EBmJE6MZ3qh3WAaCxCww=; b=w3HzJj6dIjUGvVtuH9EW2+M/oX
-	l2sQlAQ9o3B9CyZUYYA4OXaizv62M7NjTVobql1V02v22x7GXnZ8QNDFLN1uc/kCnoLwYhr9nAxZC
-	wCkoEamKxQMJPivBMdxeCtsVnuJHyct5ys4qSehrBLtSNh/JI5Z5el/50nGhUV9xnRpjcrtgRtQTM
-	jnxdeI8xRzQEVH9WzI6PB7UsboUJRoseob9UIqEJNKhXhJZfU1ddIPB6CYm9QPiWF17Htr5r4XITD
-	53c068+7s255nbfMCbX+eSz2Ms0ldTle1KLXxVXEVLlcDMewriy1w9Qfr89wD1ERdYdXtMTPhCuMU
-	0HRk00bw==;
+	MIME-Version:Message-ID:Date:Subject:Cc:To:From:Reply-To:Content-Type:
+	Content-ID:Content-Description:In-Reply-To:References;
+	bh=leW8GA4y7Pxp64vNo8XjzZTbPYZFOmxFXD/3OiiHgBc=; b=g/CU5/uH4HMjhxdKjr30ByWuse
+	rR0MjDbFLTtzuzJzfLZ6mL3bQtXs39KLmW5eMtB8fy2iJ+Ek/cufD5MhxJm9nmL6JE35GYmhCA0zJ
+	MGohTr1R34wWNYPCSJynjsoDjcufcWoEdaxIZ3UR5jUz2YHCTlD/7fJk+wJjbGrMzS/nf2oSco7rb
+	nXsNbo1V1rcCz/TKMwiqhPOeGfzkyF9yi5zQ8niVbVkYrZRsjK122F/JpFHx9/AVSZgDLA1/deZ+f
+	QYljuYONnRgAnVNuv67jjtz+ZF7RHbe/g8d4Ku2qpM3uvXthA0cXcCWtgxeXvvfintzgotKgCvsIJ
+	SEVTFaKw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vIiHi-0000000Bwx0-19u5;
-	Tue, 11 Nov 2025 06:55:22 +0000
+	id 1vIiHg-0000000BwrA-3Mp4;
+	Tue, 11 Nov 2025 06:55:21 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,12 +51,10 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v3 06/50] primitives for maintaining persisitency
-Date: Tue, 11 Nov 2025 06:54:35 +0000
-Message-ID: <20251111065520.2847791-7-viro@zeniv.linux.org.uk>
+Subject: [PATCH v3 00/50] tree-in-dcache stuff
+Date: Tue, 11 Nov 2025 06:54:29 +0000
+Message-ID: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
-In-Reply-To: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
-References: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -67,178 +64,295 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-* d_make_persistent(dentry, inode) - bump refcount, mark persistent and
-make hashed positive.  Return value is a borrowed reference to dentry;
+Some filesystems use a kinda-sorta controlled dentry refcount leak to pin
+dentries of created objects in dcache (and undo it when removing those).
+Reference is grabbed and not released, but it's not actually _stored_
+anywhere.  That works, but it's hard to follow and verify; among other
+things, we have no way to tell _which_ of the increments is intended
+to be an unpaired one.  Worse, on removal we need to decide whether
+the reference had already been dropped, which can be non-trivial if
+that removal is on umount and we need to figure out if this dentry is
+pinned due to e.g. unlink() not done.  Usually that is handled by using
+kill_litter_super() as ->kill_sb(), but there are open-coded special
+cases of the same (consider e.g. /proc/self).
+
+Things get simpler if we introduce a new dentry flag (DCACHE_PERSISTENT)
+marking those "leaked" dentries.  Having it set claims responsibility
+for +1 in refcount.
+
+The end result this series is aiming for:
+
+* get these unbalanced dget() and dput() replaced with new primitives that
+  would, in addition to adjusting refcount, set and clear persistency flag.
+* instead of having kill_litter_super() mess with removing the remaining
+  "leaked" references (e.g. for all tmpfs files that hadn't been removed
+  prior to umount), have the regular shrink_dcache_for_umount() strip
+  DCACHE_PERSISTENT of all dentries, dropping the corresponding
+  reference if it had been set.  After that kill_litter_super() becomes
+  an equivalent of kill_anon_super().
+
+Doing that in a single step is not feasible - it would affect too many places
+in too many filesystems.  It has to be split into a series.
+
+This work has really started early in 2024; quite a few preliminary pieces
+have already gone into mainline.  This chunk is finally getting to the
+meat of that stuff - infrastructure and most of the conversions to it.
+
+Some pieces are still sitting in the local branches, but the bulk of
+that stuff is here.
+
+Compared to v2:
+	* 23/50: fixed a braino in spufs conversion
+	* 6/50: added a placeholder comment in d_make_discardable() at
+the point where it's introduced, promising a WARN_ON() in its place
+in the final, along with explanations of the reasons for delay.
+Comment goes away in 50/50, once WARN_ON() gets there.
+
+The branch is -rc5-based; it lives in
+git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git #work.persistency
+individual patches in followups.
+
+Please, help with review and testing.  If nobody objects, in a few days it
+goes into #for-next.
+
+Shortlog:
+      fuse_ctl_add_conn(): fix nlink breakage in case of early failure
+      tracefs: fix a leak in eventfs_create_events_dir()
+      new helper: simple_remove_by_name()
+      new helper: simple_done_creating()
+      introduce a flag for explicitly marking persistently pinned dentries
+      primitives for maintaining persisitency
+      convert simple_{link,unlink,rmdir,rename,fill_super}() to new primitives
+      convert ramfs and tmpfs
+      procfs: make /self and /thread_self dentries persistent
+      configfs, securityfs: kill_litter_super() not needed
+      convert xenfs
+      convert smackfs
+      convert hugetlbfs
+      convert mqueue
+      convert bpf
+      convert dlmfs
+      convert fuse_ctl
+      convert pstore
+      convert tracefs
+      convert debugfs
+      debugfs: remove duplicate checks in callers of start_creating()
+      convert efivarfs
+      convert spufs
+      convert ibmasmfs
+      ibmasmfs: get rid of ibmasmfs_dir_ops
+      convert devpts
+      binderfs: use simple_start_creating()
+      binderfs_binder_ctl_create(): kill a bogus check
+      convert binderfs
+      autofs_{rmdir,unlink}: dentry->d_fsdata->dentry == dentry there
+      convert autofs
+      convert binfmt_misc
+      selinuxfs: don't stash the dentry of /policy_capabilities
+      selinuxfs: new helper for attaching files to tree
+      convert selinuxfs
+      functionfs: switch to simple_remove_by_name()
+      convert functionfs
+      gadgetfs: switch to simple_remove_by_name()
+      convert gadgetfs
+      hypfs: don't pin dentries twice
+      hypfs: switch hypfs_create_str() to returning int
+      hypfs: swich hypfs_create_u64() to returning int
+      convert hypfs
+      convert rpc_pipefs
+      convert nfsctl
+      convert rust_binderfs
+      get rid of kill_litter_super()
+      convert securityfs
+      kill securityfs_recursive_remove()
+      d_make_discardable(): warn if given a non-persistent dentry
+
+Diffstat:
+ Documentation/filesystems/porting.rst     |   7 ++
+ arch/powerpc/platforms/cell/spufs/inode.c |  17 ++-
+ arch/s390/hypfs/hypfs.h                   |   6 +-
+ arch/s390/hypfs/hypfs_diag_fs.c           |  60 ++++------
+ arch/s390/hypfs/hypfs_vm_fs.c             |  21 ++--
+ arch/s390/hypfs/inode.c                   |  82 +++++--------
+ drivers/android/binder/rust_binderfs.c    | 121 ++++++-------------
+ drivers/android/binderfs.c                |  82 +++----------
+ drivers/base/devtmpfs.c                   |   2 +-
+ drivers/misc/ibmasm/ibmasmfs.c            |  24 ++--
+ drivers/usb/gadget/function/f_fs.c        |  54 ++++-----
+ drivers/usb/gadget/legacy/inode.c         |  49 ++++----
+ drivers/xen/xenfs/super.c                 |   2 +-
+ fs/autofs/inode.c                         |   2 +-
+ fs/autofs/root.c                          |  11 +-
+ fs/binfmt_misc.c                          |  69 ++++++-----
+ fs/configfs/dir.c                         |  10 +-
+ fs/configfs/inode.c                       |   3 +-
+ fs/configfs/mount.c                       |   2 +-
+ fs/dcache.c                               | 111 +++++++++++-------
+ fs/debugfs/inode.c                        |  32 ++----
+ fs/devpts/inode.c                         |  57 ++++-----
+ fs/efivarfs/inode.c                       |   7 +-
+ fs/efivarfs/super.c                       |   5 +-
+ fs/fuse/control.c                         |  38 +++---
+ fs/hugetlbfs/inode.c                      |  12 +-
+ fs/internal.h                             |   1 -
+ fs/libfs.c                                |  52 +++++++--
+ fs/nfsd/nfsctl.c                          |  18 +--
+ fs/ocfs2/dlmfs/dlmfs.c                    |   8 +-
+ fs/proc/base.c                            |   6 +-
+ fs/proc/internal.h                        |   1 +
+ fs/proc/root.c                            |  14 +--
+ fs/proc/self.c                            |  10 +-
+ fs/proc/thread_self.c                     |  11 +-
+ fs/pstore/inode.c                         |   7 +-
+ fs/ramfs/inode.c                          |   8 +-
+ fs/super.c                                |   8 --
+ fs/tracefs/event_inode.c                  |   7 +-
+ fs/tracefs/inode.c                        |  13 +--
+ include/linux/dcache.h                    |   4 +-
+ include/linux/fs.h                        |   6 +-
+ include/linux/proc_fs.h                   |   2 -
+ include/linux/security.h                  |   2 -
+ init/do_mounts.c                          |   2 +-
+ ipc/mqueue.c                              |  12 +-
+ kernel/bpf/inode.c                        |  15 +--
+ mm/shmem.c                                |  38 ++----
+ net/sunrpc/rpc_pipe.c                     |  27 ++---
+ security/apparmor/apparmorfs.c            |  13 ++-
+ security/inode.c                          |  35 +++---
+ security/selinux/selinuxfs.c              | 185 +++++++++++++-----------------
+ security/smack/smackfs.c                  |   2 +-
+ 53 files changed, 586 insertions(+), 807 deletions(-)
+
+	Overview:
+
+First two commits are bugfixes (fusectl and tracefs resp.)
+
+[1/50] fuse_ctl_add_conn(): fix nlink breakage in case of early failure
+[2/50] tracefs: fix a leak in eventfs_create_events_dir()
+
+Next, two commits adding a couple of useful helpers, the next three adding
+the infrastructure and the rest consists of per-filesystem conversions.
+
+[3/50] new helper: simple_remove_by_name()
+[4/50] new helper: simple_done_creating()
+	end_creating_path() analogue for internal object creation; unlike
+end_creating_path() no mount is passed to it (or guaranteed to exist, for
+that matter - it might be used during the filesystem setup, before the
+superblock gets attached to any mounts).
+
+Infrastructure:
+[5/50] introduce a flag for explicitly marking persistently pinned dentries
+	* introduce the new flag
+	* teach shrink_dcache_for_umount() to handle it (i.e. remove
+and drop refcount on anything that survives to umount with that flag
+still set)
+	* teach kill_litter_super() that anything with that flag does
+*not* need to be unpinned.
+[6/50] primitives for maintaining persisitency
+	* d_make_persistent(dentry, inode) - bump refcount, mark persistent
+and make hashed positive.  Return value is a borrowed reference to dentry;
 it can be used until something removes persistency (at the very least,
 until the parent gets unlocked, but some filesystems may have stronger
 exclusion).
+	* d_make_discardable() - remove persistency mark and drop reference.
 
-* d_make_discardable() - remove persistency mark and drop reference.
+NOTE: at that stage d_make_discardable() does not reject dentries not
+marked persistent - it acts as if the mark been set.
 
-d_make_persistent() is similar to combination of d_instantiate(), dget()
-and setting flag.  The only difference is that unlike d_instantiate()
-it accepts hashed and unhashed negatives alike.  It is always called in
-strong locking environment (parent held exclusive, or, in some cases,
-dentry coming from d_alloc_name()); if we ever start using it with parent
-held only shared and dentry coming from d_alloc_parallel(), we'll need
-to copy the in-lookup logics from __d_add().
+Rationale: less noise in series splitup that way.  We want (and on the
+next commit will get) simple_unlink() to do the right thing - remove
+persistency, if it's there.  However, it's used by many filesystems.
+We would have either to convert them all at once or split simple_unlink()
+into "want persistent" and "don't want persistent" versions, the latter
+being the old one.  In the course of the series almost all callers
+would migrate to the replacement, leaving only two pathological cases
+with the old one.  The same goes for simple_rmdir() (two callers left in
+the end), simple_recursive_removal() (all callers gone in the end), etc.
+That's a lot of noise and it's easier to start with d_make_discardable()
+quietly accepting non-persistent dentries, then, in the end, add private
+copies of simple_unlink() and simple_rmdir() for two weird users (configfs
+and apparmorfs) and have those use dput() instead of d_make_discardable().
+At that point we'd be left with all callers of d_make_discardable()
+always passing persistent dentries, allowing to add a warning in it.
 
-d_make_discardable() is eqiuvalent to combination of removing flag and
-dput(); since flag removal requires ->d_lock, there's no point trying
-to avoid taking that for refcount decrement as fast_dput() does.
-The slow path of dput() has been taken into a helper and reused in
-d_make_discardable() instead.
+[7/50] convert simple_{link,unlink,rmdir,rename,fill_super}() to new primitives
+	See above re quietly accepting non-peristent dentries in
+simple_unlink(), simple_rmdir(), etc.
 
-Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
----
- fs/dcache.c            | 74 +++++++++++++++++++++++++++++++++---------
- include/linux/dcache.h |  2 ++
- 2 files changed, 61 insertions(+), 15 deletions(-)
+	Converting filesystems:
+[8/50] convert ramfs and tmpfs
+[9/50] procfs: make /self and /thread_self dentries persistent
+[10/50] configfs, securityfs: kill_litter_super() not needed
+[11/50] convert xenfs
+[12/50] convert smackfs
+[13/50] convert hugetlbfs
+[14/50] convert mqueue
+[15/50] convert bpf
+[16/50] convert dlmfs
+[17/50] convert fuse_ctl
+[18/50] convert pstore
+[19/50] convert tracefs
+[20/50] convert debugfs
+[21/50] debugfs: remove duplicate checks in callers of start_creating()
+[22/50] convert efivarfs
+[23/50] convert spufs
+[24/50] convert ibmasmfs
+[25/50] ibmasmfs: get rid of ibmasmfs_dir_ops
+[26/50] convert devpts
+[27/50] binderfs: use simple_start_creating()
+[28/50] binderfs_binder_ctl_create(): kill a bogus check
+[29/50] convert binderfs
+[30/50] autofs_{rmdir,unlink}: dentry->d_fsdata->dentry == dentry there
+[31/50] convert autofs
+[32/50] convert binfmt_misc
+[33/50] selinuxfs: don't stash the dentry of /policy_capabilities
+[34/50] selinuxfs: new helper for attaching files to tree
+[35/50] convert selinuxfs
+[36/50] functionfs: switch to simple_remove_by_name()
+[37/50] convert functionfs
+[38/50] gadgetfs: switch to simple_remove_by_name()
+[39/50] convert gadgetfs
+[40/50] hypfs: don't pin dentries twice
+[41/50] hypfs: switch hypfs_create_str() to returning int
+[42/50] hypfs: swich hypfs_create_u64() to returning int
+[43/50] convert hypfs
+[44/50] convert rpc_pipefs
+[45/50] convert nfsctl
+[46/50] convert rust_binderfs
 
-diff --git a/fs/dcache.c b/fs/dcache.c
-index f2c9f4fef2a2..3cc6c3876177 100644
---- a/fs/dcache.c
-+++ b/fs/dcache.c
-@@ -869,6 +869,24 @@ static inline bool fast_dput(struct dentry *dentry)
- 	return false;
- }
- 
-+static void finish_dput(struct dentry *dentry)
-+	__releases(dentry->d_lock)
-+	__releases(RCU)
-+{
-+	while (lock_for_kill(dentry)) {
-+		rcu_read_unlock();
-+		dentry = __dentry_kill(dentry);
-+		if (!dentry)
-+			return;
-+		if (retain_dentry(dentry, true)) {
-+			spin_unlock(&dentry->d_lock);
-+			return;
-+		}
-+		rcu_read_lock();
-+	}
-+	rcu_read_unlock();
-+	spin_unlock(&dentry->d_lock);
-+}
- 
- /* 
-  * This is dput
-@@ -906,22 +924,28 @@ void dput(struct dentry *dentry)
- 		rcu_read_unlock();
- 		return;
- 	}
--	while (lock_for_kill(dentry)) {
--		rcu_read_unlock();
--		dentry = __dentry_kill(dentry);
--		if (!dentry)
--			return;
--		if (retain_dentry(dentry, true)) {
--			spin_unlock(&dentry->d_lock);
--			return;
--		}
--		rcu_read_lock();
--	}
--	rcu_read_unlock();
--	spin_unlock(&dentry->d_lock);
-+	finish_dput(dentry);
- }
- EXPORT_SYMBOL(dput);
- 
-+void d_make_discardable(struct dentry *dentry)
-+{
-+	spin_lock(&dentry->d_lock);
-+	/*
-+	 * By the end of the series we'll add
-+	 * WARN_ON(!(dentry->d_flags & DCACHE_PERSISTENT);
-+	 * here, but while object removal is done by a few common helpers,
-+	 * object creation tends to be open-coded (if nothing else, new inode
-+	 * needs to be set up), so adding a warning from the very beginning
-+	 * would make for much messier patch series.
-+	 */
-+	dentry->d_flags &= ~DCACHE_PERSISTENT;
-+	dentry->d_lockref.count--;
-+	rcu_read_lock();
-+	finish_dput(dentry);
-+}
-+EXPORT_SYMBOL(d_make_discardable);
-+
- static void to_shrink_list(struct dentry *dentry, struct list_head *list)
- __must_hold(&dentry->d_lock)
- {
-@@ -1939,7 +1963,6 @@ static void __d_instantiate(struct dentry *dentry, struct inode *inode)
- 	unsigned add_flags = d_flags_for_inode(inode);
- 	WARN_ON(d_in_lookup(dentry));
- 
--	spin_lock(&dentry->d_lock);
- 	/*
- 	 * The negative counter only tracks dentries on the LRU. Don't dec if
- 	 * d_lru is on another list.
-@@ -1952,7 +1975,6 @@ static void __d_instantiate(struct dentry *dentry, struct inode *inode)
- 	__d_set_inode_and_type(dentry, inode, add_flags);
- 	raw_write_seqcount_end(&dentry->d_seq);
- 	fsnotify_update_flags(dentry);
--	spin_unlock(&dentry->d_lock);
- }
- 
- /**
-@@ -1976,7 +1998,9 @@ void d_instantiate(struct dentry *entry, struct inode * inode)
- 	if (inode) {
- 		security_d_instantiate(entry, inode);
- 		spin_lock(&inode->i_lock);
-+		spin_lock(&entry->d_lock);
- 		__d_instantiate(entry, inode);
-+		spin_unlock(&entry->d_lock);
- 		spin_unlock(&inode->i_lock);
- 	}
- }
-@@ -1995,7 +2019,9 @@ void d_instantiate_new(struct dentry *entry, struct inode *inode)
- 	lockdep_annotate_inode_mutex_key(inode);
- 	security_d_instantiate(entry, inode);
- 	spin_lock(&inode->i_lock);
-+	spin_lock(&entry->d_lock);
- 	__d_instantiate(entry, inode);
-+	spin_unlock(&entry->d_lock);
- 	WARN_ON(!(inode->i_state & I_NEW));
- 	inode->i_state &= ~I_NEW & ~I_CREATING;
- 	/*
-@@ -2754,6 +2780,24 @@ void d_add(struct dentry *entry, struct inode *inode)
- }
- EXPORT_SYMBOL(d_add);
- 
-+struct dentry *d_make_persistent(struct dentry *dentry, struct inode *inode)
-+{
-+	WARN_ON(!hlist_unhashed(&dentry->d_u.d_alias));
-+	WARN_ON(!inode);
-+	security_d_instantiate(dentry, inode);
-+	spin_lock(&inode->i_lock);
-+	spin_lock(&dentry->d_lock);
-+	__d_instantiate(dentry, inode);
-+	dentry->d_flags |= DCACHE_PERSISTENT;
-+	dget_dlock(dentry);
-+	if (d_unhashed(dentry))
-+		__d_rehash(dentry);
-+	spin_unlock(&dentry->d_lock);
-+	spin_unlock(&inode->i_lock);
-+	return dentry;
-+}
-+EXPORT_SYMBOL(d_make_persistent);
-+
- static void swap_names(struct dentry *dentry, struct dentry *target)
- {
- 	if (unlikely(dname_external(target))) {
-diff --git a/include/linux/dcache.h b/include/linux/dcache.h
-index 94b58655322a..6ec4066825e3 100644
---- a/include/linux/dcache.h
-+++ b/include/linux/dcache.h
-@@ -611,5 +611,7 @@ static inline struct dentry *d_next_sibling(const struct dentry *dentry)
- }
- 
- void set_default_d_op(struct super_block *, const struct dentry_operations *);
-+struct dentry *d_make_persistent(struct dentry *, struct inode *);
-+void d_make_discardable(struct dentry *dentry);
- 
- #endif	/* __LINUX_DCACHE_H */
--- 
-2.47.3
+	... and no kill_litter_super() callers remain, so we
+can take it out:
+[47/50] get rid of kill_litter_super()
+	
+	Followups:
+[48/50] convert securityfs
+	That was the last remaining user of simple_recursive_removal()
+that did *not* mark things persistent.  Now the only places where
+d_make_discardable() is still called for dentries that are not marked
+persistent are the calls of simple_{unlink,rmdir}() in configfs and
+apparmorfs.
 
+[49/50] kill securityfs_recursive_remove()
+	Unused macro...
+
+[50/50] d_make_discardable(): warn if given a non-persistent dentry
+
+At this point there are very few call chains that might lead to
+d_make_discardable() on a dentry that hadn't been made persistent:
+calls of simple_unlink() and simple_rmdir() in configfs and
+apparmorfs.
+
+Both filesystems do pin (part of) their contents in dcache, but
+they are currently playing very unusual games with that.  Converting
+them to more usual patterns might be possible, but it's definitely
+going to be a long series of changes in both cases.
+
+For now the easiest solution is to have both stop using simple_unlink()
+and simple_rmdir() - that allows to make d_make_discardable() warn
+when given a non-persistent dentry.
+
+Rather than giving them full-blown private copies (with calls of
+d_make_discardable() replaced with dput()), let's pull the parts of
+simple_unlink() and simple_rmdir() that deal with timestamps and link
+counts into separate helpers (__simple_unlink() and __simple_rmdir()
+resp.) and have those used by configfs and apparmorfs.
