@@ -1,92 +1,292 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out199-3.us.a.mail.aliyun.com (out199-3.us.a.mail.aliyun.com [47.90.199.3])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E06032AD0D;
-	Tue, 11 Nov 2025 03:01:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 189A23346B9
+	for <ocfs2-devel@lists.linux.dev>; Tue, 11 Nov 2025 03:26:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=47.90.199.3
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762830085; cv=none; b=VrhfRh4s5577m7Y70DsB718VXqxVokxZ0+PsspSc0CbaZLBUH+DFoLh3iSy8ffX1fVnag8Ett3/MbAWl9G83fA2a2wXcXurOPGUyQJ7zMmHEXgwPqtkaOLAT+bex3SbwlaB7lg/n4ZkVa4BZqehJ4sZIb/VNTrFbKXa2ymfjbJM=
+	t=1762831581; cv=none; b=GGvJUnEa3tLTSF66dNdQOrTDgnpiRio7vbqDTNEU3+NoAbuWD68R1Sq1KD5QanYgJRhnOz09Q6bK4oYcX+Yu14AWGdihq40OAOnu1k0uQVY6EnVU2scarUYrX33GriF0pJYDEQSryhax4e2RPceNPYzaNEqRwzdjEk/nyF6fuIY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762830085; c=relaxed/simple;
-	bh=ffT4XRgc3gSzu/oLyQRC6VgHEbyS3+VNOYHJPEHQBhU=;
-	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type:
-	 Content-Disposition; b=DxHgn1m2mQ0JgbTAzszSWhg/0od/YDzpJqpqI6inKcYCJX7lPP6Tq0dMXm1QO5ryQuuHgB2VLxk4hhrdWlTP0apViV57zHW7XtWw5L7jEWN6WUMxRrFpYbZ/7hiMC5eFHfiQQvAjbYCNvVIz0isXG9168CvUJn3sEB3kCtwEThw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=iVUwICY5; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1762831581; c=relaxed/simple;
+	bh=d2Fv1SVUmzb9OKqG39b2MqKshQSwlESnJJodfZH7SB0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=jCunW0tcFNfMJPi4SOZu/98/jN5Y6KHa/LnNVzvzVH7M4bBaS9PPMBdhK7GljwJwa4uyGOBzKk2Dd8lAugTtS89B4G15F3D72/W1xz31cCAf2KjRHnLdzLBrW8A3JpUBrd+ChSmR9KVA0LpnSavoMQwJjD7crUdPtA3sDslQwFg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ZtEJWRCG; arc=none smtp.client-ip=47.90.199.3
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="iVUwICY5"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id A7713C113D0;
-	Tue, 11 Nov 2025 03:01:22 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1762830084;
-	bh=ffT4XRgc3gSzu/oLyQRC6VgHEbyS3+VNOYHJPEHQBhU=;
-	h=Date:From:To:Cc:Subject:From;
-	b=iVUwICY50goymhKgmwYiHDyBVgytrpH8KVrWFHdL0Kd0zFdvm5i4wQfHVv5jlhzzC
-	 GgGpDaZXB0TEtnCtbc3cmVruYKOe182KYFh1/W5401K29VMB/Eso6gjJPDSxw7iP6Q
-	 yDoG0Fr+kDfP3oLLh03DTqHNF4yRLzzahP1hgJvOC0AukCFfck10DjfHUuPt513UCn
-	 sJBLby32K7041Lu92hL8i4Dl/ZN9SZ9rDgEVUF7NuSs2C7tfbrTpaFywNkRyto0cKv
-	 jJsfpneTspz5Sn3isDXvif+y1dzlXeNriIwJzgIWoVuMqWzwjDoRfceOXZEFnEaDEN
-	 5ivzKhHV5O7jQ==
-Date: Tue, 11 Nov 2025 12:01:19 +0900
-From: "Gustavo A. R. Silva" <gustavoars@kernel.org>
-To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
-	"Gustavo A. R. Silva" <gustavoars@kernel.org>,
-	linux-hardening@vger.kernel.org
-Subject: [PATCH][next] ocfs2: Avoid -Wflex-array-member-not-at-end warning
-Message-ID: <aRKm_7aN7Smc3J5L@kspp>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ZtEJWRCG"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1762831567; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=dDOStzvHA3K9gn7Q5etWtmBrwLZomJeXMheYlGzjBGU=;
+	b=ZtEJWRCG7WgxwI3hxANZacykZNkeAYPsnwaQzJUCHryMTuv77VInWIHCQbL4mRIbffO8MOm/ogTXIGpaObo4Y4aMEnCnvDXKD2B2qXnTMtGZktwQ3AxlkiPqIJzc5KORjDCFL+qnO8emb7xwIg1uctAR0do20BjyERSQ/rdRBp8=
+Received: from 30.221.128.130(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Ws9fWnd_1762831565 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 11 Nov 2025 11:26:06 +0800
+Message-ID: <0b0a89ed-1fa9-4909-9f2f-895ab9a5c6a4@linux.alibaba.com>
+Date: Tue, 11 Nov 2025 11:26:05 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: avoid deprecated strcpy() and introduce
+ initialization helper
+To: Dmitry Antipov <dmantipov@yandex.ru>, Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Deepanshu Kartikey <kartikey406@gmail.com>, ocfs2-devel@lists.linux.dev
+References: <20251031155751.87491-1-dmantipov@yandex.ru>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20251031155751.87491-1-dmantipov@yandex.ru>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
--Wflex-array-member-not-at-end was introduced in GCC-14, and we are
-getting ready to enable it, globally.
 
-Use the new TRAILING_OVERLAP() helper to fix the following warning:
 
-fs/ocfs2/xattr.c:52:41: warning: structure containing a flexible array member is not at the end of another structure [-Wflex-array-member-not-at-end]
+On 2025/10/31 23:57, Dmitry Antipov wrote:
+> For the whohe OCFS2 code base, avoid deprecated 'strcpy()' and introduce
+> 'ocfs2_init_with_signature()' initialization helper with 'strscpy()' for
+> the signature and 'memset()' for the rest. No functional changes assumed.
+> 
+> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+> ---
+>  fs/ocfs2/alloc.c               | 10 ++++++----
+>  fs/ocfs2/cluster/nodemanager.c |  2 +-
+>  fs/ocfs2/dir.c                 | 17 +++++++++--------
+>  fs/ocfs2/namei.c               |  5 +++--
+>  fs/ocfs2/ocfs2.h               |  7 +++++++
+>  fs/ocfs2/refcounttree.c        | 10 ++++++----
+>  fs/ocfs2/stackglue.c           |  2 +-
+>  fs/ocfs2/suballoc.c            |  5 +++--
+>  fs/ocfs2/xattr.c               |  5 +++--
+>  9 files changed, 39 insertions(+), 24 deletions(-)
+> 
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 162711cc5b20..21fd5947979e 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -1034,10 +1034,11 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
+>  				goto bail;
+>  			}
+>  
+> -			memset(bhs[i]->b_data, 0, osb->sb->s_blocksize);
+>  			eb = (struct ocfs2_extent_block *) bhs[i]->b_data;
+> +			ocfs2_init_with_signature(eb, h_signature,
+> +						  OCFS2_EXTENT_BLOCK_SIGNATURE,
+> +						  osb->sb->s_blocksize);
+>  			/* Ok, setup the minimal stuff here. */
+> -			strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
+>  			eb->h_blkno = cpu_to_le64(first_blkno);
+>  			eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
+>  			eb->h_suballoc_slot =
+> @@ -6738,13 +6739,14 @@ static int ocfs2_reuse_blk_from_dealloc(handle_t *handle,
+>  			goto bail;
+>  		}
+>  
+> -		memset(new_eb_bh[i]->b_data, 0, osb->sb->s_blocksize);
+>  		eb = (struct ocfs2_extent_block *) new_eb_bh[i]->b_data;
+> +		ocfs2_init_with_signature(eb, h_signature,
+> +					  OCFS2_EXTENT_BLOCK_SIGNATURE,
+> +					  osb->sb->s_blocksize);
+>  
+>  		/* We can't guarantee that buffer head is still cached, so
+>  		 * polutlate the extent block again.
+>  		 */
+> -		strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
+>  		eb->h_blkno = cpu_to_le64(bf->free_blk);
+>  		eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
+>  		eb->h_suballoc_slot = cpu_to_le16(real_slot);
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index 2f61d39e4e50..a7f03b641d10 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -590,7 +590,7 @@ static struct config_item *o2nm_node_group_make_item(struct config_group *group,
+>  	if (node == NULL)
+>  		return ERR_PTR(-ENOMEM);
+>  
+> -	strcpy(node->nd_name, name); /* use item.ci_namebuf instead? */
+> +	strscpy(node->nd_name, name); /* use item.ci_namebuf instead? */
+>  	config_item_init_type_name(&node->nd_item, name, &o2nm_node_type);
+>  	spin_lock_init(&node->nd_lock);
+>  
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 8c9c4825f984..d08bf5d09cde 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -136,7 +136,7 @@ static void ocfs2_init_dir_trailer(struct inode *inode,
+>  	struct ocfs2_dir_block_trailer *trailer;
+>  
+>  	trailer = ocfs2_trailer_from_bh(bh, inode->i_sb);
+> -	strcpy(trailer->db_signature, OCFS2_DIR_TRAILER_SIGNATURE);
+> +	strscpy(trailer->db_signature, OCFS2_DIR_TRAILER_SIGNATURE);
+>  	trailer->db_compat_rec_len =
+>  			cpu_to_le16(sizeof(struct ocfs2_dir_block_trailer));
+>  	trailer->db_parent_dinode = cpu_to_le64(OCFS2_I(inode)->ip_blkno);
+> @@ -2192,14 +2192,14 @@ static struct ocfs2_dir_entry *ocfs2_fill_initial_dirents(struct inode *inode,
+>  	de->name_len = 1;
+>  	de->rec_len =
+>  		cpu_to_le16(OCFS2_DIR_REC_LEN(de->name_len));
+> -	strcpy(de->name, ".");
+> +	strscpy(de->name, ".");
+>  	ocfs2_set_de_type(de, S_IFDIR);
+>  
+>  	de = (struct ocfs2_dir_entry *) ((char *)de + le16_to_cpu(de->rec_len));
+>  	de->inode = cpu_to_le64(OCFS2_I(parent)->ip_blkno);
+>  	de->rec_len = cpu_to_le16(size - OCFS2_DIR_REC_LEN(1));
+>  	de->name_len = 2;
+> -	strcpy(de->name, "..");
+> +	strscpy(de->name, "..");
+>  	ocfs2_set_de_type(de, S_IFDIR);
+>  
+>  	return de;
+> @@ -2356,8 +2356,9 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
+>  	}
+>  
+>  	dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
+> -	memset(dx_root, 0, osb->sb->s_blocksize);
+> -	strcpy(dx_root->dr_signature, OCFS2_DX_ROOT_SIGNATURE);
+> +	ocfs2_init_with_signature(dx_root, dr_signature,
+> +				  OCFS2_DX_ROOT_SIGNATURE,
+> +				  osb->sb->s_blocksize);
+>  	dx_root->dr_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+>  	dx_root->dr_suballoc_loc = cpu_to_le64(suballoc_loc);
+>  	dx_root->dr_suballoc_bit = cpu_to_le16(dr_suballoc_bit);
+> @@ -2431,9 +2432,9 @@ static int ocfs2_dx_dir_format_cluster(struct ocfs2_super *osb,
+>  		}
+>  
+>  		dx_leaf = (struct ocfs2_dx_leaf *) bh->b_data;
+> -
+> -		memset(dx_leaf, 0, osb->sb->s_blocksize);
+> -		strcpy(dx_leaf->dl_signature, OCFS2_DX_LEAF_SIGNATURE);
+> +		ocfs2_init_with_signature(dx_leaf, dl_signature,
+> +					  OCFS2_DX_LEAF_SIGNATURE,
+> +					  osb->sb->s_blocksize);
+>  		dx_leaf->dl_fs_generation = cpu_to_le32(osb->fs_generation);
+>  		dx_leaf->dl_blkno = cpu_to_le64(bh->b_blocknr);
+>  		dx_leaf->dl_list.de_count =
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index c90b254da75e..b39dbcf0152e 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -551,7 +551,9 @@ static int __ocfs2_mknod_locked(struct inode *dir,
+>  	}
+>  
+>  	fe = (struct ocfs2_dinode *) (*new_fe_bh)->b_data;
+> -	memset(fe, 0, osb->sb->s_blocksize);
+> +	ocfs2_init_with_signature(fe, i_signature,
+> +				  OCFS2_INODE_SIGNATURE,
+> +				  osb->sb->s_blocksize);
+>  
+>  	fe->i_generation = cpu_to_le32(inode->i_generation);
+>  	fe->i_fs_generation = cpu_to_le32(osb->fs_generation);
+> @@ -568,7 +570,6 @@ static int __ocfs2_mknod_locked(struct inode *dir,
+>  	ocfs2_set_links_count(fe, inode->i_nlink);
+>  
+>  	fe->i_last_eb_blk = 0;
+> -	strcpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
+>  	fe->i_flags |= cpu_to_le32(OCFS2_VALID_FL);
+>  	ktime_get_coarse_real_ts64(&ts);
+>  	fe->i_atime = fe->i_ctime = fe->i_mtime =
+> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> index 6aaa94c554c1..0863057c9c7c 100644
+> --- a/fs/ocfs2/ocfs2.h
+> +++ b/fs/ocfs2/ocfs2.h
+> @@ -971,5 +971,12 @@ static inline int ocfs2_find_next_zero_bit_unaligned(void *bitmap, int max,
+>  	return ret;
+>  }
+>  
+> +#define ocfs2_init_with_signature(ptr, sigmember, sigdata, size)	\
+> +	do {								\
+> +		strscpy((ptr)->sigmember, (sigdata));			\
+> +		memset((char *)ptr + sizeof((ptr)->sigmember), 0,	\
+> +		       (size) - sizeof((ptr)->sigmember));		\
+> +	} while (0)
+> +
 
-This helper creates a union between a flexible-array member (FAM) and a
-set of MEMBERS that would otherwise follow it.
+This requires signature must be the first member.
+Usually it indeed is, but not for all, e.g. signature of
+ocfs2_dir_block_trailer.
+So I think it is unneccessary to introduce this helper.
 
-This overlays the trailing MEMBER struct ocfs2_extent_rec er; onto the
-FAM struct ocfs2_xattr_value_root::xr_list.l_recs[], while keeping the
-FAM and the start of MEMBER aligned.
+Thanks,
+Joseph
 
-The static_assert() ensures this alignment remains, and it's
-intentionally placed inmediately after the related structure --no
-blank line in between.
-
-Signed-off-by: Gustavo A. R. Silva <gustavoars@kernel.org>
----
- fs/ocfs2/xattr.c | 8 ++++++--
- 1 file changed, 6 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index d70a20d29e3e..09069defd7e1 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -49,9 +49,13 @@
- #include "ocfs2_trace.h"
- 
- struct ocfs2_xattr_def_value_root {
--	struct ocfs2_xattr_value_root	xv;
--	struct ocfs2_extent_rec		er;
-+	/* Must be last as it ends in a flexible-array member. */
-+	TRAILING_OVERLAP(struct ocfs2_xattr_value_root, xv, xr_list.l_recs,
-+		struct ocfs2_extent_rec		er;
-+	);
- };
-+static_assert(offsetof(struct ocfs2_xattr_def_value_root, xv.xr_list.l_recs) ==
-+	      offsetof(struct ocfs2_xattr_def_value_root, er));
- 
- struct ocfs2_xattr_bucket {
- 	/* The inode these xattrs are associated with */
--- 
-2.43.0
+>  #endif  /* OCFS2_H */
+>  
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 267b50e8e42e..c0063ecc8a8b 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -620,8 +620,9 @@ static int ocfs2_create_refcount_tree(struct inode *inode,
+>  
+>  	/* Initialize ocfs2_refcount_block. */
+>  	rb = (struct ocfs2_refcount_block *)new_bh->b_data;
+> -	memset(rb, 0, inode->i_sb->s_blocksize);
+> -	strcpy((void *)rb, OCFS2_REFCOUNT_BLOCK_SIGNATURE);
+> +	ocfs2_init_with_signature(rb, rf_signature,
+> +				  OCFS2_REFCOUNT_BLOCK_SIGNATURE,
+> +				  inode->i_sb->s_blocksize);
+>  	rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+>  	rb->rf_suballoc_loc = cpu_to_le64(suballoc_loc);
+>  	rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+> @@ -1561,8 +1562,9 @@ static int ocfs2_new_leaf_refcount_block(handle_t *handle,
+>  
+>  	/* Initialize ocfs2_refcount_block. */
+>  	new_rb = (struct ocfs2_refcount_block *)new_bh->b_data;
+> -	memset(new_rb, 0, sb->s_blocksize);
+> -	strcpy((void *)new_rb, OCFS2_REFCOUNT_BLOCK_SIGNATURE);
+> +	ocfs2_init_with_signature(new_rb, rf_signature,
+> +				  OCFS2_REFCOUNT_BLOCK_SIGNATURE,
+> +				  sb->s_blocksize);
+>  	new_rb->rf_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
+>  	new_rb->rf_suballoc_loc = cpu_to_le64(suballoc_loc);
+>  	new_rb->rf_suballoc_bit = cpu_to_le16(suballoc_bit_start);
+> diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
+> index a28c127b9934..5f721611d8fe 100644
+> --- a/fs/ocfs2/stackglue.c
+> +++ b/fs/ocfs2/stackglue.c
+> @@ -670,7 +670,7 @@ static int __init ocfs2_stack_glue_init(void)
+>  {
+>  	int ret;
+>  
+> -	strcpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
+> +	strscpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
+>  
+>  	ocfs2_table_header = register_sysctl("fs/ocfs2/nm", ocfs2_nm_table);
+>  	if (!ocfs2_table_header) {
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 6ac4dcd54588..844a6ae363c3 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -371,8 +371,9 @@ static int ocfs2_block_group_fill(handle_t *handle,
+>  		goto bail;
+>  	}
+>  
+> -	memset(bg, 0, sb->s_blocksize);
+> -	strcpy(bg->bg_signature, OCFS2_GROUP_DESC_SIGNATURE);
+> +	ocfs2_init_with_signature(bg, bg_signature,
+> +				  OCFS2_GROUP_DESC_SIGNATURE,
+> +				  sb->s_blocksize);
+>  	bg->bg_generation = cpu_to_le32(osb->fs_generation);
+>  	bg->bg_size = cpu_to_le16(ocfs2_group_bitmap_size(sb, 1,
+>  						osb->s_feature_incompat));
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index d70a20d29e3e..9ca8e51f8c5c 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -2907,8 +2907,9 @@ static int ocfs2_create_xattr_block(struct inode *inode,
+>  
+>  	/* Initialize ocfs2_xattr_block */
+>  	xblk = (struct ocfs2_xattr_block *)new_bh->b_data;
+> -	memset(xblk, 0, inode->i_sb->s_blocksize);
+> -	strcpy((void *)xblk, OCFS2_XATTR_BLOCK_SIGNATURE);
+> +	ocfs2_init_with_signature(xblk, xb_signature,
+> +				  OCFS2_XATTR_BLOCK_SIGNATURE,
+> +				  inode->i_sb->s_blocksize);
+>  	xblk->xb_suballoc_slot = cpu_to_le16(ctxt->meta_ac->ac_alloc_slot);
+>  	xblk->xb_suballoc_loc = cpu_to_le64(suballoc_loc);
+>  	xblk->xb_suballoc_bit = cpu_to_le16(suballoc_bit_start);
 
