@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A7E12345CBD;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A20EC343D8C;
 	Tue, 11 Nov 2025 06:55:27 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762844133; cv=none; b=Rf0rpdX+P+HQAoZrN1ZFSqBjNshjoKsiKVD9xfhBy68bXVg8gfgB8XCt+DBaOoyG09IRvtqNBW3te44yTmT44jABmhkjh1mNZG2xHaQreagS6uSs+QHFaPswh8DvsHSPwta0q++sA63ufJxGUmX8QPFfFdWPDpc1rXsde0BIrGQ=
+	t=1762844132; cv=none; b=bxu2wTH33Fqr1AnXJDYSKTLXcOn4r7w+XYS3vBQlffgJ47bUtbUO7Zjkm8POolDIjFs8dopl75xMf1CBTqbVDrXRHbTfWMdJ4YmDnzZ/lfv+eb8/CABv5rWJr3jdxpCzvI0LxdXp7XwlJ3MisMVtw9N7tv7QC79XKyWNpULKkCU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762844133; c=relaxed/simple;
-	bh=rBis+ehDQQlMMa8Sh/rbTbSBnIM0TaWvYjqlG29vpK8=;
+	s=arc-20240116; t=1762844132; c=relaxed/simple;
+	bh=zwvv7t8MBgANRD5S0+TL/wuEbc9ZMEz6rxvOZJPG75Y=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=Tnrl3dBmHtoRn4ADu8AKZF83zylIh+AjduO8jyt/jkQdNb8i4uPF+Mw2Fe5sFm7tGlZp7+3+uRhuEJKbM+8+9Mq+4qUuvSM8eh7dwzoKrE9craAu3+dEsGtkZjugUzqv2o0Ebmhii/4NCvCSmrEeMqFeOh/RAdttETT8TzY+aMQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=wefX/RwZ; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=luB7BcvZ44fVj1eWsWH2n8no6878KzRBp9jUN/Ul5Zf/LtrGxRUpenhVIYfhLEnyj0IUdN9GZVqk6TnU+tQ/unRGgUvlo7QchKwNACAaz2+KkvTnqGLRsgMSPP8I9SYSYrHNGy4ipcjpVYs3C5POMdPkILQWL22NGMmeM7r0xN0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=I/pjxcaH; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="wefX/RwZ"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="I/pjxcaH"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=nSvwG6RsfCAVSbS4+/4CBqqk98DhL2WOLYlzO7apNsA=; b=wefX/RwZfv4dtD69RnkIvTZIqG
-	PTG9ZHWW0bW4yX7BJNMx9wJ7AcDjxOPZ6mjVbD4CD7BuvVWvQMZWwS9FOaVlQbm4I+8IkYhfOsXlM
-	LgAZbd4hEKtquq0INN1Hk/j7AThuKTggf/CXmrE8+aLBpMOzJ+dusy+dlWnpKk/WOKN+JT0pQ754g
-	vwcnMguWJwt8rzuweaSc75VPeWvEKDrpB3XyL32RFnJstyZqvdfTe5Gw+9cBZ54VZCTp+8o5rC9hI
-	YtwPtgJegXuyGqE0TaBkvEIYqX6np1Vq3VZldMhc7DFvG2ZPaj3ELNQUELCXJPOcMQ6DUTDp0hZz0
-	oBUOoPcA==;
+	bh=WKINhvrphJyrNwMIsOfgnLwqrkhKPlvlu+weyrXrIrI=; b=I/pjxcaHFuWqmzpdIenmacuMOH
+	aq3cr35oehDoPW359bMKvb6c6KWUoxbBSQ2G3ldspISxYPF9RuYak10Xx3e+eHgt8lcYwIUx8PWd5
+	n48wI6Ja4l0zXmFmcSKvD2hIWlFyiZWHI3NYWs1S0q6MSqY/21Kbj266yiuuIGjs4yJnjtYj7YWjG
+	AaiKqhUTtdf+hIgM8y6q22/U7TuKt23LIqH3zhKzwQU5kpjFf0+Ct2RifQPBTm0EKmQA0DIcvY0TE
+	okXU1h7E09WAXuaXA+cIsui7rVE9YFszhKtGLHIn6iCmbbQfwCWZgGLgwFjWLAl/8FkdRugPY7cBH
+	I6FbTrPQ==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vIiHj-0000000Bwyb-3vRs;
-	Tue, 11 Nov 2025 06:55:24 +0000
+	id 1vIiHj-0000000Bwxo-025Z;
+	Tue, 11 Nov 2025 06:55:23 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -52,9 +52,9 @@ Cc: torvalds@linux-foundation.org,
 	selinux@vger.kernel.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org
-Subject: [PATCH v3 18/50] convert pstore
-Date: Tue, 11 Nov 2025 06:54:47 +0000
-Message-ID: <20251111065520.2847791-19-viro@zeniv.linux.org.uk>
+Subject: [PATCH v3 10/50] configfs, securityfs: kill_litter_super() not needed
+Date: Tue, 11 Nov 2025 06:54:39 +0000
+Message-ID: <20251111065520.2847791-11-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
 References: <20251111065520.2847791-1-viro@zeniv.linux.org.uk>
@@ -67,52 +67,50 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-object creation by d_alloc_name()+d_add() in pstore_mkfile(), removal -
-via normal VFS codepaths (with ->unlink() using simple_unlink()) or
-in pstore_put_backend_records() via locked_recursive_removal()
+These are guaranteed to be empty by the time they are shut down;
+both are single-instance and there is an internal mount maintained
+for as long as there is any contents.
 
-Replace d_add() with d_make_persistent()+dput() - that's what really
-happens there.  The reference that goes into record->dentry is valid
-only until the unlink (and explicitly cleared by pstore_unlink()).
+Both have that internal mount pinned by every object in root.
 
-Reviewed-by: Kees Cook <kees@kernel.org>
+In other words, kill_litter_super() boils down to kill_anon_super()
+for those.
+
+Reviewed-by: Joel Becker <jlbec@evilplan.org>
+Acked-by: Paul Moore <paul@paul-moore> (LSM)
+Acked-by: Andreas Hindborg <a.hindborg@kernel.org> (configfs)
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/pstore/inode.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
+ fs/configfs/mount.c | 2 +-
+ security/inode.c    | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
 
-diff --git a/fs/pstore/inode.c b/fs/pstore/inode.c
-index b4e55c90f8dc..71deffcc3356 100644
---- a/fs/pstore/inode.c
-+++ b/fs/pstore/inode.c
-@@ -373,7 +373,7 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
- 	if (!dentry)
- 		return -ENOMEM;
+diff --git a/fs/configfs/mount.c b/fs/configfs/mount.c
+index 456c4a2efb53..4929f3431189 100644
+--- a/fs/configfs/mount.c
++++ b/fs/configfs/mount.c
+@@ -116,7 +116,7 @@ static struct file_system_type configfs_fs_type = {
+ 	.owner		= THIS_MODULE,
+ 	.name		= "configfs",
+ 	.init_fs_context = configfs_init_fs_context,
+-	.kill_sb	= kill_litter_super,
++	.kill_sb	= kill_anon_super,
+ };
+ MODULE_ALIAS_FS("configfs");
  
--	private->dentry = dentry;
-+	private->dentry = dentry; // borrowed
- 	private->record = record;
- 	inode->i_size = private->total_size = size;
- 	inode->i_private = private;
-@@ -382,7 +382,8 @@ int pstore_mkfile(struct dentry *root, struct pstore_record *record)
- 		inode_set_mtime_to_ts(inode,
- 				      inode_set_ctime_to_ts(inode, record->time));
+diff --git a/security/inode.c b/security/inode.c
+index 43382ef8896e..bf7b5e2e6955 100644
+--- a/security/inode.c
++++ b/security/inode.c
+@@ -70,7 +70,7 @@ static struct file_system_type fs_type = {
+ 	.owner =	THIS_MODULE,
+ 	.name =		"securityfs",
+ 	.init_fs_context = securityfs_init_fs_context,
+-	.kill_sb =	kill_litter_super,
++	.kill_sb =	kill_anon_super,
+ };
  
--	d_add(dentry, no_free_ptr(inode));
-+	d_make_persistent(dentry, no_free_ptr(inode));
-+	dput(dentry);
- 
- 	list_add(&(no_free_ptr(private))->list, &records_list);
- 
-@@ -465,7 +466,7 @@ static void pstore_kill_sb(struct super_block *sb)
- 	guard(mutex)(&pstore_sb_lock);
- 	WARN_ON(pstore_sb && pstore_sb != sb);
- 
--	kill_litter_super(sb);
-+	kill_anon_super(sb);
- 	pstore_sb = NULL;
- 
- 	guard(mutex)(&records_list_lock);
+ /**
 -- 
 2.47.3
 
