@@ -1,133 +1,118 @@
-Received: from mail-pg1-f178.google.com (mail-pg1-f178.google.com [209.85.215.178])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8A46931BC80
-	for <ocfs2-devel@lists.linux.dev>; Tue, 11 Nov 2025 07:38:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C09FA34D39F;
+	Tue, 11 Nov 2025 07:53:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1762846721; cv=none; b=md6secJRuayJhSEy+aZ+z3RD5HeNpaRxYYpEgt/rnwH/uGEL9SfFoi7Yi8tTvFinvzotIZpyrXsJnnmDgun7cKwmL/9ZOjg9jzciYSP9UcnLBnUOoWvW9MpHDtyk/ibXxcgN3Wve+c3yS3Jd8+/caxXiozgtYmAU5MERM/+51zg=
+	t=1762847597; cv=none; b=QIEY2pLn1YWx4/YY2udHLE4jwFO8w1CGxOoaBpBdlAXj9F4r9OgqlTobXehWAJwo0AWNmn31tU96dLcSCGzS0o8+Xa+8HpMTcafLBkJ811LlTEW4E+H4S9kbpeWnVn6R1wYSTQj4uLd9zXWYO8HeYorZE+ylbWISPL0CwZCNnNo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1762846721; c=relaxed/simple;
-	bh=HvfH3RKp5senMnbC4tfcVxY2crG3xn8LwjbA/IOPgyc=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=XOcwtMJc7pZGr4T18jmtjJeHJc01i8Z9xXlAVOYBbXNL7myHdeMafrjmOWcgN5LffSpTuzu1+L6wQGEpHszZCUDmtqLyfT92Y0NAVJO1s+JZMTx9vSuC4z25Pit8qcAvshpAx69pG8Huo/W2IXsWUdoAd/NP6OMLelDfTR/NQIo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=mIiUgAJV; arc=none smtp.client-ip=209.85.215.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1762847597; c=relaxed/simple;
+	bh=6vLdCVtUOmwT2xBG2CthgZi9Ig8JOsV5A1e4sciMj58=;
+	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
+	 Subject:From:To:Cc:Date; b=olwwzqheRfvc4e9iUwdXTH5+JhjJP1JBC97xzxJ1xefQX7YegycUQqgR8J5soQDVcGoLsYROpBYjv6onSucpOkjt36PAMjg2Oxm2IWoLxATZEg3xXabYuMkBOEM0ipystBH36v11SimcXa5SwHIURGnuF7auSkb3fFzzvTuz8Ys=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=GT1YKP0D; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="mIiUgAJV"
-Received: by mail-pg1-f178.google.com with SMTP id 41be03b00d2f7-b996c8db896so3239081a12.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 10 Nov 2025 23:38:39 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1762846719; x=1763451519; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=C9ndsoTPDxhr1ZIZLS05/CvMhHBG4GAQRgkdZOfuzvA=;
-        b=mIiUgAJVDcBh67hxS5c7xb7ie18c+r3wpq7AXSucCenU7YvgqYdSrztMaTtDBsyxXb
-         xHgeSLpB6g9i+QTKg+4KuDLX/LKjcYo2VcRRGCiAqyVVGIV9uL6+2ig6hAsOoAVluOeT
-         USLJCm4wmxGL1jB7W2O/o08ugUoO7ItqSVBeC1RDhYZvyeSjF4tjOmwkDJv7Q3A0Tla2
-         DjuQrjWzAa04q/c31V13MbXlFo9t+mOec3sh46iJocjjAOA8N9I0qmZ4zwO95lekfas4
-         TSsiYe874lG+XPdNu6KKFDDiMpU1QFCbr0SH/+fAbVQs5wFabsVR/LfpOasjQhG474gz
-         ln/Q==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1762846719; x=1763451519;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=C9ndsoTPDxhr1ZIZLS05/CvMhHBG4GAQRgkdZOfuzvA=;
-        b=XBwWWgv6FJbP6nWdgzisCniic/YQ0Juca0FXQN5uvxsIK7kKIhLhnBzBMr5te+9NCC
-         A9MkY4vq+HdIdq5r/RVsE0Qgt2CZ3v67SiNCXmXMcmQI5FPbChOOZKzFgqKlsz77a5Ll
-         oi3R3HpLLGO3HeOF/jFHCoYFfk4EAs9D/JHqN/i9JD38Sga2GqvYSuNspvyDV2lOWpM5
-         fosQ7w+i6XB5rzdcfPzP9pWFufpz+jl9KaEE6uOe615szvFuEldTcNX1DIySA5UFDG/P
-         alNeD70PaqYR2spKH7jpH/+gi+RauIMe07zi+4zk1JpVWP3p2U285rCH60Zp5S2jmrrx
-         7C3g==
-X-Gm-Message-State: AOJu0Yx8Vw7IOZXFeSAuuNDarxapeSqx94nEmUfsVufTVkCYcJLYu+9b
-	ogFJ7anbdTJitt6XQHu6ZMOL1JpatupbtEH64qpwjarxnSbCBpYzKoFP
-X-Gm-Gg: ASbGncuSG60B3cxxQi1SNC5nxannR0aWwYkY2v3iLCxkWyq3v4yCsD02cv7VbANFll0
-	Ae+JaHuPiQysuOKYhTgBO4WeHqoe5rvJDUy4qGfsmkibFOYlnCxcAlUWzDhfTy4aQ5uGOSWcj5L
-	DxI8pcUqgvdpS4DOUVlpmrNiOys2ClD3u81jF6gWQrrR+MFJqamORxxPQKCdfuRIRSbf+cmUY0U
-	96mqWXtk21dgdj+4887jCuUXLKyFRNV1rgdc7xxuAllPxW4iVgc7evIfMMWAg90XwTxcSkhMsKQ
-	4PDzulnNdG1FrFSpg2Kfs3K/3Nr0x6pY3CVWSMgSFc2NGgvI7DmTOcMvqPLT6PEGaHojL0M/kba
-	Ikzii8v7iIVPAG8eK5c6WIrpZZFcPjecyPOtXX5PomJ5hdj+6xBaoGkPbHgTS3HgUWDlCxtUTcC
-	kwTzGQxV6UCFJttIQY73bE+p0=
-X-Google-Smtp-Source: AGHT+IHHGeaf2R5g2Vtakbv4+m13R1FK4/U22rAUMop0DbrxDVDpJHVAj4e9itb8L1DMyZ3Jt8m84A==
-X-Received: by 2002:a17:903:2311:b0:295:9e4e:4092 with SMTP id d9443c01a7336-297e571bcfdmr147154685ad.56.1762846718641;
-        Mon, 10 Nov 2025 23:38:38 -0800 (PST)
-Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:a4ed:fc5:c0b5:fbfb])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29651c94abasm173051835ad.82.2025.11.10.23.38.35
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 10 Nov 2025 23:38:38 -0800 (PST)
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: validate xattr entry count in ocfs2_xattr_list_entries
-Date: Tue, 11 Nov 2025 13:08:31 +0530
-Message-ID: <20251111073831.2027072-1-kartikey406@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="GT1YKP0D"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id B5EFAC116D0;
+	Tue, 11 Nov 2025 07:53:16 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1762847597;
+	bh=6vLdCVtUOmwT2xBG2CthgZi9Ig8JOsV5A1e4sciMj58=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date:From;
+	b=GT1YKP0Dqo8Ysx1f1jn1aJnzunt/m+vgmkHza86dvdju2EoOZI6rbkPd7I+ZcBeM+
+	 sMRoB0c30MgD2v1Yb5EZikViuPNT9qU6D1zpwh1o3OD7j4ZzdXpPAIauOb57UMw4bv
+	 I60wtyPt3IyQJygJ4dixY3dw68KJmjTTO1siXWRgIfdzeLxoIP8G2HrfqFcRWayLag
+	 434bWzG4C5dIXX3cv0RlRRd1dhjWeDIx9KMPU1TowHWPucntp2dQsJT9/iu1QfqbYc
+	 Y/H5S/PxMIu45+cpnJF56ZFcZiXa6QAttdqqbIZMPl+jb91U6hNFBKXExqdER7dwwx
+	 ib+6wzq9EnUzA==
+Content-Type: multipart/mixed; boundary="===============1014260008914052501=="
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Message-Id: <20754dba9be498daeda5fe856e7276c9c91c271999320ae32331adb25a47cd4f@mail.kernel.org>
+In-Reply-To: <20251111065520.2847791-37-viro@zeniv.linux.org.uk>
+References: <20251111065520.2847791-37-viro@zeniv.linux.org.uk>
+Subject: Re: [PATCH v3 36/50] functionfs: switch to simple_remove_by_name()
+From: bot+bpf-ci@kernel.org
+To: viro@zeniv.linux.org.uk,linux-fsdevel@vger.kernel.org
+Cc: torvalds@linux-foundation.org,brauner@kernel.org,jack@suse.cz,raven@themaw.net,miklos@szeredi.hu,neil@brown.name,a.hindborg@kernel.org,linux-mm@kvack.org,linux-efi@vger.kernel.org,ocfs2-devel@lists.linux.dev,kees@kernel.org,rostedt@goodmis.org,gregkh@linuxfoundation.org,linux-usb@vger.kernel.org,paul@paul-moore.com,casey@schaufler-ca.com,linuxppc-dev@lists.ozlabs.org,john.johansen@canonical.com,selinux@vger.kernel.org,borntraeger@linux.ibm.com,bpf@vger.kernel.org,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,clm@meta.com,ihor.solodrai@linux.dev
+Date: Tue, 11 Nov 2025 07:53:16 +0000 (UTC)
 
-Add validation of xattr entry count before accessing entries to prevent
-out-of-bounds array access and use-after-free bugs. A corrupted
-filesystem with an invalid xh_count value can cause the loop to access
-memory beyond the allocated block, potentially reaching freed memory
-pages.
+--===============1014260008914052501==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
 
-The validation calculates the maximum number of entries that can fit in
-the available space and rejects counts that exceed this limit. This
-prevents the subsequent loop from accessing invalid memory addresses.
+> diff --git a/drivers/usb/gadget/function/f_fs.c b/drivers/usb/gadget/function/f_fs.c
+> index 47cfbe41f..43dcd39b7 100644
+> --- a/drivers/usb/gadget/function/f_fs.c
+> +++ b/drivers/usb/gadget/function/f_fs.c
 
-Without this check, the code directly uses xh_count from disk in array
-indexing operations like &header->xh_entries[i], which can point outside
-the block when xh_count is corrupted, triggering KASAN use-after-free
-detection.
+[ ... ]
 
-Reported-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=ab0ad25088673470d2d9
-Tested-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
-Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+> @@ -2323,6 +2316,7 @@ static int ffs_epfiles_create(struct ffs_data *ffs)
+>  {
+>  	struct ffs_epfile *epfile, *epfiles;
+>  	unsigned i, count;
+> +	int err;
+>
+>  	count = ffs->eps_count;
+>  	epfiles = kcalloc(count, sizeof(*epfiles), GFP_KERNEL);
+> @@ -2339,12 +2333,11 @@ static int ffs_epfiles_create(struct ffs_data *ffs)
+>  			sprintf(epfile->name, "ep%02x", ffs->eps_addrmap[i]);
+>  		else
+>  			sprintf(epfile->name, "ep%u", i);
+> -		epfile->dentry = ffs_sb_create_file(ffs->sb, epfile->name,
+> -						 epfile,
+> -						 &ffs_epfile_operations);
+> -		if (!epfile->dentry) {
+> +		err = ffs_sb_create_file(ffs->sb, epfile->name,
+> +					 epfile, &ffs_epfile_operations);
+> +		if (err) {
+>  			ffs_epfiles_destroy(epfiles, i - 1);
+> -			return -ENOMEM;
+> +			return err;
+>  		}
+>  	}
+>
+> @@ -2355,13 +2348,11 @@ static int ffs_epfiles_create(struct ffs_data *ffs)
+>  static void ffs_epfiles_destroy(struct ffs_epfile *epfiles, unsigned count)
+>  {
+>  	struct ffs_epfile *epfile = epfiles;
+> +	struct dentry *root = epfile->ffs->sb->s_root;
+
+Can this dereference uninitialized memory in ffs_epfiles_destroy()?
+
+When ffs_epfiles_create() calls ffs_epfiles_destroy(epfiles, i - 1) after
+the first ffs_sb_create_file() call fails (when i=1), it passes count=0.
+The initialization loop starts at i=1, so epfiles[0].ffs is never
+initialized. The kcalloc() zeros the memory, making epfiles[0].ffs NULL.
+
+The new code unconditionally dereferences epfile->ffs->sb->s_root before
+the loop, causing a NULL pointer dereference when count=0. The old code
+was safe because the dereference only happened inside the loop.
+
+>
+>  	for (; count; --count, ++epfile) {
+>  		BUG_ON(mutex_is_locked(&epfile->mutex));
+> -		if (epfile->dentry) {
+> -			simple_recursive_removal(epfile->dentry, NULL);
+> -			epfile->dentry = NULL;
+> -		}
+> +		simple_remove_by_name(root, epfile->name, NULL);
+>  	}
+>
+>  	kfree(epfiles);
+
+
 ---
- fs/ocfs2/xattr.c | 17 ++++++++++++++++-
- 1 file changed, 16 insertions(+), 1 deletion(-)
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index d70a20d29e3e..2caf63c6206e 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -928,8 +928,23 @@ static int ocfs2_xattr_list_entries(struct inode *inode,
- 	size_t result = 0;
- 	int i, type, ret;
- 	const char *name;
-+	u16 count;
-+	size_t max_entries;
-+	struct super_block *sb = inode->i_sb;
-+
-+	count = le16_to_cpu(header->xh_count);
-+	max_entries = (sb->s_blocksize - sizeof(struct ocfs2_xattr_header)) /
-+		       sizeof(struct ocfs2_xattr_entry);
- 
--	for (i = 0 ; i < le16_to_cpu(header->xh_count); i++) {
-+	if (count > max_entries) {
-+		ocfs2_error(sb,
-+			    "xattr entry count %u exceeds maximum %zu in inode %llu\n",
-+			    count, max_entries,
-+			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
-+		return -EUCLEAN;
-+	}
-+
-+	for (i = 0; i < count; i++) {
- 		struct ocfs2_xattr_entry *entry = &header->xh_entries[i];
- 		type = ocfs2_xattr_get_type(entry);
- 		name = (const char *)header +
--- 
-2.43.0
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/19257803162
 
+--===============1014260008914052501==--
