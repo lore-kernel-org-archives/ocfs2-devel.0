@@ -1,132 +1,122 @@
-Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from omta040.useast.a.cloudfilter.net (omta040.useast.a.cloudfilter.net [44.202.169.39])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F14D32F5B
-	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Nov 2025 05:32:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 104E121B91D
+	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Nov 2025 05:47:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=44.202.169.39
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763357528; cv=none; b=NV0GFq9b2gr80aP24TqtlAnvIBghn0BHHJqSdtCWx9MAme1XM1a2N30nqVphGtPL4Z/rNqTo9dNQBBZISYQwU/unwq0O6MeoJE44F01d3d+mtNuMaTCi6ERcgu5KwEyVfV+PrF5M4a7Dwd087NsKAWXtlHYCOlYXLx8Ih7fqACI=
+	t=1763358464; cv=none; b=DyXtkeEZgmybO9It1ZX/84XA6DMZFy3dEKjnUZ5tMPkl0y7iSFE1M4nB/liGWYADnSotlfwFQjTmhEHVY10Hjj2y5LLkAegZj9xlc+ZCRjLPhXW6vH+km639T5FVzV1i41WGWUTh0w8hLbfPrRWtHBwLZ4SZxU1OVbi1S0x36ok=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763357528; c=relaxed/simple;
-	bh=qDNvS4gs4rZScxDqi64CNWzwpI9eznGM3AO2h1Xcvo8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=RUwrwm+Wi0mHkRHoycb7SUrL5nGy7mvPI9PZCoCgHh+XD1g2jkgXcdXTvlgdjO0f8j6QZ1Pf7ysrb+/TylkjPXQY8+wQvSFruzFUa6tFfTUsnv9rNmPCmal/Hy+vqTyO2pLhjGwTeqO1Dqj14bDopJ84Uz6mGURIg+cL00Gs1jI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=LmnKKxsT; arc=none smtp.client-ip=209.85.128.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1763358464; c=relaxed/simple;
+	bh=lRuMMAQFfKtE9Hjz37VG/Ob85XUqc4TnBdjxVRw97ww=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=owKvXNctincjHoWnPwAhKEQOvn7mq9uRRXLbNpWlFzxLEs23z1TwDF1+SwcxQahyrAVZHV17NL4BLUiYqvHQcPkGwn+5E8Dyuu3BPZzXiX5xbOizLHMHxEG0Wn4C8X5nvwoWmZporYiKMYV2zleU4ZB+owYvdAjCYDNI028bN6w=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=embeddedor.com; spf=pass smtp.mailfrom=embeddedor.com; dkim=pass (2048-bit key) header.d=embeddedor.com header.i=@embeddedor.com header.b=ZiVrcGBf; arc=none smtp.client-ip=44.202.169.39
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=embeddedor.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=embeddedor.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="LmnKKxsT"
-Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-4779b49d724so1264625e9.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 16 Nov 2025 21:32:05 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1763357524; x=1763962324; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=eOTfYi+tVsV8XnFMmLsNAmw9POVor+4niM6A1Xzk09o=;
-        b=LmnKKxsTfermpxBG5uucz6uOoPfzdTNeFQ5Npu2oRoW2l2qRrnXvzrZqVIbgFB6LiH
-         nJ4G/w2TRPhgvgFrtzPdvT18VKAfcK/KO1IOheriF0ZrXEf8W+FDvujpCAR5NGRH/6DK
-         4u3uK/BwJEa6RAlqD2t5y7KmBuOwP2FP+bV5o6s2/MGXZIQ7iQrgzI9yPVHiwvAE1IMi
-         2lg20RLVE7vwVXKVLpNZIZIFPPZvJmyibkSZQ1xXheuT8zqyoQUreKmTjgLi9R+YcGgy
-         Ti/zx5FfTBFmx/HcjrK4AU0QUbQ2WITU526FFTrH9MXoB3OTxxjaGyjqBsz469r52r3s
-         tECw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1763357524; x=1763962324;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=eOTfYi+tVsV8XnFMmLsNAmw9POVor+4niM6A1Xzk09o=;
-        b=hS3mudA7+UtzKchvogboQ0oVQD12vcZykZRG7lo0vIgMYlMWxo/NxJBCbL2Ytxss+7
-         jaMtkg2DSGDZo0hScwv+H142ORrFoDbijeWZt23GGRQCvGkxotkUwVn4ROGONN9nByqi
-         AYlF8awalx4/LULmOdXvoY5bDIjfjmVndhEByFR0PowvlKnvyioMvI4LRKxHqIIHwgfj
-         NYWGV4qkrTJtoMGp0yCz7/wgAHi47pePND3DimEVAkd6LvLVfqZ16tHZ6AMgWVY1+i5S
-         MLt35Ofc6WK951NdAvT4gHQuV+b7PE7y89XlupFd1fpCAagqBxjE0SOXVj0cRmJIO0cj
-         Ck6Q==
-X-Forwarded-Encrypted: i=1; AJvYcCWlbaMRoumPBmYFevqnbA2d33UCFpNKNqcuzHZOgTKbqzjeRv6/6vx5h5nTP77Ih8hQ9kO+jyAYZWwO2Q==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzldpH0GnBeiccG2iFSNKUTI3LW9CSyQMDhbt28s+HB7ZrmxNUl
-	bU+DsjrQddwOPWnCI7YHcPrBDEo9oQodxtDw8bjGzlcj5bMptJQkBiw3qPsteodNjqngUNdhBIL
-	cSUfT
-X-Gm-Gg: ASbGncuG2Aj6CIrAzxYtD690Px0zmof/4if5mArDr/l5dx4cA9uTE+SQnksi+zrjkxu
-	KEAyRoE/n6jc1VauuMMEjkgAQ1l4wursRt0YOzqIg9E6x1VgQuvrO14SETFTdK5wayjvO41YX1s
-	Air8CYbflnl55JNHwcgZT/w+5BHopBG0jzh5PwYpGbqSeghX5NfHIUwiiCVR4LNFm04m5j1Dx3v
-	yrRy8Ggu+D1Rsp3PIHqHbRk++CK0VG6luxuOVJRrbahZ4JM+ByrpawfuVFfLU8LXHZFX9HR6r0N
-	2AwGtgF9FKg41HRm7womegUYNDzf7YH6BXZb6xvIyQNCQqGg3NK2cHHY0SU58/kTCGDu/ZY22HY
-	BDL0TqofSgqkJP8cr82PmI3XZqAcxdN7VwVQUg9rw5gNuMFDjwCwztkcckNs3oxhzxo7+qUh7UF
-	oclnBwM6WcbA==
-X-Google-Smtp-Source: AGHT+IE/Sn+NHjmFPkX+qDLBz/tmkuljOojgxRyZSKcbpO5UM4orDk6yBzdR3NijuuYD+wAGs5CY7Q==
-X-Received: by 2002:a05:600c:4e93:b0:477:9fa8:bc99 with SMTP id 5b1f17b1804b1-4779fa8bd59mr16387885e9.4.1763357524134;
-        Sun, 16 Nov 2025 21:32:04 -0800 (PST)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2985c2b0bf0sm126604445ad.71.2025.11.16.21.32.03
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 16 Nov 2025 21:32:03 -0800 (PST)
-Date: Mon, 17 Nov 2025 13:32:01 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: "Gustavo A. R. Silva" <gustavoars@kernel.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	linux-hardening@vger.kernel.org
-Subject: Re: [PATCH][next] ocfs2: Avoid -Wflex-array-member-not-at-end warning
-Message-ID: <7vsq3tvjuv3ppiot3lgithyp76r4jbbssoiiuni6zvj5pajsov@nketwax66jss>
-References: <aRKm_7aN7Smc3J5L@kspp>
+	dkim=pass (2048-bit key) header.d=embeddedor.com header.i=@embeddedor.com header.b="ZiVrcGBf"
+Received: from eig-obgw-6007b.ext.cloudfilter.net ([10.0.30.166])
+	by cmsmtp with ESMTPS
+	id KrLQv7Hq0v724Ks5PvUjsD; Mon, 17 Nov 2025 05:47:35 +0000
+Received: from gator4166.hostgator.com ([108.167.133.22])
+	by cmsmtp with ESMTPS
+	id Ks5Ov1hQ7XkiUKs5OvIOBt; Mon, 17 Nov 2025 05:47:34 +0000
+X-Authority-Analysis: v=2.4 cv=MoBS63ae c=1 sm=1 tr=0 ts=691ab6f6
+ a=1YbLdUo/zbTtOZ3uB5T3HA==:117 a=4DtsFWJC70/ZxGj2xnZlig==:17
+ a=IkcTkHD0fZMA:10 a=6UeiqGixMTsA:10 a=7T7KSl7uo7wA:10 a=VwQbUJbxAAAA:8
+ a=iox4zFpeAAAA:8 a=XhWbaVAy7xEXXl44f-sA:9 a=QEXdDO2ut3YA:10
+ a=WzC6qhA0u3u7Ye7llzcV:22 a=xYX6OU9JNrHFPr8prv8u:22
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=embeddedor.com; s=default; h=Content-Transfer-Encoding:Content-Type:
+	In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender
+	:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:
+	Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:
+	List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
+	bh=89x8whf2MOkQOTUoYg65n709kE93HhhjOZ/hCJbnnoE=; b=ZiVrcGBf7SX1mi8OH36yZsRghq
+	uKQ/LBBp/ZzVs4rPcTWNX6Vp4HyWvehZQXJH+w0YiHxtXcJ+6mKZ/jK5K2AQD7XXSOnL/t9vqhjpX
+	AydAFjXHuJeRAbwPBICWvu3q8sRzDAgc7PtC1a+JQIdqkfvG3IiaSlIgyVlVSEu7MJC+t4mqt5YoJ
+	0tTgsvEfYf8WcZwh356Mbf3MP8kdUFIaSSNHVlXuoJOf+JejPZX1NN+RJpad+nEefKRwAgj24L+No
+	kslT1ok3H+X7xOgyoS6/1FxYrs0KKx5ba70XrQbJ1lQE0tKPsGAGuw7yAWFLivfhAO5G6vzaKdy7z
+	yiAzg9Gg==;
+Received: from softbank126126126075.bbtec.net ([126.126.126.75]:36702 helo=[10.221.86.44])
+	by gator4166.hostgator.com with esmtpsa  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+	(Exim 4.98.1)
+	(envelope-from <gustavo@embeddedor.com>)
+	id 1vKs5N-000000003ZG-2b5r;
+	Sun, 16 Nov 2025 23:47:33 -0600
+Message-ID: <afd13315-7129-4f10-8e29-7832a00a4817@embeddedor.com>
+Date: Mon, 17 Nov 2025 14:47:22 +0900
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aRKm_7aN7Smc3J5L@kspp>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH][next] ocfs2: Avoid -Wflex-array-member-not-at-end warning
+To: Heming Zhao <heming.zhao@suse.com>,
+ "Gustavo A. R. Silva" <gustavoars@kernel.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, linux-hardening@vger.kernel.org
+References: <aRKm_7aN7Smc3J5L@kspp>
+ <7vsq3tvjuv3ppiot3lgithyp76r4jbbssoiiuni6zvj5pajsov@nketwax66jss>
+Content-Language: en-US
+From: "Gustavo A. R. Silva" <gustavo@embeddedor.com>
+In-Reply-To: <7vsq3tvjuv3ppiot3lgithyp76r4jbbssoiiuni6zvj5pajsov@nketwax66jss>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
+X-AntiAbuse: This header was added to track abuse, please include it with any abuse report
+X-AntiAbuse: Primary Hostname - gator4166.hostgator.com
+X-AntiAbuse: Original Domain - lists.linux.dev
+X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
+X-AntiAbuse: Sender Address Domain - embeddedor.com
+X-BWhitelist: no
+X-Source-IP: 126.126.126.75
+X-Source-L: No
+X-Exim-ID: 1vKs5N-000000003ZG-2b5r
+X-Source: 
+X-Source-Args: 
+X-Source-Dir: 
+X-Source-Sender: softbank126126126075.bbtec.net ([10.221.86.44]) [126.126.126.75]:36702
+X-Source-Auth: gustavo@embeddedor.com
+X-Email-Count: 3
+X-Org: HG=hgshared;ORG=hostgator;
+X-Source-Cap: Z3V6aWRpbmU7Z3V6aWRpbmU7Z2F0b3I0MTY2Lmhvc3RnYXRvci5jb20=
+X-Local-Domain: yes
+X-CMAE-Envelope: MS4xfChc65O+/j0z77Vp1zdeTBd4i/CfGJMqBpNhjOT6WsSVR4TYWc/bJKkA/EySqJ4tQ9qjKPWgd5G2AXCILz++yR8j+AAzicTpBepm8yKljoy99uEF9WZ3
+ x8QLAiMJSjrcf1KyvL0UAQVlYO9qV1FizEalCIIX/1fIi44Z/pNkwSykqZVI7I4dGtR3O1s1NEg+/2ZRb1Xm3DNZ42pvpgmtJIu74TwRT5GlXnzxWSEverXm
 
-On Tue, Nov 11, 2025 at 12:01:19PM +0900, Gustavo A. R. Silva wrote:
-> -Wflex-array-member-not-at-end was introduced in GCC-14, and we are
-> getting ready to enable it, globally.
-> 
-> Use the new TRAILING_OVERLAP() helper to fix the following warning:
-> 
-> fs/ocfs2/xattr.c:52:41: warning: structure containing a flexible array member is not at the end of another structure [-Wflex-array-member-not-at-end]
-> 
-> This helper creates a union between a flexible-array member (FAM) and a
-> set of MEMBERS that would otherwise follow it.
-> 
-> This overlays the trailing MEMBER struct ocfs2_extent_rec er; onto the
-> FAM struct ocfs2_xattr_value_root::xr_list.l_recs[], while keeping the
-> FAM and the start of MEMBER aligned.
-> 
-> The static_assert() ensures this alignment remains, and it's
-> intentionally placed inmediately after the related structure --no
-> blank line in between.
-> 
-> Signed-off-by: Gustavo A. R. Silva <gustavoars@kernel.org>
 
-LGTM.
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 
-> ---
->  fs/ocfs2/xattr.c | 8 ++++++--
->  1 file changed, 6 insertions(+), 2 deletions(-)
+On 11/17/25 14:32, Heming Zhao wrote:
+> On Tue, Nov 11, 2025 at 12:01:19PM +0900, Gustavo A. R. Silva wrote:
+>> -Wflex-array-member-not-at-end was introduced in GCC-14, and we are
+>> getting ready to enable it, globally.
+>>
+>> Use the new TRAILING_OVERLAP() helper to fix the following warning:
+>>
+>> fs/ocfs2/xattr.c:52:41: warning: structure containing a flexible array member is not at the end of another structure [-Wflex-array-member-not-at-end]
+>>
+>> This helper creates a union between a flexible-array member (FAM) and a
+>> set of MEMBERS that would otherwise follow it.
+>>
+>> This overlays the trailing MEMBER struct ocfs2_extent_rec er; onto the
+>> FAM struct ocfs2_xattr_value_root::xr_list.l_recs[], while keeping the
+>> FAM and the start of MEMBER aligned.
+>>
+>> The static_assert() ensures this alignment remains, and it's
+>> intentionally placed inmediately after the related structure --no
+>> blank line in between.
+>>
+>> Signed-off-by: Gustavo A. R. Silva <gustavoars@kernel.org>
 > 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index d70a20d29e3e..09069defd7e1 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -49,9 +49,13 @@
->  #include "ocfs2_trace.h"
->  
->  struct ocfs2_xattr_def_value_root {
-> -	struct ocfs2_xattr_value_root	xv;
-> -	struct ocfs2_extent_rec		er;
-> +	/* Must be last as it ends in a flexible-array member. */
-> +	TRAILING_OVERLAP(struct ocfs2_xattr_value_root, xv, xr_list.l_recs,
-> +		struct ocfs2_extent_rec		er;
-> +	);
->  };
-> +static_assert(offsetof(struct ocfs2_xattr_def_value_root, xv.xr_list.l_recs) ==
-> +	      offsetof(struct ocfs2_xattr_def_value_root, er));
->  
->  struct ocfs2_xattr_bucket {
->  	/* The inode these xattrs are associated with */
-> -- 
-> 2.43.0
-> 
-> 
+> LGTM.
+> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+
+Thanks, Heming.
+
+-Gustavo
+
+
