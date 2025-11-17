@@ -1,122 +1,144 @@
-Received: from omta040.useast.a.cloudfilter.net (omta040.useast.a.cloudfilter.net [44.202.169.39])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 104E121B91D
-	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Nov 2025 05:47:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=44.202.169.39
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 183AA30DD10
+	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Nov 2025 05:59:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763358464; cv=none; b=DyXtkeEZgmybO9It1ZX/84XA6DMZFy3dEKjnUZ5tMPkl0y7iSFE1M4nB/liGWYADnSotlfwFQjTmhEHVY10Hjj2y5LLkAegZj9xlc+ZCRjLPhXW6vH+km639T5FVzV1i41WGWUTh0w8hLbfPrRWtHBwLZ4SZxU1OVbi1S0x36ok=
+	t=1763359180; cv=none; b=ub+6TRfGjgHhd7dFzh6G+i8GM95+rWYm6jT7zQ8ptpbSTDFeVzyyo1zsX0f4bBHybxL1kh3z2Gun7KmZx361OwYXRcBg6rD1fAlJ85QGGJvwz36QaswnXfbIRbz1WSw80RRrM+9HYwbdPsMp9eiftCwceVhlNVlfreHPO5OlByw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763358464; c=relaxed/simple;
-	bh=lRuMMAQFfKtE9Hjz37VG/Ob85XUqc4TnBdjxVRw97ww=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=owKvXNctincjHoWnPwAhKEQOvn7mq9uRRXLbNpWlFzxLEs23z1TwDF1+SwcxQahyrAVZHV17NL4BLUiYqvHQcPkGwn+5E8Dyuu3BPZzXiX5xbOizLHMHxEG0Wn4C8X5nvwoWmZporYiKMYV2zleU4ZB+owYvdAjCYDNI028bN6w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=embeddedor.com; spf=pass smtp.mailfrom=embeddedor.com; dkim=pass (2048-bit key) header.d=embeddedor.com header.i=@embeddedor.com header.b=ZiVrcGBf; arc=none smtp.client-ip=44.202.169.39
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=embeddedor.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=embeddedor.com
+	s=arc-20240116; t=1763359180; c=relaxed/simple;
+	bh=LTs1zU58jLEM2UFaSTzZQ52459H3mgoxR4nAunmxg5I=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=BQTLK/gf2q1g8EN17hAKk4AhJWOXHJKWZB9gdin1lih+vH1lg3LOYGNHWnZ0llEicDcrRI4H6ZhDmqJ9uVqfKDUM1eZS17t3lyXUmfIQng4k/IMIP9SNNf+OuhXc+1lVSugnmgVCqeEDDmxK3/1Ava3gmSY7lBnZpkhcHh9HDWw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=G2xXyicE; arc=none smtp.client-ip=209.85.128.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=embeddedor.com header.i=@embeddedor.com header.b="ZiVrcGBf"
-Received: from eig-obgw-6007b.ext.cloudfilter.net ([10.0.30.166])
-	by cmsmtp with ESMTPS
-	id KrLQv7Hq0v724Ks5PvUjsD; Mon, 17 Nov 2025 05:47:35 +0000
-Received: from gator4166.hostgator.com ([108.167.133.22])
-	by cmsmtp with ESMTPS
-	id Ks5Ov1hQ7XkiUKs5OvIOBt; Mon, 17 Nov 2025 05:47:34 +0000
-X-Authority-Analysis: v=2.4 cv=MoBS63ae c=1 sm=1 tr=0 ts=691ab6f6
- a=1YbLdUo/zbTtOZ3uB5T3HA==:117 a=4DtsFWJC70/ZxGj2xnZlig==:17
- a=IkcTkHD0fZMA:10 a=6UeiqGixMTsA:10 a=7T7KSl7uo7wA:10 a=VwQbUJbxAAAA:8
- a=iox4zFpeAAAA:8 a=XhWbaVAy7xEXXl44f-sA:9 a=QEXdDO2ut3YA:10
- a=WzC6qhA0u3u7Ye7llzcV:22 a=xYX6OU9JNrHFPr8prv8u:22
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=embeddedor.com; s=default; h=Content-Transfer-Encoding:Content-Type:
-	In-Reply-To:From:References:Cc:To:Subject:MIME-Version:Date:Message-ID:Sender
-	:Reply-To:Content-ID:Content-Description:Resent-Date:Resent-From:
-	Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID:List-Id:List-Help:
-	List-Unsubscribe:List-Subscribe:List-Post:List-Owner:List-Archive;
-	bh=89x8whf2MOkQOTUoYg65n709kE93HhhjOZ/hCJbnnoE=; b=ZiVrcGBf7SX1mi8OH36yZsRghq
-	uKQ/LBBp/ZzVs4rPcTWNX6Vp4HyWvehZQXJH+w0YiHxtXcJ+6mKZ/jK5K2AQD7XXSOnL/t9vqhjpX
-	AydAFjXHuJeRAbwPBICWvu3q8sRzDAgc7PtC1a+JQIdqkfvG3IiaSlIgyVlVSEu7MJC+t4mqt5YoJ
-	0tTgsvEfYf8WcZwh356Mbf3MP8kdUFIaSSNHVlXuoJOf+JejPZX1NN+RJpad+nEefKRwAgj24L+No
-	kslT1ok3H+X7xOgyoS6/1FxYrs0KKx5ba70XrQbJ1lQE0tKPsGAGuw7yAWFLivfhAO5G6vzaKdy7z
-	yiAzg9Gg==;
-Received: from softbank126126126075.bbtec.net ([126.126.126.75]:36702 helo=[10.221.86.44])
-	by gator4166.hostgator.com with esmtpsa  (TLS1.2) tls TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-	(Exim 4.98.1)
-	(envelope-from <gustavo@embeddedor.com>)
-	id 1vKs5N-000000003ZG-2b5r;
-	Sun, 16 Nov 2025 23:47:33 -0600
-Message-ID: <afd13315-7129-4f10-8e29-7832a00a4817@embeddedor.com>
-Date: Mon, 17 Nov 2025 14:47:22 +0900
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="G2xXyicE"
+Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-477985aea2bso1228015e9.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 16 Nov 2025 21:59:37 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1763359176; x=1763963976; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=4QJ1bXkqCKy8aOs5M0IR425CNUiDKk6Cx+Nd30B4hYo=;
+        b=G2xXyicExGFMCDNd+xqZNEALE12aaiLsPYuoPmIn4rzXIQRAFRZ8447+Mcx8pNx2hZ
+         ZthrMNgGAS0jT3ctcJAjlwkRg66IG9z90bc5s5o3xrRVbACT5mhp57SxQlcYQQRvdzu5
+         Yx+wMy/HxB0RkkxHo/HCDu4ov3gsUCPlyfDkVXCdG+sT4VqQ7S/QTVKvlmTTFEjPBzAo
+         9WPY/gl5Rgv4xHeHkQEu5EFHg3VNFbi0KqFjzs90ZOgNUtA6/jf+80youP9uPdX/yF/w
+         KhuI+/fdCvrn4mE+XiNfiR5KDH/GBbfLCD6aKSohAYsmIDlbhRo9/9+1Y6MMkynfgDUC
+         NpZw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1763359176; x=1763963976;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=4QJ1bXkqCKy8aOs5M0IR425CNUiDKk6Cx+Nd30B4hYo=;
+        b=k1kL0A5X8ry9UJ/LSy+5CCIfpUXk2LEI+OBHDE9gyItm6Z8oXfV8XIkDPf1rB0gf0E
+         Wr6mrbUa4S4grV3xZc1ugk0ZJ8j+ioyRCkYZF+ZFoEUVTC9gEa9IgbRlKIZHitvfYzAs
+         Biy/6B5o//8qpmXESazPY9ZowlCn26Nh8J6oHsBzdJ33OjaGELhyHL6xLeBP3DOOHW5e
+         eufowp8fzXMXzuJLiEn6MyU+b988aoBjTUa+EIJDbDsxGDSnLu64iTNh6ylnd1Qp/OTN
+         O5QLdW9RaOrf/atoXY8AG2pUIq1A2qUSFADuY/el7IWBJKnLcYlrSgUFRI26PToOvkZU
+         +AcA==
+X-Forwarded-Encrypted: i=1; AJvYcCXKdFoZmUrSDO7cWDSCRBGXW0tqceQbM7aY8Vx2U19VrYviAM0LrFmloY6W3yhm58keHA5m9gPK3RvjKA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwZFTDaeF05lDy7DX2sB8BAOx7nczHwwXuAtuoT0pZSPQtGgvdh
+	3WqKeumI2YKocXOesM59aczv7gAjhYCeb/+rHlEoEWZq/kTVgz4gv+zJqZwEArh4Mk0=
+X-Gm-Gg: ASbGncuchaW9d16GWrbNaROtaZ7AwStv8g3v/dAKcFGixaNPyiRudJSu5ALducEmpiR
+	LmR8iAChhDJbCP2GRlINdgnCtRaB3IJvvebQRGN9YL1xWmDEzrNvUmeHJmmJwPje5wnI/iL47h1
+	3hApaJpJbanUpZIYwlgd6Wg72DiKiwDxGY36GBqr/VDQNWRROs+R9nKzOwMuQ/xvJAJSYSdHQkG
+	45esBQ8GO+cQhmtXsk9cPdJ6x+VH77x/ld2juMHU3g53Gp3o2gCVoWL9a81w6yR5uFyGZedIB5I
+	cVlbu8t39ijQUUlW+DCzd3wT1FrJn/GBpCAqLRFEYFiVYawWxoSxQd0pusFsIs7liFoKx1KWoJs
+	NZkIUNqcU+BiwTJBpZVmLnWN1EHtwoOor9rnpY476ENaOTSqqBA8C3/xGR6lFxKlx1HPvnfHSyI
+	rnC4ZJe/Oi0A==
+X-Google-Smtp-Source: AGHT+IHz/Y6n6se2uQRG+YrvjNrVhEaaPZ2cSffk0MZTj+pbAhb4UczAD7yUNZy/5A5lLWYaoPXM2A==
+X-Received: by 2002:a05:6000:603:b0:42b:2da3:ac30 with SMTP id ffacd0b85a97d-42b5a757c9dmr5184820f8f.2.1763359176396;
+        Sun, 16 Nov 2025 21:59:36 -0800 (PST)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-345900a4ff5sm2780671a91.3.2025.11.16.21.59.35
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 16 Nov 2025 21:59:35 -0800 (PST)
+Date: Mon, 17 Nov 2025 13:59:33 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Deepanshu Kartikey <kartikey406@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
+Subject: Re: [PATCH] ocfs2: validate xattr entry count in
+ ocfs2_xattr_list_entries
+Message-ID: <undb2iy2lstp7oksnbtkls25ql6un4tbokgp55dfozjwxtfydp@eed726ssveyi>
+References: <20251111073831.2027072-1-kartikey406@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH][next] ocfs2: Avoid -Wflex-array-member-not-at-end warning
-To: Heming Zhao <heming.zhao@suse.com>,
- "Gustavo A. R. Silva" <gustavoars@kernel.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, linux-hardening@vger.kernel.org
-References: <aRKm_7aN7Smc3J5L@kspp>
- <7vsq3tvjuv3ppiot3lgithyp76r4jbbssoiiuni6zvj5pajsov@nketwax66jss>
-Content-Language: en-US
-From: "Gustavo A. R. Silva" <gustavo@embeddedor.com>
-In-Reply-To: <7vsq3tvjuv3ppiot3lgithyp76r4jbbssoiiuni6zvj5pajsov@nketwax66jss>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
-X-AntiAbuse: This header was added to track abuse, please include it with any abuse report
-X-AntiAbuse: Primary Hostname - gator4166.hostgator.com
-X-AntiAbuse: Original Domain - lists.linux.dev
-X-AntiAbuse: Originator/Caller UID/GID - [47 12] / [47 12]
-X-AntiAbuse: Sender Address Domain - embeddedor.com
-X-BWhitelist: no
-X-Source-IP: 126.126.126.75
-X-Source-L: No
-X-Exim-ID: 1vKs5N-000000003ZG-2b5r
-X-Source: 
-X-Source-Args: 
-X-Source-Dir: 
-X-Source-Sender: softbank126126126075.bbtec.net ([10.221.86.44]) [126.126.126.75]:36702
-X-Source-Auth: gustavo@embeddedor.com
-X-Email-Count: 3
-X-Org: HG=hgshared;ORG=hostgator;
-X-Source-Cap: Z3V6aWRpbmU7Z3V6aWRpbmU7Z2F0b3I0MTY2Lmhvc3RnYXRvci5jb20=
-X-Local-Domain: yes
-X-CMAE-Envelope: MS4xfChc65O+/j0z77Vp1zdeTBd4i/CfGJMqBpNhjOT6WsSVR4TYWc/bJKkA/EySqJ4tQ9qjKPWgd5G2AXCILz++yR8j+AAzicTpBepm8yKljoy99uEF9WZ3
- x8QLAiMJSjrcf1KyvL0UAQVlYO9qV1FizEalCIIX/1fIi44Z/pNkwSykqZVI7I4dGtR3O1s1NEg+/2ZRb1Xm3DNZ42pvpgmtJIu74TwRT5GlXnzxWSEverXm
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251111073831.2027072-1-kartikey406@gmail.com>
 
-
-
-On 11/17/25 14:32, Heming Zhao wrote:
-> On Tue, Nov 11, 2025 at 12:01:19PM +0900, Gustavo A. R. Silva wrote:
->> -Wflex-array-member-not-at-end was introduced in GCC-14, and we are
->> getting ready to enable it, globally.
->>
->> Use the new TRAILING_OVERLAP() helper to fix the following warning:
->>
->> fs/ocfs2/xattr.c:52:41: warning: structure containing a flexible array member is not at the end of another structure [-Wflex-array-member-not-at-end]
->>
->> This helper creates a union between a flexible-array member (FAM) and a
->> set of MEMBERS that would otherwise follow it.
->>
->> This overlays the trailing MEMBER struct ocfs2_extent_rec er; onto the
->> FAM struct ocfs2_xattr_value_root::xr_list.l_recs[], while keeping the
->> FAM and the start of MEMBER aligned.
->>
->> The static_assert() ensures this alignment remains, and it's
->> intentionally placed inmediately after the related structure --no
->> blank line in between.
->>
->> Signed-off-by: Gustavo A. R. Silva <gustavoars@kernel.org>
+On Tue, Nov 11, 2025 at 01:08:31PM +0530, Deepanshu Kartikey wrote:
+> Add validation of xattr entry count before accessing entries to prevent
+> out-of-bounds array access and use-after-free bugs. A corrupted
+> filesystem with an invalid xh_count value can cause the loop to access
+> memory beyond the allocated block, potentially reaching freed memory
+> pages.
 > 
-> LGTM.
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> The validation calculates the maximum number of entries that can fit in
+> the available space and rejects counts that exceed this limit. This
+> prevents the subsequent loop from accessing invalid memory addresses.
+> 
+> Without this check, the code directly uses xh_count from disk in array
+> indexing operations like &header->xh_entries[i], which can point outside
+> the block when xh_count is corrupted, triggering KASAN use-after-free
+> detection.
+> 
+> Reported-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=ab0ad25088673470d2d9
+> Tested-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
+> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+> ---
+>  fs/ocfs2/xattr.c | 17 ++++++++++++++++-
+>  1 file changed, 16 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index d70a20d29e3e..2caf63c6206e 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -928,8 +928,23 @@ static int ocfs2_xattr_list_entries(struct inode *inode,
+>  	size_t result = 0;
+>  	int i, type, ret;
+>  	const char *name;
+> +	u16 count;
+> +	size_t max_entries;
+> +	struct super_block *sb = inode->i_sb;
+> +
+> +	count = le16_to_cpu(header->xh_count);
+> +	max_entries = (sb->s_blocksize - sizeof(struct ocfs2_xattr_header)) /
+> +		       sizeof(struct ocfs2_xattr_entry);
+>  
+> -	for (i = 0 ; i < le16_to_cpu(header->xh_count); i++) {
+> +	if (count > max_entries) {
+> +		ocfs2_error(sb,
+> +			    "xattr entry count %u exceeds maximum %zu in inode %llu\n",
+> +			    count, max_entries,
+> +			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
+> +		return -EUCLEAN;
 
-Thanks, Heming.
+The meaning of EUCLEAN doesn't align with the code logic; it appears that EFAULT
+or ENOMEM would be more appropriate.
+The others look good to me.
 
--Gustavo
-
-
+Thanks,
+Heming
+> +	}
+> +
+> +	for (i = 0; i < count; i++) {
+>  		struct ocfs2_xattr_entry *entry = &header->xh_entries[i];
+>  		type = ocfs2_xattr_get_type(entry);
+>  		name = (const char *)header +
+> -- 
+> 2.43.0
+> 
+> 
