@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0D2DC221FD4;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 102F22877C2;
 	Tue, 18 Nov 2025 05:16:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763442976; cv=none; b=mCik14Rdid9mGwg3zSwYw+DSIZinp7qe5YnORrvbkaH0JZipFaF7BDvQ3ldLuK1dhdarb+uecw4DcM7tvkPor669vdb4FnVkQUri64CZtgWTJjKcCZpH41QbU+FIs15GxEAwBnzyo/lCtlpBMRc6kHk6/8BxRlhyGYibhHKo5rw=
+	t=1763442977; cv=none; b=FAXjNiH4leoJviBv3V8Hb2QPZLZPUq/Q2+22deRmd5QFmBzJMcxqWdLTCUo3FE7J4C4vfky7Jjzf6EbPsMDf0E1p4SkzPwKClHYxZbh7NHyR4SyyIO7LWZMDMEelS/Bw5Y7qux0E27PmfZ18N2ERaPgsboLY5cYHOdohyphyiJM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763442976; c=relaxed/simple;
-	bh=hr2eggLL3gfFkFag7GRXjPM7dMjl1ef+LM0Ik1Xxmb8=;
+	s=arc-20240116; t=1763442977; c=relaxed/simple;
+	bh=g0DzPIcsJ7FGStG4d77ktIfa76GpIX47vIyEYt5ulTE=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=XRTY96L2AJQR7U3/pH/KZuPkiPYdXmVwulvqEPt5TgxtUg/Jq/N8YVEiKxiqaGas1SwKL87WJKKbhELhnmD8Re2mTFh3nmVojFEuRpkTFPdoVEhdVMJYTLHqSfvRGymS1/GJtbAhNsYWeoUtbwjiQbHxoTbxjtObXqtM1nSCHhA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=kbhU/xYn; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=tlHj87qFdKIg5npWWkEhqb9aJ/HGzGTvaGASotT9cHMnrAyRxtBuLr/f4rPFNUCGwWdSfGHgxsNIJKFcUMjSsWGHE1lZ+B2YYIhbUggucdc0wugFvwXIFWyDeacCaGUORXI1y1yYZrUDjegQXO2Q65Y2vgC30/tKrQ50JeXYiP4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=YMQMfC95; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="kbhU/xYn"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="YMQMfC95"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=+re8cgG256R+nyhDcVzLSPRAvzZcH6z0w0ygW9fyGms=; b=kbhU/xYnyhIngKBea3/kKla+DP
-	EF4IRivlPSP4d4YskSySn8dMgu8jsC1NotjIvz0miMk1J9eIO1H1jyqqH5P1H+AN2N0P6xZu6GH38
-	DC4Bn5lRAWgJa9ic4jFbQTY1brTcqFCu6u3UjXE51nSrOT3w+G53KZkBXNfU9OlnlLloS8lqdUE1M
-	wYHp4eAwFAyJXnH/tZdeEk5gDrw/EvOkpqADVq8OtqE6ZiKWT0FAYqFERzRmraQ3XSHtSgygvjXZj
-	2iZKvcU01Xve+g8P85heP06Y+NANzkU4tingrfQMGv24fuH/nHyUE8bP9iVlH1guErHdjJ50f9jUO
-	t3wA8qAQ==;
+	bh=0EOMkT/UFsYLOkQCFILn7xjwHlMa0Zq2h7YoVPTnFkU=; b=YMQMfC95UzXpLnsV+MX99bUiC4
+	cvz/Aak/sdeVYYm1wdUV2YNlDYiycXWNQYdo5idTX2iZSBMODEOrqf4iSHEKVdt1TzvhXFOF8RzX8
+	IjdaoaRvSduE7wcMeRcl64wQ4BFqwO5ZwHxbzRIzCFv5e1kXQa14bytNI9mbxuasJ7R1jVElyQutN
+	mFeKClenuE+KOJAHjbE9U4qouT6EwdCy+N1wlVRFH4D4GHTd4vxsByBID2Z4RPzSpkigpAVv5ENuw
+	BCETuW6vudii5uC+ts1uwJiaMtJT2YzEASyX1/UfwsObbbvb55Z/pqkAsIEdy3RZhKajBuUQDb7Yg
+	G/fThDHw==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vLE4V-0000000GESE-3aMn;
-	Tue, 18 Nov 2025 05:16:07 +0000
+	id 1vLE4W-0000000GESc-0zv6;
+	Tue, 18 Nov 2025 05:16:08 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -53,9 +53,9 @@ Cc: torvalds@linux-foundation.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org,
 	clm@meta.com
-Subject: [PATCH v4 26/54] convert devpts
-Date: Tue, 18 Nov 2025 05:15:35 +0000
-Message-ID: <20251118051604.3868588-27-viro@zeniv.linux.org.uk>
+Subject: [PATCH v4 30/54] autofs_{rmdir,unlink}: dentry->d_fsdata->dentry == dentry there
+Date: Tue, 18 Nov 2025 05:15:39 +0000
+Message-ID: <20251118051604.3868588-31-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
 References: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
@@ -68,154 +68,38 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Two kinds of objects there - ptmx and everything else (pty).  The former is
-created on mount and kept until the fs shutdown; the latter get created
-and removed by tty layer (the references are borrowed into tty->driver_data).
-The reference to ptmx dentry is also kept, but we only ever use it to
-find ptmx inode on remount.
-
-* turn d_add() into d_make_persistent() + dput()  both in mknod_ptmx() and
-in devpts_pty_new().
-
-* turn dput() to d_make_discardable() in devpts_pty_kill().
-
-* switch mknod_ptmx() to simple_{start,done}_creating().
-
-* instead of storing in pts_fs_info a reference to ptmx dentry, store a reference
-to its inode, seeing that this is what we use it for.
-
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/devpts/inode.c | 57 +++++++++++++++++------------------------------
- 1 file changed, 21 insertions(+), 36 deletions(-)
+ fs/autofs/root.c | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
 
-diff --git a/fs/devpts/inode.c b/fs/devpts/inode.c
-index fdf22264a8e9..9f3de528c358 100644
---- a/fs/devpts/inode.c
-+++ b/fs/devpts/inode.c
-@@ -102,7 +102,7 @@ struct pts_fs_info {
- 	struct ida allocated_ptys;
- 	struct pts_mount_opts mount_opts;
- 	struct super_block *sb;
--	struct dentry *ptmx_dentry;
-+	struct inode *ptmx_inode; // borrowed
- };
- 
- static inline struct pts_fs_info *DEVPTS_SB(struct super_block *sb)
-@@ -259,7 +259,6 @@ static int devpts_parse_param(struct fs_context *fc, struct fs_parameter *param)
- static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
+diff --git a/fs/autofs/root.c b/fs/autofs/root.c
+index 174c7205fee4..39794633d484 100644
+--- a/fs/autofs/root.c
++++ b/fs/autofs/root.c
+@@ -623,12 +623,11 @@ static int autofs_dir_symlink(struct mnt_idmap *idmap,
+ static int autofs_dir_unlink(struct inode *dir, struct dentry *dentry)
  {
- 	int mode;
--	int rc = -ENOMEM;
- 	struct dentry *dentry;
- 	struct inode *inode;
- 	struct dentry *root = sb->s_root;
-@@ -268,18 +267,10 @@ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
- 	kuid_t ptmx_uid = current_fsuid();
- 	kgid_t ptmx_gid = current_fsgid();
+ 	struct autofs_sb_info *sbi = autofs_sbi(dir->i_sb);
+-	struct autofs_info *ino = autofs_dentry_ino(dentry);
+ 	struct autofs_info *p_ino;
  
--	inode_lock(d_inode(root));
--
--	/* If we have already created ptmx node, return */
--	if (fsi->ptmx_dentry) {
--		rc = 0;
--		goto out;
--	}
--
--	dentry = d_alloc_name(root, "ptmx");
--	if (!dentry) {
-+	dentry = simple_start_creating(root, "ptmx");
-+	if (IS_ERR(dentry)) {
- 		pr_err("Unable to alloc dentry for ptmx node\n");
--		goto out;
-+		return PTR_ERR(dentry);
- 	}
- 
- 	/*
-@@ -287,9 +278,9 @@ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
- 	 */
- 	inode = new_inode(sb);
- 	if (!inode) {
-+		simple_done_creating(dentry);
- 		pr_err("Unable to alloc inode for ptmx node\n");
--		dput(dentry);
--		goto out;
-+		return -ENOMEM;
- 	}
- 
- 	inode->i_ino = 2;
-@@ -299,23 +290,18 @@ static int mknod_ptmx(struct super_block *sb, struct fs_context *fc)
- 	init_special_inode(inode, mode, MKDEV(TTYAUX_MAJOR, 2));
- 	inode->i_uid = ptmx_uid;
- 	inode->i_gid = ptmx_gid;
-+	fsi->ptmx_inode = inode;
- 
--	d_add(dentry, inode);
-+	d_make_persistent(dentry, inode);
- 
--	fsi->ptmx_dentry = dentry;
--	rc = 0;
--out:
--	inode_unlock(d_inode(root));
--	return rc;
-+	simple_done_creating(dentry);
-+
-+	return 0;
- }
- 
- static void update_ptmx_mode(struct pts_fs_info *fsi)
- {
--	struct inode *inode;
--	if (fsi->ptmx_dentry) {
--		inode = d_inode(fsi->ptmx_dentry);
--		inode->i_mode = S_IFCHR|fsi->mount_opts.ptmxmode;
--	}
-+	fsi->ptmx_inode->i_mode = S_IFCHR|fsi->mount_opts.ptmxmode;
- }
- 
- static int devpts_reconfigure(struct fs_context *fc)
-@@ -461,7 +447,7 @@ static void devpts_kill_sb(struct super_block *sb)
- 	if (fsi)
- 		ida_destroy(&fsi->allocated_ptys);
- 	kfree(fsi);
--	kill_litter_super(sb);
-+	kill_anon_super(sb);
- }
- 
- static struct file_system_type devpts_fs_type = {
-@@ -534,16 +520,15 @@ struct dentry *devpts_pty_new(struct pts_fs_info *fsi, int index, void *priv)
- 	sprintf(s, "%d", index);
- 
- 	dentry = d_alloc_name(root, s);
--	if (dentry) {
--		dentry->d_fsdata = priv;
--		d_add(dentry, inode);
--		fsnotify_create(d_inode(root), dentry);
--	} else {
-+	if (!dentry) {
- 		iput(inode);
--		dentry = ERR_PTR(-ENOMEM);
-+		return ERR_PTR(-ENOMEM);
- 	}
--
--	return dentry;
-+	dentry->d_fsdata = priv;
-+	d_make_persistent(dentry, inode);
-+	fsnotify_create(d_inode(root), dentry);
+ 	p_ino = autofs_dentry_ino(dentry->d_parent);
+ 	p_ino->count--;
+-	dput(ino->dentry);
 +	dput(dentry);
-+	return dentry; // borrowed
- }
  
- /**
-@@ -573,7 +558,7 @@ void devpts_pty_kill(struct dentry *dentry)
- 	drop_nlink(dentry->d_inode);
- 	d_drop(dentry);
- 	fsnotify_unlink(d_inode(dentry->d_parent), dentry);
--	dput(dentry);	/* d_alloc_name() in devpts_pty_new() */
-+	d_make_discardable(dentry);
- }
+ 	d_inode(dentry)->i_size = 0;
+ 	clear_nlink(d_inode(dentry));
+@@ -710,7 +709,7 @@ static int autofs_dir_rmdir(struct inode *dir, struct dentry *dentry)
  
- static int __init init_devpts_fs(void)
+ 	p_ino = autofs_dentry_ino(dentry->d_parent);
+ 	p_ino->count--;
+-	dput(ino->dentry);
++	dput(dentry);
+ 	d_inode(dentry)->i_size = 0;
+ 	clear_nlink(d_inode(dentry));
+ 
 -- 
 2.47.3
 
