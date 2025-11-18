@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E0FC270545;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C94329A30E;
 	Tue, 18 Nov 2025 05:16:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763442975; cv=none; b=iHcqMaN9qMkPVagcV1JnA2VOSGTYYsvFwSTQ1EbHNzBC6ZG3vKGEhx+5vXAczRjw6WoRWzc0SaGx15KvLHPG5JdOF1+G3JrJjINljPL79ER4OngroDCIqvCPJgZXlI4czL/VuggpuvIiSofOqFzi08YQJ+1iycUcH/KzzCnX15E=
+	t=1763442976; cv=none; b=YzWZBQV84DrMo8hM+MQGOrsxu7sgxC+5QfZGdJ3pEIyK2zKAftVNbSjl+xvwPjsmpSQ+zzOGLiB6TplOMwfsP/8JBaiyn+SbcZkzArqhGd7LBv4Lf1/dtCNGGlFgDSqt2jhQ4U7fbbRkvXAiHQkgzgwpXEs23fBukKouufQQXCU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763442975; c=relaxed/simple;
-	bh=35MbVjxtToOQyUh5FTs7bBeOlum4Q1e4+S1+OrjjcRo=;
+	s=arc-20240116; t=1763442976; c=relaxed/simple;
+	bh=tDxauZzRQzyGYu4QXK6YyH0y4aKDOQ52znYzdD6UoCk=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=TQ1uFTLti9WA9qxtvScpVDhUXSS6eFRKNAi5Si9K6bUstS/5uNIb31CDxs+CJaDzknTW1brO2PeX7X8aCtnKaN4DK/HXj69bT6y+c3hiNvyHb6ytKhLXIAwzVGdMIFhvWg0mpF08VWgnWp+U82Lkbd8dzmfpW1dYlMOHp9E4T74=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=gJiPdzY0; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=VR1jS0O8iIgYMRDsuz5NgH7NemoP2HZrE3DAcYAI3JTWvLU8HmgYGeWZK5VlriRbMt/n7laVPNWjxHj3QN5dqC8FuQB9p4QarYX/epTJA8fXh9qppZx8yoy69lfF3fNioO8a2Y0q/WGoDkhYEHL0+y3ZzeHAh5eY72fx7RD6YeY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=qfAn7jn5; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="gJiPdzY0"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="qfAn7jn5"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=o92Omq0psZ3ukvz3ytEXVDnarOtbezsCR+bO9JM0kAQ=; b=gJiPdzY0TRltDme/VDbpmSj937
-	voGiIUGCZf3gef7x1o6bLNE3mWjRZt2mYVc7BPhPcTWRNNQFndEeftSQ/3vYeJLVJT1roZB2tWHmQ
-	URVsY+tmfEYDP9HhZM5fLamP1J8SAp+WeegXyDlN0Z4bVN9uWRFUKgH9GU20hX5GPpD6jfRpmRQC2
-	9QQn+Wp/FsAQcqK8JpkX9h+sEJyr9YtkruhstFYaXO7s79ohZh+nRXaFvYWutUTMwwU6ZHwahXc28
-	I9t7nAb6ObHn41+9ek5a/PWQ21NefE2VCFPt4dTgxTtjkPZp9cgxIOUGFu5a+s2M0zqiGp41lP0qU
-	j3bGGQgQ==;
+	bh=EGEc3asPoO0BSFThbWpOoQFbGckDO1h86OnlmAxWxbE=; b=qfAn7jn5dVpc+8HYRW2PUrosYN
+	3GyMgetrQNMDWIBRpoqaUBQ0b+RFMDBY7AmEWMJ/1ToP+BTNE23iXsKfKcAptmf8/ZEjXo4+5u52n
+	CkyMVH2xjlmc1or6jRdhCAyYReRS4tsSZWL19CwyiR4xi2AGqmOMGPpqXNRxR+gu8H6VV3puDZHkD
+	V/dnp1+9cq/0hW+scBmASeTBkXX27NsmuIQDBgWSiY1otP/WfkiiyHP2WuFbXeJTkvwqKG6b5Fqyd
+	7/+XjHcQQcwfS6akaWW4RNqIYsWEL3XqSQWLc/logPlJp7jGMwMmRr8P2vBtBI0hvpJCQmrfvAmuC
+	Yh5+ixHQ==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vLE4V-0000000GERs-2LuP;
-	Tue, 18 Nov 2025 05:16:07 +0000
+	id 1vLE4W-0000000GESX-0eve;
+	Tue, 18 Nov 2025 05:16:08 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -53,9 +53,9 @@ Cc: torvalds@linux-foundation.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org,
 	clm@meta.com
-Subject: [PATCH v4 23/54] convert spufs
-Date: Tue, 18 Nov 2025 05:15:32 +0000
-Message-ID: <20251118051604.3868588-24-viro@zeniv.linux.org.uk>
+Subject: [PATCH v4 29/54] convert binderfs
+Date: Tue, 18 Nov 2025 05:15:38 +0000
+Message-ID: <20251118051604.3868588-30-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
 References: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
@@ -68,78 +68,110 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-have spufs_new_file() use d_make_persistent() instead of d_add() and
-do an uncondition dput() in the caller; the rest is completely
-straightforward.
+Objects are created either by d_alloc_name()+d_add() (in
+binderfs_ctl_create()) or by simple_start_creating()+d_instantiate().
+Removals are by simple_recurisive_removal().
 
-[a braino in spufs_mkgang() fixed]
+Switch d_add()/d_instantiate() to d_make_persistent() + dput().
+Voila - kill_litter_super() is not needed anymore.
+
+Fold dput()+unlocking the parent into simple_done_creating(), while
+we are at it.
+
+NOTE: return value of binderfs_create_file() is borrowed; it may get
+stored in proc->binderfs_entry.  See binder_release()...
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- arch/powerpc/platforms/cell/spufs/inode.c | 17 +++++++----------
- 1 file changed, 7 insertions(+), 10 deletions(-)
+ drivers/android/binderfs.c | 33 ++++++++++++++-------------------
+ 1 file changed, 14 insertions(+), 19 deletions(-)
 
-diff --git a/arch/powerpc/platforms/cell/spufs/inode.c b/arch/powerpc/platforms/cell/spufs/inode.c
-index 7ec60290abe6..fc8ccf4dc159 100644
---- a/arch/powerpc/platforms/cell/spufs/inode.c
-+++ b/arch/powerpc/platforms/cell/spufs/inode.c
-@@ -127,7 +127,7 @@ spufs_new_file(struct super_block *sb, struct dentry *dentry,
- 	inode->i_fop = fops;
- 	inode->i_size = size;
- 	inode->i_private = SPUFS_I(inode)->i_ctx = get_spu_context(ctx);
+diff --git a/drivers/android/binderfs.c b/drivers/android/binderfs.c
+index 8253e517ab6c..a28d0511960e 100644
+--- a/drivers/android/binderfs.c
++++ b/drivers/android/binderfs.c
+@@ -189,9 +189,9 @@ static int binderfs_binder_device_create(struct inode *ref_inode,
+ 		goto err;
+ 	}
+ 	inode->i_private = device;
+-	d_instantiate(dentry, inode);
++	d_make_persistent(dentry, inode);
+ 	fsnotify_create(root->d_inode, dentry);
+-	inode_unlock(d_inode(root));
++	simple_done_creating(dentry);
+ 
+ 	binder_add_device(device);
+ 
+@@ -432,7 +432,8 @@ static int binderfs_binder_ctl_create(struct super_block *sb)
+ 
+ 	inode->i_private = device;
+ 	info->control_dentry = dentry;
 -	d_add(dentry, inode);
 +	d_make_persistent(dentry, inode);
- out:
- 	return ret;
- }
-@@ -163,10 +163,9 @@ static int spufs_fill_dir(struct dentry *dir,
- 			return -ENOMEM;
- 		ret = spufs_new_file(dir->d_sb, dentry, files->ops,
- 					files->mode & mode, files->size, ctx);
--		if (ret) {
--			dput(dentry);
-+		dput(dentry);
-+		if (ret)
- 			return ret;
--		}
- 		files++;
- 	}
++	dput(dentry);
+ 
  	return 0;
-@@ -241,11 +240,10 @@ spufs_mkdir(struct inode *dir, struct dentry *dentry, unsigned int flags,
  
- 	inode_lock(inode);
+@@ -479,19 +480,16 @@ struct dentry *binderfs_create_file(struct dentry *parent, const char *name,
+ 	sb = parent_inode->i_sb;
+ 	new_inode = binderfs_make_inode(sb, S_IFREG | 0444);
+ 	if (!new_inode) {
+-		dput(dentry);
+-		dentry = ERR_PTR(-ENOMEM);
+-		goto out;
++		simple_done_creating(dentry);
++		return ERR_PTR(-ENOMEM);
+ 	}
  
--	dget(dentry);
- 	inc_nlink(dir);
- 	inc_nlink(inode);
+ 	new_inode->i_fop = fops;
+ 	new_inode->i_private = data;
+-	d_instantiate(dentry, new_inode);
++	d_make_persistent(dentry, new_inode);
+ 	fsnotify_create(parent_inode, dentry);
+-
+-out:
+-	inode_unlock(parent_inode);
+-	return dentry;
++	simple_done_creating(dentry);
++	return dentry; // borrowed
+ }
  
--	d_instantiate(dentry, inode);
-+	d_make_persistent(dentry, inode);
+ static struct dentry *binderfs_create_dir(struct dentry *parent,
+@@ -510,21 +508,18 @@ static struct dentry *binderfs_create_dir(struct dentry *parent,
+ 	sb = parent_inode->i_sb;
+ 	new_inode = binderfs_make_inode(sb, S_IFDIR | 0755);
+ 	if (!new_inode) {
+-		dput(dentry);
+-		dentry = ERR_PTR(-ENOMEM);
+-		goto out;
++		simple_done_creating(dentry);
++		return ERR_PTR(-ENOMEM);
+ 	}
  
- 	if (flags & SPU_CREATE_NOSCHED)
- 		ret = spufs_fill_dir(dentry, spufs_dir_nosched_contents,
-@@ -479,10 +477,9 @@ spufs_mkgang(struct inode *dir, struct dentry *dentry, umode_t mode)
- 	inode->i_op = &simple_dir_inode_operations;
- 	inode->i_fop = &simple_dir_operations;
+ 	new_inode->i_fop = &simple_dir_operations;
+ 	new_inode->i_op = &simple_dir_inode_operations;
  
--	d_instantiate(dentry, inode);
--	dget(dentry);
- 	inc_nlink(dir);
--	inc_nlink(d_inode(dentry));
-+	inc_nlink(inode);
-+	d_make_persistent(dentry, inode);
- 	return ret;
+ 	set_nlink(new_inode, 2);
+-	d_instantiate(dentry, new_inode);
++	d_make_persistent(dentry, new_inode);
+ 	inc_nlink(parent_inode);
+ 	fsnotify_mkdir(parent_inode, dentry);
+-
+-out:
+-	inode_unlock(parent_inode);
++	simple_done_creating(dentry);
+ 	return dentry;
+ }
  
- out_iput:
-@@ -780,7 +777,7 @@ static struct file_system_type spufs_type = {
- 	.name = "spufs",
- 	.init_fs_context = spufs_init_fs_context,
- 	.parameters	= spufs_fs_parameters,
--	.kill_sb = kill_litter_super,
-+	.kill_sb = kill_anon_super,
- };
- MODULE_ALIAS_FS("spufs");
+@@ -740,7 +735,7 @@ static void binderfs_kill_super(struct super_block *sb)
+ 	 * During inode eviction struct binderfs_info is needed.
+ 	 * So first wipe the super_block then free struct binderfs_info.
+ 	 */
+-	kill_litter_super(sb);
++	kill_anon_super(sb);
  
+ 	if (info && info->ipc_ns)
+ 		put_ipc_ns(info->ipc_ns);
 -- 
 2.47.3
 
