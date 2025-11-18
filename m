@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E975287502;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 152EC28D8DF;
 	Tue, 18 Nov 2025 05:16:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763442981; cv=none; b=LoNihHW30g2orDDRkfw5ZFsQOOj5baaWHGE5z3P+rZGCz476t+oor2Y35Jf7CedzyVS+5F/w9qiD5xPk0xUKQ/2e2bqxF5VCF1B534UeR+UacOZWpcJ8p40Yz+fsycMNItnaB/Xrrf4NoTvFlRvaFr/EyqrfuhZrhVrPVslOZDI=
+	t=1763442979; cv=none; b=chkXzMLVoG5Mae49w9HRHwSzV5+pUxsd3jQnmDkN6mDGdFlu/5pF+skNB2t7xirLmZ6ksmtkdOzt3BrINGXcCOVfEqA0LH2WV2NKfDa05f96wHt2jpnrf8lhA02AKIgGQ1SxtgacaN9KVMiweuS95D7xhFAUurLbPz14SPdJJ4E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763442981; c=relaxed/simple;
-	bh=fOevxjAZDWF39Ou5j+d+tqBmG/dAKefXb84c0nkAeKM=;
+	s=arc-20240116; t=1763442979; c=relaxed/simple;
+	bh=cPOxFMBLc13aTQ6kNNeMr1nHH9VwsrN2XN8U+K2FM4A=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=W0Se08N/7PZ/bNjD36JMuISz/+8SahoBOk2oUnesNJ60hp7pU/RwtUzHArfTwdgsf7DdnbrXG1VV7yLpvN2NNcTgj88bMle6/ZYJjkpD/OJ2YtOhblmPzHQait2KdXpeYT1pAkOf5aR32qQVSvG1rvwm0e5QhcsEyGmlXMcnKSU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=uebdJF5p; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=dhvGj7eVq/lqnyeejyvKpVc2VEihmVNIVvKfq8F2fmFIVZNjk7jG1WeO68N9EcYfYol9cCJkOehrZly0GElGf4kGtoBbO5oB93H187hpl3uqHh9cJLebwHMlPLeiQU+M2GSbeFkF3MpnkFbBGWPHl8TfhS4Zx3cCC+x1BvLDL0M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=FE7OJf/U; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="uebdJF5p"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="FE7OJf/U"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=AteBZg1Rl8HXmlwF9pQEJDfnqUw3H67agXJaoVo2v7U=; b=uebdJF5pf07uYuFSwWcvMcjJA4
-	aMBIgBZ07P6Z7Z5i2y6WJB9aj7c4VP5/O9k2aF7DzcSYPG1dwqEOTubJtzYsWoiPZo0kA2/jDUEF2
-	b7r0UsEwbChuPZROhUWdb3uUGI7EdA5kZNpkgsHvboUEniW8t2gp12fPx3iHxPaq0vSuAJbv2p1HI
-	kHCzgWGRfgOsZmsmtrjipM9tulW2sRBO40L3kgNJMHpw6+JqgEQ+1w2YyYwLjGPaQ73xX5QhOeyew
-	yKSk130DpWM8QXtbXxc9lfE7z25d/IUY835TAk/kl1TCuVJN7Mr7fefmvVmRISgxVpvMmFWtqSBgp
-	DZssowdQ==;
+	bh=IpNAvIvaquRQO1Ji53mf5vyLMZJ4O2UIIE/EO15yw64=; b=FE7OJf/UU+lFlMVRVRToGhRAzP
+	N8qGXHCOjkSsJDHwHKHBs4K6aMWob5Nbszex9l+s6ZK7OfCYvZ+9TG8qyL4a56MGLrMSV9WS+QFaH
+	s1N/VE1lLOH2Yk6U5H6G2Poh2PqGUWSQ3NEN0RCixCbVN/RP60yPNMYvhHIPBExVfx/5/OZTzs1EE
+	bhLcn7ls1cB8YCrarexnMvFo0q+gbwMu1mw9xNZu/jFbTij+eRpShRImoLn13GuhwUkVAFtVXI+yz
+	d1EdjG7xvDxR5x71JxFMIMLgaP4kB7U4RmZn17NAJrLLzst9bGtt1ub4xZUECV8by7OLH3v8P7leP
+	M9vSGWsg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vLE4T-0000000GEPl-14AR;
-	Tue, 18 Nov 2025 05:16:05 +0000
+	id 1vLE4U-0000000GEQo-1hsg;
+	Tue, 18 Nov 2025 05:16:06 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -53,9 +53,9 @@ Cc: torvalds@linux-foundation.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org,
 	clm@meta.com
-Subject: [PATCH v4 02/54] tracefs: fix a leak in eventfs_create_events_dir()
-Date: Tue, 18 Nov 2025 05:15:11 +0000
-Message-ID: <20251118051604.3868588-3-viro@zeniv.linux.org.uk>
+Subject: [PATCH v4 12/54] convert smackfs
+Date: Tue, 18 Nov 2025 05:15:21 +0000
+Message-ID: <20251118051604.3868588-13-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
 References: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
@@ -68,38 +68,28 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-If we have LOCKDOWN_TRACEFS, the function bails out - *after*
-having locked the parent directory and without bothering to
-undo that.  Just check it before tracefs_start_creating()...
+Entirely static tree populated by simple_fill_super().  Can use
+kill_anon_super() as-is.
 
-Fixes: e24709454c45 "tracefs/eventfs: Add missing lockdown checks"
-Acked-by: Steven Rostedt (Google) <rostedt@goodmis.org>
+Acked-by: Casey Schaufler <casey@schaufler-ca.com>
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- fs/tracefs/event_inode.c | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+ security/smack/smackfs.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/tracefs/event_inode.c b/fs/tracefs/event_inode.c
-index 8705c77a9e75..93c231601c8e 100644
---- a/fs/tracefs/event_inode.c
-+++ b/fs/tracefs/event_inode.c
-@@ -757,7 +757,7 @@ struct eventfs_inode *eventfs_create_events_dir(const char *name, struct dentry
- 						const struct eventfs_entry *entries,
- 						int size, void *data)
- {
--	struct dentry *dentry = tracefs_start_creating(name, parent);
-+	struct dentry *dentry;
- 	struct eventfs_root_inode *rei;
- 	struct eventfs_inode *ei;
- 	struct tracefs_inode *ti;
-@@ -768,6 +768,7 @@ struct eventfs_inode *eventfs_create_events_dir(const char *name, struct dentry
- 	if (security_locked_down(LOCKDOWN_TRACEFS))
- 		return NULL;
+diff --git a/security/smack/smackfs.c b/security/smack/smackfs.c
+index b1e5e62f5cbd..e989ae3890c7 100644
+--- a/security/smack/smackfs.c
++++ b/security/smack/smackfs.c
+@@ -2960,7 +2960,7 @@ static int smk_init_fs_context(struct fs_context *fc)
+ static struct file_system_type smk_fs_type = {
+ 	.name		= "smackfs",
+ 	.init_fs_context = smk_init_fs_context,
+-	.kill_sb	= kill_litter_super,
++	.kill_sb	= kill_anon_super,
+ };
  
-+	dentry = tracefs_start_creating(name, parent);
- 	if (IS_ERR(dentry))
- 		return ERR_CAST(dentry);
- 
+ static struct vfsmount *smackfs_mount;
 -- 
 2.47.3
 
