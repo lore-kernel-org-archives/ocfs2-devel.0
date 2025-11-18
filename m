@@ -1,34 +1,34 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 39F662BE65F;
-	Tue, 18 Nov 2025 05:16:11 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0D43524BBFD;
+	Tue, 18 Nov 2025 05:16:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763442974; cv=none; b=cPRkUV2c4jw/L0JTQDSBObwqU0eV9R9eU5MXjLD/fIGlsAnOMfh4ZlZDRHxIyTDGrifKBmu8UnUMXqaA/9U0ETWffE1de8dalaiMjQXTy8xBLBcjIyeafyzlm2ejQ7Tz/oEmTg5c4kUq9n7vTduWm3qonoeKjyPYOXQ2gVHZDlw=
+	t=1763442975; cv=none; b=CRtwI732+/63JZhu2hNXDagIo/2TJxHmcU6goyooH7A5kfUBGwQOU6by2fRB122U8mL7JXhTh1ePt9mcXlF/1RV8ReVNWLtpPED4nezMzZjnig4ojqJ+yPGTPAYP50upe7swcBcDPyXnpbQu1XZ2+DpfmocHMu4lbFWlUZ7vYvE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763442974; c=relaxed/simple;
-	bh=WxSgeuo0ahJRBpa5cCoszsU7LKgd5x5Hzdw5+x6gsRk=;
+	s=arc-20240116; t=1763442975; c=relaxed/simple;
+	bh=Iwt5ye99zRJSX9pycRhX5pwplCSLlQAGWoYLgPWULTo=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=SQ9aOgi6xTI5LyZ1ar8bhktKg/bSg2IOF6peD00EL1QIWqlBhlOZxsGeQfRU7DlD/qsW6dZ/reYRMHlZnul8a6rnrcasjNYh/lO/GaWU690/7c46+dD5HiTe4s3Lww5G/v53imIEkDNkKiRcC+jVdSOizoCJbSro6Bwlp+0iG/E=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=f82OFm7F; arc=none smtp.client-ip=62.89.141.173
+	 MIME-Version; b=A8/qKi/r+brzgvj+9u3oGDIJAerXNwXx8t+j2pTVkst6jAXvdCi4mpWnfr2g8VqeThiEdHO2mwNcAaGxVzTqYBYd/y9yMQ5tqhi1nEkUbXjKN7SNAxp5i0GUyA2v6hzO9VmOzH7x0nosmT9YUZsHiSyo1mkGfbXJ0yfuTxnMQ0s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=cMhlXBqE; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="f82OFm7F"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="cMhlXBqE"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:Content-Transfer-Encoding:
 	MIME-Version:References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:
 	Reply-To:Content-Type:Content-ID:Content-Description;
-	bh=eoHAGF5loUqH0LAFPRC8F4kXyPuIEz0vDtopK5rWb5o=; b=f82OFm7FvazKYJYDPR56+WvVrq
-	Dj+gC8HySiz+YAUbtJL3dko4sirA2yyl3o0FsOZ9C5gPoeBshzb4xWNGR7mx5ndW+pcT0XXW0PTVA
-	1TdD3rRO4XfqYu4IR0qNpSgFvWmn69s6hBWs8H1HSLAVur0wqfCUAb/l9kFK9MJQPvsAVZ/QRPuI/
-	owlmwWB4SXiXlhgGLf8wVKr1cD1r6MfuwfesIPeZVcu2CllkQ7zErPM1f/l2l/YQojOTgvgL4PbRY
-	K6Eo7MWrGR49DBEjSc4+hMfJ2JYiCa+ZoPNrcs4NBhyUR/9rNJc7ltq2YHT8otRnbYDs9xo7mRhmC
-	/Whn4W5A==;
+	bh=Zcrjn9Hoyal2qTn93te4BLRuOf8fYSOuLLeBgOIrdbo=; b=cMhlXBqEGcRgFzivtW6c0N9XeJ
+	5GoGNtggd/IvFsOSwoxXYFjLNuuucPyNlyXC9RYSslkG2HVqkhhkXopsNdIlCG7dHuTmqENpcMkCW
+	1y11RnGPngVleScCDLPtMiEFccZvejq+LsXLe5h3Jpu64iwHmDTVgryh/skc3R/qzpyGfLa/4NEnX
+	QzrbT7g12nVRpeqkBNdMWVvVisoqlemJ28304bpBsNN0dZ2QzvYivoQ/dLNwf9c1QWZfGLcJk6nsW
+	CgKWdgJB77OjrZB53fmfibtws2x2pG6nmSHorw+hngyXde+felKNRB1P4cCifXGXt+lbUs2oEZ/ou
+	nFVCdRrg==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.98.2 #2 (Red Hat Linux))
-	id 1vLE4W-0000000GEST-0Krw;
-	Tue, 18 Nov 2025 05:16:08 +0000
+	id 1vLE4U-0000000GERG-3gSD;
+	Tue, 18 Nov 2025 05:16:06 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
 To: linux-fsdevel@vger.kernel.org
 Cc: torvalds@linux-foundation.org,
@@ -53,9 +53,9 @@ Cc: torvalds@linux-foundation.org,
 	borntraeger@linux.ibm.com,
 	bpf@vger.kernel.org,
 	clm@meta.com
-Subject: [PATCH v4 28/54] binderfs_binder_ctl_create(): kill a bogus check
-Date: Tue, 18 Nov 2025 05:15:37 +0000
-Message-ID: <20251118051604.3868588-29-viro@zeniv.linux.org.uk>
+Subject: [PATCH v4 16/54] convert dlmfs
+Date: Tue, 18 Nov 2025 05:15:25 +0000
+Message-ID: <20251118051604.3868588-17-viro@zeniv.linux.org.uk>
 X-Mailer: git-send-email 2.49.0
 In-Reply-To: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
 References: <20251118051604.3868588-1-viro@zeniv.linux.org.uk>
@@ -68,34 +68,49 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-It's called once, during binderfs mount, right after allocating
-root dentry.  Checking that it hadn't been already called is
-only obfuscating things.
-
-Looks like that bogosity had been copied from devpts...
+All modifications via normal VFS codepaths; just take care of making
+persistent in ->create() and ->mkdir() and that's it (removal side
+doesn't need any changes, since it uses simple_rmdir() for ->rmdir()
+and calls simple_unlink() from ->unlink()).
 
 Signed-off-by: Al Viro <viro@zeniv.linux.org.uk>
 ---
- drivers/android/binderfs.c | 6 ------
- 1 file changed, 6 deletions(-)
+ fs/ocfs2/dlmfs/dlmfs.c | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
 
-diff --git a/drivers/android/binderfs.c b/drivers/android/binderfs.c
-index a7b0a773d47f..8253e517ab6c 100644
---- a/drivers/android/binderfs.c
-+++ b/drivers/android/binderfs.c
-@@ -397,12 +397,6 @@ static int binderfs_binder_ctl_create(struct super_block *sb)
- 	if (!device)
- 		return -ENOMEM;
+diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+index cccaa1d6fbba..339f0b11cdc8 100644
+--- a/fs/ocfs2/dlmfs/dlmfs.c
++++ b/fs/ocfs2/dlmfs/dlmfs.c
+@@ -441,8 +441,7 @@ static struct dentry *dlmfs_mkdir(struct mnt_idmap * idmap,
+ 	ip->ip_conn = conn;
  
--	/* If we have already created a binder-control node, return. */
--	if (info->control_dentry) {
--		ret = 0;
--		goto out;
--	}
--
- 	ret = -ENOMEM;
- 	inode = new_inode(sb);
- 	if (!inode)
+ 	inc_nlink(dir);
+-	d_instantiate(dentry, inode);
+-	dget(dentry);	/* Extra count - pin the dentry in core */
++	d_make_persistent(dentry, inode);
+ 
+ 	status = 0;
+ bail:
+@@ -480,8 +479,7 @@ static int dlmfs_create(struct mnt_idmap *idmap,
+ 		goto bail;
+ 	}
+ 
+-	d_instantiate(dentry, inode);
+-	dget(dentry);	/* Extra count - pin the dentry in core */
++	d_make_persistent(dentry, inode);
+ bail:
+ 	return status;
+ }
+@@ -574,7 +572,7 @@ static int dlmfs_init_fs_context(struct fs_context *fc)
+ static struct file_system_type dlmfs_fs_type = {
+ 	.owner		= THIS_MODULE,
+ 	.name		= "ocfs2_dlmfs",
+-	.kill_sb	= kill_litter_super,
++	.kill_sb	= kill_anon_super,
+ 	.init_fs_context = dlmfs_init_fs_context,
+ };
+ MODULE_ALIAS_FS("ocfs2_dlmfs");
 -- 
 2.47.3
 
