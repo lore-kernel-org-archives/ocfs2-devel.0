@@ -1,107 +1,143 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72EEF2D321D
-	for <ocfs2-devel@lists.linux.dev>; Wed, 19 Nov 2025 06:21:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 24C5E364045
+	for <ocfs2-devel@lists.linux.dev>; Wed, 19 Nov 2025 14:27:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763533272; cv=none; b=twt2vht65KxJ8SK3iZYti5+4mol9vK3SUI8GVCcnqxx8ocqiktq6BAeMazWOJNZNkJahlwCUYow7lu8e7p74b26fHaSPSnvC47IjqUZucMHecjL6DXnu+ZZParjDxs4z8YyM+OYdFzPaPR/lqwJzzGzxyz4T+9snAfcqmdHYShE=
+	t=1763562453; cv=none; b=qMZePUy7c08GNSBGYOsW5OChru1u16iy6CStlHbqibSkpgyyJkDV9AW2ZWQ9mpuFVgw5s3nsHLLPZhKuIECKxhYA1E+gxHOFP8OOrPZDwpe92EJ9TMBH868LfwWOQ/IAIAdnG0bZkdMMvP3uLhXHDEYLyqU4IgPfdQdhyydJzJk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763533272; c=relaxed/simple;
-	bh=Y2L8S9THdY6DRmj+REtQbD6fZ3Romq0rR7veNrB+EKw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=HsUc6BTt3Zzr66u+T/3Id4JSqPftHrOeF7Y4/9LBQGAdKC2aiOLUyPlb1gLphLeRmOP2L782YwKz4WiDZ7UtzuRVVp3jZ2T5Bm85fcwy/uAbrD+0R7Hq7DUxNWaLx52m+xXXq9jiFl4zcqbVu5zwXM4l62yUiIUvPn7SFLyK7NE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=WJkXYMkn; arc=none smtp.client-ip=115.124.30.119
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1763562453; c=relaxed/simple;
+	bh=ZkqwoacP1hJ7Ru6b7lhukC9gg9iCcAZjZ9uK9e5IZoc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=k++esUCFrNvaPG/9DCXVCxoWjL2DMYcv6dkmzYaxjtBU10JAw00XqhVCVEgpAlCN33a7YPTRd137BZn7x+7RrTMoYq/mdnWLl+VGnuIlulQq5FShz8NezzE4VQ1oJ8gQf4WqX0TqnDhHz46QlabX2M1Xw0AWxSxvu26q7kyIa7Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Tv9OyMAI; arc=none smtp.client-ip=209.85.128.46
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="WJkXYMkn"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1763533265; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=ke3SUSVyC6dcJ3Xo1lf/T2Rm9mPW+0S8h1NsTCuTock=;
-	b=WJkXYMkn+2x9wpW19CkzXJt687s76RB47drZ2PeuTnpIJi7K9vbWQmAXWiHT1WMPpMUwYBSFH1yGuLQ9qy2pqrQovbD2VgZGl5XuKkBL8Cr2ndwZWoLsZrbWtVtqqHBOdfNTx35Si4og8OLC4z5pFHDPr9uxpIdTgXz8Et069Qw=
-Received: from 30.48.68.216(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WsnUDLd_1763533264 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 19 Nov 2025 14:21:04 +0800
-Message-ID: <58e5f4bb-0288-4d65-b38c-34dfe569098e@linux.alibaba.com>
-Date: Wed, 19 Nov 2025 14:21:03 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Tv9OyMAI"
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-477aa91e75dso1865965e9.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 19 Nov 2025 06:27:30 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1763562449; x=1764167249; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=tHpY6wH8DwcQSkk9TsIZjPrAN8N7O6UnJAiO5J2IYiU=;
+        b=Tv9OyMAIZQtZt/4+XIWMZCdb0DHJJOHEmzcVE0LBZlhasHYyusdi7YmA8KzH/dVDNZ
+         uZOBavY7UQ3ZbIcodVkeGRZBdQixxnFNLZuWIbzx3YHZfHShrGAX19CxQhEzRMyDkZLM
+         B7IgJIn4e4cGbBdgIH1hoJ1HnmYMgBMYIALAZ8xG7+gvUN/K6Lp0X+ng+cDvqeunSGZg
+         5jJMvGnIoW1Ac0zgBpMp6XM4Wrlhu4RSohvKRXpPRwhIr0VTNtwbL0IFrMSqq1GDojAd
+         /l1F2BAmnFU8yK+oxe4Z7IEO3VtBj9uE0Uasgy22bNO1ZZnvZU8Xaio9FxQNOQhW70Ha
+         4V9A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1763562449; x=1764167249;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=tHpY6wH8DwcQSkk9TsIZjPrAN8N7O6UnJAiO5J2IYiU=;
+        b=dH7knkU+LFhD2O9Z9xzYl5eyo4wZYDSEInZe+d84bm4T+jd3rFrKtEaR/x6LEZ/FGd
+         SQ2CZvQ3x985dGv4RPYRNEU+rczo7s6Hqhz3H6kvhpxb9liY+i73eWMIjbdrcgKc5gUa
+         5CGyNZD3f0+oC5dKzRsVgWsKJaPQmMKrExyIICYcF0cuErodPxT3sSMRcVHO0ui+LsJe
+         349q90xPpPnjsfQvusMscWxjxDWdYc11pJlcH84QX0FXm/kChC/Hw48jILqKR+OfQzIT
+         5+x1Ty64N7brfZIjUOtuQ+FYTTSuyJ+HGeifEWSCqq4ai3DgyPjinw4VYIH8bUeXuRl5
+         e58w==
+X-Forwarded-Encrypted: i=1; AJvYcCUEpITTrAOadITtkuS+lAkTltL5fFj1bXC9W7kbYA92DA9L88ITcBYsF32lU5cwrOQq3ppPyU4BGcZ7Fg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzEOUeUQ2PfD07KrD0Ms2HeiNi1XWHJ+i9TEw3LzsCIKmEUSSYe
+	Z/KXPHBbfZWXAtkDNns0rQ768i0shW6T7LHLc8aol9YHLoqQbrV8J2bTt/nRTAlJ0/Y=
+X-Gm-Gg: ASbGncsxHhyxGYqj5NDR9/5rmnWU+w4HMFrcjVxuH+grH9pqMlG+VBOhXaoJPYuV+5N
+	390PmHivGP6PgZfhxutR5A9EwxDlgU10ld0ynKwk/kcg8UFSbIXY77o44jzhLPi8TPzUSRJP9DX
+	450aLdb8o/tBTYiS2XtltmKaULD/Lh8aMOkrPVk0It2PLhnWS4+2m5TBIEFPgMJqDQFFo6GpefG
+	zHAK5i/jsqNJZo5jqaj9WEg6xQIv4jXp4BXBvqW3tv9zZSAEF/BQDaK/SAtdNsVqbj2xs2hfUyd
+	U/ULdRqAxdNoTE9lmpUJSqdYN0nMxk07eMo2YIQ9RsknlY+Ql3t+oxLxuZOgwkC/7AEzxMMzk7Q
+	re6TFeLEcznaumnWhJ2Ti6Lkn/rzADPbQzgrYDMRUQzJ136Q7R4est/5NwA2AiTRJt7DhMJZoLD
+	TC3VHk5JjdKg==
+X-Google-Smtp-Source: AGHT+IEbaZEjkiAjmJ7IQjXmG/oDyzxHUKCCkyxQIG6g5LuWqlEgDxkF7F3xx6Ax4kvH0brnme09Hg==
+X-Received: by 2002:a05:600c:5248:b0:471:1387:377e with SMTP id 5b1f17b1804b1-477a9c34ee4mr36157865e9.6.1763562449050;
+        Wed, 19 Nov 2025 06:27:29 -0800 (PST)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2985c2346dasm207715635ad.7.2025.11.19.06.27.27
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 19 Nov 2025 06:27:28 -0800 (PST)
+Date: Wed, 19 Nov 2025 22:27:25 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, david.hunter.linux@gmail.com, 
+	skhan@linuxfoundation.org, syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com, 
+	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Subject: Re: [PATCH v2] ocfs2: Invalidate inode if i_mode is zero after block
+ read
+Message-ID: <6yyc7qcymassc3fzwut5a3egfocmfrxy6kw4zdrkk3f4t45mxr@2bzksx7pj6m5>
+References: <20251108120133.37443-3-eraykrdg1@gmail.com>
+ <20251117223506.299511-2-eraykrdg1@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: Mark inode bad upon validation failure during read
-To: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
- syzbot+b93b65ee321c97861072@syzkaller.appspotmail.com,
- Heming Zhao <heming.zhao@suse.com>,
- Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-References: <20251118001833.423470-2-eraykrdg1@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251118001833.423470-2-eraykrdg1@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251117223506.299511-2-eraykrdg1@gmail.com>
 
-
-
-On 2025/11/18 08:18, Ahmet Eray Karadag wrote:
-> A VFS cache inconsistency, potentially triggered by sequences like
-> buffered writes followed by open(O_DIRECT), can result in an invalid
-> on-disk inode block (e.g., bad signature). OCFS2 detects this corruption
-> when reading the inode block via ocfs2_validate_inode_block(), logs
-> "Invalid dinode", and often switches the filesystem to read-only mode.
+On Tue, Nov 18, 2025 at 01:35:07AM +0300, Ahmet Eray Karadag wrote:
+> A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
+> handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
 > 
-> The VFS open(O_DIRECT) operation appears to incorrectly clear the inode's
-> I_DIRTY flag without ensuring the dirty metadata (reflecting the earlier
-> buffered write, e.g., an updated i_size) is flushed to disk. This leaves
-> the in-memory VFS inode object "in limbo" with an updated size (e.g., 38639
-> from the write) but marked clean, while its on-disk counterpart remains
-> stale (e.g., size 0) or invalid.
+> This "zombie" inode is created because ocfs2_read_locked_inode proceeds
+> even after ocfs2_validate_inode_block successfully validates a block
+> that structurally looks okay (passes checksum, signature etc.) but
+> contains semantically invalid data (specifically i_mode=0). The current
+> validation function doesn't check for i_mode being zero.
 > 
-> Currently, the function reading the inode block (ocfs2_read_inode_block_full())
-> fails to call make_bad_inode() upon detecting the validation error.
-> Because the in-memory inode is not marked bad, subsequent operations
-> (like ftruncate) proceed erroneously. They eventually reach code
-> (e.g., ocfs2_truncate_file()) that compares the inconsistent
-> in-memory size (38639) against the invalid/stale on-disk size (0), leading
-> to kernel crashes via BUG_ON.
+> This results in an in-memory inode with i_mode=0 being added to the VFS
+> cache, which later triggers the panic during unlink.
 > 
-> Fix this by calling make_bad_inode(inode) within the error handling path of
-> ocfs2_read_inode_block_full() immediately after a block read or validation
-> error occurs. This ensures VFS is properly notified about the
-> corrupt inode at the point of detection. Marking the inode bad  allows VFS
-> to correctly fail subsequent operations targeting this inode early,
-> preventing kernel panics caused by operating on known inconsistent inode states.
+> Prevent this by adding an explicit check for (i_mode == 0, i_nlink == 0, non-orphan)
+> within ocfs2_validate_inode_block. If the check is true, return -EFSCORRUPTED to signal
+> corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
+> make_bad_inode(), correctly preventing the zombie inode from entering
+> the cache.
 > 
-> Reported-by: syzbot+b93b65ee321c97861072@syzkaller.appspotmail.com
-> Link: https://syzkaller.appspot.com/bug?extid=b93b65ee321c97861072
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
+> Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
 > Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
 > Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
 > Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-> Previous-link: https://lore.kernel.org/all/20251029225748.11361-2-eraykrdg1@gmail.com/T/
-
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> Previous link: https://lore.kernel.org/all/20251022222752.46758-2-eraykrdg1@gmail.com/T/
 > ---
->  fs/ocfs2/inode.c | 2 ++
->  1 file changed, 2 insertions(+)
+> v2:
+>  - Only checking either i_links_count == 0 or i_mode == 0
+>  - Not performing le16_to_cpu() anymore
+>  - Tested with ocfs2-test
+> ---
+>  fs/ocfs2/inode.c | 7 +++++++
+>  1 file changed, 7 insertions(+)
 > 
 > diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index fcc89856ab95..415ad29ec758 100644
+> index 14bf440ea4df..6641caa45292 100644
 > --- a/fs/ocfs2/inode.c
 > +++ b/fs/ocfs2/inode.c
-> @@ -1690,6 +1690,8 @@ int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
->  	rc = ocfs2_read_blocks(INODE_CACHE(inode), OCFS2_I(inode)->ip_blkno,
->  			       1, &tmp, flags, ocfs2_validate_inode_block);
+> @@ -1456,6 +1456,13 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		goto bail;
+>  	}
 >  
-> +	if (rc < 0)
-> +		make_bad_inode(inode);
->  	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
->  	if (!rc && !*bh)
->  		*bh = tmp;
+> +	if (!di->i_links_count || !di->i_mode) {
 
+question:
+Why does this code not check both di->i_link_count and di->i_links_count_hi here?
+
+- Heming
+> +		mlog(ML_ERROR, "Invalid dinode #%llu: "
+> +			"Corrupt state (nlink=0 or mode=0,) detected!\n",
+> +		        (unsigned long long)bh->b_blocknr);
+> +		rc = -EFSCORRUPTED;
+> +		goto bail;
+> +	}
+>  	/*
+>  	 * Errors after here are fatal.
+>  	 */
+> -- 
+> 2.43.0
+> 
+> 
