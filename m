@@ -1,154 +1,183 @@
-Received: from mail-wr1-f44.google.com (mail-wr1-f44.google.com [209.85.221.44])
+Received: from mail-pf1-f174.google.com (mail-pf1-f174.google.com [209.85.210.174])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AEE0D18FDAF
-	for <ocfs2-devel@lists.linux.dev>; Thu, 20 Nov 2025 02:32:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77015285073
+	for <ocfs2-devel@lists.linux.dev>; Thu, 20 Nov 2025 04:11:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.174
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1763605973; cv=none; b=HLnkBNKSICip4ox6QYpluhH+bWn5IDssnW2q8BDWI6uN2/Ka6ifQFORTCCYwUTCMErnHtD6E/77JIuMi+B6rGSPcPWwS4TiVOpe7WMaQcuMk7HZ3Z3PC+3htn4kSFrhDOsGDje7pnhXgkQr20fbi2tmsbUFIqGCLt3XoSO9xaRI=
+	t=1763611915; cv=none; b=jiXcP7CFA3UEVQTc/KCJb4yMuKFLw1wbHk08p1J4GLwjs11UwiU2ulfqwVX3iiMbFyzJkdQYrntXbrgxmzzwYQ1VuoHPOGkQ6hsZG9T2efscUM5B+2j+MFl1F02CRf+73tytKaQEjrJuA4ogvuvvqLcI3h5Val06RKmh9heVJRQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1763605973; c=relaxed/simple;
-	bh=NcGYGf473BRN/1TmB+krKsFVy0UVrO4c6EcgS9/oqec=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=PU23tszz5d1J7G8YxTHVyUXxoysxu2ysOeuf99+xm/iwolLQWNUokIrbOMzhN+kjTwHMjDrkq6R3xIPWJuEUVtJ/3t2fgrOmMYIkCfQdpUy5PIYWS3Fz4Ntg27NxbswACFfk1AvrwoB6XZUsB+snMD5SzyG9SaTwpP1A1WtvJsM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=P4uQGQcS; arc=none smtp.client-ip=209.85.221.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1763611915; c=relaxed/simple;
+	bh=97WnfnQbPA5vGe8X+wXaWHLMQWqNVeB0fUmYg/LcXnU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=cJnYOEpXRqrqN0/nF75wd7hiiA5hhAuGYPrt9CID8JyHydX3oi8oJRjMIXQYzFvYL6TRHyBjmNmx/c8aAgHRHkLMe5QZ6nXOrmhR5L/Yu5Edwk6M8vw4z0Z5k9cE9cQznUaQapAuQ2YOhy3cFjtkdP+YnCFOe8F1tk3QievWB1k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=A7Azvg//; arc=none smtp.client-ip=209.85.210.174
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="P4uQGQcS"
-Received: by mail-wr1-f44.google.com with SMTP id ffacd0b85a97d-429c844066fso58329f8f.3
-        for <ocfs2-devel@lists.linux.dev>; Wed, 19 Nov 2025 18:32:48 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="A7Azvg//"
+Received: by mail-pf1-f174.google.com with SMTP id d2e1a72fcca58-7b8bbf16b71so577606b3a.2
+        for <ocfs2-devel@lists.linux.dev>; Wed, 19 Nov 2025 20:11:54 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1763605967; x=1764210767; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=G6OEllOICfOmnYghpQDm15WzVjiy1iyiVGB4iZU8wXg=;
-        b=P4uQGQcSio40Omxk0r5LoJvltlw2mRhdOcbXT8bhPLrnj1E9Y98HWwuIn/WNQZsA9d
-         FfXoRoSl4km3U+hfK4kQAiOVATVToUsKAckr170vdor/p8NzYkp+exYLV/8hkJht1nUJ
-         azAtvbgAaoRsAnZhinNzGK9agO4EcMtUmWVSoQ2jVTOIvpWk3+EyRcyR8NpVHOKVOi2z
-         PpdnEstPnH7RC6s/8fztID/Ocxzb3hZSElkwO2aJ4ltkosEmBOQpOXyeCc1pcL3siIQz
-         PppwDpwbUpC+l/7cCMTxk/7aq8M8PxZckdGb9Pgm7j6JR/FG4rhXiLZZVMNTqewjocbA
-         BONA==
+        d=gmail.com; s=20230601; t=1763611914; x=1764216714; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=OAknHB5tZjEpml4alkW5iZcUUFNVM3J13VfbF4fSGGQ=;
+        b=A7Azvg//6Il+abKXD0YfY1i2pFpx5p8KJsLeMfpoMvD2GTdneRg0qFUWfvcUMCnOm8
+         KHuxzLaq9m6AsL8YnVfEYU2KwvybFFGqrMUwk9EJjeG11YBSsZru2wjQ5LY0vwB9iKJv
+         z5Bi59et275keYyLHemyJhsMVm5BXoC1dE4QePlX74N0zoyoFQM3Ddo28elj9eA2nJGj
+         8XhUj5qbELM4gLbORSFSiSOrE4fp+Pf8ZfoAC0YpjXyANMkZe1hTWKeUmq/WziW8Dqd8
+         sxAxkIaXN3Bz2fX3ClhSy2ijBZp/rFRN4QsUi+6xEw/o87FAYFjpWPtjRlO0mgcWoUtB
+         Y0sg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1763605967; x=1764210767;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=G6OEllOICfOmnYghpQDm15WzVjiy1iyiVGB4iZU8wXg=;
-        b=DhPwUvQuCc8xWm6+O5SbAnUTflKpX5cNi6dONXPMn7Tu5qLGQBP8ytJvGO7Dnho5NU
-         4PKGl5JKjkCwZErXuQIjd8G2FBDQxjqiEZ3ZS8y2f3OKB5CfEsuIsWyJCNcGdJThO1I6
-         mIQptzjXaBwxiBmvbNjGlsFKtg0Y4s55WGo8yhl2j0r/4lj3G1+jDWdMjihMQlYmdgym
-         c/so+nEmnUoYyjH3/H4P8KLG1EAaTqxTuAozIGei6vZVyDLeN6z659mjzfIR+3QTAVgN
-         /BD85QO5Z5jsupNLT5O+6+KqDTnPTwhQU/yQUjvUxyYrYS5gXzINjPfKWJC0l6JZX1H2
-         3fRw==
-X-Forwarded-Encrypted: i=1; AJvYcCUkuUtY6J0DmbqSPL5ZCV9PYCKgCZfFNTKT7E8/gAPRJIeKgRe+DlbfuGNlXyE8l4UgVe7wcmRjZTlhVA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxVu8MkT1T5VKA1khj3MTUIIQxn5p+KHFB0ZWfv5wVs+uDnibSg
-	N77zKJvylqnErLY+uwlTxT8MxXHopiznUim4thPt/F1jakl9zcvmIVW9syUbGU0KS94=
-X-Gm-Gg: ASbGncvqHwAOCN3HENxMRUnJpm5+LYl1wxSLDjHTXbdQY1FRqZuyRTGLC6PvMv/9Fro
-	JSO1mfoFBETC4TFSOVYzEa9lOEr3XzoDaRS9pcbOo8diE0j3y6r9cYgB+E0GN1t5wPsd28Vo7sW
-	M0sAOAvDAz8G9DYSPaAVAcpvv1ZYT3DHUajFPWnTNgJv1+W7l8VnssGrTDWTlKNzhO/N/y7M3NM
-	+E+bZX6QhdbdyRQFkOQ8SD41zu8jAzr63zS2oXLUDSA/FQQxuuOoeKY6NUWC3AX+sKHrhrb8uQD
-	8oMQF47fkpuXEsWUlTxvknk2hqB33IDD454QNT37Oq4ncqoEA002dhfzI2FtzZJf5TB6txdwXB6
-	9UDMgeU2PH+j2rgkNyu3UlLgGYIE7A8fzpCRL0zLN1O/NeceTKSfuQ6J5i0kfbtnOzXb+Tb8iwi
-	ripVLVBkvSnA==
-X-Google-Smtp-Source: AGHT+IGeBiop61w5CeaXZi68jDSh7W1Kf+OhzjFh1OhAQG6HrI5Gn2pJO011Nff3UpuTYK8oTb2uWA==
-X-Received: by 2002:a05:600c:4506:b0:477:9a4d:b92d with SMTP id 5b1f17b1804b1-477b8c91d91mr6174255e9.5.1763605967042;
-        Wed, 19 Nov 2025 18:32:47 -0800 (PST)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29b5b25e321sm8114625ad.50.2025.11.19.18.32.45
+        d=1e100.net; s=20230601; t=1763611914; x=1764216714;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=OAknHB5tZjEpml4alkW5iZcUUFNVM3J13VfbF4fSGGQ=;
+        b=Q9FGj42vhehL4vbV4k1NPUApItZQ955X/RyK+fV6JtFfmtfzROpSo/oo0KHKAVKgtr
+         XiQiym4qGrGP9fJiqn2es/XrCJbKZH2TRekjUXKTsildN0QyMm4C6p89w0O9tKzT+R39
+         ZO+qSpenLWB3BO4b1ro2si4XiiQ0lMidIkBKYGUWhMRu28Ebq94eo4oeWBOpgI8SeBZ3
+         w3xAj7xRWgtuj5WT159sHcykzi7VIbtlx1S3qamf05D7IWA4rOcU5ZrDfBerKzRCu90S
+         6TmlBVh98uC0iYpZA6SfG7xTZojuudBE1Vb4J/+oJOSMwccqFxbG00UXooTuQvS6afP/
+         gKCA==
+X-Gm-Message-State: AOJu0YwM+PYs4DgdfPyaBjh6I7+QZRIcImK5rsQPwdeOFCyunV3uvTeS
+	atTGtIZCmqIffmJsT2kBtaBFhMJNMQcwPE04fxdppdzC/oCF/Fm3GhBZ
+X-Gm-Gg: ASbGnct8QKoAziWJIdbFfzR8YrnHRmff4TH0jUlunuz/+xTKUFMQ8gE6pwx5KE1q0wz
+	TboxmB7UGbMba6TdhowmThCelV02wXZLDteBrPgra834mr6/gUhxFVAK8I6JOsjaobwuhjFfnOT
+	ypF1IdHFINeBPZTi1TOJJLBz0Ch+7TVNjxeGcTkmahh9hFZCXWhC9YxBrYSyhJ2Baj6FQ1InSry
+	E/OF54vRlTk9fpXcSqmQSOsd3Km+N5LqvvcJHhFo1fkdHi0NrzvQryfWGWTUBElnJI7RjMLiQqx
+	vXdASW2k3Y0VJUWXe4y7KhRx+zP9yEJ0BG1q6Gtk62pshXUON0+fIes8ujJMr4LCLW3iPDlxfxz
+	JdsgmE+ylv19p6RvgL7fgqGxBtGkAe+ZCN7ADhuNoGhbIbD15FI61xLDL5gdpL82Q5NegOkdjW+
+	ZXu+F25wzmyNpzjzHiZU4NfrJtLvP6txIH1kI=
+X-Google-Smtp-Source: AGHT+IHvxEhcnjNuS7nEdN4Os+KSqtAwVjCqKQtuUbalhTNoMMg+jKTuqAecvtfgwz4aNhn6XCNghg==
+X-Received: by 2002:a05:6a00:84b:b0:7c2:60c6:8ca0 with SMTP id d2e1a72fcca58-7c433e0226dmr1144412b3a.5.1763611913572;
+        Wed, 19 Nov 2025 20:11:53 -0800 (PST)
+Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:b699:1eac:7219:cf4a])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7c3ed471060sm1009312b3a.15.2025.11.19.20.11.50
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 19 Nov 2025 18:32:46 -0800 (PST)
-Date: Thu, 20 Nov 2025 10:32:43 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, david.hunter.linux@gmail.com, 
-	skhan@linuxfoundation.org, syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com, 
-	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-Subject: Re: [PATCH v3] ocfs2: Invalidate inode if i_mode is zero after block
- read
-Message-ID: <lkeaoxtkqccd3knpskbewkbn4cimlxaufix4evugcfkplk6u4b@oi36e4iu3x3r>
-References: <20251108120133.37443-3-eraykrdg1@gmail.com>
- <20251119221723.171746-2-eraykrdg1@gmail.com>
+        Wed, 19 Nov 2025 20:11:53 -0800 (PST)
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	heming.zhao@suse.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Deepanshu Kartikey <kartikey406@gmail.com>,
+	syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
+Subject: [PATCH v4] ocfs2: validate inline xattr size and entry count in ocfs2_xattr_ibody_list
+Date: Thu, 20 Nov 2025 09:41:45 +0530
+Message-ID: <20251120041145.33176-1-kartikey406@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251119221723.171746-2-eraykrdg1@gmail.com>
+Content-Transfer-Encoding: 8bit
 
-On Thu, Nov 20, 2025 at 01:17:24AM +0300, Ahmet Eray Karadag wrote:
-> A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
-> handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
-> 
-> This "zombie" inode is created because ocfs2_read_locked_inode proceeds
-> even after ocfs2_validate_inode_block successfully validates a block
-> that structurally looks okay (passes checksum, signature etc.) but
-> contains semantically invalid data (specifically i_mode=0). The current
-> validation function doesn't check for i_mode being zero.
-> 
-> This results in an in-memory inode with i_mode=0 being added to the VFS
-> cache, which later triggers the panic during unlink.
-> 
-> Prevent this by adding an explicit check for (i_mode == 0, i_nlink == 0, non-orphan)
-> within ocfs2_validate_inode_block. If the check is true, return -EFSCORRUPTED to signal
-> corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
-> make_bad_inode(), correctly preventing the zombie inode from entering
-> the cache.
-> 
-> Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
-> Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
-> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-> Previous link: https://lore.kernel.org/all/20251022222752.46758-2-eraykrdg1@gmail.com/T/
-> ---
-> v2:
->  - Only checking either i_links_count == 0 or i_mode == 0
->  - Not performing le16_to_cpu() anymore
->  - Tested with ocfs2-test
-> ---
-> v3:
->  - Add checking both high and low bits of i_links_count
-> ---
->  fs/ocfs2/inode.c | 7 +++++++
->  1 file changed, 7 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 14bf440ea4df..c8b129db756e 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1456,6 +1456,13 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	if (!ocfs2_read_links_count(di) || !di->i_mode) {
+Add comprehensive validation of inline xattr metadata in
+ocfs2_xattr_ibody_list() to prevent out-of-bounds access and
+use-after-free bugs when processing corrupted inline xattrs.
 
-the code logic looks good to me, but I prefer the following code to save a few
-cpu cycles.
+The patch adds two critical validations:
 
-```
-/* only check if the "link count" or i_mode is ZERO */
-if (!(di->i_links_count | di->i_links_count_hi) || !di->i_mode)
-```
+1. Validates i_xattr_inline_size before use:
+   - Ensures it does not exceed block size
+   - Ensures it is at least large enough for xattr header
+   - Prevents pointer arithmetic with corrupted size values that could
+     point outside the inode block
 
-@Joseph
-which do you like?
+2. Validates xattr entry count (xh_count):
+   - Calculates maximum entries that can fit in the inline space
+   - Rejects counts that exceed this limit
+   - Prevents out-of-bounds array access in subsequent code
 
-- Heming
-> +		mlog(ML_ERROR, "Invalid dinode #%llu: "
-> +			"Corrupt state (nlink=0 or mode=0,) detected!\n",
-> +		        (unsigned long long)bh->b_blocknr);
-> +		rc = -EFSCORRUPTED;
-> +		goto bail;
-> +	}
->  	/*
->  	 * Errors after here are fatal.
->  	 */
-> -- 
-> 2.43.0
-> 
-> 
+Without these checks, a corrupted filesystem with invalid inline xattr
+metadata can cause the code to access memory beyond the allocated space.
+For example:
+- A corrupted i_xattr_inline_size of 0 would cause header pointer
+  calculation to point past the end of the block
+- A corrupted xh_count of 22 with inline_size of 256 would cause
+  array access 7 entries beyond the 15 that actually fit (the syzbot
+  reproducer used xh_count of 20041), leading to use-after-free when
+  accessing freed memory pages
+
+The validation uses the correct inline_size (from di->i_xattr_inline_size)
+rather than block size, ensuring accurate bounds checking for inline
+xattrs specifically.
+
+Reported-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=ab0ad25088673470d2d9
+Tested-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
+Suggested-by: Heming Zhao <heming.zhao@suse.com>
+Link: https://lore.kernel.org/all/20251111073831.2027072-1-kartikey406@gmail.com/ [v1]
+Link: https://lore.kernel.org/all/20251117063217.5690-1-kartikey406@gmail.com/ [v2]
+Link: https://lore.kernel.org/all/20251117114224.12948-1-kartikey406@gmail.com/ [v3]
+Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+---
+Changes in v4:
+ - Corrected commit message example: max entries is 15, not 7
+   (pointed out by Heming Zhao)
+
+Changes in v3:
+ - Moved validation from ocfs2_xattr_list_entries() to
+   ocfs2_xattr_ibody_list() to use correct inline size calculation
+   (suggested by Heming Zhao)
+ - Added validation of i_xattr_inline_size before use
+ - Added validation of xattr entry count against inline space
+ - Changed return value to -EFSCORRUPTED for consistency
+---
+ fs/ocfs2/xattr.c | 30 ++++++++++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index d70a20d29e3e..98fd4f3f2d2d 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -971,13 +971,39 @@ static int ocfs2_xattr_ibody_list(struct inode *inode,
+ 	struct ocfs2_xattr_header *header = NULL;
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	int ret = 0;
++	u16 xattr_count;
++	size_t max_entries;
++	u16 inline_size;
+ 
+ 	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL))
+ 		return ret;
+ 
++	inline_size = le16_to_cpu(di->i_xattr_inline_size);
++
++	/* Validate inline size is reasonable */
++	if (inline_size > inode->i_sb->s_blocksize ||
++	    inline_size < sizeof(struct ocfs2_xattr_header)) {
++		ocfs2_error(inode->i_sb,
++			    "Invalid xattr inline size %u in inode %llu\n",
++			    inline_size,
++			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
++		return -EFSCORRUPTED;
++	}
++
+ 	header = (struct ocfs2_xattr_header *)
+-		 ((void *)di + inode->i_sb->s_blocksize -
+-		 le16_to_cpu(di->i_xattr_inline_size));
++		 ((void *)di + inode->i_sb->s_blocksize - inline_size);
++
++	xattr_count = le16_to_cpu(header->xh_count);
++	max_entries = (inline_size - sizeof(struct ocfs2_xattr_header)) /
++		       sizeof(struct ocfs2_xattr_entry);
++
++	if (xattr_count > max_entries) {
++		ocfs2_error(inode->i_sb,
++			    "xattr entry count %u exceeds maximum %zu in inode %llu\n",
++			    xattr_count, max_entries,
++			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
++		return -EFSCORRUPTED;
++	}
+ 
+ 	ret = ocfs2_xattr_list_entries(inode, header, buffer, buffer_size);
+ 
+-- 
+2.43.0
+
