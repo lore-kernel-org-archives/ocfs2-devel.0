@@ -1,227 +1,163 @@
-Received: from out-189.mta1.migadu.com (out-189.mta1.migadu.com [95.215.58.189])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-il1-f205.google.com (mail-il1-f205.google.com [209.85.166.205])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9C4F32DD60E
-	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Nov 2025 11:44:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=95.215.58.189
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 00561298CC0
+	for <ocfs2-devel@lists.linux.dev>; Thu, 27 Nov 2025 01:11:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.205
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764157477; cv=none; b=I/fl1yi/rNop5qpMV9bg46IhivBbw8mlLuzBrlmPDm73j6lQ8OMr05An3rmYI/wg2rWA/2Y6jNQ74uay5NBW7g65BIsf/D6E5qQRud3F8dCHyKB4MYBHS6P6Di60GN2LH0QIFDRhVH2cjgpN0aVB6jTYFwQ5VhLpewks95GhhDQ=
+	t=1764205891; cv=none; b=Oy6cyBscGNkTK0YuGqF0cYzSDOECiAaroihU9bCagr7ZsAyFxX8XxMpfrilpUTuwKjzsrnEeBq45GXz4Jzcv4BTpK/x/yD77Hy1nNZJkBwbcsX0AVfSHzflnsUqmu5YaQewcv6kgUgghwU9+d8hO8yfwvTtixhWypt0QiYojeNg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764157477; c=relaxed/simple;
-	bh=PovGOu+ng2ff7batpOmbwC5wyvQBlTfjHOgS/NSXJaI=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=B1X6DCoSqzRGYkAUjpuMudHq0PKfxSJIpoxjavlec8SFDUu30zlMEhIcX8hJIfUAC5uNfKDTUldVUn8OzdrhW3xwil9RQ6S7djbBh4JchUzeopFksAOblQbldIS06oAzvVybUVmSEpadm542AJJEmSdP4VyR3sdzMTq07g60loY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=qAIFz2ld; arc=none smtp.client-ip=95.215.58.189
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="qAIFz2ld"
-X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
-	t=1764157468;
-	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
-	 to:to:cc:cc:mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding;
-	bh=+sOOZHFPAZ3S4mQVgj3ivWqQgtNn2xlRIdwQR8B/Ksc=;
-	b=qAIFz2ld3oxQGp/rOe+MnbPgDjm9iLvNnHUzdua13vvBWmos1EymY0rDK2GQsfW929XEdL
-	QTcOAYkZCZcLqAa2Do4gUyDU4LbUvgkHMYGtndIKA6CgT5NklJ74oqdqVKA/MUbqjcNGv8
-	nMZd9fCroNStOnrz8kyqJzVyKEylMcg=
-From: Thorsten Blum <thorsten.blum@linux.dev>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Thorsten Blum <thorsten.blum@linux.dev>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH] ocfs2: Replace deprecated strcpy with strscpy
-Date: Wed, 26 Nov 2025 12:44:15 +0100
-Message-ID: <20251126114419.92539-1-thorsten.blum@linux.dev>
+	s=arc-20240116; t=1764205891; c=relaxed/simple;
+	bh=7R0ZQoOJyk4uySIpYyAxesSIrAHhVTUMOTKlpzL4+8g=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=J8HDfcDz5k9X6weoWwy9ye4fc6Q1o3VyWWZKf4T0HddaelzQEVWj2F7zd9DnMsiY8dV3giGqabRTRFeCPLGuNHXu//ZxPlu7zA/ZGIM8hIlrPonxLBjd+LaBw5IcOYVrRqDDs3DC+hcczwMFddFv1DjgqFvUQR/z59kklTYfRjg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.205
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-il1-f205.google.com with SMTP id e9e14a558f8ab-43335646758so3048265ab.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 26 Nov 2025 17:11:29 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1764205889; x=1764810689;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=ixp5c2x+LqidjC6Ae0RydcerYlBBw1F/PXAVHMKgpG4=;
+        b=LMqdhpo4tHPjtwqi9SYWd2ueAI8hGKWeDS/5HiYZn5DpIjtWnaLDr3BbO48VbTAiDn
+         kk9OLoLqLFwE77SaxjAgXGOAaL49Z7KedO0No8kRFES9xMVl12lgllTSCYF2UJJSbGCm
+         qG1x3yZ4ZpiouylCaVd1JIwNPYZjt7MENjjrxJkbdbXvdwP4VjjXJ7FUtOMhiDO2xROs
+         fFyq08xLATkxKGENuyQR5FL85f7T+tioYvEGgeGXG+25MSNRUWuCFv5BrfNglfD0sOY0
+         IwMuFvuPxMWLx+yokxz/fYHanvWEo5xXN83ow0ywuTAX8ZF+0US+LWgKcj7lYO8CRr8W
+         P2CQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXGrTs6AnFUmmRWehRU5K4Z8RYlULb8uE+7d0cse/wnu0lixcJ3k81gP2hXBD0OtQCLVEtDo1r9r7wwdA==@lists.linux.dev
+X-Gm-Message-State: AOJu0Ywz9SV+Cou/+TSeNzgEn15GRRIgSj3F3tNcjRHH73BJOzaltwWt
+	Pn4NIQvbhus6c/Ymy0Np2DXQ0pGi0frKXvh6Sj5off4DJj1qKnVBTJYgTygF17pVVwZOE2VlVtt
+	O+ktaza2p/KzXtuNlayiNzklWsSQ8RTZHt+3jUoRjnrt9nFlBsdIrKe1E/kA=
+X-Google-Smtp-Source: AGHT+IGEE8/pnrzhnYX8ck5AaL7N8EXrIB8yaZoRaPRxPFHiPwaNcRerhbtfQu+8Y6DUqA/SQFLgjFD9BabAut3t1w6+cXtYqEWp
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Migadu-Flow: FLOW_OUT
+X-Received: by 2002:a05:6e02:1806:b0:42d:8b25:47ed with SMTP id
+ e9e14a558f8ab-435b8e3d9f4mr192384765ab.6.1764205889191; Wed, 26 Nov 2025
+ 17:11:29 -0800 (PST)
+Date: Wed, 26 Nov 2025 17:11:29 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6927a541.a70a0220.d98e3.00e5.GAE@google.com>
+Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_remove_btree_range (2)
+From: syzbot <syzbot+f82afc4d4e74d0ef7a89@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-strcpy() has been deprecated [1] because it performs no bounds checking
-on the destination buffer, which can lead to buffer overflows. Replace
-it with the safer strscpy().  No functional changes.
+Hello,
 
-Link: https://www.kernel.org/doc/html/latest/process/deprecated.html#strcpy [1]
-Signed-off-by: Thorsten Blum <thorsten.blum@linux.dev>
+syzbot found the following issue on:
+
+HEAD commit:    89edd36fd801 Merge tag 'xfs-fixes-6.18-rc7' of git://git.k..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=1235397c580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=a1db0fea040c2a9f
+dashboard link: https://syzkaller.appspot.com/bug?extid=f82afc4d4e74d0ef7a89
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=134d0612580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15c03a12580000
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-89edd36f.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/80049f7c5ae9/vmlinux-89edd36f.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/edfae2c36891/bzImage-89edd36f.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/9eefce186dc7/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=16024e92580000)
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+f82afc4d4e74d0ef7a89@syzkaller.appspotmail.com
+
+(syz.0.17,5491,0):ocfs2_truncate_log_needs_flush:5830 ERROR: bug expression: le16_to_cpu(tl->tl_used) > le16_to_cpu(tl->tl_count)
+(syz.0.17,5491,0):ocfs2_truncate_log_needs_flush:5830 ERROR: slot 0, invalid truncate log parameters: used = 129, count = 39
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/alloc.c:5830!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 5491 Comm: syz.0.17 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+RIP: 0010:ocfs2_truncate_log_needs_flush fs/ocfs2/alloc.c:5827 [inline]
+RIP: 0010:ocfs2_remove_btree_range+0x152f/0x1540 fs/ocfs2/alloc.c:5752
+Code: b7 45 00 4c 89 e7 48 c7 c6 16 10 7e 8d ba c6 16 00 00 48 c7 c1 80 d4 aa 8b 41 89 d8 45 89 f9 50 e8 46 20 1e 00 48 83 c4 08 90 <0f> 0b 66 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00 90 90 90 90 90
+RSP: 0018:ffffc90002b6ecc0 EFLAGS: 00010296
+RAX: 1c4f3c72a1dda200 RBX: 0000000000000000 RCX: 1c4f3c72a1dda200
+RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+RBP: ffffc90002b6ef98 R08: ffff88801fe24293 R09: 1ffff11003fc4852
+R10: dffffc0000000000 R11: ffffed1003fc4853 R12: ffffc90002b6ed80
+R13: ffff88804c09fac0 R14: 1ffff11009813f58 R15: 0000000000000081
+FS:  000055556b844500(0000) GS:ffff88808d72f000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000557f72160e20 CR3: 0000000059e03000 CR4: 0000000000352ef0
+Call Trace:
+ <TASK>
+ ocfs2_commit_truncate+0xb64/0x21d0 fs/ocfs2/alloc.c:7372
+ ocfs2_truncate_file+0xca2/0x1420 fs/ocfs2/file.c:509
+ ocfs2_setattr+0x1520/0x1b40 fs/ocfs2/file.c:1212
+ notify_change+0xc1a/0xf40 fs/attr.c:546
+ do_truncate+0x1a4/0x220 fs/open.c:68
+ handle_truncate fs/namei.c:3596 [inline]
+ do_open fs/namei.c:3979 [inline]
+ path_openat+0x306c/0x3830 fs/namei.c:4134
+ do_filp_open+0x1fa/0x410 fs/namei.c:4161
+ do_sys_openat2+0x121/0x1c0 fs/open.c:1437
+ do_sys_open fs/open.c:1452 [inline]
+ __do_sys_openat fs/open.c:1468 [inline]
+ __se_sys_openat fs/open.c:1463 [inline]
+ __x64_sys_openat+0x138/0x170 fs/open.c:1463
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fe596b8f749
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffe6dee1248 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
+RAX: ffffffffffffffda RBX: 00007fe596de5fa0 RCX: 00007fe596b8f749
+RDX: 000000000000275a RSI: 0000200000000040 RDI: ffffffffffffff9c
+RBP: 00007fe596c13f91 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007fe596de5fa0 R14: 00007fe596de5fa0 R15: 0000000000000004
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_truncate_log_needs_flush fs/ocfs2/alloc.c:5827 [inline]
+RIP: 0010:ocfs2_remove_btree_range+0x152f/0x1540 fs/ocfs2/alloc.c:5752
+Code: b7 45 00 4c 89 e7 48 c7 c6 16 10 7e 8d ba c6 16 00 00 48 c7 c1 80 d4 aa 8b 41 89 d8 45 89 f9 50 e8 46 20 1e 00 48 83 c4 08 90 <0f> 0b 66 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00 90 90 90 90 90
+RSP: 0018:ffffc90002b6ecc0 EFLAGS: 00010296
+RAX: 1c4f3c72a1dda200 RBX: 0000000000000000 RCX: 1c4f3c72a1dda200
+RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
+RBP: ffffc90002b6ef98 R08: ffff88801fe24293 R09: 1ffff11003fc4852
+R10: dffffc0000000000 R11: ffffed1003fc4853 R12: ffffc90002b6ed80
+R13: ffff88804c09fac0 R14: 1ffff11009813f58 R15: 0000000000000081
+FS:  000055556b844500(0000) GS:ffff88808d72f000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000557f7216a138 CR3: 0000000059e03000 CR4: 0000000000352ef0
+
+
 ---
- fs/ocfs2/alloc.c               |  5 +++--
- fs/ocfs2/cluster/nodemanager.c |  3 ++-
- fs/ocfs2/dir.c                 | 10 +++++-----
- fs/ocfs2/namei.c               |  3 ++-
- fs/ocfs2/stackglue.c           |  3 ++-
- fs/ocfs2/suballoc.c            |  3 ++-
- 6 files changed, 16 insertions(+), 11 deletions(-)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 162711cc5b20..c1bd531955bc 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -10,6 +10,7 @@
- #include <linux/fs.h>
- #include <linux/types.h>
- #include <linux/slab.h>
-+#include <linux/string.h>
- #include <linux/highmem.h>
- #include <linux/swap.h>
- #include <linux/quotaops.h>
-@@ -1037,7 +1038,7 @@ static int ocfs2_create_new_meta_bhs(handle_t *handle,
- 			memset(bhs[i]->b_data, 0, osb->sb->s_blocksize);
- 			eb = (struct ocfs2_extent_block *) bhs[i]->b_data;
- 			/* Ok, setup the minimal stuff here. */
--			strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
-+			strscpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
- 			eb->h_blkno = cpu_to_le64(first_blkno);
- 			eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
- 			eb->h_suballoc_slot =
-@@ -6744,7 +6745,7 @@ static int ocfs2_reuse_blk_from_dealloc(handle_t *handle,
- 		/* We can't guarantee that buffer head is still cached, so
- 		 * polutlate the extent block again.
- 		 */
--		strcpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
-+		strscpy(eb->h_signature, OCFS2_EXTENT_BLOCK_SIGNATURE);
- 		eb->h_blkno = cpu_to_le64(bf->free_blk);
- 		eb->h_fs_generation = cpu_to_le32(osb->fs_generation);
- 		eb->h_suballoc_slot = cpu_to_le16(real_slot);
-diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
-index 2f61d39e4e50..6bc4e064ace4 100644
---- a/fs/ocfs2/cluster/nodemanager.c
-+++ b/fs/ocfs2/cluster/nodemanager.c
-@@ -4,6 +4,7 @@
-  */
- 
- #include <linux/slab.h>
-+#include <linux/string.h>
- #include <linux/kernel.h>
- #include <linux/module.h>
- #include <linux/configfs.h>
-@@ -590,7 +591,7 @@ static struct config_item *o2nm_node_group_make_item(struct config_group *group,
- 	if (node == NULL)
- 		return ERR_PTR(-ENOMEM);
- 
--	strcpy(node->nd_name, name); /* use item.ci_namebuf instead? */
-+	strscpy(node->nd_name, name); /* use item.ci_namebuf instead? */
- 	config_item_init_type_name(&node->nd_item, name, &o2nm_node_type);
- 	spin_lock_init(&node->nd_lock);
- 
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 8c9c4825f984..53db86c6fe9c 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -136,7 +136,7 @@ static void ocfs2_init_dir_trailer(struct inode *inode,
- 	struct ocfs2_dir_block_trailer *trailer;
- 
- 	trailer = ocfs2_trailer_from_bh(bh, inode->i_sb);
--	strcpy(trailer->db_signature, OCFS2_DIR_TRAILER_SIGNATURE);
-+	strscpy(trailer->db_signature, OCFS2_DIR_TRAILER_SIGNATURE);
- 	trailer->db_compat_rec_len =
- 			cpu_to_le16(sizeof(struct ocfs2_dir_block_trailer));
- 	trailer->db_parent_dinode = cpu_to_le64(OCFS2_I(inode)->ip_blkno);
-@@ -2192,14 +2192,14 @@ static struct ocfs2_dir_entry *ocfs2_fill_initial_dirents(struct inode *inode,
- 	de->name_len = 1;
- 	de->rec_len =
- 		cpu_to_le16(OCFS2_DIR_REC_LEN(de->name_len));
--	strcpy(de->name, ".");
-+	strscpy(de->name, ".");
- 	ocfs2_set_de_type(de, S_IFDIR);
- 
- 	de = (struct ocfs2_dir_entry *) ((char *)de + le16_to_cpu(de->rec_len));
- 	de->inode = cpu_to_le64(OCFS2_I(parent)->ip_blkno);
- 	de->rec_len = cpu_to_le16(size - OCFS2_DIR_REC_LEN(1));
- 	de->name_len = 2;
--	strcpy(de->name, "..");
-+	strscpy(de->name, "..");
- 	ocfs2_set_de_type(de, S_IFDIR);
- 
- 	return de;
-@@ -2357,7 +2357,7 @@ static int ocfs2_dx_dir_attach_index(struct ocfs2_super *osb,
- 
- 	dx_root = (struct ocfs2_dx_root_block *)dx_root_bh->b_data;
- 	memset(dx_root, 0, osb->sb->s_blocksize);
--	strcpy(dx_root->dr_signature, OCFS2_DX_ROOT_SIGNATURE);
-+	strscpy(dx_root->dr_signature, OCFS2_DX_ROOT_SIGNATURE);
- 	dx_root->dr_suballoc_slot = cpu_to_le16(meta_ac->ac_alloc_slot);
- 	dx_root->dr_suballoc_loc = cpu_to_le64(suballoc_loc);
- 	dx_root->dr_suballoc_bit = cpu_to_le16(dr_suballoc_bit);
-@@ -2433,7 +2433,7 @@ static int ocfs2_dx_dir_format_cluster(struct ocfs2_super *osb,
- 		dx_leaf = (struct ocfs2_dx_leaf *) bh->b_data;
- 
- 		memset(dx_leaf, 0, osb->sb->s_blocksize);
--		strcpy(dx_leaf->dl_signature, OCFS2_DX_LEAF_SIGNATURE);
-+		strscpy(dx_leaf->dl_signature, OCFS2_DX_LEAF_SIGNATURE);
- 		dx_leaf->dl_fs_generation = cpu_to_le32(osb->fs_generation);
- 		dx_leaf->dl_blkno = cpu_to_le64(bh->b_blocknr);
- 		dx_leaf->dl_list.de_count =
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index c90b254da75e..4ec6dbed65a8 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -23,6 +23,7 @@
- #include <linux/fs.h>
- #include <linux/types.h>
- #include <linux/slab.h>
-+#include <linux/string.h>
- #include <linux/highmem.h>
- #include <linux/quotaops.h>
- #include <linux/iversion.h>
-@@ -568,7 +569,7 @@ static int __ocfs2_mknod_locked(struct inode *dir,
- 	ocfs2_set_links_count(fe, inode->i_nlink);
- 
- 	fe->i_last_eb_blk = 0;
--	strcpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
-+	strscpy(fe->i_signature, OCFS2_INODE_SIGNATURE);
- 	fe->i_flags |= cpu_to_le32(OCFS2_VALID_FL);
- 	ktime_get_coarse_real_ts64(&ts);
- 	fe->i_atime = fe->i_ctime = fe->i_mtime =
-diff --git a/fs/ocfs2/stackglue.c b/fs/ocfs2/stackglue.c
-index a28c127b9934..fca2fd07c881 100644
---- a/fs/ocfs2/stackglue.c
-+++ b/fs/ocfs2/stackglue.c
-@@ -10,6 +10,7 @@
- 
- #include <linux/list.h>
- #include <linux/spinlock.h>
-+#include <linux/string.h>
- #include <linux/module.h>
- #include <linux/slab.h>
- #include <linux/kmod.h>
-@@ -670,7 +671,7 @@ static int __init ocfs2_stack_glue_init(void)
- {
- 	int ret;
- 
--	strcpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
-+	strscpy(cluster_stack_name, OCFS2_STACK_PLUGIN_O2CB);
- 
- 	ocfs2_table_header = register_sysctl("fs/ocfs2/nm", ocfs2_nm_table);
- 	if (!ocfs2_table_header) {
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 6ac4dcd54588..4b9d0ecd0981 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -11,6 +11,7 @@
- #include <linux/fs.h>
- #include <linux/types.h>
- #include <linux/slab.h>
-+#include <linux/string.h>
- #include <linux/highmem.h>
- 
- #include <cluster/masklog.h>
-@@ -372,7 +373,7 @@ static int ocfs2_block_group_fill(handle_t *handle,
- 	}
- 
- 	memset(bg, 0, sb->s_blocksize);
--	strcpy(bg->bg_signature, OCFS2_GROUP_DESC_SIGNATURE);
-+	strscpy(bg->bg_signature, OCFS2_GROUP_DESC_SIGNATURE);
- 	bg->bg_generation = cpu_to_le32(osb->fs_generation);
- 	bg->bg_size = cpu_to_le16(ocfs2_group_bitmap_size(sb, 1,
- 						osb->s_feature_incompat));
--- 
-Thorsten Blum <thorsten.blum@linux.dev>
-GPG: 1D60 735E 8AEF 3BE4 73B6  9D84 7336 78FD 8DFE EAD4
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
