@@ -1,164 +1,179 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f52.google.com (mail-ed1-f52.google.com [209.85.208.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8CCE32D592D
-	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Nov 2025 06:58:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 789492FD66A
+	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Nov 2025 09:06:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764313096; cv=none; b=fqTyBmRYnJkCCaNsyIPHtdvjLlfg6Mf0KqwN2FFYeDEL5IEEDA3IWXSSLo2GjRfihHPrkcESjnX2OBmC+tG1mOlAzOF8yT3IcA4RqVF1vbqIRRRp1Lew7UQaPHLeMNKFSIR4K1AcVNKu8vAQWw7DT2G1iKZwI79FNAq2GsJBCFM=
+	t=1764320795; cv=none; b=eY0SeadGorPNYpwa/KdocZsaqqKmbUCuw4EvUJofZkTx7idnTvTbdw7AxOKRqYuXLmBRqHtJ30xQyObKepX9mCCAP3wEWvo9Osq9tUUo1lrsJa6BdYTOVopYk2Q8ytwO/f9RRv+MpUXsBLlY6Mxy7rj1Q/WnS1kjnQvbGHZn5Jc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764313096; c=relaxed/simple;
-	bh=HLOK579ef+FaW8sWMbAzVh/1XuAIFYGEH1mBSxW9Ykg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=HmLnRiQxQXuISvrmWFVjuxS+rXuZyQQ3lxIw/QZiAgvzL/3Bpg7djMM+nuki95UP65op/gcgdMjXlnoyldjZNewIy7Mds6RiS0eusxMlwTm3JejI+z7LLVEOLpf3A7CIA5wbAMN2ju/ZTuv6lsQ1orXke7BrsSFQ2q+FJWOn50A=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=hR9lXZpR; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1764320795; c=relaxed/simple;
+	bh=x2avRk/dKm+mCLueN8oiQHD739LXkYF2Blewq9ceHyo=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=KsFKE+p5cjeqNVInrnJVG74p4o9Ug6wReBQ1UeJx4K5dxgKNK/d3wjj+rJc6IY+aGPPBYBRLnUdImqToBReJso/FPAd2virAd2kWXfGY99X8ZJwF7+4B2hYlNNcmjMyLYe+4h6FX/QTI3YSnB6MZWc8SdKRYHP0sLW21i2tK6Lo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fXg66O8t; arc=none smtp.client-ip=209.85.208.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="hR9lXZpR"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1764313084; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=x9WzKD7CVDGTaxSaUxDiO7SriHD1Cja8CXfG3MYkrSw=;
-	b=hR9lXZpRZGx5FF/bP/vZWAlsLifUMtPDEqZGiJ/5o6qWB3PfiQkAOXEAPAmlqbp32TOXTtBlmT+mTsBDbX1rogHJSrE4ysy4CR3MlabuQpYu32ciOs+UwpsMKN+NjpagjypQdbNdErpDGV21I4/BYZRirz+e8fpByVIvmCBmz9w=
-Received: from 30.221.128.157(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wtannmi_1764313083 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 28 Nov 2025 14:58:03 +0800
-Message-ID: <d7906e3e-a62b-40ba-8861-27a353fdca4c@linux.alibaba.com>
-Date: Fri, 28 Nov 2025 14:58:03 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fXg66O8t"
+Received: by mail-ed1-f52.google.com with SMTP id 4fb4d7f45d1cf-6418738efa0so2788628a12.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 28 Nov 2025 01:06:33 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1764320792; x=1764925592; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=Fybugla5irn7/5MQulh1PMDITgT+aYZ/+S7WGxnXfR4=;
+        b=fXg66O8tIIbQvR+FX4Aq6DUCNnpeVd4SupraX5E1Oiee4+IYxmNsZpc0ubd2Da3zln
+         4TITRSSTJNzbHV/r4uuUFj5q8Zg/Nz3HOWqmrV/+MZB8DEcSupzdFDfyU2cVTMZqA1mM
+         Hv36xgA1Pv0SizuHqs5FwM3KRvJy5nUigY7l3uSC+nmh2FKblowOSXsdR51SkBZ7bgf0
+         3pb60OxTSC2l1bqibB1JkvEpFgXpcHZkum5q4CMsO+MEWoBxp2IvKbovcRDJ5jHXryAb
+         36mpWhLo1tuSHtI9Bs8qPsENtEjV4F+TfmFodgcG6cchE20Eya4zT8FpWdYnsIQVWtPt
+         nYMg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1764320792; x=1764925592;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Fybugla5irn7/5MQulh1PMDITgT+aYZ/+S7WGxnXfR4=;
+        b=uwpMn/R0T1v7otfD/2gMZXeHN4djKwTLidLI/iBWV8ibiFcRqnIVyoR2HkYDSon9he
+         1mqRp3VKlt+gSvB11OhPwsD8A1SSnZhkmh3Ngqyfw+IF5sXKK82gE3HXuSXohYiMioCs
+         hQ9lea+r2j7pmYqh4Ngqiea2p7Ca7SINw5Q657M5vYSbbZeylRFEN93pzJVy0iQUuDEt
+         DmJSco24FYQrdDhA+F78y2jZdi1+IVP54NQDPY/WDeraXZntlK3qaNqhmvn4JlBF3d+W
+         HGR3DrdMoI7TEDORC79JoX+hhH4gkPZg1tJMzommIJqINGYNsdIlQGmkw5olejKAjuCe
+         KUtA==
+X-Forwarded-Encrypted: i=1; AJvYcCXlsbxq0DiSKQfIVPbrDet76fc4tOOxKo5oJURhkVNbCQ69JHCPhZlHXBKbUs+aOTXvnQTOv0EjsmSVew==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yxn8kvDBunOdGy0+HJFLFDR9mC0q3Sbs/c+F8uELPrIxkOYsiUH
+	cShC9GV9Gcr16/CisYD7cVlNYbHxPozVSwiAzwkClM9uLnp0ztbnGeI4
+X-Gm-Gg: ASbGncsAUT0ol64d1dxp21eJ4UMW6d27VsD3NiKczktcDDZnSSTC0vCCK1uwXDpUQag
+	qLsOQxjmZkxnNqr3MjsPVIjIeeG0HaaPs+IcXL1i1kmqKvIcX1Iv9+6GIUpM62eQisZsqj34FZV
+	OxA/34JlXIxJzaxvFDOlAIhp+QPOJDJdXbE0swM6/4wuLAPwU5lc79KohFIPr+wNyqVbYuq5SY0
+	EHuSljty47No/H3iLfoPe7JbvBcwZoBEFgZ1F0alHwmdSgB/sIep9qhJbo0BXqoOo8Qf/AdGKRB
+	8gVUtFi4MAXE8lLstvUr776XHI4qPx07/TcbNINbwWOO3emOCwCyzdVZqd0PVMVJllnadQaS9dv
+	M+IJGRO8Q5kOugIFUpDQAnJOdTCkBregmF9n1Ww8cA8YDn6Iv4Vz/91XGbN5YJaMT1NlLr4qOqu
+	G752WlCNTVEQ==
+X-Google-Smtp-Source: AGHT+IEh9wemANzw5MUsk3gYyvmUha3wASsp1y4xGHyQ+NAl08Ru0AZk39iUNvmhAhoJJEswEeJRbQ==
+X-Received: by 2002:a17:907:db16:b0:b73:6474:1ee8 with SMTP id a640c23a62f3a-b7671565a7cmr2818527266b.14.1764320791320;
+        Fri, 28 Nov 2025 01:06:31 -0800 (PST)
+Received: from eray-kasa ([2a02:4e0:2d05:16ab:8837:f306:fdf3:a46b])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b76f5199852sm400094666b.15.2025.11.28.01.06.29
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 28 Nov 2025 01:06:31 -0800 (PST)
+Date: Fri, 28 Nov 2025 12:06:28 +0300
+From: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+To: Heming Zhao <heming.zhao@suse.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
+	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Subject: Re: [PATCH 1/2] ocfs2: Add ocfs2_emergency_state helper and apply to
+ setattr
+Message-ID: <aSlmFFFxQfbnaRWV@eray-kasa>
+References: <cover.1763337347.git.eraykrdg1@gmail.com>
+ <f60d7b3669ee3bebc11895795bf1bc9c990fecea.1763337347.git.eraykrdg1@gmail.com>
+ <ykvzskyxtwsy42lxxin6avihe6lbub75ywvn7e6zod6m45dpyy@6xkfaynjpuos>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4] ocfs2: validate inline xattr size and entry count in
- ocfs2_xattr_ibody_list
-To: Heming Zhao <heming.zhao@suse.com>,
- Deepanshu Kartikey <kartikey406@gmail.com>, akpm <akpm@linux-foundation.org>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org,
- syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
-References: <20251120041145.33176-1-kartikey406@gmail.com>
- <2frdco53wk4kj5x6wpfsaqm5qswvsgqa72ex7qsp3zuppltsoh@bvt2zaom5w2t>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <2frdco53wk4kj5x6wpfsaqm5qswvsgqa72ex7qsp3zuppltsoh@bvt2zaom5w2t>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <ykvzskyxtwsy42lxxin6avihe6lbub75ywvn7e6zod6m45dpyy@6xkfaynjpuos>
 
-
-
-On 2025/11/20 14:49, Heming Zhao wrote:
-> On Thu, Nov 20, 2025 at 09:41:45AM +0530, Deepanshu Kartikey wrote:
->> Add comprehensive validation of inline xattr metadata in
->> ocfs2_xattr_ibody_list() to prevent out-of-bounds access and
->> use-after-free bugs when processing corrupted inline xattrs.
->>
->> The patch adds two critical validations:
->>
->> 1. Validates i_xattr_inline_size before use:
->>    - Ensures it does not exceed block size
->>    - Ensures it is at least large enough for xattr header
->>    - Prevents pointer arithmetic with corrupted size values that could
->>      point outside the inode block
->>
->> 2. Validates xattr entry count (xh_count):
->>    - Calculates maximum entries that can fit in the inline space
->>    - Rejects counts that exceed this limit
->>    - Prevents out-of-bounds array access in subsequent code
->>
->> Without these checks, a corrupted filesystem with invalid inline xattr
->> metadata can cause the code to access memory beyond the allocated space.
->> For example:
->> - A corrupted i_xattr_inline_size of 0 would cause header pointer
->>   calculation to point past the end of the block
->> - A corrupted xh_count of 22 with inline_size of 256 would cause
->>   array access 7 entries beyond the 15 that actually fit (the syzbot
->>   reproducer used xh_count of 20041), leading to use-after-free when
->>   accessing freed memory pages
->>
->> The validation uses the correct inline_size (from di->i_xattr_inline_size)
->> rather than block size, ensuring accurate bounds checking for inline
->> xattrs specifically.
->>
->> Reported-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
->> Closes: https://syzkaller.appspot.com/bug?extid=ab0ad25088673470d2d9
->> Tested-by: syzbot+ab0ad25088673470d2d9@syzkaller.appspotmail.com
->> Suggested-by: Heming Zhao <heming.zhao@suse.com>
->> Link: https://lore.kernel.org/all/20251111073831.2027072-1-kartikey406@gmail.com/ [v1]
->> Link: https://lore.kernel.org/all/20251117063217.5690-1-kartikey406@gmail.com/ [v2]
->> Link: https://lore.kernel.org/all/20251117114224.12948-1-kartikey406@gmail.com/ [v3]
->> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+On Tue, Nov 25, 2025 at 10:58:32AM +0800, Heming Zhao wrote:
+> On Tue, Nov 18, 2025 at 03:26:44AM +0300, Ahmet Eray Karadag wrote:
+> > To centralize error checking, follow the pattern of other filesystems
+> > like ext4 (which uses `ext4_emergency_state()`), and prepare for
+> > future enhancements, this patch introduces a new helper function:
+> > `ocfs2_emergency_state()`.
+> > 
+> > The purpose of this helper is to provide a single, unified location
+> > for checking all filesystem-level emergency conditions. In this
+> > initial implementation, the function only checks for the existing
+> > hard and soft read-only modes, returning -EROFS if either is set.
+> > 
+> > This provides a foundation where future checks (e.g., for fatal error
+> > states returning -EIO, or shutdown states) can be easily added in
+> > one place.
+> > 
+> > This patch also adds this new check to the beginning of
+> > `ocfs2_setattr()`. This ensures that operations like `ftruncate`
+> > (which triggered the original BUG) fail-fast with -EROFS when the
+> > filesystem is already in a read-only state.
+> > 
+> > Suggested-by: Heming Zhao <heming.zhao@suse.com>
+> > Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+> > Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+> > Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+> > ---
+> >  fs/ocfs2/file.c  | 6 ++++++
+> >  fs/ocfs2/ocfs2.h | 8 ++++++++
+> >  2 files changed, 14 insertions(+)
+> > 
+> > diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> > index 21d797ccccd0..03a98985ac92 100644
+> > --- a/fs/ocfs2/file.c
+> > +++ b/fs/ocfs2/file.c
+> > @@ -1137,6 +1137,12 @@ int ocfs2_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
+> >  					from_kgid(&init_user_ns, attr->ia_gid) : 0);
+> >  
+> >  	/* ensuring we don't even attempt to truncate a symlink */
+> > +	status = ocfs2_emergency_state(osb);
+> > +	if (status < 0) {
+> > +		mlog_errno(status);
+> > +		goto bail;
+> > +	}
+> > +
 > 
-> LGTM
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> I prefer the ext4_emerency_state() style, using "if (unlikely(status))" here.
 > 
->> ---
->> Changes in v4:
->>  - Corrected commit message example: max entries is 15, not 7
->>    (pointed out by Heming Zhao)
->>
->> Changes in v3:
->>  - Moved validation from ocfs2_xattr_list_entries() to
->>    ocfs2_xattr_ibody_list() to use correct inline size calculation
->>    (suggested by Heming Zhao)
->>  - Added validation of i_xattr_inline_size before use
->>  - Added validation of xattr entry count against inline space
->>  - Changed return value to -EFSCORRUPTED for consistency
->> ---
->>  fs/ocfs2/xattr.c | 30 ++++++++++++++++++++++++++++--
->>  1 file changed, 28 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index d70a20d29e3e..98fd4f3f2d2d 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -971,13 +971,39 @@ static int ocfs2_xattr_ibody_list(struct inode *inode,
->>  	struct ocfs2_xattr_header *header = NULL;
->>  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
->>  	int ret = 0;
->> +	u16 xattr_count;
->> +	size_t max_entries;
->> +	u16 inline_size;
->>  
->>  	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL))
->>  		return ret;
->>  
->> +	inline_size = le16_to_cpu(di->i_xattr_inline_size);
->> +
->> +	/* Validate inline size is reasonable */
->> +	if (inline_size > inode->i_sb->s_blocksize ||
->> +	    inline_size < sizeof(struct ocfs2_xattr_header)) {
->> +		ocfs2_error(inode->i_sb,
->> +			    "Invalid xattr inline size %u in inode %llu\n",
->> +			    inline_size,
->> +			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
->> +		return -EFSCORRUPTED;
->> +	}
->> +
->>  	header = (struct ocfs2_xattr_header *)
->> -		 ((void *)di + inode->i_sb->s_blocksize -
->> -		 le16_to_cpu(di->i_xattr_inline_size));
->> +		 ((void *)di + inode->i_sb->s_blocksize - inline_size);
->> +
->> +	xattr_count = le16_to_cpu(header->xh_count);
->> +	max_entries = (inline_size - sizeof(struct ocfs2_xattr_header)) /
->> +		       sizeof(struct ocfs2_xattr_entry);
->> +
->> +	if (xattr_count > max_entries) {
->> +		ocfs2_error(inode->i_sb,
->> +			    "xattr entry count %u exceeds maximum %zu in inode %llu\n",
->> +			    xattr_count, max_entries,
->> +			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
->> +		return -EFSCORRUPTED;
->> +	}
->>  
->>  	ret = ocfs2_xattr_list_entries(inode, header, buffer, buffer_size);
->>  
->> -- 
->> 2.43.0
->>
-
+> >  	if (S_ISLNK(inode->i_mode))
+> >  		attr->ia_valid &= ~ATTR_SIZE;
+> >  
+> > diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+> > index 6aaa94c554c1..2ac16632dd19 100644
+> > --- a/fs/ocfs2/ocfs2.h
+> > +++ b/fs/ocfs2/ocfs2.h
+> > @@ -680,6 +680,14 @@ static inline int ocfs2_is_soft_readonly(struct ocfs2_super *osb)
+> >  	return ret;
+> >  }
+> >  
+> > +static inline int ocfs2_emergency_state(struct ocfs2_super *osb)
+> > +{
+> > +	if (ocfs2_is_soft_readonly(osb) || ocfs2_is_hard_readonly(osb)) {
+> > +		return -EROFS;
+> > +	}
+> > +	return 0;
+> > +}
+> > +
+> 
+> calling ocfs2_is_[soft|hard]_readonly() is a little expensive because it
+> involves acquiring the spinlock osb->osb_lock twice. In my view, we could
+> introduce a new function, such as ocfs2_is_readonly():
+In ext4, the helper functions check read-only flags without acquiring a lock.
+Would it be problematic to do the same in ocfs2?
+> 
+> ```
+> static inline int ocfs2_is_readonly(struct ocfs2_super *osb)
+> {
+>         int ret;
+> 
+>         spin_lock(&osb->osb_lock);
+>         ret = osb->osb_flags & (OCFS2_OSB_SOFT_RO | OCFS2_OSB_HARD_RO);
+>         spin_unlock(&osb->osb_lock);
+> 
+>         return ret
+> }
+> ```
+> 
+> Thanks,
+> Heming
+> 
+> >  static inline int ocfs2_clusterinfo_valid(struct ocfs2_super *osb)
+> >  {
+> >  	return (osb->s_feature_incompat &
+> > -- 
+> > 2.43.0
+> > 
+I agree with the other comments. We will send v2.
