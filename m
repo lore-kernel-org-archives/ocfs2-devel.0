@@ -1,73 +1,124 @@
-Received: from mail-il1-f200.google.com (mail-il1-f200.google.com [209.85.166.200])
+Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5B0FA233D9C
-	for <ocfs2-devel@lists.linux.dev>; Sat, 29 Nov 2025 19:38:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.166.200
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE44E278753
+	for <ocfs2-devel@lists.linux.dev>; Sun, 30 Nov 2025 10:46:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.179
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764445083; cv=none; b=CLlEHtW1d3KG56KAbvstgWtFy1GjVPwMKTrxXoxhUmhH3qSVfvtbWEJcALdR8uAGaOIrgUyuwzgCWpnJ+GGdRav0uf2YQWTOxqkcm60U4meXgjjH7ISMIWjM6BIqgn68DZtQfoblRADiEWccpyUuh0UnTvH8ghhi26RcbX0TOKE=
+	t=1764499622; cv=none; b=dGuEkA3oKsJtVXSaXJI8isAGBgXIN07bkwz7TBOMW5aWUuwquyngfgILIaEWqJjwABzmZh7UwxxCHQuQDaXaPU72sV9690bnXdQq5bZGtT67lMYvaNWIVxRvUtud6FB0Rb6W04NatQXzHxKqxWzTqTFLgQDRERk+/Z5r5mljt0U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764445083; c=relaxed/simple;
-	bh=Rt79gtGOYVqlwnhXXIUlZ7nlc+X0x2d+UIMKTTykV4g=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=TZIeZ2h/vcVyDHtttU2VaBGjO52vaYvJBkF9hhIN3VeOOf6Stfo2Ox4g3rc+Bu7Rpp6buFG4O/YHJ6XtguwFz6l0+YefyMhnzrT5yeOBK07SH48B3VRRGzxLVOmGJxbcYiWmACUPHO9zbVyRbvkVpYOH7BY2urkJxZ/5vSxrxts=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.166.200
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-il1-f200.google.com with SMTP id e9e14a558f8ab-433817220f5so29970005ab.1
-        for <ocfs2-devel@lists.linux.dev>; Sat, 29 Nov 2025 11:38:02 -0800 (PST)
+	s=arc-20240116; t=1764499622; c=relaxed/simple;
+	bh=rlIrI/UmoKYEL0vlVjf1XS3AzQOskSjVa2f/87hoTwQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=HRoayNk8KAeRcH1DQvLQ0eKWlh+Wo98gUKCs/lbxRP1oCPILHVOzNCzggUXpIwwLSTfUJP5+vTFMZYjMVey1/jMteyJ9pocrrO9fpsRdoSbEVgzXAsWfejvXAKjhTRvwRhO94QVHbdy68wXYCEftLiWPWPdfj61w/vQO0BqLiQc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=gH6Gh/u0; arc=none smtp.client-ip=209.85.214.179
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gH6Gh/u0"
+Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-29555415c5fso39427915ad.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 30 Nov 2025 02:46:59 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1764499619; x=1765104419; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=qTNLxP/M5VH8d16ArvNC5jrTL5Ks/32ppFB8c0OA9Rk=;
+        b=gH6Gh/u0L66C57iyBEPJ+UKTuVeO/cjbLsL77eGbGZb27huaXlUZ86Ryh3qD3qzEVj
+         iIR4fd4bs61wpmJBfJWEZHSjRUOvwVS9NsxAhHeirhzFAjah8U6szGlkHaaGqe4enQ2o
+         2KU7+Zvt7ZDVHJYNNfGePa+cr/VAJyugvoXHSsWjFBqm5mWDgCa3AF1DvCPvmeaeMWIn
+         4CvXzfbQ+4Pv+YZQyJqQNM+MZT3v8MxGa3I0HKwmBwOsO8OeOf9MYKaZ/M7hLbSg54+i
+         4S//o3coevLRl8MwnyarHFt5PCbTqgK1jMYY5WlXdrglQzdYRYWMfhBTwqDLmfzfFFwM
+         E6sQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764445081; x=1765049881;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=4oYfSpK6LNifHNOI9SYRYdlFDBZFvjGfD5EYWVnRER8=;
-        b=xLC0a31oANOCVFYRnD/gqU1EiXakQcC0ZOYWUqwkdSsa3DmKvqFWX2t6qI/cLlphcU
-         Vthfj5+1y4weXnGneUSSHtkRc+Dz3XNaS0lAG8JyyUcaHAdQsTeX+Yrrqom3XtLUZ70/
-         gUbi2Dq2ExOIzbbK6j8oEYxlkvzNN0FontoZa2FZf3QlZXRSr7qshI1X2hxYzN3HoDrF
-         if455T8P9iuWlmUQcy7KpMhcyZkvwDQUrusRUS31ObaYhqYsoq4nQiYAe0j0XKzuVt4P
-         G9Bm/jjrRrJGl5opHb0KxB0JNHG51qbUPLINdWw0v6+bFFTm0oH+VFKKYyay4EvMR26f
-         5X+g==
-X-Forwarded-Encrypted: i=1; AJvYcCVrZsCmE84JVC0T/X651BKUzJBFgGLzptmokV22krf9iXXFAihO2Y5WEA3VYH3dS+HgtKv6itL7P9St9g==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yy1iLHWVjG6QJbRPjbpX6SUuTcJ0Xbp+ElZu1nXXOaLJJjGT6Im
-	rUUJ37W5nqU6LwUWfDar8h0WaGL56RK98pp2DCirCeDpz29Y1hf0pnrYsuUP0YEYNFrYibyQgk1
-	mebWG9JVvib2BNHG95mBy/iHkzIYFxINteFnoIvS/6cuhw+SVHvOLmmyRKoY=
-X-Google-Smtp-Source: AGHT+IG8z8AyeOYUcYbDXk3CWhN3b2KrKPGrCOppPceOMMmYzlYXGy8TTFDySVsP80xsA3p4AdIC9ced/JdGUIBEtHfBwEwgksN1
+        d=1e100.net; s=20230601; t=1764499619; x=1765104419;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=qTNLxP/M5VH8d16ArvNC5jrTL5Ks/32ppFB8c0OA9Rk=;
+        b=bN5GRS7BnjKj7lZcyHfKWOKuy9ZipxsCQyEbMYFU8Wvw6gJ+zoZKGOu4AaUEbWEFXo
+         J0ZUpF4fx8XF+9YVbkasvtIlqidzkh3n1CFggzln6ddeONzgrFUr0t5eBcTfP6O7tx6h
+         Vp1QM7TG/kYnZx0h+3GPEhyII3Lj5sQqT7AoCApGnjbH/OHyiwtXmWM43JFb1+ISLizP
+         93HzzFmhN/Evehvc94AxU5E8k0uqxd6Q4NVrJnyzypNj1unBnMroSE+YFB6GkCPR5Zry
+         NA0IEsGFMfDkCFGmLn2K6phEZokRNg9e+SmpWQoswghtre2LYvR+5rzoYxscHCkOVat9
+         JaZA==
+X-Gm-Message-State: AOJu0YzamrI97FBP+eG/wLO7p2fQl1VuL1ntfJX/wpd7zBKAd9CUgOYB
+	grskljy+TMLIo1DvaOIcIBqZ5mAFYC3RCbdyKH10byINUsiB6PgeNAQM
+X-Gm-Gg: ASbGncua9FRsW5zxcyACAFoJ68R7ysLWrjmKCYP/tos5wqf7ThtefQiw/gk8fADaelt
+	NjdU+pG4QarltJSuqibwT5foyBMISib4R5fIsDNJ1EpTh4ItNHOIUon1H+MJBsScxZx8oUa5+EJ
+	JBUPdWpDMZqLQWc2BO3u76Edxfz8v5zFlLtmJ16qw2w9H2b61qq0Z6NCsorpYlHrp+65ikX00H7
+	B6BUVB+ORATnkFejE6DwhUU88u0kke71Yce0Cl4l6i0b3xLbelaYuiCvFU1Ut2pTiyJHqAT0p2M
+	mjNpTd4WGXHLWQlCF0yKY5REuy00sVWy4SJKKFxGu22IcbuFPQc0y1ZZy8kJ2LfY9W8aN8EjJk7
+	bzguVxwH6mZPFWJYI5AsIyMamjYuEnTGSD9c5sYHj1QsvhJ+zbzP2mzW3GDUPaPPXx7wXPLLi83
+	oPrGqWSNMVWj4j87uL/AYnjP7gd18=
+X-Google-Smtp-Source: AGHT+IERaLvmsksXdm4uqqeOPDAGOjVLAPcWW+DVufQ2i3ULjffRh0sjXfMbZt3b4sdgIKb56s8bhw==
+X-Received: by 2002:a17:903:2b07:b0:290:c94b:8381 with SMTP id d9443c01a7336-29b6c3db606mr396664675ad.7.1764499618952;
+        Sun, 30 Nov 2025 02:46:58 -0800 (PST)
+Received: from localhost.localdomain ([114.79.136.226])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29bceb471c6sm91492475ad.79.2025.11.30.02.46.53
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 30 Nov 2025 02:46:58 -0800 (PST)
+From: Prithvi Tambewagh <activprithvi@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	linux-kernel-mentees@lists.linux.dev,
+	skhan@linuxfoundation.org,
+	david.hunter.linux@gmail.com,
+	khalid@kernel.org,
+	Prithvi Tambewagh <activprithvi@gmail.com>,
+	syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com,
+	stable@vger.kernel.org
+Subject: [PATCH] fs: ocfs2: fix kernel BUG in ocfs2_find_victim_chain
+Date: Sun, 30 Nov 2025 16:16:37 +0530
+Message-Id: <20251130104637.264258-1-activprithvi@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6e02:1a24:b0:433:78b8:943f with SMTP id
- e9e14a558f8ab-435b90328a4mr300063305ab.4.1764445081578; Sat, 29 Nov 2025
- 11:38:01 -0800 (PST)
-Date: Sat, 29 Nov 2025 11:38:01 -0800
-In-Reply-To: <20251129191336.546692-1-activprithvi@gmail.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <692b4b99.a70a0220.d98e3.015f.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_claim_suballoc_bits
-From: syzbot <syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com>
-To: activprithvi@gmail.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello,
+syzbot reported a kernel BUG in ocfs2_find_victim_chain() because the
+`cl_next_free_rec` field of the allocation chain list is 0, triggring the
+BUG_ON(!cl->cl_next_free_rec) condition and panicking the kernel.
 
-syzbot has tested the proposed patch and the reproducer did not trigger any issue:
+To fix this, `cl_next_free_rec` is checked inside the caller of
+ocfs2_find_victim_chain() i.e. ocfs2_claim_suballoc_bits() and if it is
+equal to 0, ocfs2_error() is called, to log the corruption and force the
+filesystem into read-only mode, to prevent further damage.
 
 Reported-by: syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=96d38c6e1655c1420a72
 Tested-by: syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com
+Cc: stable@vger.kernel.org
+Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+---
+ fs/ocfs2/suballoc.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
 
-Tested on:
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 6ac4dcd54588..84bb2d11c2aa 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -1993,6 +1993,13 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
+ 
+ 	cl = (struct ocfs2_chain_list *) &fe->id2.i_chain;
+ 
++	if (le16_to_cpu(cl->cl_next_free_rec) == 0) {
++		status = ocfs2_error(ac->ac_inode->i_sb,
++				     "Chain allocator dinode %llu has 0 chains\n",
++				     (unsigned long long)le64_to_cpu(fe->i_blkno));
++		goto bail;
++	}
++
+ 	victim = ocfs2_find_victim_chain(cl);
+ 	ac->ac_chain = victim;
+ 
 
-commit:         939f15e6 Merge tag 'turbostat-2025.06.08' of git://git..
-git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-console output: https://syzkaller.appspot.com/x/log.txt?x=176614b4580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=dcc9fa9d12bdc372
-dashboard link: https://syzkaller.appspot.com/bug?extid=96d38c6e1655c1420a72
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
-patch:          https://syzkaller.appspot.com/x/patch.diff?x=156ce112580000
+base-commit: 939f15e640f193616691d3bcde0089760e75b0d3
+-- 
+2.34.1
 
-Note: testing is done by a robot and is best-effort only.
