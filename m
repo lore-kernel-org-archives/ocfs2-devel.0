@@ -1,124 +1,105 @@
-Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
+Received: from mail-wr1-f54.google.com (mail-wr1-f54.google.com [209.85.221.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE44E278753
-	for <ocfs2-devel@lists.linux.dev>; Sun, 30 Nov 2025 10:46:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B2A072B2DA
+	for <ocfs2-devel@lists.linux.dev>; Mon,  1 Dec 2025 02:17:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764499622; cv=none; b=dGuEkA3oKsJtVXSaXJI8isAGBgXIN07bkwz7TBOMW5aWUuwquyngfgILIaEWqJjwABzmZh7UwxxCHQuQDaXaPU72sV9690bnXdQq5bZGtT67lMYvaNWIVxRvUtud6FB0Rb6W04NatQXzHxKqxWzTqTFLgQDRERk+/Z5r5mljt0U=
+	t=1764555427; cv=none; b=QmLXS+RsnhLQbesGbF2jaNGXFihfRWagCVI5hKt8XU3gjImbBqy43Z1i3NdkqWalIK1Q7tyypoEOBrnZuVC6zifYuHuGWwvusC60MDjtY8FU6kFSvyGaJt6x0UZsNj+rrbp+myub8b4ZZji+gYTeUhBwAFl2eJjb6ahCTK8qKQk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764499622; c=relaxed/simple;
-	bh=rlIrI/UmoKYEL0vlVjf1XS3AzQOskSjVa2f/87hoTwQ=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=HRoayNk8KAeRcH1DQvLQ0eKWlh+Wo98gUKCs/lbxRP1oCPILHVOzNCzggUXpIwwLSTfUJP5+vTFMZYjMVey1/jMteyJ9pocrrO9fpsRdoSbEVgzXAsWfejvXAKjhTRvwRhO94QVHbdy68wXYCEftLiWPWPdfj61w/vQO0BqLiQc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=gH6Gh/u0; arc=none smtp.client-ip=209.85.214.179
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1764555427; c=relaxed/simple;
+	bh=ovm1f3eblzsM09i5jSf6X2p/gxrvxFc8fIImEMwroU0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=GkSU4ksVl3sT/zYAMJfZPaqq+E6bN1qY7s/iCByJJL2WiV9ItULHULePTfUy+pwS+mjAkweFdhVj5E/1KFrQIEacKumV6cvRVNhvNf6AYmyR0MZqWapnjvsfusK9oQMtkbQGbexit7DXMDilq9u3mX7ycL95Q0Y0MBrM+hnyKs8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=OzZhbLmr; arc=none smtp.client-ip=209.85.221.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gH6Gh/u0"
-Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-29555415c5fso39427915ad.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 30 Nov 2025 02:46:59 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="OzZhbLmr"
+Received: by mail-wr1-f54.google.com with SMTP id ffacd0b85a97d-429c5e0f94eso412567f8f.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 30 Nov 2025 18:17:05 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1764499619; x=1765104419; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=qTNLxP/M5VH8d16ArvNC5jrTL5Ks/32ppFB8c0OA9Rk=;
-        b=gH6Gh/u0L66C57iyBEPJ+UKTuVeO/cjbLsL77eGbGZb27huaXlUZ86Ryh3qD3qzEVj
-         iIR4fd4bs61wpmJBfJWEZHSjRUOvwVS9NsxAhHeirhzFAjah8U6szGlkHaaGqe4enQ2o
-         2KU7+Zvt7ZDVHJYNNfGePa+cr/VAJyugvoXHSsWjFBqm5mWDgCa3AF1DvCPvmeaeMWIn
-         4CvXzfbQ+4Pv+YZQyJqQNM+MZT3v8MxGa3I0HKwmBwOsO8OeOf9MYKaZ/M7hLbSg54+i
-         4S//o3coevLRl8MwnyarHFt5PCbTqgK1jMYY5WlXdrglQzdYRYWMfhBTwqDLmfzfFFwM
-         E6sQ==
+        d=suse.com; s=google; t=1764555424; x=1765160224; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=iWIs/YDA1nzzX4jOEgpbV5QmPVgD/b4meZuDSCuGs4s=;
+        b=OzZhbLmrgYeGpyxuXrpunVwXPSFTBH312duLqWgCttnfbG3kNbBbxxeSKl9kZ9GKO6
+         ARzB4NKHjOX9eXW6roN7MCp4w/oFRfrtCgxzKXV103/nTs/PxGZfs6IiP5NjSD/ab14T
+         RQ3wBObZXOjOMqG7VEM96gwEiEHQQw2S68WZGgh+UjZ8w6iA2oZaqFvLvXboJ+2Jt37O
+         D6cgSlM7AjjLLdmZb7U9rf/53Pt3msu8r9w9ILxmZyo+eyL0XmteMTt2Gj3/q7+bAKbv
+         0hP59xtUP1Vl9ZMX1mZV4mt9vetuk8qKygaySbzwh7/SBkXd8D0zY/9bRftTmQC7pand
+         KNwA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764499619; x=1765104419;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=qTNLxP/M5VH8d16ArvNC5jrTL5Ks/32ppFB8c0OA9Rk=;
-        b=bN5GRS7BnjKj7lZcyHfKWOKuy9ZipxsCQyEbMYFU8Wvw6gJ+zoZKGOu4AaUEbWEFXo
-         J0ZUpF4fx8XF+9YVbkasvtIlqidzkh3n1CFggzln6ddeONzgrFUr0t5eBcTfP6O7tx6h
-         Vp1QM7TG/kYnZx0h+3GPEhyII3Lj5sQqT7AoCApGnjbH/OHyiwtXmWM43JFb1+ISLizP
-         93HzzFmhN/Evehvc94AxU5E8k0uqxd6Q4NVrJnyzypNj1unBnMroSE+YFB6GkCPR5Zry
-         NA0IEsGFMfDkCFGmLn2K6phEZokRNg9e+SmpWQoswghtre2LYvR+5rzoYxscHCkOVat9
-         JaZA==
-X-Gm-Message-State: AOJu0YzamrI97FBP+eG/wLO7p2fQl1VuL1ntfJX/wpd7zBKAd9CUgOYB
-	grskljy+TMLIo1DvaOIcIBqZ5mAFYC3RCbdyKH10byINUsiB6PgeNAQM
-X-Gm-Gg: ASbGncua9FRsW5zxcyACAFoJ68R7ysLWrjmKCYP/tos5wqf7ThtefQiw/gk8fADaelt
-	NjdU+pG4QarltJSuqibwT5foyBMISib4R5fIsDNJ1EpTh4ItNHOIUon1H+MJBsScxZx8oUa5+EJ
-	JBUPdWpDMZqLQWc2BO3u76Edxfz8v5zFlLtmJ16qw2w9H2b61qq0Z6NCsorpYlHrp+65ikX00H7
-	B6BUVB+ORATnkFejE6DwhUU88u0kke71Yce0Cl4l6i0b3xLbelaYuiCvFU1Ut2pTiyJHqAT0p2M
-	mjNpTd4WGXHLWQlCF0yKY5REuy00sVWy4SJKKFxGu22IcbuFPQc0y1ZZy8kJ2LfY9W8aN8EjJk7
-	bzguVxwH6mZPFWJYI5AsIyMamjYuEnTGSD9c5sYHj1QsvhJ+zbzP2mzW3GDUPaPPXx7wXPLLi83
-	oPrGqWSNMVWj4j87uL/AYnjP7gd18=
-X-Google-Smtp-Source: AGHT+IERaLvmsksXdm4uqqeOPDAGOjVLAPcWW+DVufQ2i3ULjffRh0sjXfMbZt3b4sdgIKb56s8bhw==
-X-Received: by 2002:a17:903:2b07:b0:290:c94b:8381 with SMTP id d9443c01a7336-29b6c3db606mr396664675ad.7.1764499618952;
-        Sun, 30 Nov 2025 02:46:58 -0800 (PST)
-Received: from localhost.localdomain ([114.79.136.226])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29bceb471c6sm91492475ad.79.2025.11.30.02.46.53
+        d=1e100.net; s=20230601; t=1764555424; x=1765160224;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=iWIs/YDA1nzzX4jOEgpbV5QmPVgD/b4meZuDSCuGs4s=;
+        b=MdnseaBXg0MF1vDjRaInvWeiapDe7JUawqGiwj8+GJzHcUTFcJK4oDoTyOVUBsX6Bk
+         FKuyVeHjV03W4khri010jCjRds8G7tVYAxIesIxhJJD0i2LlqFFuZKN6zpqAfhkudjax
+         mclbQS2big26XkUZq1abAirEn1Uh4Hfg/mHwlQYs4UH48jBazziZB0e0/8b1qQo/Jnzh
+         /+hbCc0lIY3hgmZ/8wdDrmQR2QnOm/vBoBE/cWsXo+S9KAuOoLZdR9lpSVavOM8o4Nop
+         l0dJpmp9UaDDGN24h6LMz13k4HetL/YM5VL5uZhUZsGZ//X9vlFnc0uhxuVRyrXBBqJQ
+         a5Og==
+X-Forwarded-Encrypted: i=1; AJvYcCWmGqf7nsR0WIdg3yDm8eQZdpN4ykZnCP/nTx9FWsBXAPcgv9pW8LspjEC4jzAfGQOTPwxpcEv79AjesQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxJ6TMouTXH/gJui1n9+w4eNxB0xXGzxyoCaVBAvRVMtmsOIrfr
+	Go94Qflk9A95pwIqyI0/cqQUqd4KeErgAnBcvLA28Eu6G4ZGF3f6HleF7AFJXKsDQeE=
+X-Gm-Gg: ASbGncuSxXFBJfjv67/9Mgoo+XLIULz2XLp9RfMWj3NNB+YQ7L43xf5VrVEtuZUXUMy
+	8YwriT059rQU1yiXUweCwA/IhJ3krffyHvlXFiU36zbMxjTvuIlkmVDHyzfAsIrVra+gPrioeOl
+	0KRGh5DsaZyv99i63SPtQIyHmu/i6ejQ5oaOmP7unceMtRGUefXgfxBWyt7b1IEKtrgtmb67qGc
+	1oaDLZakM0JVv9dgwlgs2YaCXt8xGIm5gOwGVEEOjC/gL835vbALOaG1gQgGAXVAsPFn9ojHyRc
+	YwyxAOACKPUGe9DCoY6TwxwV398PtqfpG7uRd99IpM/YFof5ELHS0TI+Zvwq1GO5X/jtRzNghRT
+	Gj6xha2/J2SAsZcfd4GrkSc6bvXlvnEUn5BpNmMoGG6KHOk5I5zQ7EJ/3yAua8ZruJ3kh5O8EbD
+	fEF8Kr27Q0Lg==
+X-Google-Smtp-Source: AGHT+IEWrSHatavDU8PlmpUBXJN7D6018oNrTzyVUkNLbmGlmmIGVzbQLsOyrUBxc7hJxYUGTx/LNA==
+X-Received: by 2002:a05:600c:4f14:b0:477:9c40:2fa1 with SMTP id 5b1f17b1804b1-477c315f8a1mr204739915e9.4.1764555423919;
+        Sun, 30 Nov 2025 18:17:03 -0800 (PST)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3475ff9fed2sm9078965a91.6.2025.11.30.18.17.02
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 30 Nov 2025 02:46:58 -0800 (PST)
-From: Prithvi Tambewagh <activprithvi@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	linux-kernel-mentees@lists.linux.dev,
-	skhan@linuxfoundation.org,
-	david.hunter.linux@gmail.com,
-	khalid@kernel.org,
-	Prithvi Tambewagh <activprithvi@gmail.com>,
-	syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com,
-	stable@vger.kernel.org
-Subject: [PATCH] fs: ocfs2: fix kernel BUG in ocfs2_find_victim_chain
-Date: Sun, 30 Nov 2025 16:16:37 +0530
-Message-Id: <20251130104637.264258-1-activprithvi@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        Sun, 30 Nov 2025 18:17:03 -0800 (PST)
+Date: Mon, 1 Dec 2025 10:17:00 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, david.hunter.linux@gmail.com, 
+	skhan@linuxfoundation.org, syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com, 
+	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Subject: Re: [PATCH v3] ocfs2: Invalidate inode if i_mode is zero after block
+ read
+Message-ID: <7re2pyy6jcqhqxvsrye7osbsoepmoumzsrlty6kjsrv2iqjt55@b4llca3qxoml>
+References: <20251108120133.37443-3-eraykrdg1@gmail.com>
+ <20251119221723.171746-2-eraykrdg1@gmail.com>
+ <lkeaoxtkqccd3knpskbewkbn4cimlxaufix4evugcfkplk6u4b@oi36e4iu3x3r>
+ <aSmzVvAy4lM6BsuL@eray-kasa>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aSmzVvAy4lM6BsuL@eray-kasa>
 
-syzbot reported a kernel BUG in ocfs2_find_victim_chain() because the
-`cl_next_free_rec` field of the allocation chain list is 0, triggring the
-BUG_ON(!cl->cl_next_free_rec) condition and panicking the kernel.
+On Fri, Nov 28, 2025 at 05:36:06PM +0300, Ahmet Eray Karadag wrote:
+> Hi all,
+> 
+> Just a kind reminder regarding this patch.
+> 
+> Since We are participating in the Linux Kernel Mentorship Program and have
+> a nearing deadline, your feedback would be incredibly helpful for us to
+> move forward.
+> 
+> Thanks,
+> Ahmet Eray
 
-To fix this, `cl_next_free_rec` is checked inside the caller of
-ocfs2_find_victim_chain() i.e. ocfs2_claim_suballoc_bits() and if it is
-equal to 0, ocfs2_error() is called, to log the corruption and force the
-filesystem into read-only mode, to prevent further damage.
+I have provided my comment on the v3 patch. The sanity check is expensive,
+costing about six lines of asm code for ocfs2_read_links_count() on a big-endian
+architecture.
 
-Reported-by: syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=96d38c6e1655c1420a72
-Tested-by: syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com
-Cc: stable@vger.kernel.org
-Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
----
- fs/ocfs2/suballoc.c | 7 +++++++
- 1 file changed, 7 insertions(+)
+Also, since I'm not the maintainer, if Joseph agrees with your patch, he can
+provide his Reviewed-by tag.
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 6ac4dcd54588..84bb2d11c2aa 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -1993,6 +1993,13 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 
- 	cl = (struct ocfs2_chain_list *) &fe->id2.i_chain;
- 
-+	if (le16_to_cpu(cl->cl_next_free_rec) == 0) {
-+		status = ocfs2_error(ac->ac_inode->i_sb,
-+				     "Chain allocator dinode %llu has 0 chains\n",
-+				     (unsigned long long)le64_to_cpu(fe->i_blkno));
-+		goto bail;
-+	}
-+
- 	victim = ocfs2_find_victim_chain(cl);
- 	ac->ac_chain = victim;
- 
-
-base-commit: 939f15e640f193616691d3bcde0089760e75b0d3
--- 
-2.34.1
-
+PS: Kindly note that the kernel mailing list generally discourages separate
+emails for patch review threads.
