@@ -1,118 +1,154 @@
-Received: from mail-oi1-f208.google.com (mail-oi1-f208.google.com [209.85.167.208])
+Received: from mail-ej1-f53.google.com (mail-ej1-f53.google.com [209.85.218.53])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5683D2E0916
-	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Dec 2025 19:51:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.208
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 92DA21F16B
+	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Dec 2025 22:46:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.53
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764705089; cv=none; b=haJB1s2Y1pajZNrZs4eIGSLemfnMkImDip+bqaF2emKJlfJmqBrjt57KgVUt+KTRsQ01rmBqiQfFiioCLMR/pur985DGpTI6iFxYxgwhPapjX/5hhXVcT77Dj+XN+zb2aeiVdXswfK8kRVojJyx1nEGEYt4At6GnomeYWZqxnto=
+	t=1764715617; cv=none; b=TLdmuZFUX2AqHNH5SC213Lib/Y7NBWXobQUWbA6j//trjspWwESW3ahDNaTjlGIT3OW0ir4YWwbZsou0imwCSBO8a8prm4h2xrlG4mNecV7dyBc71KyUdc3zvQxxr8DHH6yvtnC7H0DKjrIiySTNrxb0ji0Hs3WO3GWgbRK0TXw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764705089; c=relaxed/simple;
-	bh=fwCFv2z9e223jg0pAovRQ9E+1W1x3hd5ePnE3QF9fis=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=UlOZgVBPh8uhpZ4qxoxSDT7+Fyeq1FL/6Go/WaKVlKS7/+/ykzrFCB0u9PgjHQFLH8wAzpjlC2yxl1mAfaDB/Be7nxYJcYfqXWXtpG/WEBSsolIq6s8ZPdRSFOuxxKWRH06MpjzQbn5NP43U3w5EW2PEDXxtxaYAH1HSIPDQgrM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.208
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f208.google.com with SMTP id 5614622812f47-45322138f81so322873b6e.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 02 Dec 2025 11:51:27 -0800 (PST)
+	s=arc-20240116; t=1764715617; c=relaxed/simple;
+	bh=9Bf9ujHcjcq8ovaOcju2Y/IU6fHMb1AsAo1VIBD2RUo=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=TboWE2O39coaj9sB9iK0HUBSRyVx+y7T9ZhKcp2BuP1mcaqTDY3axko3DV3LVqgPRNA8bEd693HVhYdq/vPdDSQuqqGaJjPTcLfrhU9y/f9kJsb7fm+VxvX/Kysdkcl3I+B/XynvEdwAuC74LmN48H3IMp9ffGK/fzep61BSEmU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=f+cKotLs; arc=none smtp.client-ip=209.85.218.53
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="f+cKotLs"
+Received: by mail-ej1-f53.google.com with SMTP id a640c23a62f3a-b728a43e410so1023042366b.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 02 Dec 2025 14:46:55 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1764715614; x=1765320414; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=y9BP0JD/Gk+5eWk3Fw3SO8aUPDHyheQIxFJmlzr1Sdg=;
+        b=f+cKotLsD0ayx/vYUQogu2wwXjqw3uZdyC889LEbmby0nWXJc6whqJT/3uWmFTQP56
+         gXQn7j7wBPYywR8SkCK+eLzYgxzahVEVBqgWMXofHWd6mj2F/ruGXpLwmTjMYC5OtUyy
+         I51vxaeReg7gS7bqb0jEZGnTFd5KlKFCPOFAhJbfgDIe4Bm4wQcYi0XwuatrOOlVSIMy
+         XV5uAJbBMl5NjOgMEDWHOjy0/wmOjfmZzYXamvqtWNa1VYSjM/ZERUfhmh2oRL2h9x9q
+         kkwkYZOwMISxdn6WYbB35T53mBnT6d4bGvxHXjJ7hRZY2Ty6exG/TbGvnfEpRFWu/ReZ
+         Hh3g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764705086; x=1765309886;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=vrTA8/Ib4dqg468mg7sXdU5lKN1300g4eFvAGgrlg20=;
-        b=D8k0FfS3rfTnNxi/TROFI3vZOP2p9cA2owezaG0DLVjSlTNswZlyY09EEEpGk8fa3/
-         Z6M8ylOulD6mVS9QWPZ3VwzEpmCmmrhVxSkNgZufaf/lv+FWMET4/P6wDiHKniOnCIjE
-         5wk4BLB+TzqWIzBgM9Sdov4/64eEdUerHZ/fYVpt01gmUYTIPTe4TEiAKldYZCGKSmk1
-         Q+vsSOPNTcNTnIUsI92g5vuKUiwJlNDLYXijSrvTh1Xx/VSq/IEFYce89zttuznkKv4G
-         LS1k4ceDIX3P285IHy5J/vfSPEahzM7LV60Zwl+YxoswPNHQdx3SX2viFHhDvbGd22I0
-         6/ag==
-X-Forwarded-Encrypted: i=1; AJvYcCWqjr1PeIu1iXw2h4R5BLfSdubIMXCxIEGtyEnPYq+rV/ZlIvocit+MMoCX7pqjDbBSMz39cvD6Echzbg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyeJmjel/nkKR6uH68owTm0t+A5kc32So1Xc+ojE6BqTMqVoUBS
-	g4F/5u0nF+b60LfBUoNGu5iEfGIJK2JA1QXlQ6xr6r5zL/EhcKBjCCXKXnXR+J4+cJFeKnboWVo
-	HVI2hQpESnajFuHX4cjbkEHC3GIxn79fzDN1XX/HJ53DGl+e3XyC3e2NoCts=
-X-Google-Smtp-Source: AGHT+IHSDhpAfgj8NpXYE1+938IBzEeH6v2xujWW6bryC6W1Kbk/To6d4FkOrTPq7It6EsLEB7nSzYosBkgZ0W4B75A5ZUSymq+V
+        d=1e100.net; s=20230601; t=1764715614; x=1765320414;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=y9BP0JD/Gk+5eWk3Fw3SO8aUPDHyheQIxFJmlzr1Sdg=;
+        b=A8saCNLmmQVH4L6aCmqCrBouULbwmd3if7opzsiH1BeCFlpOPzV9AYiCJE+HPswJsP
+         ELLnzzBfTZfFgOogjlw6ttFxjlPhxpar/co3TeR+hKcc3pQ22bolJLYZTlLqHCvKu1i0
+         UTm7SjUb4BwQv7nu5XfkXeyZl1htVURPzE0WhVI46b2B+HTwvjJ9O7BdhWkt4CxWrguD
+         FLraSKKctXEJS7sf/6abbcAarW/JvQ3ZU8V3n9iZxIbJ4gTfd9EDBEIJVdQJ7Kow0xyY
+         yWu9Shtvzyx8l4oDvI7/ta+yI3aJeN1rcM3KpKEtS0cUnIZter+OwNDENk6CwOWLUK4m
+         ZPLg==
+X-Gm-Message-State: AOJu0YyXXxvluDs2RM3B058dc+bBWWGvIlXs9MVjH8mX5VWuCmjMPoCC
+	/F8+9r/RZgX+E/7tMVQz093oqd951J/D3dznC6013HkUjmaOh013Mek4
+X-Gm-Gg: ASbGncvnKI2l67RHFdJCzxj6Lq0U7MmRgJQRCQkb9v0FzF/t64eotqMdimXJ5Ix1J9c
+	cFRbQsVBityRm4zm/wpajOiJLmZj39m9L6dQgvzAxMa2YlEwOsYajMOPj5KF+kBv0npmMWpFYsS
+	d6SEZlCHdtm2ZFDGDCCHmFJa1Hp5mXVx10k+ERBcmnsI0a8dKlVNXARF79IfM09wmIP0iIxNS+r
+	76eaInjQBks10rdD2fXADIMyagX+D7I4iSshn23UEy26S8gMSNXrqPbfFnOfkCm0lWwSSxfR+a9
+	13REi/7UWSxnf1vppcsDrnKUReXx+ss+O1OlnFb8FRmV1xCFAqDSfqBqSfe4ljxlIGfXfKPYNxl
+	903nwfZ9EEPy4EduF9doFihSixa7L1WdRskLNSD+lf5GmAALbyHyRXwPbqWb7zOnbE6gkysWPo1
+	9thuKwUkzVgEw=
+X-Google-Smtp-Source: AGHT+IGtTAR9cbqkqFVQ4UMW/RQSbo4Ss5u4i8LZNHdHqSxLPQnqcGFpVV11DTB9AMVc7wURNK5Rvw==
+X-Received: by 2002:a17:907:c1f:b0:b73:4fbb:37a8 with SMTP id a640c23a62f3a-b79dbe8e16fmr6649966b.12.1764715613366;
+        Tue, 02 Dec 2025 14:46:53 -0800 (PST)
+Received: from eray-kasa.. ([2a02:4e0:2d14:1a1:acf7:8de5:59bc:44c3])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b79c7c49d35sm215051966b.49.2025.12.02.14.46.51
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 02 Dec 2025 14:46:52 -0800 (PST)
+From: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	david.hunter.linux@gmail.com,
+	skhan@linuxfoundation.org,
+	Ahmet Eray Karadag <eraykrdg1@gmail.com>,
+	syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com,
+	Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Subject: [PATCH v6] ocfs2: Invalidate inode if i_mode is zero after block read
+Date: Wed,  3 Dec 2025 01:45:08 +0300
+Message-ID: <20251202224507.53452-2-eraykrdg1@gmail.com>
+In-Reply-To: <20251108120133.37443-3-eraykrdg1@gmail.com>
+References: <20251108120133.37443-3-eraykrdg1@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6808:2f14:b0:43d:2e06:4e84 with SMTP id
- 5614622812f47-4535d2f36b5mr2523422b6e.13.1764705086559; Tue, 02 Dec 2025
- 11:51:26 -0800 (PST)
-Date: Tue, 02 Dec 2025 11:51:26 -0800
-In-Reply-To: <690e2846.a70a0220.22f260.0057.GAE@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <692f433e.a70a0220.d98e3.01a3.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] memory leak in ocfs2_new_path_from_path
-From: syzbot <syzbot+cfc7cab3bb6eaa7c4de2@syzkaller.appspotmail.com>
-To: akpm@linux-foundation.org, david.hunter.linux@gmail.com, david@redhat.com, 
-	dsterba@suse.com, jfs-discussion@lists.sourceforge.net, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, khalid@kernel.org, 
-	linux-kernel-mentees@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	penguin-kernel@i-love.sakura.ne.jp, shaggy@kernel.org, shivankg@amd.com, 
-	skhan@linuxfoundation.org, ssrane_b23@ee.vjti.ac.in, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-syzbot has found a reproducer for the following issue on:
+A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
+handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
 
-HEAD commit:    4a26e7032d7d Merge tag 'core-bugs-2025-12-01' of git://git..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=111c14c2580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=cbf343972ee89096
-dashboard link: https://syzkaller.appspot.com/bug?extid=cfc7cab3bb6eaa7c4de2
-compiler:       gcc (Debian 12.2.0-14+deb12u1) 12.2.0, GNU ld (GNU Binutils for Debian) 2.40
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=16833512580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=151c14c2580000
+This "zombie" inode is created because ocfs2_read_locked_inode proceeds
+even after ocfs2_validate_inode_block successfully validates a block
+that structurally looks okay (passes checksum, signature etc.) but
+contains semantically invalid data (specifically i_mode=0). The current
+validation function doesn't check for i_mode being zero.
 
-Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/3f4ff8b7d65f/disk-4a26e703.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/2fbb585ef1ac/vmlinux-4a26e703.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/dfdc58db78d3/bzImage-4a26e703.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/ef2db83daf44/mount_0.gz
-  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=14cae192580000)
+This results in an in-memory inode with i_mode=0 being added to the VFS
+cache, which later triggers the panic during unlink.
 
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+cfc7cab3bb6eaa7c4de2@syzkaller.appspotmail.com
+Prevent this by adding an explicit check for (i_mode == 0, i_nlink == 0, non-orphan)
+within ocfs2_validate_inode_block. If the check is true, return -EFSCORRUPTED to signal
+corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
+make_bad_inode(), correctly preventing the zombie inode from entering
+the cache.
 
-BUG: memory leak
-unreferenced object 0xffff8881292668a0 (size 96):
-  comm "syz.1.52", pid 6365, jiffies 4294945684
-  hex dump (first 32 bytes):
-    01 00 00 00 00 00 00 00 80 0e 31 82 ff ff ff ff  ..........1.....
-    50 e7 58 27 81 88 ff ff c0 54 eb 33 81 88 ff ff  P.X'.....T.3....
-  backtrace (crc d3d62878):
-    kmemleak_alloc_recursive include/linux/kmemleak.h:44 [inline]
-    slab_post_alloc_hook mm/slub.c:4983 [inline]
-    slab_alloc_node mm/slub.c:5288 [inline]
-    __kmalloc_cache_noprof+0x3a6/0x5b0 mm/slub.c:5766
-    kmalloc_noprof include/linux/slab.h:957 [inline]
-    kzalloc_noprof include/linux/slab.h:1094 [inline]
-    ocfs2_new_path fs/ocfs2/alloc.c:688 [inline]
-    ocfs2_new_path_from_path+0x4f/0x90 fs/ocfs2/alloc.c:702
-    ocfs2_get_left_path.constprop.0+0x182/0x390 fs/ocfs2/alloc.c:3491
-    ocfs2_merge_rec_left+0x426/0xe60 fs/ocfs2/alloc.c:3543
-    ocfs2_try_to_merge_extent+0x3cb/0xe90 fs/ocfs2/alloc.c:3794
-    ocfs2_split_extent+0xd2e/0x1330 fs/ocfs2/alloc.c:5139
-    ocfs2_change_extent_flag+0x2ed/0x720 fs/ocfs2/alloc.c:5230
-    ocfs2_mark_extent_written+0x1e3/0x2c0 fs/ocfs2/alloc.c:5276
-    ocfs2_dio_end_io_write+0x5bc/0xaa0 fs/ocfs2/aops.c:2350
-    ocfs2_dio_end_io+0x8c/0x180 fs/ocfs2/aops.c:2404
-    dio_complete+0x12e/0x4b0 fs/direct-io.c:281
-    __blockdev_direct_IO+0x1782/0x1b40 fs/direct-io.c:1303
-    ocfs2_direct_IO+0xf6/0x100 fs/ocfs2/aops.c:2441
-    generic_file_direct_write+0xb4/0x180 mm/filemap.c:4234
-    __generic_file_write_iter+0xa1/0x130 mm/filemap.c:4403
-    ocfs2_file_write_iter+0x68a/0x15a0 fs/ocfs2/file.c:2469
-
-connection error: failed to recv *flatrpc.ExecutorMessageRawT: EOF
-
-
+Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
+Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
+Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+Previous link: https://lore.kernel.org/all/20251022222752.46758-2-eraykrdg1@gmail.com/T/
 ---
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
+v2:
+ - Only checking either i_links_count == 0 or i_mode == 0
+ - Not performing le16_to_cpu() anymore
+ - Tested with ocfs2-test
+---
+v3:
+ - Add checking both high and low bits of i_links_count
+---
+v4:
+ - Reading i_links_count hi and low bits without helper function
+  to save few cpu cycles
+---
+v5:
+ - Clear i_links_count check
+ - Log the actual i_nlink/i_mode
+---
+v6:
+ - Use `ocfs2_read_links_count` to get nlink
+ - Convert di->imode to cpu endian
+---
+ fs/ocfs2/inode.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 14bf440ea4df..f83b8e4f4d8b 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1456,6 +1456,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
++	if ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode) {
++		mlog(ML_ERROR, "Invalid dinode #%llu: "
++			"Corrupt state (nlink = %u or mode = %u) detected!\n",
++		        (unsigned long long)bh->b_blocknr,
++			ocfs2_read_links_count(di), le16_to_cpu(di->i_mode));
++		rc = -EFSCORRUPTED;
++		goto bail;
++	}
+ 	/*
+ 	 * Errors after here are fatal.
+ 	 */
+-- 
+2.43.0
+
