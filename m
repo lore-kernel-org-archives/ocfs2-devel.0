@@ -1,31 +1,31 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 803991AE877;
-	Tue,  2 Dec 2025 01:00:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF92513C3F2
+	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Dec 2025 01:25:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764637217; cv=none; b=IvqCEOf3FENZshnSUKrYtXTxXBkv93DETdugI0EY63TgtIkh4A9/IqVfY8v3zV/X6p5TBflsrxWbui+0LaQj4TcwtjoSjt2rCV0xgf/LKbcPouSyMxL6VEGiXoscslme9FDM7N9rvFUnJ634PkYMXz7nRxTXtxh+H/rKaCkfeuY=
+	t=1764638722; cv=none; b=DDMM5fPoZMMmQ9t+t7ADkn2U+7cKErYvPBxWNFHmTOUvPjcC5gOGoHJ6RJ0fMMTStxLvkkL4jHB35YCWvnYBUp4mwkBMVZgzfH+n1ctBbeTy7Aay0t3B2d6RDWsLBY7H3yc5eKXIC7fe+tHXvpdFGKPomhisUcDHqWl+kXjtZoY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764637217; c=relaxed/simple;
-	bh=nEK9QH8bynrc98oNkTHorxaEp7q1kJpXupWiWuqtfT0=;
+	s=arc-20240116; t=1764638722; c=relaxed/simple;
+	bh=uHs2oPKQ3cM1cZpVBEIdmre1LDvvbJ6UGyYrPoXHXwI=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=pLo3lkpdeH/dwj5cpVjZfqLZkBlE7lGok14a2QEyZU0iKIlrWyKErRbYeSO9+4aRRZq/EAjr3PyvvW+A+NnXOoAp/Vdn3E4Q9s0R2S5ELpG4Gb+r7puxDqDCgiLL4aulDKSpHSaRCFgrW1IeoNvfz0Uvy+h7rOmL3SRPg2BMFIE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JbLY5+OP; arc=none smtp.client-ip=115.124.30.130
+	 In-Reply-To:Content-Type; b=sijyXCafHJQ2jCLorRwXyNUkv7yTwRdyBI+ZgazYpyc8Iod/k2LMAFgDdj3qWzpgvo8//dyhdw0SX6r6aflwvgKQQIGRV8Z6iG1l/cAPDl6f7OzTX/p+QUdAhgmMkmjXwAYy0VrF8Ee7jxHk9sNos/a/hcbiIy6X8t6chfmLm/U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=DeRz1iE/; arc=none smtp.client-ip=115.124.30.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JbLY5+OP"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="DeRz1iE/"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1764637210; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=xyaAtchmljGnpNYlfnronNRdUFSHjIrW1uetnyTNnNc=;
-	b=JbLY5+OPn3c3YcxVHxDhHPLvXBqfNrUFDJ2fjLAtAlKiNhJILur/yCoICuO7Qdl+YKSd67Q7Zhx8OlWzXU+AYpiSZtzwUJVRJ+mXYNYzj/OGRxpTwOyWzVnmDmRlNyJelrTUmd2AA9BodkNEXbQo9xitNGbO1bIu2fGtO4knRB8=
-Received: from 30.221.128.146(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WtuBIOs_1764637209 cluster:ay36)
+	t=1764638716; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=vWL6sHrOHn0D74zxtiLPBX/mjidfedzAlss60GVI7FE=;
+	b=DeRz1iE/GN84FkzXrSs6r5c79zFjMpXYCgVfoWkdgN59aQHoDW1FXiYjlZbu+FIjKqqr4cJL/9HxWoVH0bxZbf5A+H/LDqH+92MHj15lVtKdgNgJ/cI3FdKARHxK5KBi+7ClbKv04hMMMJNhlBuIYZUe4c5NEE2fumtwO0Vkap8=
+Received: from 30.221.128.146(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WtuB3xP_1764638715 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 02 Dec 2025 09:00:09 +0800
-Message-ID: <7087e14d-80d3-4dcd-ba3e-b03dc0ddf8b1@linux.alibaba.com>
-Date: Tue, 2 Dec 2025 09:00:08 +0800
+          Tue, 02 Dec 2025 09:25:15 +0800
+Message-ID: <971dd5c8-970d-47d0-8cd3-b2b56aa0aee8@linux.alibaba.com>
+Date: Tue, 2 Dec 2025 09:25:14 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,82 +33,92 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3] ocfs2: fix kernel BUG in ocfs2_find_victim_chain
-To: Prithvi Tambewagh <activprithvi@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org,
- david.hunter.linux@gmail.com, khalid@kernel.org,
- syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com
-References: <20251201130711.143900-1-activprithvi@gmail.com>
+Subject: Re: [PATCH v3] ocfs2: Invalidate inode if i_mode is zero after block
+ read
+To: Heming Zhao <heming.zhao@suse.com>,
+ Ahmet Eray Karadag <eraykrdg1@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, david.hunter.linux@gmail.com,
+ skhan@linuxfoundation.org,
+ syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com,
+ Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+References: <20251108120133.37443-3-eraykrdg1@gmail.com>
+ <20251119221723.171746-2-eraykrdg1@gmail.com>
+ <lkeaoxtkqccd3knpskbewkbn4cimlxaufix4evugcfkplk6u4b@oi36e4iu3x3r>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251201130711.143900-1-activprithvi@gmail.com>
+In-Reply-To: <lkeaoxtkqccd3knpskbewkbn4cimlxaufix4evugcfkplk6u4b@oi36e4iu3x3r>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/12/1 21:07, Prithvi Tambewagh wrote:
-> syzbot reported a kernel BUG in ocfs2_find_victim_chain() because the
-> `cl_next_free_rec` field of the allocation chain list (next free slot in 
-> the chain list) is 0, triggring the BUG_ON(!cl->cl_next_free_rec) 
-> condition in ocfs2_find_victim_chain() and panicking the kernel.
+On 2025/11/20 10:32, Heming Zhao wrote:
+> On Thu, Nov 20, 2025 at 01:17:24AM +0300, Ahmet Eray Karadag wrote:
+>> A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
+>> handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
+>>
+>> This "zombie" inode is created because ocfs2_read_locked_inode proceeds
+>> even after ocfs2_validate_inode_block successfully validates a block
+>> that structurally looks okay (passes checksum, signature etc.) but
+>> contains semantically invalid data (specifically i_mode=0). The current
+>> validation function doesn't check for i_mode being zero.
+>>
+>> This results in an in-memory inode with i_mode=0 being added to the VFS
+>> cache, which later triggers the panic during unlink.
+>>
+>> Prevent this by adding an explicit check for (i_mode == 0, i_nlink == 0, non-orphan)
+>> within ocfs2_validate_inode_block. If the check is true, return -EFSCORRUPTED to signal
+>> corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
+>> make_bad_inode(), correctly preventing the zombie inode from entering
+>> the cache.
+>>
+>> Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
+>> Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
+>> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+>> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+>> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+>> Previous link: https://lore.kernel.org/all/20251022222752.46758-2-eraykrdg1@gmail.com/T/
+>> ---
+>> v2:
+>>  - Only checking either i_links_count == 0 or i_mode == 0
+>>  - Not performing le16_to_cpu() anymore
+>>  - Tested with ocfs2-test
+>> ---
+>> v3:
+>>  - Add checking both high and low bits of i_links_count
+>> ---
+>>  fs/ocfs2/inode.c | 7 +++++++
+>>  1 file changed, 7 insertions(+)
+>>
+>> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+>> index 14bf440ea4df..c8b129db756e 100644
+>> --- a/fs/ocfs2/inode.c
+>> +++ b/fs/ocfs2/inode.c
+>> @@ -1456,6 +1456,13 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>>  		goto bail;
+>>  	}
+>>  
+>> +	if (!ocfs2_read_links_count(di) || !di->i_mode) {
 > 
-> To fix this, an if condition is introduced in ocfs2_claim_suballoc_bits(),
-> just before calling ocfs2_find_victim_chain(), the code block in it being 
-> executed when either of the following conditions is true:
+> the code logic looks good to me, but I prefer the following code to save a few
+> cpu cycles.
 > 
-> 1. `cl_next_free_rec` is equal to 0, indicating that there are no free 
-> chains in the allocation chain list
-> 2. `cl_next_free_rec` is greater than `cl_count` (the total number of 
-> chains in the allocation chain list)
+> ```
+> /* only check if the "link count" or i_mode is ZERO */
+> if (!(di->i_links_count | di->i_links_count_hi) || !di->i_mode)
+> ```
 > 
-> Either of them being true is indicative of the fact that there are no 
-> chains left for usage. 
+> @Joseph
+> which do you like?
 > 
-> This is addressed using ocfs2_error(), which prints
-> the error log for debugging purposes, rather than panicking the kernel.
-> 
-> Reported-by: syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=96d38c6e1655c1420a72
-> Tested-by: syzbot+96d38c6e1655c1420a72@syzkaller.appspotmail.com 
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+Sorry to miss this thread discuss.
+The above check looks wried since "(di->i_links_count|di->i_links_count_hi)"
+is meaningless, though it may work well...
+So I'd prefer the code readability first.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
-> v2->v3
->  - Revise log message for reflecting changes from v1->v2
->  - Format code style as suggested in v2
-> 
-> v1->v2:
->  - Remove extra line before the if statement in patch
->  - Add upper limit check for cl->cl_next_free_rec in the if condition
-> 
->  fs/ocfs2/suballoc.c | 10 ++++++++++
->  1 file changed, 10 insertions(+)
-> 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index 6ac4dcd54588..e93fc842bb20 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -1992,6 +1992,16 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
->  	}
->  
->  	cl = (struct ocfs2_chain_list *) &fe->id2.i_chain;
-> +	if (!le16_to_cpu(cl->cl_next_free_rec) ||
-> +	    le16_to_cpu(cl->cl_next_free_rec) > le16_to_cpu(cl->cl_count)) {
-> +		status = ocfs2_error(ac->ac_inode->i_sb,
-> +				     "Chain allocator dinode %llu has invalid next "
-> +				     "free chain record %u, but only %u total\n",
-> +				     (unsigned long long)le64_to_cpu(fe->i_blkno),
-> +				     le16_to_cpu(cl->cl_next_free_rec),
-> +				     le16_to_cpu(cl->cl_count));
-> +		goto bail;
-> +	}
->  
->  	victim = ocfs2_find_victim_chain(cl);
->  	ac->ac_chain = victim;
-> 
-> base-commit: 939f15e640f193616691d3bcde0089760e75b0d3
+BTW, from the syzbot report, I haven't seen where to show i_mode=0 or
+i_nlink=0. Am I missing something?
+
+Thanks,
+Joseph
 
