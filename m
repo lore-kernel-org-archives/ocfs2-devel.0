@@ -1,64 +1,64 @@
-Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
+Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7CB3E2F60B3
-	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Dec 2025 06:39:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F17F30147E
+	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Dec 2025 06:39:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764657591; cv=none; b=ZLAVd6JLN5OoKSsJqdtpMQbO2PTviKm//W8GsEXLV5zcixb027tMdxv3OIdyJBK5IPp/d2U0T0CH6izgWYU58d42GopWvvPZ7pKusVDlI8ydXDNBTdHIzkmsQZ1v5xgrV7EeG477SBm/5Ljm/IlOXEzQ6+j1KUR6GjfB+wz/n5s=
+	t=1764657594; cv=none; b=cnpqhGlUdePUgkm6O7XM8m5TcH3Hr0ojEFzunbpNM/WrYyRwgUzpX3BN0rKUXIyAYfjCHc43SraAwVPyyj7WuCQ8s5En8uPD0mvD0spScdtXRuPNZSJWFCU+D1/P7gmoHN8hEYCImPL4K6lSFGdKbt107LoOTVUzANCNBguJRv4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764657591; c=relaxed/simple;
-	bh=jzpdVgcWhI1BiaFeT26VJqC0oJV3Mbha8IXXpw9WnAA=;
+	s=arc-20240116; t=1764657594; c=relaxed/simple;
+	bh=u3tF8zKd7NcYJDtduBDGjGpk5WLn+y3aUQFW19+tjRo=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=W+GW+8UX9WrklFmX7ESdue1g6964byiTWGHvzosM5Bk/sWsnEdtH3WF4YJKkJa0rCl0FhkDTeXChrGkHrtkLfzzlM5wUBqpC8BsDzWOXWcK7Yv6ScOHFvZAkBiPUyTK6aONZcG13g6gHdf2yB3U7ly5TMYcnWRNbv4qAJV1wT4c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=erst5oM9; arc=none smtp.client-ip=209.85.128.49
+	 MIME-Version; b=foHpm7WkcjGxfQwczsNKOHKp+NNxMPTJSGUXj3zZ7oKZEZW6OUMBvMetyS+Cks15mw3WV9V+C4URj98Mu0VU5iIOMUZx2iLWoX6nyh0qMzOHpLuaYhaKJyXUvkCoQgfwI241Nt7K4tOiRi4eOFEnnXieDrGODOp1ChK+MjabMqI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=XMX/aLgO; arc=none smtp.client-ip=209.85.128.47
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="erst5oM9"
-Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-47928022b93so203595e9.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 01 Dec 2025 22:39:49 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="XMX/aLgO"
+Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-477985aea2bso6208485e9.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 01 Dec 2025 22:39:52 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1764657588; x=1765262388; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1764657591; x=1765262391; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=8k/aHSJ5y3EQVvgtWu6J+LK331e28G7eJ5wJTbMn3Fw=;
-        b=erst5oM9WZ4tN4j/1bWA6OJu7ldCR9I/ni0Op1z4LQLpiPkzkYOeEqa1SLDB8feK+g
-         GqnxBPnU9HUlN4SS6jd9tw9zNZ0aNp05gksLdGSWe7XiqFuZg/rkL1tRCpzPUJ7VQb4P
-         LCZlPabZrAEgBXToyFB6Rou0ciU1ViYNmacvStGpX5Q8aRbuHKzRdctzKxlFfFJZNpOy
-         yPaMZqrbxfguIzAlk2hjrqT3nPOwWYBos2WEoIzZmD7qfbhuRFa3w9rVx6SGy3aM8kPV
-         +K3UCrSBvzdlXmyGjlxDVbqnJHmCoVkqMBcakpeKL6EcMVI0HV627jy8G9oxzLMgxgKH
-         cP5g==
+        bh=W9MWQEkUmssQH7h8+ZJJJrAiWh1kVuLIvHyNZDUo2Ps=;
+        b=XMX/aLgO4XuQtI0pu2joyWwXB5XdHPVPs+oKW8r3RKcbBNp11IkqRa/0qz6VoFzQKZ
+         izjI+qhwm/2sgGNFvknL3KpPaj7Cr5Whf8S6aLOMNbtUBjbW10iQJCLNXExLSR7dNK6z
+         yWQZFiUz51iE1KBLwyaNsa1K2Xn2kp5MylhAME2NxALwSZD+wEv2r2Mz/AV4K8Eey6NC
+         +4oQU9nFoowORvRKYbIz1Nq7JoygCA+FfBKbHkeIDmmaeVpv1SWhL/uBFO8lnkebBmOf
+         yb6VJVuznyUmg49mzD6TYEK0wt8ThlK1icIIU/wboKc0GOe3Ssudu3oNPbA7tJ9J/agY
+         3pLA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764657588; x=1765262388;
+        d=1e100.net; s=20230601; t=1764657591; x=1765262391;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=8k/aHSJ5y3EQVvgtWu6J+LK331e28G7eJ5wJTbMn3Fw=;
-        b=X5RMshBEgJ8QDWfHn9dMwmmuQYVxWejfKrOOJ0CdXRYqJSrzrwJv3NzDYAdhMkXgrY
-         1FX+ALgMiRiwuQb7ghNpcb7JJcwSxLKwsou8J1HmBFAtyminjin3SJw+RZR2KlZ+5NqH
-         W8edfZW5t8Yg26njn4AHl7Kxi3gst5ZXyHRyVdVJItp6TPSjL6Qkx1NQjArJNslXfFQB
-         JaX5Ps2/Sdkmn9NOVu5N3PDgw4PAFN+dRnFnOcvgTCe0T2Sh5eSNCwcyPakrq5qLWy41
-         zQWWPkMiD46dR5C60qVPOvzP5wCJoKx5YaEQ9BSc+ctHaOZoA3qmRg4nC2XQUDPxn7eV
-         gKjA==
-X-Forwarded-Encrypted: i=1; AJvYcCVDw9hvW3vaLh3w+Xlz1uTl+anpxgSQYD6FJ3K0xtnk1PePK3IRkAJRXVwp3EzrmPLvAliLL8szd8ZhHQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yz8Bx2u4H2EP3H7sIEQ+iH2ehhnwFlH3V/szy3NV7w1x86qZg+I
-	fUKSGxmz5gmRWpDlmdXbrfQWuXu2cSG+QKB8ID2CdE65dnLqTD81SxAMC8eNcgnUcCs=
-X-Gm-Gg: ASbGncs0H3FiVBz2odkw2/S+2sniBmAjkDx9EOL43sujLmd6mKX+a5+BP50eCnGlIH8
-	nSYEiHdBul/NKyvUxt6209Q1zNhuoWbiumAazXa5Vm4mATYRVCBZnit0LBsRBmkDJ1SK9XhhNWB
-	JV1P3dZ2ouv2OLSGWToV2DSGZh9f5oTQ7eOlzrLEyb0wcvJ9iOig1VdJM6Jbv2JInhFLsIvokE0
-	urf7WPcuOGTCIWH26j/1PQS1sMPdwU0SzavQtfb+usVt6FMfFOEsUKCeq6TYs2GcL5MZZRg+k+z
-	6mHUIXiVKCqFBN6Uo0fU5JrnIHPHEwUrbgVvZiXWGQ35BiDoTpUowjaVAsRkkPTAygFZm47cgs6
-	V4ICVC/vynlgIaFPR1GduFG7RU12cT/16luQfJbZYAt0Xiezcwi1B6Z9kyGAkt/IH6UrmqaBoZb
-	G/C5zcczVOyB629FMTa0SCIkt2
-X-Google-Smtp-Source: AGHT+IFoer8y955GXWtLfk8a+pXGeFSTi1b846e7YxZ2iAV4ehz5/Ks9I17tsDK1DWDrvHj0EVN/2Q==
-X-Received: by 2002:a05:600c:4693:b0:477:9d54:58ce with SMTP id 5b1f17b1804b1-477c311cdc6mr236708075e9.1.1764657587814;
-        Mon, 01 Dec 2025 22:39:47 -0800 (PST)
+        bh=W9MWQEkUmssQH7h8+ZJJJrAiWh1kVuLIvHyNZDUo2Ps=;
+        b=A4j/9Wfr6e2eMZEx04gCrkW+r8DyX6mDpCJ/ieFmihG/nx4Ld6PtktT1PlwBsncuBU
+         sIpYtsTMgvzo9dVpmObE0ASwes0BKAYIxEHWWB674A4BZ9S4rNyFUA2fJgFshSeCCNSK
+         bl65XdTenuOoLVhvECz2z/IGbbrFR8aoLquD+nmqJQnk99ztVZOz9L7n3U2AOCidhC6/
+         KdZYqMI6miY2bCK1LCIJ9L/7VrOSJFmWt+nWDaKawO+hjBt+bdOK4+cEHqw0w4Cx9gZk
+         6pUdIn1ZWz5BMSW1ywR8Lyrp9q/S5wDVwv4Ti+fKUdbkP6lVG+RpaarYIzhG5ECtlAfL
+         cM/w==
+X-Forwarded-Encrypted: i=1; AJvYcCUv9ySfjxZ8WDaj2t0cs+kApCPoVREFbvYZcpxk7tfE56ZgRopgoIhkH6rzpX9gOX+36xrgWYIVPljg8w==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzfyXmYnTtq8Jjnvd5+CFXrTdpTOvHEHhohkE+zy6xMZA95FS1N
+	b4J6NrMFkwcUDXUuWq6tVWqJz5stPk9xVfdSaluAA5ehK7D+YFwe31gD6RzTvItNBco=
+X-Gm-Gg: ASbGncvDyQDdAd0O4KEpCSluJZpm8jfL/NmkN0qYCV5Z69BmZTzRpm9IDtspAT1Pj4C
+	CxM8lrhItKDIuRWViIoqPTBHcODUh40WpG+GcavHnXGixnQDgfhWEci6MQ7gd8zCLiwW1dUePhe
+	4KEqaOcQIlU5tqNlXwJOcxu1W/WuYxKc5bLmRvAUO+1WuWJR96Tq2mZHyXUKfbbEoydba41hvsB
+	4LYAsgnnUSQOFmcd1DReRzxFWEpH46FVbJQgiOLuQ8w18/BfekE70T0XgFtrWmar9QNbM/7ddTX
+	M5XrivqUtIT6JevsdqnStrz3fSBkQCsKuAAl2twe8Q9ZjgDU27VTYWDnKEbeuEQX2FkXkKTkTyn
+	WWyTQWLErnRIsplAfcBI4vrZrW3KeCFdvsBmzW0msHDInzDAeLEcP4Pt92N7o7NLDDhYsBnA/0t
+	OuNBXHkLfXVXzbKeb+I4Z3newi
+X-Google-Smtp-Source: AGHT+IGcvlur8Vqc4wFxgxESgRnhWsQQrDI7/x3WxwuMsMU9z1qtT26y4pxkHScpmQTRAOTFgs7e9g==
+X-Received: by 2002:a05:600c:b96:b0:477:9fd6:7a53 with SMTP id 5b1f17b1804b1-477c2ef91demr217790445e9.2.1764657590643;
+        Mon, 01 Dec 2025 22:39:50 -0800 (PST)
 Received: from localhost.localdomain ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7d15fb1430csm15702796b3a.59.2025.12.01.22.39.45
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7d15fb1430csm15702796b3a.59.2025.12.01.22.39.48
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 01 Dec 2025 22:39:47 -0800 (PST)
+        Mon, 01 Dec 2025 22:39:49 -0800 (PST)
 From: Heming Zhao <heming.zhao@suse.com>
 To: joseph.qi@linux.alibaba.com,
 	mark@fasheh.com,
@@ -67,9 +67,9 @@ Cc: Heming Zhao <heming.zhao@suse.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	glass.su@suse.com
-Subject: [PATCH RESEND v4 1/2] ocfs2: give ocfs2 the ability to reclaim suballocator free bg
-Date: Tue,  2 Dec 2025 14:39:34 +0800
-Message-ID: <20251202063938.9046-2-heming.zhao@suse.com>
+Subject: [PATCH RESEND v4 2/2] ocfs2: detect released suballocator BG for fh_to_[dentry|parent]
+Date: Tue,  2 Dec 2025 14:39:35 +0800
+Message-ID: <20251202063938.9046-3-heming.zhao@suse.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20251202063938.9046-1-heming.zhao@suse.com>
 References: <20251202063938.9046-1-heming.zhao@suse.com>
@@ -81,422 +81,122 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The current ocfs2 code can't reclaim suballocator block group space.
-In some cases, this causes ocfs2 to hold onto a lot of space.
-For example, when creating lots of small files, the space is held/managed
-by the '//inode_alloc'. After the user deletes all the small files,
-the space never returns to the '//global_bitmap'. This issue prevents
-ocfs2 from providing the needed space even when there is enough free
-space in a small ocfs2 volume.
+After ocfs2 gained the ability to reclaim suballocator free block
+group (BGs), a suballocator block group may be released. This change
+causes the xfstest case generic/426 to fail.
 
-This patch gives ocfs2 the ability to reclaim suballocator free space
-when the block group is freed. For performance reasons, this patch keeps
-the first suballocator block group active.
+generic/426 expects return value -ENOENT or -ESTALE, but the current
+code triggers -EROFS.
+
+Call stack before ocfs2 gained the ability to reclaim bg:
+
+ocfs2_fh_to_dentry //or ocfs2_fh_to_parent
+ ocfs2_get_dentry
+  + ocfs2_test_inode_bit
+  |  ocfs2_test_suballoc_bit
+  |   + ocfs2_read_group_descriptor //Since ocfs2 never releases the bg,
+  |   |                             //the bg block was always found.
+  |   + *res = ocfs2_test_bit //unlink was called, and the bit is zero
+  |
+  + if (!set) //because the above *res is 0
+     status = -ESTALE //the generic/426 expected return value
+
+Current call stack that triggers -EROFS:
+
+ocfs2_get_dentry
+ ocfs2_test_inode_bit
+  ocfs2_test_suballoc_bit
+   ocfs2_read_group_descriptor
+    + if reading a released bg, validation fails and triggers -EROFS
+
+How to fix:
+Since the read BG is already released, we must avoid triggering -EROFS.
+With this commit, we use ocfs2_read_hint_group_descriptor() to detect
+the released BG block. This approach quietly handles this type of error
+and returns -EINVAL, which triggers the caller's existing conversion
+path to -ESTALE.
 
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 Reviewed-by: Su Yue <glass.su@suse.com>
 ---
- fs/ocfs2/suballoc.c | 308 ++++++++++++++++++++++++++++++++++++++++++--
- 1 file changed, 299 insertions(+), 9 deletions(-)
+ fs/ocfs2/suballoc.c | 28 ++++++++++++++++++----------
+ 1 file changed, 18 insertions(+), 10 deletions(-)
 
 diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 6ac4dcd54588..de2f09217142 100644
+index de2f09217142..a126d83ddb1c 100644
 --- a/fs/ocfs2/suballoc.c
 +++ b/fs/ocfs2/suballoc.c
-@@ -294,6 +294,74 @@ static int ocfs2_validate_group_descriptor(struct super_block *sb,
- 	return ocfs2_validate_gd_self(sb, bh, 0);
- }
- 
-+/*
-+ * The hint group descriptor (gd) may already have been released
-+ * in _ocfs2_free_suballoc_bits(). We first check the gd signature,
-+ * then perform the standard ocfs2_read_group_descriptor() jobs.
-+ *
-+ * If the gd signature is invalid, we return 'rc=0' and set
-+ * '*released=1'. The caller is expected to handle this specific case.
-+ * Otherwise, we return the actual error code.
-+ *
-+ * We treat gd signature corruption case as a release case. The
-+ * caller ocfs2_claim_suballoc_bits() will use ocfs2_search_chain()
-+ * to search each gd block. The code will eventually find this
-+ * corrupted gd block - Late, but not missed.
-+ *
-+ * Note:
-+ * The caller is responsible for initializing the '*released' status.
-+ */
-+static int ocfs2_read_hint_group_descriptor(struct inode *inode,
-+			struct ocfs2_dinode *di, u64 gd_blkno,
-+			struct buffer_head **bh, int *released)
-+{
-+	int rc;
-+	struct buffer_head *tmp = *bh;
-+	struct ocfs2_group_desc *gd;
-+
-+	rc = ocfs2_read_block(INODE_CACHE(inode), gd_blkno, &tmp, NULL);
-+	if (rc)
-+		goto out;
-+
-+	gd = (struct ocfs2_group_desc *) tmp->b_data;
-+	if (!OCFS2_IS_VALID_GROUP_DESC(gd)) {
-+		/*
-+		 * Invalid gd cache was set in ocfs2_read_block(),
-+		 * which will affect block_group allocation.
-+		 * Path:
-+		 * ocfs2_reserve_suballoc_bits
-+		 *  ocfs2_block_group_alloc
-+		 *   ocfs2_block_group_alloc_contig
-+		 *    ocfs2_set_new_buffer_uptodate
-+		 */
-+		ocfs2_remove_from_cache(INODE_CACHE(inode), tmp);
-+		*released = 1; /* we return 'rc=0' for this case */
-+		goto free_bh;
-+	}
-+
-+	/* below jobs same with ocfs2_read_group_descriptor() */
-+	if (!buffer_jbd(tmp)) {
-+		rc = ocfs2_validate_group_descriptor(inode->i_sb, tmp);
-+		if (rc)
-+			goto free_bh;
-+	}
-+
-+	rc = ocfs2_validate_gd_parent(inode->i_sb, di, tmp, 0);
-+	if (rc)
-+		goto free_bh;
-+
-+	/* If ocfs2_read_block() got us a new bh, pass it up. */
-+	if (!*bh)
-+		*bh = tmp;
-+
-+	return rc;
-+
-+free_bh:
-+	brelse(tmp);
-+out:
-+	return rc;
-+}
-+
- int ocfs2_read_group_descriptor(struct inode *inode, struct ocfs2_dinode *di,
- 				u64 gd_blkno, struct buffer_head **bh)
- {
-@@ -1724,7 +1792,7 @@ static int ocfs2_search_one_group(struct ocfs2_alloc_context *ac,
- 				  u32 bits_wanted,
- 				  u32 min_bits,
- 				  struct ocfs2_suballoc_result *res,
--				  u16 *bits_left)
-+				  u16 *bits_left, int *released)
- {
- 	int ret;
- 	struct buffer_head *group_bh = NULL;
-@@ -1732,9 +1800,11 @@ static int ocfs2_search_one_group(struct ocfs2_alloc_context *ac,
- 	struct ocfs2_dinode *di = (struct ocfs2_dinode *)ac->ac_bh->b_data;
- 	struct inode *alloc_inode = ac->ac_inode;
- 
--	ret = ocfs2_read_group_descriptor(alloc_inode, di,
--					  res->sr_bg_blkno, &group_bh);
--	if (ret < 0) {
-+	ret = ocfs2_read_hint_group_descriptor(alloc_inode, di,
-+				res->sr_bg_blkno, &group_bh, released);
-+	if (*released) {
-+		return 0;
-+	} else if (ret < 0) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
-@@ -1949,6 +2019,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 				     struct ocfs2_suballoc_result *res)
- {
- 	int status;
-+	int released = 0;
- 	u16 victim, i;
- 	u16 bits_left = 0;
- 	u64 hint = ac->ac_last_group;
-@@ -1975,6 +2046,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 		goto bail;
- 	}
- 
-+	/* the hint bg may already be released, we quiet search this group. */
- 	res->sr_bg_blkno = hint;
- 	if (res->sr_bg_blkno) {
- 		/* Attempt to short-circuit the usual search mechanism
-@@ -1982,7 +2054,12 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 		 * allocation group. This helps us maintain some
- 		 * contiguousness across allocations. */
- 		status = ocfs2_search_one_group(ac, handle, bits_wanted,
--						min_bits, res, &bits_left);
-+						min_bits, res, &bits_left,
-+						&released);
-+		if (released) {
-+			res->sr_bg_blkno = 0;
-+			goto chain_search;
-+		}
- 		if (!status)
- 			goto set_hint;
- 		if (status < 0 && status != -ENOSPC) {
-@@ -1990,7 +2067,7 @@ static int ocfs2_claim_suballoc_bits(struct ocfs2_alloc_context *ac,
- 			goto bail;
- 		}
- 	}
--
-+chain_search:
- 	cl = (struct ocfs2_chain_list *) &fe->id2.i_chain;
- 
- 	victim = ocfs2_find_victim_chain(cl);
-@@ -2102,6 +2179,12 @@ int ocfs2_claim_metadata(handle_t *handle,
- 	return status;
- }
- 
-+/*
-+ * after ocfs2 has the ability to release block group unused space,
-+ * the ->ip_last_used_group may be invalid. so this function returns
-+ * ac->ac_last_group need to verify.
-+ * refer the 'hint' in ocfs2_claim_suballoc_bits() for more details.
-+ */
- static void ocfs2_init_inode_ac_group(struct inode *dir,
- 				      struct buffer_head *parent_di_bh,
- 				      struct ocfs2_alloc_context *ac)
-@@ -2540,6 +2623,198 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
- 	return status;
- }
- 
-+/*
-+ * Reclaim the suballocator managed space to main bitmap.
-+ * This function first works on the suballocator to perform the
-+ * cleanup rec/alloc_inode job, then switches to the main bitmap
-+ * to reclaim released space.
-+ *
-+ * handle: The transaction handle
-+ * alloc_inode: The suballoc inode
-+ * alloc_bh: The buffer_head of suballoc inode
-+ * group_bh: The group descriptor buffer_head of suballocator managed.
-+ *           Caller should release the input group_bh.
-+ */
-+static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
-+			struct inode *alloc_inode,
-+			struct buffer_head *alloc_bh,
-+			struct buffer_head *group_bh)
-+{
-+	int idx, status = 0;
-+	int i, next_free_rec, len = 0;
-+	__le16 old_bg_contig_free_bits = 0;
-+	u16 start_bit;
-+	u32 tmp_used;
-+	u64 bg_blkno, start_blk;
-+	unsigned int count;
-+	struct ocfs2_chain_rec *rec;
-+	struct buffer_head *main_bm_bh = NULL;
-+	struct inode *main_bm_inode = NULL;
-+	struct ocfs2_super *osb = OCFS2_SB(alloc_inode->i_sb);
-+	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) alloc_bh->b_data;
-+	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
-+	struct ocfs2_group_desc *group = (struct ocfs2_group_desc *) group_bh->b_data;
-+
-+	idx = le16_to_cpu(group->bg_chain);
-+	rec = &(cl->cl_recs[idx]);
-+
-+	status = ocfs2_extend_trans(handle,
-+				ocfs2_calc_group_alloc_credits(osb->sb,
-+						 le16_to_cpu(cl->cl_cpg)));
-+	if (status) {
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+	status = ocfs2_journal_access_di(handle, INODE_CACHE(alloc_inode),
-+					 alloc_bh, OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto bail;
-+	}
-+
-+	/*
-+	 * Only clear the suballocator rec item in-place.
-+	 *
-+	 * If idx is not the last, we don't compress (remove the empty item)
-+	 * the cl_recs[]. If not, we need to do lots jobs.
-+	 *
-+	 * Compress cl_recs[] code example:
-+	 * if (idx != cl->cl_next_free_rec - 1)
-+	 *     memmove(&cl->cl_recs[idx], &cl->cl_recs[idx + 1],
-+	 *         sizeof(struct ocfs2_chain_rec) *
-+	 *         (cl->cl_next_free_rec - idx - 1));
-+	 * for(i = idx; i < cl->cl_next_free_rec-1; i++) {
-+	 *     group->bg_chain = "later group->bg_chain";
-+	 *     group->bg_blkno = xxx;
-+	 *     ... ...
-+	 * }
-+	 */
-+
-+	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_total);
-+	fe->id1.bitmap1.i_total = cpu_to_le32(tmp_used - le32_to_cpu(rec->c_total));
-+
-+	/* Substraction 1 for the block group itself */
-+	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
-+	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - 1);
-+
-+	tmp_used = le32_to_cpu(fe->i_clusters);
-+	fe->i_clusters = cpu_to_le32(tmp_used - le16_to_cpu(cl->cl_cpg));
-+
-+	spin_lock(&OCFS2_I(alloc_inode)->ip_lock);
-+	OCFS2_I(alloc_inode)->ip_clusters -= le32_to_cpu(fe->i_clusters);
-+	fe->i_size = cpu_to_le64(ocfs2_clusters_to_bytes(alloc_inode->i_sb,
-+					     le32_to_cpu(fe->i_clusters)));
-+	spin_unlock(&OCFS2_I(alloc_inode)->ip_lock);
-+	i_size_write(alloc_inode, le64_to_cpu(fe->i_size));
-+	alloc_inode->i_blocks = ocfs2_inode_sector_count(alloc_inode);
-+
-+	ocfs2_journal_dirty(handle, alloc_bh);
-+	ocfs2_update_inode_fsync_trans(handle, alloc_inode, 0);
-+
-+	start_blk = le64_to_cpu(rec->c_blkno);
-+	count = le32_to_cpu(rec->c_total) / le16_to_cpu(cl->cl_bpc);
-+
-+	/*
-+	 * If the rec is the last one, let's compress the chain list by
-+	 * removing the empty cl_recs[] at the end.
-+	 */
-+	next_free_rec = le16_to_cpu(cl->cl_next_free_rec);
-+	if (idx == (next_free_rec - 1)) {
-+		len++; /* the last item should be counted first */
-+		for (i = (next_free_rec - 2); i > 0; i--) {
-+			if (cl->cl_recs[i].c_free == cl->cl_recs[i].c_total)
-+				len++;
-+			else
-+				break;
-+		}
-+	}
-+	le16_add_cpu(&cl->cl_next_free_rec, -len);
-+
-+	rec->c_free = 0;
-+	rec->c_total = 0;
-+	rec->c_blkno = 0;
-+	ocfs2_remove_from_cache(INODE_CACHE(alloc_inode), group_bh);
-+	memset(group, 0, sizeof(struct ocfs2_group_desc));
-+
-+	/* prepare job for reclaim clusters */
-+	main_bm_inode = ocfs2_get_system_file_inode(osb,
-+						    GLOBAL_BITMAP_SYSTEM_INODE,
-+						    OCFS2_INVALID_SLOT);
-+	if (!main_bm_inode)
-+		goto bail; /* ignore the error in reclaim path */
-+
-+	inode_lock(main_bm_inode);
-+
-+	status = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 1);
-+	if (status < 0)
-+		goto free_bm_inode; /* ignore the error in reclaim path */
-+
-+	ocfs2_block_to_cluster_group(main_bm_inode, start_blk, &bg_blkno,
-+				     &start_bit);
-+	fe = (struct ocfs2_dinode *) main_bm_bh->b_data;
-+	cl = &fe->id2.i_chain;
-+	/* reuse group_bh, caller will release the input group_bh */
-+	group_bh = NULL;
-+
-+	/* reclaim clusters to global_bitmap */
-+	status = ocfs2_read_group_descriptor(main_bm_inode, fe, bg_blkno,
-+					     &group_bh);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto free_bm_bh;
-+	}
-+	group = (struct ocfs2_group_desc *) group_bh->b_data;
-+
-+	if ((count + start_bit) > le16_to_cpu(group->bg_bits)) {
-+		ocfs2_error(alloc_inode->i_sb,
-+			"reclaim length (%d) beyands block group length (%d)",
-+			count + start_bit, le16_to_cpu(group->bg_bits));
-+		goto free_group_bh;
-+	}
-+
-+	old_bg_contig_free_bits = group->bg_contig_free_bits;
-+	status = ocfs2_block_group_clear_bits(handle, main_bm_inode,
-+					      group, group_bh,
-+					      start_bit, count, 0,
-+					      _ocfs2_clear_bit);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		goto free_group_bh;
-+	}
-+
-+	status = ocfs2_journal_access_di(handle, INODE_CACHE(main_bm_inode),
-+					 main_bm_bh, OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (status < 0) {
-+		mlog_errno(status);
-+		ocfs2_block_group_set_bits(handle, main_bm_inode, group, group_bh,
-+				start_bit, count,
-+				le16_to_cpu(old_bg_contig_free_bits), 1);
-+		goto free_group_bh;
-+	}
-+
-+	idx = le16_to_cpu(group->bg_chain);
-+	rec = &(cl->cl_recs[idx]);
-+
-+	le32_add_cpu(&rec->c_free, count);
-+	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
-+	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - count);
-+	ocfs2_journal_dirty(handle, main_bm_bh);
-+
-+free_group_bh:
-+	brelse(group_bh);
-+
-+free_bm_bh:
-+	ocfs2_inode_unlock(main_bm_inode, 1);
-+	brelse(main_bm_bh);
-+
-+free_bm_inode:
-+	inode_unlock(main_bm_inode);
-+	iput(main_bm_inode);
-+
-+bail:
-+	return status;
-+}
-+
- /*
-  * expects the suballoc inode to already be locked.
-  */
-@@ -2552,12 +2827,13 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
- 				     void (*undo_fn)(unsigned int bit,
- 						     unsigned long *bitmap))
- {
--	int status = 0;
-+	int idx, status = 0;
- 	u32 tmp_used;
- 	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) alloc_bh->b_data;
- 	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
- 	struct buffer_head *group_bh = NULL;
+@@ -3152,7 +3152,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
  	struct ocfs2_group_desc *group;
-+	struct ocfs2_chain_rec *rec;
- 	__le16 old_bg_contig_free_bits = 0;
+ 	struct buffer_head *group_bh = NULL;
+ 	u64 bg_blkno;
+-	int status;
++	int status, quiet = 0, released;
  
- 	/* The alloc_bh comes from ocfs2_free_dinode() or
-@@ -2603,12 +2879,26 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
+ 	trace_ocfs2_test_suballoc_bit((unsigned long long)blkno,
+ 				      (unsigned int)bit);
+@@ -3168,11 +3168,15 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
+ 
+ 	bg_blkno = group_blkno ? group_blkno :
+ 		   ocfs2_which_suballoc_group(blkno, bit);
+-	status = ocfs2_read_group_descriptor(suballoc, alloc_di, bg_blkno,
+-					     &group_bh);
+-	if (status < 0) {
++	status = ocfs2_read_hint_group_descriptor(suballoc, alloc_di, bg_blkno,
++					     &group_bh, &released);
++	if (released) {
++		quiet = 1;
++		status = -EINVAL;
++		goto bail;
++	} else if (status < 0) {
+ 		mlog(ML_ERROR, "read group %llu failed %d\n",
+-		     (unsigned long long)bg_blkno, status);
++				(unsigned long long)bg_blkno, status);
  		goto bail;
  	}
  
--	le32_add_cpu(&cl->cl_recs[le16_to_cpu(group->bg_chain)].c_free,
--		     count);
-+	idx = le16_to_cpu(group->bg_chain);
-+	rec = &(cl->cl_recs[idx]);
-+
-+	le32_add_cpu(&rec->c_free, count);
- 	tmp_used = le32_to_cpu(fe->id1.bitmap1.i_used);
- 	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - count);
- 	ocfs2_journal_dirty(handle, alloc_bh);
- 
-+	/*
-+	 * Reclaim suballocator free space.
-+	 * Bypass: global_bitmap, non empty rec, first rec in cl_recs[]
-+	 */
-+	if (ocfs2_is_cluster_bitmap(alloc_inode) ||
-+	    (le32_to_cpu(rec->c_free) != (le32_to_cpu(rec->c_total) - 1)) ||
-+	    (le16_to_cpu(cl->cl_next_free_rec) == 1)) {
-+		goto bail;
-+	}
-+
-+	_ocfs2_reclaim_suballoc_to_main(handle, alloc_inode, alloc_bh, group_bh);
-+
+@@ -3182,7 +3186,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
  bail:
  	brelse(group_bh);
+ 
+-	if (status)
++	if (status && (!quiet))
+ 		mlog_errno(status);
  	return status;
+ }
+@@ -3202,7 +3206,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
+  */
+ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
+ {
+-	int status;
++	int status, quiet = 0;
+ 	u64 group_blkno = 0;
+ 	u16 suballoc_bit = 0, suballoc_slot = 0;
+ 	struct inode *inode_alloc_inode;
+@@ -3244,8 +3248,12 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
+ 
+ 	status = ocfs2_test_suballoc_bit(osb, inode_alloc_inode, alloc_bh,
+ 					 group_blkno, blkno, suballoc_bit, res);
+-	if (status < 0)
+-		mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
++	if (status < 0) {
++		if (status == -EINVAL)
++			quiet = 1;
++		else
++			mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
++	}
+ 
+ 	ocfs2_inode_unlock(inode_alloc_inode, 0);
+ 	inode_unlock(inode_alloc_inode);
+@@ -3253,7 +3261,7 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
+ 	iput(inode_alloc_inode);
+ 	brelse(alloc_bh);
+ bail:
+-	if (status)
++	if (status && !quiet)
+ 		mlog_errno(status);
+ 	return status;
+ }
 -- 
 2.43.0
 
