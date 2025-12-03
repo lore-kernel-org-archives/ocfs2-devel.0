@@ -1,124 +1,117 @@
-Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ej1-f52.google.com (mail-ej1-f52.google.com [209.85.218.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E852155C97
-	for <ocfs2-devel@lists.linux.dev>; Wed,  3 Dec 2025 01:04:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 438CF25B31D
+	for <ocfs2-devel@lists.linux.dev>; Wed,  3 Dec 2025 03:34:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764723866; cv=none; b=NMW/LYAKFLZmlnBm/fsU8tnZ8KH8s8w2hzKUIrU7rzYXW3bE2c0cujSmJAx4nXVkiGKoWpoBAsCrPBLxRnVfVpQu4Xg9p6zJp1m5qF6OivNy6tBY8GP30pTkAF6fjntUOE2fC72z1b03bPJKReOAhlCM7otTF2/VDpI3CHKJtyI=
+	t=1764732880; cv=none; b=aG3LjF6/OT3nCOoBJml2gwADJPNip5nxIUFzrLi9zUzcH5be6uMeNv1xETeo2563t/JhHmlbBWDtIM+3c1hUjNdkeDvSzmkRjfAV2DojCGgklaJwkX70DL47wn68evvlHhHi9nrVrLwHRcvsMCjUJAmIhcttjCyaJdcDDNGU08w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764723866; c=relaxed/simple;
-	bh=F5uSWUvnACQXUIpvYdZl8rUAm1cPYBlzjzqgIVKhfR0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=ge5DUbeI4OgdDvP8WngfFc3tATTe6e32cRS6jlaPmkUu2M72owzK3biDf4oytNVy5Z/jRm3hEkfNCpjANJXJZBhm6q8GZDZi8+R8IepQtnmetf4z/ILhu51ZXhPGnU6dyOYV4DxqLXaGiZCB5HIQQWBspq54EPZ4KHnlhucJY/M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=s6h2QGRo; arc=none smtp.client-ip=115.124.30.112
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1764732880; c=relaxed/simple;
+	bh=qi15Ah+F44dT8AYjjw3VS3f4C3cM6+jo/K75bZqo14Y=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=TsLbLne7gu/SdPaWuSUyluUmcojTe9VpXxvYnH+u+4JtlJYF61JVLdln6neRYFgX9C74GQdV8+f3VOlnjkK02gTbFXjcsjWWl1h8xhBMzhA1g2fmnmsLJ/RnTNXLQNoKPxau1Z7XT8fXkg7YezbyzEbIBwnFqAzuEUAnsrFFa/Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=BuOHhGu/; arc=none smtp.client-ip=209.85.218.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="s6h2QGRo"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1764723855; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=6ES2tsQbOs6cUaAl9oROxPHl0Mr/J/TwFpPvl9Hl+/8=;
-	b=s6h2QGRouVfohxm5EPWu/p8lZ6lGH4vUa7JjuF4e+Qhe8goGkpUiCRi99jJQk01zbkQ79QMzWLzqvlaS9R+Ubc5ICBrD3PpUAjkWZrnvjiqLtMTJpDt/KZ7VZaEwne5i38DBGBaOqmmKibyR73M/anV0lnIGqV9WK7mSklQtVDw=
-Received: from 30.221.128.156(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wtyn.3V_1764723853 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 03 Dec 2025 09:04:14 +0800
-Message-ID: <ad0b67fb-9af6-4179-a4e5-032d749f50d6@linux.alibaba.com>
-Date: Wed, 3 Dec 2025 09:04:13 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="BuOHhGu/"
+Received: by mail-ej1-f52.google.com with SMTP id a640c23a62f3a-b736d883ac4so877655066b.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 02 Dec 2025 19:34:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1764732877; x=1765337677; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=Vz4Mn3OPrYWct1u156iuOzaLmXhDBuZgyPBJTaSamrw=;
+        b=BuOHhGu/F6KrFplk1FjxS4Uu6em6FeQipwyTAU2+F57+pN9XV4K3Om5lH44q/eUrK1
+         yM9OacdKLgZ+9o1P8DsLVxaoB67j3H5fVHBj1IqTEhe2p8QtBeu6Q34lH7m/bZzoFXIh
+         jFKM3NeTqdq88/+oI9lbqQ/iBrVY5ly5lvQUmMGwytwHWQLndh5DGVkvZwPpzs7JPZly
+         ZqyEV7N8PHsDHPDY6YOvEi+3rMf9QXeBt9p1NKjAbYqznojG4JNOfVF61G8tG8nBWteB
+         +4WIuF3E8DJgZwB3tnovMH6erPYsOPOufRHjf0FHchmWWEVPPsjmBOitvQR9/J2QxmqG
+         JOww==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1764732877; x=1765337677;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=Vz4Mn3OPrYWct1u156iuOzaLmXhDBuZgyPBJTaSamrw=;
+        b=RKK5gj9jpvrftfJDgjn25SUnG2m4iI29PCWvcFIsaAMKFA5Am96tSqsgFm8jDwKdQs
+         dIyNddLL6j87ajWSZsfTjC4WRwW1d3RXEZOpu3+Xl7s06KLbUStXpaadcFsNzXNkeCXE
+         votd7IhdaAqchLnH5OuToBPw8eWf3dPaIluvC+LkyG+ZSSY3ivD0MGsXVYhcciXkylCW
+         SP52N1ITYzwE0KbLf7FtESQV73i1koxi5BGjjoYBp1Q+AXinLlCLDKeukEEBmtuAZjQq
+         E3ffiJcLvT/WeHBFfvZwwLNKYc3qVrb5Q10QtxPPql+MxnTsbxYDcDqPRVOwt96U7sy2
+         V/1w==
+X-Gm-Message-State: AOJu0YyOFJeyvAHCLJdkrxkK2XA5oOKaGTGJBLsE4uTzp0ZAUTMK+pfs
+	a2kVoym1Eglb4aXgx6ezhXmOx5VNcWrQ7b3hNfT5LJOLFqn3BKqPQtv9
+X-Gm-Gg: ASbGncvIx6DfjYtmP66l22G9Cnj4eXedGjQ6DoWDUYU346u1KMzlWA7Cr89rtWq6JNz
+	WizxyNp3umdrDJ3wLXNfEhISbQwhMbdsWF5hTtUlrjqSmAzTy8o1IrZJ2m2GL0nkvbXjqbX+K/T
+	yITOimAj1jiQzSEX+hQuHleblJxVuWehPwEleKoBOcT5hgep49Z+gDRr0oh75UIt7XrAuEIKMZU
+	YkcbYxJb8Vwc2W8xXqFkGvVpLi6EiPu8J8pGgbet8BRKmL0CmRkMyK4aDK51wGMJdyLTDrPMofE
+	PMWtQVFX7Ol66s11qESk+lq5+QigbAZSCQBLPgggR0nke50+rOB/QBk45fbQzT3J7jAkjnN6NkV
+	ja6L7yZE7H0b/B1ppseRpHlEqDP3zEk8pLgxrOG863yIvXbBO6XxxCXmVWCa6eT9Kl9vqJ5rQeQ
+	+z0Bf7OF6i3tIZqdDEO6lqxQ==
+X-Google-Smtp-Source: AGHT+IESJrLjVkBR5Rlyo0nu1FgBhpxujkaiZ6n1Lfs3udDV9FjV2q4mHIa2sG+Ioci6DUleCCOmAQ==
+X-Received: by 2002:a17:906:c10c:b0:b73:5958:7e6c with SMTP id a640c23a62f3a-b79dbe48f97mr68628766b.3.1764732877356;
+        Tue, 02 Dec 2025 19:34:37 -0800 (PST)
+Received: from eray-kasa.. ([2a02:4e0:2d14:1a1:acf7:8de5:59bc:44c3])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b76f5a4b757sm1658570066b.66.2025.12.02.19.34.36
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 02 Dec 2025 19:34:37 -0800 (PST)
+From: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	david.hunter.linux@gmail.com,
+	skhan@linuxfoundation.org,
+	Ahmet Eray Karadag <eraykrdg1@gmail.com>
+Subject: [PATCH v4 0/2] ocfs2: Refactor read-only checks to use ocfs2_emergency_state
+Date: Wed,  3 Dec 2025 06:34:24 +0300
+Message-ID: <cover.1764728893.git.eraykrdg1@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v6] ocfs2: Invalidate inode if i_mode is zero after block
- read
-To: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
- syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com,
- Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-References: <20251108120133.37443-3-eraykrdg1@gmail.com>
- <20251202224507.53452-2-eraykrdg1@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251202224507.53452-2-eraykrdg1@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+Hi all,
 
+Following the fix for the `make_bad_inode` validation failure (syzbot ID:
+b93b65ee321c97861072), this separate series introduces a new helper
+function, `ocfs2_emergency_state()`, to improve and centralize
+read-only and error state checking.
 
-On 2025/12/3 06:45, Ahmet Eray Karadag wrote:
-> A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
-> handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
-> 
-> This "zombie" inode is created because ocfs2_read_locked_inode proceeds
-> even after ocfs2_validate_inode_block successfully validates a block
-> that structurally looks okay (passes checksum, signature etc.) but
-> contains semantically invalid data (specifically i_mode=0). The current
-> validation function doesn't check for i_mode being zero.
-> 
-> This results in an in-memory inode with i_mode=0 being added to the VFS
-> cache, which later triggers the panic during unlink.
-> 
-> Prevent this by adding an explicit check for (i_mode == 0, i_nlink == 0, non-orphan)
-> within ocfs2_validate_inode_block. If the check is true, return -EFSCORRUPTED to signal
-> corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
-> make_bad_inode(), correctly preventing the zombie inode from entering
-> the cache.
-> 
-> Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
-> Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
-> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
+This is modeled after the `ext4_emergency_state()` pattern, providing
+a single, unified location for checking all filesystem-level emergency
+conditions. This makes the code cleaner and ensures that any future
+checks (e.g., for fatal error states) can be added in one place.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+This series is structured as follows:
 
-> Previous link: https://lore.kernel.org/all/20251022222752.46758-2-eraykrdg1@gmail.com/T/
-> ---
-> v2:
->  - Only checking either i_links_count == 0 or i_mode == 0
->  - Not performing le16_to_cpu() anymore
->  - Tested with ocfs2-test
-> ---
-> v3:
->  - Add checking both high and low bits of i_links_count
-> ---
-> v4:
->  - Reading i_links_count hi and low bits without helper function
->   to save few cpu cycles
-> ---
-> v5:
->  - Clear i_links_count check
->  - Log the actual i_nlink/i_mode
-> ---
-> v6:
->  - Use `ocfs2_read_links_count` to get nlink
->  - Convert di->imode to cpu endian
-> ---
->  fs/ocfs2/inode.c | 8 ++++++++
->  1 file changed, 8 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 14bf440ea4df..f83b8e4f4d8b 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1456,6 +1456,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	if ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode) {
-> +		mlog(ML_ERROR, "Invalid dinode #%llu: "
-> +			"Corrupt state (nlink = %u or mode = %u) detected!\n",
-> +		        (unsigned long long)bh->b_blocknr,
-> +			ocfs2_read_links_count(di), le16_to_cpu(di->i_mode));
-> +		rc = -EFSCORRUPTED;
-> +		goto bail;
-> +	}
->  	/*
->  	 * Errors after here are fatal.
->  	 */
+1.  The first patch introduces the `ocfs2_emergency_state()` helper
+    (currently checking for -EROFS) and applies it to `ocfs2_setattr`
+    to provide a "fail-fast" mechanism, as suggested by Albin
+    Babu Varghese.
+2.  The second patch completes the refactoring by converting all
+    remaining read-only checks throughout OCFS2 to use this new helper.
+
+Previous-link: https://lore.kernel.org/all/cover.1764643790.git.eraykrdg1@gmail.com/
+
+Ahmet Eray Karadag (2):
+  ocfs2: Add ocfs2_emergency_state helper and apply to setattr
+  ocfs2: Convert remaining read-only checks to ocfs2_emergency_state
+
+ fs/ocfs2/buffer_head_io.c |  2 +-
+ fs/ocfs2/file.c           | 14 ++++++++++----
+ fs/ocfs2/inode.c          |  3 +--
+ fs/ocfs2/move_extents.c   |  2 +-
+ fs/ocfs2/ocfs2.h          | 18 ++++++++++++++++++
+ fs/ocfs2/resize.c         |  4 ++--
+ fs/ocfs2/super.c          |  2 +-
+ 7 files changed, 34 insertions(+), 11 deletions(-)
+
+-- 
+2.43.0
 
