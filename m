@@ -1,31 +1,31 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B16135965
-	for <ocfs2-devel@lists.linux.dev>; Wed,  3 Dec 2025 01:00:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E852155C97
+	for <ocfs2-devel@lists.linux.dev>; Wed,  3 Dec 2025 01:04:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764723660; cv=none; b=uqxeDDIl8Vzu3L+PFGh2wbzpqDYwbVoUSo8RJOamW+YqubA3VM1Nq9nnb22T1GMJaRWVXNZye+12vYQr+Y9hqVMTMti93BqVnHE+EHeC72NbjzTrhW6X/8PXZ8VZoMVFPnpOotfcDlpfujgANe6yJCktZFJy/SoEuZxdYrbObsk=
+	t=1764723866; cv=none; b=NMW/LYAKFLZmlnBm/fsU8tnZ8KH8s8w2hzKUIrU7rzYXW3bE2c0cujSmJAx4nXVkiGKoWpoBAsCrPBLxRnVfVpQu4Xg9p6zJp1m5qF6OivNy6tBY8GP30pTkAF6fjntUOE2fC72z1b03bPJKReOAhlCM7otTF2/VDpI3CHKJtyI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764723660; c=relaxed/simple;
-	bh=lr5pXsxUcWLfkqZAg0qzLa12pjBAc+Aentv9KqDvb1s=;
+	s=arc-20240116; t=1764723866; c=relaxed/simple;
+	bh=F5uSWUvnACQXUIpvYdZl8rUAm1cPYBlzjzqgIVKhfR0=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=QPUNNDQjDF6zTk0ueydBNjPig/FN+sWg7xvJfKIua4n68D/J6F+H5I5n3OlKemh4rq6W4OELY03uTLC4MuIZec5q2HTmHbMfjMx/Mck5ZtrMt44WsckU1Y/HdRaQlJ8awv6S1SNtjXbVUuZJkrb7rfkJkn4aXqN2vYr8nRUwvW4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=sFsS6/J+; arc=none smtp.client-ip=115.124.30.131
+	 In-Reply-To:Content-Type; b=ge5DUbeI4OgdDvP8WngfFc3tATTe6e32cRS6jlaPmkUu2M72owzK3biDf4oytNVy5Z/jRm3hEkfNCpjANJXJZBhm6q8GZDZi8+R8IepQtnmetf4z/ILhu51ZXhPGnU6dyOYV4DxqLXaGiZCB5HIQQWBspq54EPZ4KHnlhucJY/M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=s6h2QGRo; arc=none smtp.client-ip=115.124.30.112
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="sFsS6/J+"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="s6h2QGRo"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1764723654; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=gyeHCMAxLGd8eT3LlJiE48RJIDPNI/dNIOrA+Hef13s=;
-	b=sFsS6/J+4JqgELQGTMgj3amtwbToG4fzZ1dlFYk4SUtV6rv8sqWH5qK/VsHSkV0UmPecKK9Oz5frlQhbsSiT8lNscm2DEFCnTWx3HCHG/2GSo9EAv/RLSeU4B9fe3vKcrjzLMme97fQppyqZkcPVXe/EVsAvVthvKrDusWeaDNA=
-Received: from 30.221.128.156(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wtymzvg_1764723653 cluster:ay36)
+	t=1764723855; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=6ES2tsQbOs6cUaAl9oROxPHl0Mr/J/TwFpPvl9Hl+/8=;
+	b=s6h2QGRouVfohxm5EPWu/p8lZ6lGH4vUa7JjuF4e+Qhe8goGkpUiCRi99jJQk01zbkQ79QMzWLzqvlaS9R+Ubc5ICBrD3PpUAjkWZrnvjiqLtMTJpDt/KZ7VZaEwne5i38DBGBaOqmmKibyR73M/anV0lnIGqV9WK7mSklQtVDw=
+Received: from 30.221.128.156(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wtyn.3V_1764723853 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Wed, 03 Dec 2025 09:00:53 +0800
-Message-ID: <c160b184-8411-40d9-94b7-3fe6caea907e@linux.alibaba.com>
-Date: Wed, 3 Dec 2025 09:00:53 +0800
+          Wed, 03 Dec 2025 09:04:14 +0800
+Message-ID: <ad0b67fb-9af6-4179-a4e5-032d749f50d6@linux.alibaba.com>
+Date: Wed, 3 Dec 2025 09:04:13 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,98 +33,92 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3 2/2] ocfs2: Convert remaining read-only checks to
- ocfs2_emergency_state
-To: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, Heming Zhao <heming.zhao@suse.com>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+Subject: Re: [PATCH v6] ocfs2: Invalidate inode if i_mode is zero after block
+ read
+To: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com,
+ jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
  david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
+ syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com,
  Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-References: <cover.1764643790.git.eraykrdg1@gmail.com>
- <1f329fa8f8b0496ecb88c6c48174ca3d8e339f8d.1764643790.git.eraykrdg1@gmail.com>
- <1636840d-0b22-4df7-8a54-2795583ae83d@linux.alibaba.com>
- <aS-IVZyCZgE115f6@eray-kasa>
+References: <20251108120133.37443-3-eraykrdg1@gmail.com>
+ <20251202224507.53452-2-eraykrdg1@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <aS-IVZyCZgE115f6@eray-kasa>
+In-Reply-To: <20251202224507.53452-2-eraykrdg1@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/12/3 08:46, Ahmet Eray Karadag wrote:
-> On Tue, Dec 02, 2025 at 03:39:30PM +0800, Joseph Qi wrote:
->>
->>
->> On 2025/12/2 10:54, Ahmet Eray Karadag wrote:
->>> To centralize error checking, follow the pattern of other filesystems
->>> like ext4 (which uses `ext4_emergency_state()`), and prepare for
->>> future enhancements, this patch introduces a new helper function:
->>> `ocfs2_emergency_state()`.
->>>
->>> The purpose of this helper is to provide a single, unified location
->>> for checking all filesystem-level emergency conditions. In this
->>> initial implementation, the function only checks for the existing
->>> hard and soft read-only modes, returning -EROFS if either is set.
->>>
->>> This provides a foundation where future checks (e.g., for fatal error
->>> states returning -EIO, or shutdown states) can be easily added in
->>> one place.
->>>
->>> This patch also adds this new check to the beginning of
->>> `ocfs2_setattr()`. This ensures that operations like `ftruncate`
->>> (which triggered the original BUG) fail-fast with -EROFS when the
->>> filesystem is already in a read-only state.
->>>
->>
->> The above commit log is the same with patch 1 and doesn't reflect
->> the following changes.
->>
->>> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
->>> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
->>> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
->>> ---
->>> v2:
->>>  - Use `unlikely()` for status check
->>> ---
->>>  fs/ocfs2/buffer_head_io.c |  4 ++--
->>>  fs/ocfs2/file.c           | 17 ++++++++++-------
->>>  fs/ocfs2/inode.c          |  3 +--
->>>  fs/ocfs2/move_extents.c   |  5 +++--
->>>  fs/ocfs2/resize.c         |  8 +++++---
->>>  fs/ocfs2/super.c          |  2 +-
->>>  6 files changed, 22 insertions(+), 17 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
->>> index 8f714406528d..61a0f522c673 100644
->>> --- a/fs/ocfs2/buffer_head_io.c
->>> +++ b/fs/ocfs2/buffer_head_io.c
->>> @@ -434,8 +434,8 @@ int ocfs2_write_super_or_backup(struct ocfs2_super *osb,
->>>  	BUG_ON(buffer_jbd(bh));
->>>  	ocfs2_check_super_or_backup(osb->sb, bh->b_blocknr);
->>>  
->>> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb)) {
->>> -		ret = -EROFS;
->>> +	ret = ocfs2_emergency_state(osb);
->>> +	if (unlikely(ret)) {
->>
->> I'd like use the following style:
->> if (ocfs2_emergency_state(osb)) {
->> 	ret = -EROFS;
->> 	...
->> }
->>
->> So that ocfs2_emergency_state() can be expended with other cases(properly
->> other return code), without touching these code flows.
+On 2025/12/3 06:45, Ahmet Eray Karadag wrote:
+> A panic occurs in ocfs2_unlink due to WARN_ON(inode->i_nlink == 0) when
+> handling a corrupted inode with i_mode=0 and i_nlink=0 in memory.
 > 
-> In the future, there might be other return codes added to ocfs2_emergency_state().
-> Correct me if I'm wrong, but with your proposed style, we would only return
-> -EROFS in any case. Shouldn't we consider future improvements?
+> This "zombie" inode is created because ocfs2_read_locked_inode proceeds
+> even after ocfs2_validate_inode_block successfully validates a block
+> that structurally looks okay (passes checksum, signature etc.) but
+> contains semantically invalid data (specifically i_mode=0). The current
+> validation function doesn't check for i_mode being zero.
 > 
-> Thanks,
-> Ahmet Eray
->>
-Return EROFS here is to be consistent with before.
-i.e. No functional change.
+> This results in an in-memory inode with i_mode=0 being added to the VFS
+> cache, which later triggers the panic during unlink.
+> 
+> Prevent this by adding an explicit check for (i_mode == 0, i_nlink == 0, non-orphan)
+> within ocfs2_validate_inode_block. If the check is true, return -EFSCORRUPTED to signal
+> corruption. This causes the caller (ocfs2_read_locked_inode) to invoke
+> make_bad_inode(), correctly preventing the zombie inode from entering
+> the cache.
+> 
+> Reported-by: syzbot+55c40ae8a0e5f3659f2b@syzkaller.appspotmail.com
+> Fixes: https://syzkaller.appspot.com/bug?extid=55c40ae8a0e5f3659f2b
+> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
+> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
 
-Joseph
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> Previous link: https://lore.kernel.org/all/20251022222752.46758-2-eraykrdg1@gmail.com/T/
+> ---
+> v2:
+>  - Only checking either i_links_count == 0 or i_mode == 0
+>  - Not performing le16_to_cpu() anymore
+>  - Tested with ocfs2-test
+> ---
+> v3:
+>  - Add checking both high and low bits of i_links_count
+> ---
+> v4:
+>  - Reading i_links_count hi and low bits without helper function
+>   to save few cpu cycles
+> ---
+> v5:
+>  - Clear i_links_count check
+>  - Log the actual i_nlink/i_mode
+> ---
+> v6:
+>  - Use `ocfs2_read_links_count` to get nlink
+>  - Convert di->imode to cpu endian
+> ---
+>  fs/ocfs2/inode.c | 8 ++++++++
+>  1 file changed, 8 insertions(+)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 14bf440ea4df..f83b8e4f4d8b 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1456,6 +1456,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		goto bail;
+>  	}
+>  
+> +	if ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode) {
+> +		mlog(ML_ERROR, "Invalid dinode #%llu: "
+> +			"Corrupt state (nlink = %u or mode = %u) detected!\n",
+> +		        (unsigned long long)bh->b_blocknr,
+> +			ocfs2_read_links_count(di), le16_to_cpu(di->i_mode));
+> +		rc = -EFSCORRUPTED;
+> +		goto bail;
+> +	}
+>  	/*
+>  	 * Errors after here are fatal.
+>  	 */
 
