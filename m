@@ -1,199 +1,175 @@
-Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 518AD2C15BB
-	for <ocfs2-devel@lists.linux.dev>; Wed,  3 Dec 2025 08:26:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 119562DE707;
+	Wed,  3 Dec 2025 10:19:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764750421; cv=none; b=EdZKQbDVczSUWTcLQPRiGql2W8mxXYipEc04UQyiyUiTIxTiIREI725UAzrRacFbJcI+jYRVDl89EtFPcny7gsz5N7lRe79JAFwYSe0EfmhB/h+DPAOXnmTdJLlH1raUwdzQSUzZVw8FFSKuGEViVL89oV+yO2I84XHQL9ULaRc=
+	t=1764757151; cv=none; b=l1y/iSY3P6bBKvJmq7rfGniKBLZ/N+ITjeHc/tYquDWUGvNErSeQ+Nx1uktYZhMQwK9KJaKYAVzIDIwpFWKsOCDR5OQt2vxS1pXHKllevKb46ByutDXSV7CIX1ds0M4LfkzWbsbeKqWsSV42pR80nsIwvB1HEA7q5/RDEwFV3CY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764750421; c=relaxed/simple;
-	bh=3go/RnO4E8ECeHXb6AkOLP1q/Z0brBvyMWr81IzZVmM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=vE+4BSfJ7+b3cjpSgh0kIGlH5TkPEOv3ev/sUcPfV09MwayhjdRlJ5O3D8BuKjR3PXr0oGfNnUFXv/VWNHjQVhdvOuWmnZQxh9Z2FtVywaBQqlW5x6wiECPBxUFnlFagf+NrCow645CWL1d9PlDzIWme3HdH0ZHjCNMToy1fj20=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=DTQtTUM0; arc=none smtp.client-ip=115.124.30.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1764757151; c=relaxed/simple;
+	bh=1ALGFmGlgOHY6f+bdLdgKebsX+au1yQ5dTRhimTaFoA=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=MzVrCaPOfJSbHnu5034+sN/igCQpAT0+eqawrc2CmK2pAHRA2QjXw7hUydE514Q7CmplIfKVrvREVZ5mESHganvctY0wvUSStpd4q0tj2K2UR/RW+qDVmiF3IJKZIDMao2imUe8JmnRcJWDHCn1/lUgf8DoAhemIKTQ1oTsaR84=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Sia1MYIL; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="DTQtTUM0"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1764750409; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=u/Q2pTWYQiHnbkqRVPkjlAOy9csUeamAQMht+QcrcRs=;
-	b=DTQtTUM0GhIVdpWZHoh6a9gsZzbMDmATDIF98XvUzDSaCwJ0Ilp2/bmriBwQ6jiKmy+ym5yseCFx6n4OEKOTTF/EYXWcL27rAX8hDZ2MOmdwLAHKYQ5mHeyxnUC+CCF/r9EoGBfgMng/foJzTPCRR4/OCZF/YIQow7oE3bTLLho=
-Received: from 30.221.128.156(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wu-bwR-_1764750408 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 03 Dec 2025 16:26:48 +0800
-Message-ID: <63a063ce-2be2-4f2f-9391-97f24935a36b@linux.alibaba.com>
-Date: Wed, 3 Dec 2025 16:26:48 +0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Sia1MYIL"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 25361C113D0;
+	Wed,  3 Dec 2025 10:18:49 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1764757150;
+	bh=1ALGFmGlgOHY6f+bdLdgKebsX+au1yQ5dTRhimTaFoA=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References:From;
+	b=Sia1MYILwN3OHyU8vJVbFzEbPmh+E9Rkdc13NmENJiNAQwujMzrx7aLJDYQwnRJH2
+	 icv0Cs7+2DiJlUtJrJ3jFjsxz5e5SC+H4b4cDPm/4/s+aTZepyO4AvrHMcRjPs8po7
+	 P0lAluHlqilBXk1Sh/B/XN0TZMdipTL7EolZ0FehsZ8XGO0/aidHMHK8ayQiiiT5TA
+	 U6OOgYna9Ec2DgYD68Hcv9/StfMLZVIApf1YAZumWdYivMJy+S1b4NF19fKc5R60wD
+	 vv/cJLS0nI7ttPeXB8OyKOFM1iSYjxfn/4avfs6o2Xu7czGUpIFQziUIbMv79dw+WM
+	 YExRE41C2xh0g==
+From: Christian Brauner <brauner@kernel.org>
+To: Jeff Layton <jlayton@kernel.org>
+Cc: Christian Brauner <brauner@kernel.org>,
+	NeilBrown <neilb@ownmail.net>,
+	linux-kernel@vger.kernel.org,
+	v9fs@lists.linux.dev,
+	linux-fsdevel@vger.kernel.org,
+	linux-afs@lists.infradead.org,
+	linux-btrfs@vger.kernel.org,
+	ceph-devel@vger.kernel.org,
+	codalist@coda.cs.cmu.edu,
+	ecryptfs@vger.kernel.org,
+	linux-efi@vger.kernel.org,
+	linux-ext4@vger.kernel.org,
+	linux-f2fs-devel@lists.sourceforge.net,
+	gfs2@lists.linux.dev,
+	linux-um@lists.infradead.org,
+	linux-mm@kvack.org,
+	linux-mtd@lists.infradead.org,
+	jfs-discussion@lists.sourceforge.net,
+	linux-nfs@vger.kernel.org,
+	linux-nilfs@vger.kernel.org,
+	ntfs3@lists.linux.dev,
+	ocfs2-devel@lists.linux.dev,
+	linux-karma-devel@lists.sourceforge.net,
+	devel@lists.orangefs.org,
+	linux-unionfs@vger.kernel.org,
+	linux-cifs@vger.kernel.org,
+	samba-technical@lists.samba.org,
+	linux-xfs@vger.kernel.org,
+	linux-hardening@vger.kernel.org,
+	linux-doc@vger.kernel.org,
+	NeilBrown <neil@brown.name>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Jan Kara <jack@suse.cz>,
+	Eric Van Hensbergen <ericvh@kernel.org>,
+	Latchesar Ionkov <lucho@ionkov.net>,
+	Dominique Martinet <asmadeus@codewreck.org>,
+	Christian Schoenebeck <linux_oss@crudebyte.com>,
+	David Sterba <dsterba@suse.com>,
+	David Howells <dhowells@redhat.com>,
+	Marc Dionne <marc.dionne@auristor.com>,
+	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
+	Chris Mason <clm@fb.com>,
+	Xiubo Li <xiubli@redhat.com>,
+	Ilya Dryomov <idryomov@gmail.com>,
+	Jan Harkes <jaharkes@cs.cmu.edu>,
+	coda@cs.cmu.edu,
+	Tyler Hicks <code@tyhicks.com>,
+	Jeremy Kerr <jk@ozlabs.org>,
+	Ard Biesheuvel <ardb@kernel.org>,
+	Namjae Jeon <linkinjeon@kernel.org>,
+	Sungjong Seo <sj1557.seo@samsung.com>,
+	Yuezhang Mo <yuezhang.mo@sony.com>,
+	Theodore Ts'o <tytso@mit.edu>,
+	Andreas Dilger <adilger.kernel@dilger.ca>,
+	Jaegeuk Kim <jaegeuk@kernel.org>,
+	Chao Yu <chao@kernel.org>,
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
+	Miklos Szeredi <miklos@szeredi.hu>,
+	Andreas Gruenbacher <agruenba@redhat.com>,
+	Viacheslav Dubeyko <slava@dubeyko.com>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	Yangtao Li <frank.li@vivo.com>,
+	Richard Weinberger <richard@nod.at>,
+	Anton Ivanov <anton.ivanov@cambridgegreys.com>,
+	Johannes Berg <johannes@sipsolutions.net>,
+	Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>,
+	Muchun Song <muchun.song@linux.dev>,
+	Oscar Salvador <osalvador@suse.de>,
+	David Woodhouse <dwmw2@infradead.org>,
+	Dave Kleikamp <shaggy@kernel.org>,
+	Trond Myklebust <trondmy@kernel.org>,
+	Anna Schumaker <anna@kernel.org>,
+	Ryusuke Konishi <konishi.ryusuke@gmail.com>,
+	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Bob Copeland <me@bobcopeland.com>,
+	Mike Marshall <hubcap@omnibond.com>,
+	Martin Brandenburg <martin@omnibond.com>,
+	Amir Goldstein <amir73il@gmail.com>,
+	Steve French <sfrench@samba.org>,
+	Paulo Alcantara <pc@manguebit.org>,
+	Ronnie Sahlberg <ronniesahlberg@gmail.com>,
+	Shyam Prasad N <sprasad@microsoft.com>,
+	Tom Talpey <tom@talpey.com>,
+	Bharath SM <bharathsm@microsoft.com>,
+	Zhihao Cheng <chengzhihao1@huawei.com>,
+	Hans de Goede <hansg@kernel.org>,
+	Carlos Maiolino <cem@kernel.org>,
+	Hugh Dickins <hughd@google.com>,
+	Baolin Wang <baolin.wang@linux.alibaba.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Kees Cook <kees@kernel.org>,
+	"Gustavo A. R. Silva" <gustavoars@kernel.org>,
+	Jonathan Corbet <corbet@lwn.net>,
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>,
+	David Hildenbrand <david@kernel.org>
+Subject: Re: [PATCH RESEND v3] vfs: remove the excl argument from the ->create() inode_operation
+Date: Wed,  3 Dec 2025 11:18:32 +0100
+Message-ID: <20251203-sechzehn-lethargisch-cd739d4ff49a@brauner>
+X-Mailer: git-send-email 2.47.3
+In-Reply-To: <20251201-create-excl-v3-1-8933a444b046@kernel.org>
+References: <20251201-create-excl-v3-1-8933a444b046@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 2/2] ocfs2: Convert remaining read-only checks to
- ocfs2_emergency_state
-To: Ahmet Eray Karadag <eraykrdg1@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- david.hunter.linux@gmail.com, skhan@linuxfoundation.org,
- Albin Babu Varghese <albinbabuvarghese20@gmail.com>,
- Heming Zhao <heming.zhao@suse.com>
-References: <cover.1764728893.git.eraykrdg1@gmail.com>
- <3421641b54ad6b6e4ffca052351b518eacc1bd08.1764728893.git.eraykrdg1@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <3421641b54ad6b6e4ffca052351b518eacc1bd08.1764728893.git.eraykrdg1@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset="utf-8"
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1370; i=brauner@kernel.org; h=from:subject:message-id; bh=1ALGFmGlgOHY6f+bdLdgKebsX+au1yQ5dTRhimTaFoA=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQa8NXdfyOWEe7C1j7j3H39MtmOfckhfYU3uPbO3GJ5W X9idSdfRykLgxgXg6yYIotDu0m43HKeis1GmRowc1iZQIYwcHEKwER6JjEyXElxiNLjXsTcG/zF veHQZtE3X3LuXMnZx/2vIaPja/5RBYb/9Vo7JnHefOS2MX2Dr5zm5id7fnmJz3GXVk7n4Wu5Kpf KBAA=
+X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+Content-Transfer-Encoding: 8bit
 
-
-
-On 2025/12/3 11:34, Ahmet Eray Karadag wrote:
-> Now that the centralized `ocfs2_emergency_state()` helper is available,
-> refactor remaining filesystem-wide checks for `ocfs2_is_soft_readonly`
-> and `ocfs2_is_hard_readonly` to use this new function.
+On Mon, 01 Dec 2025 08:11:42 -0500, Jeff Layton wrote:
+> With three exceptions, ->create() methods provided by filesystems ignore
+> the "excl" flag.  Those exception are NFS, GFS2 and vboxsf which all also
+> provide ->atomic_open.
 > 
-> To ensure strict consistency with the previous behavior and guarantee
-> no functional changes, the call sites continue to explicitly return
-> -EROFS when the emergency state is detected. This standardizes the
-> check logic while preserving the existing error handling flow.
+> Since ce8644fcadc5 ("lookup_open(): expand the call of vfs_create()"),
+> the "excl" argument to the ->create() inode_operation is always set to
+> true in vfs_create(). The ->create() call in lookup_open() sets it
+> according to the O_EXCL open flag, but is never called if the filesystem
+> provides ->atomic_open().
 > 
-> Co-developed-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Albin Babu Varghese <albinbabuvarghese20@gmail.com>
-> Signed-off-by: Ahmet Eray Karadag <eraykrdg1@gmail.com>
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> [...]
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
-> v2:
->  - Use `unlikely()` for status check
-> ---
-> v4:
->  - Ensure consistency with the previous behavior as requested
-> ---
->  fs/ocfs2/buffer_head_io.c | 2 +-
->  fs/ocfs2/file.c           | 8 ++++----
->  fs/ocfs2/inode.c          | 3 +--
->  fs/ocfs2/move_extents.c   | 2 +-
->  fs/ocfs2/resize.c         | 4 ++--
->  fs/ocfs2/super.c          | 2 +-
->  6 files changed, 10 insertions(+), 11 deletions(-)
-> 
-> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-> index 8f714406528d..701d27d908d4 100644
-> --- a/fs/ocfs2/buffer_head_io.c
-> +++ b/fs/ocfs2/buffer_head_io.c
-> @@ -434,7 +434,7 @@ int ocfs2_write_super_or_backup(struct ocfs2_super *osb,
->  	BUG_ON(buffer_jbd(bh));
->  	ocfs2_check_super_or_backup(osb->sb, bh->b_blocknr);
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb)) {
-> +	if (unlikely(ocfs2_emergency_state(osb))) {
->  		ret = -EROFS;
->  		mlog_errno(ret);
->  		goto out;
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index ddca292944d7..732c61599159 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -179,7 +179,7 @@ static int ocfs2_sync_file(struct file *file, loff_t start, loff_t end,
->  			      file->f_path.dentry->d_name.name,
->  			      (unsigned long long)datasync);
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return -EROFS;
->  
->  	err = file_write_and_wait_range(file, start, end);
-> @@ -209,7 +209,7 @@ int ocfs2_should_update_atime(struct inode *inode,
->  	struct timespec64 now;
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return 0;
->  
->  	if ((inode->i_flags & S_NOATIME) ||
-> @@ -1949,7 +1949,7 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
->  	handle_t *handle;
->  	unsigned long long max_off = inode->i_sb->s_maxbytes;
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return -EROFS;
->  
->  	inode_lock(inode);
-> @@ -2713,7 +2713,7 @@ static loff_t ocfs2_remap_file_range(struct file *file_in, loff_t pos_in,
->  		return -EINVAL;
->  	if (!ocfs2_refcount_tree(osb))
->  		return -EOPNOTSUPP;
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return -EROFS;
->  
->  	/* Lock both files against IO */
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index fcc89856ab95..b7dad049cfa3 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1586,8 +1586,7 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
->  	trace_ocfs2_filecheck_repair_inode_block(
->  		(unsigned long long)bh->b_blocknr);
->  
-> -	if (ocfs2_is_hard_readonly(OCFS2_SB(sb)) ||
-> -	    ocfs2_is_soft_readonly(OCFS2_SB(sb))) {
-> +	if (unlikely(ocfs2_emergency_state(OCFS2_SB(sb)))) {
->  		mlog(ML_ERROR,
->  		     "Filecheck: cannot repair dinode #%llu "
->  		     "on readonly filesystem\n",
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index 86f2631e6360..71025d7b2d4b 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -898,7 +898,7 @@ static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
->  	struct buffer_head *di_bh = NULL;
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return -EROFS;
->  
->  	inode_lock(inode);
-> diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-> index b0733c08ed13..ac3ec2c21119 100644
-> --- a/fs/ocfs2/resize.c
-> +++ b/fs/ocfs2/resize.c
-> @@ -276,7 +276,7 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
->  	u32 first_new_cluster;
->  	u64 lgd_blkno;
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return -EROFS;
->  
->  	if (new_clusters < 0)
-> @@ -466,7 +466,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
->  	u16 cl_bpc;
->  	u64 bg_ptr;
->  
-> -	if (ocfs2_is_hard_readonly(osb) || ocfs2_is_soft_readonly(osb))
-> +	if (unlikely(ocfs2_emergency_state(osb)))
->  		return -EROFS;
->  
->  	main_bm_inode = ocfs2_get_system_file_inode(osb,
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 53daa4482406..c6019d260efc 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -2487,7 +2487,7 @@ static int ocfs2_handle_error(struct super_block *sb)
->  		rv = -EIO;
->  	} else { /* default option */
->  		rv = -EROFS;
-> -		if (sb_rdonly(sb) && (ocfs2_is_soft_readonly(osb) || ocfs2_is_hard_readonly(osb)))
-> +		if (sb_rdonly(sb) && ocfs2_emergency_state(osb))
->  			return rv;
->  
->  		pr_crit("OCFS2: File system is now read-only.\n");
+Applied to the vfs-6.20.mkdir branch of the vfs/vfs.git tree.
+Patches in the vfs-6.20.mkdir branch should appear in linux-next soon.
 
+Please report any outstanding bugs that were missed during review in a
+new review to the original patch series allowing us to drop it.
+
+It's encouraged to provide Acked-bys and Reviewed-bys even though the
+patch has now been applied. If possible patch trailers will be updated.
+
+Note that commit hashes shown below are subject to change due to rebase,
+trailer updates or similar. If in doubt, please check the listed branch.
+
+tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
+branch: vfs-6.20.mkdir
+
+[1/1] vfs: remove the excl argument from the ->create() inode_operation
+      https://git.kernel.org/vfs/vfs/c/7d91315b4335
