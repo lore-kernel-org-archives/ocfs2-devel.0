@@ -1,200 +1,385 @@
-Received: from mail-ej1-f41.google.com (mail-ej1-f41.google.com [209.85.218.41])
+Received: from mail-oi1-f200.google.com (mail-oi1-f200.google.com [209.85.167.200])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 557FC335BA6
-	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Dec 2025 09:09:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A192E2BE632
+	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Dec 2025 10:13:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764839402; cv=none; b=eoqB9wGEyUx09ImY1tzLp3MZUWX0BYgwwYD+OmtUMRW02ZzE1lbyc8jUXx+Ya8v4rWAhhaBRWss7BY5DzpMRR06hvLcSFEWVBMDmlQ5u7neJ74NvE0u7jyb7WaB+fiuFacqkYN772/tIta6Lk+tOle8DyARYgNGfxe01JU3xN3Y=
+	t=1764843185; cv=none; b=DsCfOO+yzeskc3kEFBYUr28+ePvtmgTbPkD9CPpEYRJI5gCtaqsqdwhmhQOGxyrPx8nZxc8FblcO1gPFUiAjNj4SRwAETJdHse2D6G1ejrzn+tpBuXRPna/vHQoKae/Gf6mnDbMpeGdWsqwhjaJxqDjE9k4HRRuFhLP+WcTbQVI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764839402; c=relaxed/simple;
-	bh=8AUgLofeOx7OFuw3X6aHkLt2xv7vDwcIE+tp4GpvyPE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=JGZxuuaXr3cGV9MTNCi3KJoMLRqzfXoeoaNKrnZQrC7sb4lv/Lighp9jLldLdpsVSowz85oHVosWQjEgwc8s3WqZRFJbBRY+Cc5As8mZH6lU3BbrZry3YoUv62asPRFc5Y/ndTPERzJpTBFMoZconXtC19oMRXrhngljkSz4O38=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=XbQjBFMy; arc=none smtp.client-ip=209.85.218.41
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="XbQjBFMy"
-Received: by mail-ej1-f41.google.com with SMTP id a640c23a62f3a-b739ef3f739so103984166b.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 04 Dec 2025 01:09:58 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1764839397; x=1765444197; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=7eqrke6HaexOshxGTADqdm1JSzGJXLvfmhaa3OBjdj8=;
-        b=XbQjBFMyEJn1fl88Yzm02ruwdYeA4Q/mm8PZsZJtrnrOQajyH9GCwaSRTLnsuRUhGr
-         AeGOnRFaFlm4bQ1kAdMoiuMAvHMOwlx+AhqUHkhsIR/1K3OwfJC8rImwdMml0BdopFFf
-         Cf2+XHHI6/+TSJ1wr6XM4YAfuV0V9iV2M5koC3hzTq/T7Phowzj9d0hSHMoOgC4nmCzQ
-         2tGjB9qDzXsi1E9FEa9NpoLA1ge0siBc3ls4b3LradEsDtHC6Tsz1cOe9UbVkq4dp4Wk
-         OwhiRyFzuUNH47jMv0h9sOGCrqs1+WO9TkT2eARHC/hAm18AMVgxhcLMgr1KvKfdXnmE
-         M2FQ==
+	s=arc-20240116; t=1764843185; c=relaxed/simple;
+	bh=YTilCDnY7md8stSUobr/74gGwJP21g/iu4mTuQp1Qk4=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=JgDktKIDn0OwJ5xaVvuEkuQSP4g9u9s75C0U9sClAR0ZmKkJ3vArKM7mdsURQDqwn8CWFjzbgvt7dutDM8M670kT8NuRctQntTiw5STJyh2RnbjlpPFtDSE1M3SOSmDpGE5bp5pFGTz1i/XAiYzDyT8UKGZGorvPK8yyr5f2B6Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.200
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f200.google.com with SMTP id 5614622812f47-450d471e085so943716b6e.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 04 Dec 2025 02:13:03 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764839397; x=1765444197;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=7eqrke6HaexOshxGTADqdm1JSzGJXLvfmhaa3OBjdj8=;
-        b=o7uVrDHA98ybuylMe55tARVEQAngLkOyvif9g8e8GH3sUVCkANUFYe2jn9+DgmELs9
-         cFmLHQAdXasT2uzKkJWtSyjQE7DnHHYtSmE0OBvrg/EkoiuirAVnJJobRtjNPnF94DOm
-         r1Hd7tj6N3dRCKdPTTpsXfhNC/jhwd6RmKmyJOznVoKqPX/M2xb1Zz67tpku/LmzUCeN
-         iKSnU0iUmhom8uKgql0ylP38+RJneaya/2ye9zwJ1/7TIG+2DGceUMuVOcEWRAWzMZpb
-         iWCGcV7c5YWo4JK05MlQDMInwVSlBYTF9Y79RJIaQhkJD9eUvYa8GNSCmrkDCRs/DZTH
-         DEFg==
-X-Forwarded-Encrypted: i=1; AJvYcCVAnJub8BxmhHVxSjprifFMf/ZTEtD8c+NhOdBVGhwGonBPCoBZik3xqh/XP6TszgnBfDe+sOlDXx5KyQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyoEqq7z3c/C5pDVDJpDkCUnBT19b3sp4Jrv5BBReNw2v88JOwC
-	LDY6SdQSYQN/rvLYn2ti9oZS9b/jYWBBLeyDQTZgaXrQp+1tSl77owiU
-X-Gm-Gg: ASbGnctyVKU1WcTRd76FZFRPiJV58ZqJhUXrwHL9qUdY8yTkoB++BElvhAoltKfEIRA
-	/H7FZY6HwaMHwS0kWDJxpIkLnpfdbzWE6MwP9UCkzdZK+xUiVu3JbCrBSAZRG55f+w+0gkVk2AQ
-	4VJTTckNHlQjZv6zdG5CnKXONuYDy3pJhh+kZb87DTgyzwkXIWRuQ4+AC1W0CmlpJ1Ch26r9ypz
-	Zvy3x+lod74RJbDTkW7BEIFw+LylDcHSfs1/ydDGrdQEdqZ/bvdKvkvVOd/QuGNzcVbITlKxale
-	kDzN3Zx8hG41iZRc7jWzctx0weRLgPN8aFqwjaYn9jCVxMrnqND4Bd8iyknx/pkH03+isZAOxI6
-	977tqeeJ65h38eUuT42+D7rvES1eUbNXLqvXwFGRLVR2vF34ym9RIJXYqUOIqH50KY6YTv99LsU
-	u3mQxMp/3313WnqzYjfC42a+i94gwZNyukth9rXRGd6YVAex3tSGI/jK5g
-X-Google-Smtp-Source: AGHT+IFbTW/+fHtVzDrjcryAcIHB1xLVq7wJo6ovWVsH10nGEfXaRnZ65K63K5Q3ny09+PmT45BMyw==
-X-Received: by 2002:a17:906:6a28:b0:b76:d825:caca with SMTP id a640c23a62f3a-b79ec6740b0mr230359966b.38.1764839396765;
-        Thu, 04 Dec 2025 01:09:56 -0800 (PST)
-Received: from f (cst-prg-14-82.cust.vodafone.cz. [46.135.14.82])
-        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b79f449c375sm85120966b.24.2025.12.04.01.09.54
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 04 Dec 2025 01:09:56 -0800 (PST)
-Date: Thu, 4 Dec 2025 10:09:47 +0100
-From: Mateusz Guzik <mjguzik@gmail.com>
-To: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
-Cc: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	sj1557.seo@samsung.com, syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
-Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
-Message-ID: <27ec3nl274o3u3rx6gu6vqaqtwmmflgb45wflfyy3ihqs5w4fc@pdvkacnfnhrw>
-References: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
+        d=1e100.net; s=20230601; t=1764843183; x=1765447983;
+        h=content-transfer-encoding:to:from:subject:message-id:in-reply-to
+         :date:mime-version:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=LrWtb3AGiUZFdOqAGPsVDdYoxkQ82A3K4ITqkGXEKTY=;
+        b=PaKlFU3KUc7MiPdl0vaNr5yi1DzrFIfjQbymQlAD6VADDxsRTPLIhcsMA5xXoVb5lT
+         q/cfBWTx4dYWuRd379gaFNXnl9C4kAOgmWFk3PJdJEqe1A4tTIUKgY9G4yqURibPcsIB
+         ev6DoHqNNYQcGLSU3QIHcvf5yPbfV7PCg+577Towip9I7g0nLq0Vt7lGnIDJe6LpKmCV
+         LH+EwhcclbinjNA7rcT1oQGLVor1FNWi8K9aI0e33Afb3TqNOG38jKfIkHxcx6KljiUV
+         +NSxI38vcArpgyQ+QS7Y0i+EMTt6pdPVbv0wTRQyAOcY4I2sS/z7KVLISsJ+IMM18OI2
+         nryA==
+X-Forwarded-Encrypted: i=1; AJvYcCXWvWXPWQEVu29U77q4x8U7KF737V9gm7WJ+AbbldnNZX+EAT9F3gCi2S0BB+GUTnjBR+Zr4CowPhQx1g==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxbR2cZqOpr82I0shJn9Y3ZVZyyvBqnynKhsP3VmKtWBZxhw05e
+	7k7zwitPaKUfCEIHb2LVT5vdBjZierluOuImpd7wGmJCS0iQNkqhdZfwPQFe61aJPh/T1KVdkmJ
+	Roga8ysSugac39GTOGJxF2AGmqvnWTbEBc/qmRpX7AV1Pmj4NnCD+b8DHt8U=
+X-Google-Smtp-Source: AGHT+IE55KuGOJpck6ZHJ825oET39Lm4BcByQ1rdlEJTt3MmNSRTu73d2PjEjaaZr+4hSLnK9Y3KlPspZPpPKmbsnuMF474UEM2n
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
+X-Received: by 2002:a05:6808:80b1:b0:441:8f74:fc4 with SMTP id
+ 5614622812f47-45379efb59bmr1220034b6e.65.1764843182874; Thu, 04 Dec 2025
+ 02:13:02 -0800 (PST)
+Date: Thu, 04 Dec 2025 02:13:02 -0800
+In-Reply-To: <27ec3nl274o3u3rx6gu6vqaqtwmmflgb45wflfyy3ihqs5w4fc@pdvkacnfnhrw>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <69315eae.a70a0220.d98e3.01cd.GAE@google.com>
+Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
+From: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
+To: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	mjguzik@gmail.com, ocfs2-devel@lists.linux.dev, sj1557.seo@samsung.com, 
+	syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, Dec 03, 2025 at 04:07:27PM -0800, syzbot wrote:
-> Hello,
-> 
-> syzbot found the following issue on:
-> 
-> HEAD commit:    7d31f578f323 Add linux-next specific files for 20251128
-> git tree:       linux-next
-> console output: https://syzkaller.appspot.com/x/log.txt?x=1612b912580000
-> kernel config:  https://syzkaller.appspot.com/x/.config?x=6336d8e94a7c517d
-> dashboard link: https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
-> compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
-> syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=172c8192580000
-> C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=16c3b0c2580000
-> 
-> Downloadable assets:
-> disk image: https://storage.googleapis.com/syzbot-assets/6b49d8ad90de/disk-7d31f578.raw.xz
-> vmlinux: https://storage.googleapis.com/syzbot-assets/dbe2d4988ca7/vmlinux-7d31f578.xz
-> kernel image: https://storage.googleapis.com/syzbot-assets/fc0448ab2411/bzImage-7d31f578.xz
-> mounted in repro: https://storage.googleapis.com/syzbot-assets/ec39deb2cf11/mount_0.gz
->   fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=12c3b0c2580000)
-> 
-> IMPORTANT: if you fix the issue, please add the following tag to the commit:
-> Reported-by: syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
-> 
-> VFS_BUG_ON_INODE(!S_ISDIR(inode->i_mode)) encountered for inode ffff88805618b338
-> fs ocfs2 mode 100000 opflags 0x2 flags 0x20 state 0x0 count 2
-> ------------[ cut here ]------------
-> kernel BUG at fs/namei.c:630!
-> Oops: invalid opcode: 0000 [#1] SMP KASAN PTI
-> CPU: 0 UID: 0 PID: 6303 Comm: syz.0.92 Not tainted syzkaller #0 PREEMPT(full) 
-> Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
-> RIP: 0010:lookup_inode_permission_may_exec fs/namei.c:630 [inline]
-> RIP: 0010:may_lookup fs/namei.c:1900 [inline]
-> RIP: 0010:link_path_walk+0x18cb/0x18d0 fs/namei.c:2537
-> Code: e8 5a 1f ea fe 90 0f 0b e8 b2 96 83 ff 44 89 fd e9 6a fd ff ff e8 a5 96 83 ff 48 89 ef 48 c7 c6 40 d8 79 8b e8 36 1f ea fe 90 <0f> 0b 0f 1f 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 55
-> RSP: 0018:ffffc900046ef8a0 EFLAGS: 00010282
-> RAX: 000000000000008e RBX: ffffc900046efc58 RCX: f91f6529a96d0200
-> RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-> RBP: ffff88805618b338 R08: ffffc900046ef567 R09: 1ffff920008ddeac
-> R10: dffffc0000000000 R11: fffff520008ddead R12: 0000000000008000
-> R13: ffffc900046efc20 R14: 0000000000008000 R15: ffff88802509b320
-> FS:  000055555cffa500(0000) GS:ffff888125e4f000(0000) knlGS:0000000000000000
-> CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> CR2: 00007fc32730f000 CR3: 0000000072f4e000 CR4: 00000000003526f0
-> Call Trace:
->  <TASK>
->  path_openat+0x2b3/0x3dd0 fs/namei.c:4783
->  do_filp_open+0x1fa/0x410 fs/namei.c:4814
->  do_sys_openat2+0x121/0x200 fs/open.c:1430
->  do_sys_open fs/open.c:1436 [inline]
->  __do_sys_open fs/open.c:1444 [inline]
->  __se_sys_open fs/open.c:1440 [inline]
->  __x64_sys_open+0x11e/0x150 fs/open.c:1440
->  do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
->  do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
->  entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> RIP: 0033:0x7f4644d8f749
-> Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-> RSP: 002b:00007ffe02ccf2f8 EFLAGS: 00000246 ORIG_RAX: 0000000000000002
-> RAX: ffffffffffffffda RBX: 00007f4644fe5fa0 RCX: 00007f4644d8f749
-> RDX: 0000000000000000 RSI: 0000000000145142 RDI: 0000200000000240
-> RBP: 00007f4644e13f91 R08: 0000000000000000 R09: 0000000000000000
-> R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-> R13: 00007f4644fe5fa0 R14: 00007f4644fe5fa0 R15: 0000000000000003
->  </TASK>
-> Modules linked in:
-> ---[ end trace 0000000000000000 ]---
-> RIP: 0010:lookup_inode_permission_may_exec fs/namei.c:630 [inline]
-> RIP: 0010:may_lookup fs/namei.c:1900 [inline]
-> RIP: 0010:link_path_walk+0x18cb/0x18d0 fs/namei.c:2537
-> Code: e8 5a 1f ea fe 90 0f 0b e8 b2 96 83 ff 44 89 fd e9 6a fd ff ff e8 a5 96 83 ff 48 89 ef 48 c7 c6 40 d8 79 8b e8 36 1f ea fe 90 <0f> 0b 0f 1f 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90 55
-> RSP: 0018:ffffc900046ef8a0 EFLAGS: 00010282
-> RAX: 000000000000008e RBX: ffffc900046efc58 RCX: f91f6529a96d0200
-> RDX: 0000000000000000 RSI: 0000000080000000 RDI: 0000000000000000
-> RBP: ffff88805618b338 R08: ffffc900046ef567 R09: 1ffff920008ddeac
-> R10: dffffc0000000000 R11: fffff520008ddead R12: 0000000000008000
-> R13: ffffc900046efc20 R14: 0000000000008000 R15: ffff88802509b320
-> FS:  000055555cffa500(0000) GS:ffff888125e4f000(0000) knlGS:0000000000000000
-> CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-> CR2: 00007fc32730f000 CR3: 0000000072f4e000 CR4: 00000000003526f0
-> 
-> 
+Hello,
+
+syzbot tried to test the proposed patch but the build/boot failed:
+
+SYZFAIL: failed to recv rpc
+
+SYZFAIL: failed to recv rpc
 
 
-#syz test
+Warning: Permanently added '10.128.0.177' (ED25519) to the list of known ho=
+sts.
+2025/12/04 10:11:47 parsed 1 programs
+[   78.910789][ T5830] cgroup: Unknown subsys name 'net'
+[   79.061524][ T5830] cgroup: Unknown subsys name 'cpuset'
+[   79.071037][ T5830] cgroup: Unknown subsys name 'rlimit'
+Setting up swapspace version 1, size =3D 127995904 bytes
+[   80.470098][ T5830] Adding 124996k swap on ./swap-file.  Priority:0 exte=
+nts:1 across:124996k=20
+[   83.462586][ T5842] soft_limit_in_bytes is deprecated and will be remove=
+d. Please report your usecase to linux-mm@kvack.org if you depend on this f=
+unctionality.
+[   83.768296][ T1303] wlan0: Created IBSS using preconfigured BSSID 50:50:=
+50:50:50:50
+[   83.776268][ T1303] wlan0: Creating new IBSS network, BSSID 50:50:50:50:=
+50:50
+[   84.018160][   T36] wlan1: Created IBSS using preconfigured BSSID 50:50:=
+50:50:50:50
+[   84.026332][   T36] wlan1: Creating new IBSS network, BSSID 50:50:50:50:=
+50:50
+[   84.079691][ T5149] Bluetooth: hci0: unexpected cc 0x0c03 length: 249 > =
+1
+[   84.089721][ T5149] Bluetooth: hci0: unexpected cc 0x1003 length: 249 > =
+9
+[   84.097886][ T5149] Bluetooth: hci0: unexpected cc 0x1001 length: 249 > =
+9
+[   84.120020][ T5149] Bluetooth: hci0: unexpected cc 0x0c23 length: 249 > =
+4
+[   84.128054][ T5149] Bluetooth: hci0: unexpected cc 0x0c38 length: 249 > =
+2
+[   86.764273][ T5914] chnl_net:caif_netlink_parms(): no params data found
+[   86.952176][   T10] cfg80211: failed to load regulatory.db
+[   86.970822][ T5914] bridge0: port 1(bridge_slave_0) entered blocking sta=
+te
+[   86.987663][ T5914] bridge0: port 1(bridge_slave_0) entered disabled sta=
+te
+[   86.995387][ T5914] bridge_slave_0: entered allmulticast mode
+[   87.004680][ T5914] bridge_slave_0: entered promiscuous mode
+[   87.019597][ T5914] bridge0: port 2(bridge_slave_1) entered blocking sta=
+te
+[   87.038879][ T5914] bridge0: port 2(bridge_slave_1) entered disabled sta=
+te
+[   87.046589][ T5914] bridge_slave_1: entered allmulticast mode
+[   87.055691][ T5914] bridge_slave_1: entered promiscuous mode
+[   87.132629][ T5914] bond0: (slave bond_slave_0): Enslaving as an active =
+interface with an up link
+[   87.165237][ T5914] bond0: (slave bond_slave_1): Enslaving as an active =
+interface with an up link
+[   87.263236][ T5914] team0: Port device team_slave_0 added
+[   87.273397][ T5914] team0: Port device team_slave_1 added
+[   87.303206][ T5914] batman_adv: batadv0: Adding interface: batadv_slave_=
+0
+[   87.311015][ T5914] batman_adv: batadv0: The MTU of interface batadv_sla=
+ve_0 is too small (1500) to handle the transport of batman-adv packets. Pac=
+kets going over this interface will be fragmented on layer2 which could imp=
+act the performance. Setting the MTU to 1532 would solve the problem.
+[   87.339107][ T5914] batman_adv: batadv0: Not using interface batadv_slav=
+e_0 (retrying later): interface not active
+[   87.352524][ T5914] batman_adv: batadv0: Adding interface: batadv_slave_=
+1
+[   87.360592][ T5914] batman_adv: batadv0: The MTU of interface batadv_sla=
+ve_1 is too small (1500) to handle the transport of batman-adv packets. Pac=
+kets going over this interface will be fragmented on layer2 which could imp=
+act the performance. Setting the MTU to 1532 would solve the problem.
+[   87.387771][ T5914] batman_adv: batadv0: Not using interface batadv_slav=
+e_1 (retrying later): interface not active
+[   87.429283][ T5914] hsr_slave_0: entered promiscuous mode
+[   87.436383][ T5914] hsr_slave_1: entered promiscuous mode
+[   87.589866][ T5914] netdevsim netdevsim2 netdevsim0: renamed from eth0
+[   87.602532][ T5914] netdevsim netdevsim2 netdevsim1: renamed from eth1
+[   87.612793][ T5914] netdevsim netdevsim2 netdevsim2: renamed from eth2
+[   87.624712][ T5914] netdevsim netdevsim2 netdevsim3: renamed from eth3
+[   87.702119][ T5914] 8021q: adding VLAN 0 to HW filter on device bond0
+[   87.727060][ T5914] 8021q: adding VLAN 0 to HW filter on device team0
+[   87.742924][ T3460] bridge0: port 1(bridge_slave_0) entered blocking sta=
+te
+[   87.750338][ T3460] bridge0: port 1(bridge_slave_0) entered forwarding s=
+tate
+[   87.767840][   T13] bridge0: port 2(bridge_slave_1) entered blocking sta=
+te
+[   87.775679][   T13] bridge0: port 2(bridge_slave_1) entered forwarding s=
+tate
+[   87.951069][ T5914] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   87.997784][ T5914] veth0_vlan: entered promiscuous mode
+[   88.011677][ T5914] veth1_vlan: entered promiscuous mode
+[   88.040488][ T5914] veth0_macvtap: entered promiscuous mode
+[   88.050521][ T5914] veth1_macvtap: entered promiscuous mode
+[   88.070672][ T5914] batman_adv: batadv0: Interface activated: batadv_sla=
+ve_0
+[   88.086679][ T5914] batman_adv: batadv0: Interface activated: batadv_sla=
+ve_1
+[   88.102451][ T1303] netdevsim netdevsim2 netdevsim0: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   88.112929][ T1303] netdevsim netdevsim2 netdevsim1: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   88.125269][ T1303] netdevsim netdevsim2 netdevsim2: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   88.138936][ T1303] netdevsim netdevsim2 netdevsim3: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+2025/12/04 10:11:58 executed programs: 0
+[   88.265933][ T5149] Bluetooth: hci0: unexpected cc 0x0c03 length: 249 > =
+1
+[   88.275000][ T5149] Bluetooth: hci0: unexpected cc 0x1003 length: 249 > =
+9
+[   88.283928][ T5149] Bluetooth: hci0: unexpected cc 0x1001 length: 249 > =
+9
+[   88.294110][ T5149] Bluetooth: hci0: unexpected cc 0x0c23 length: 249 > =
+4
+[   88.303601][ T5149] Bluetooth: hci0: unexpected cc 0x0c38 length: 249 > =
+2
+[   88.516655][ T5945] chnl_net:caif_netlink_parms(): no params data found
+[   88.589071][ T5945] bridge0: port 1(bridge_slave_0) entered blocking sta=
+te
+[   88.597183][ T5945] bridge0: port 1(bridge_slave_0) entered disabled sta=
+te
+[   88.605206][ T5945] bridge_slave_0: entered allmulticast mode
+[   88.613430][ T5945] bridge_slave_0: entered promiscuous mode
+[   88.621792][ T5945] bridge0: port 2(bridge_slave_1) entered blocking sta=
+te
+[   88.629190][ T5945] bridge0: port 2(bridge_slave_1) entered disabled sta=
+te
+[   88.636388][ T5945] bridge_slave_1: entered allmulticast mode
+[   88.644502][ T5945] bridge_slave_1: entered promiscuous mode
+[   88.679834][ T5945] bond0: (slave bond_slave_0): Enslaving as an active =
+interface with an up link
+[   88.693258][ T5945] bond0: (slave bond_slave_1): Enslaving as an active =
+interface with an up link
+[   88.729876][ T5945] team0: Port device team_slave_0 added
+[   88.739741][ T5945] team0: Port device team_slave_1 added
+[   88.770447][ T5945] batman_adv: batadv0: Adding interface: batadv_slave_=
+0
+[   88.778982][ T5945] batman_adv: batadv0: The MTU of interface batadv_sla=
+ve_0 is too small (1500) to handle the transport of batman-adv packets. Pac=
+kets going over this interface will be fragmented on layer2 which could imp=
+act the performance. Setting the MTU to 1532 would solve the problem.
+[   88.806119][ T5945] batman_adv: batadv0: Not using interface batadv_slav=
+e_0 (retrying later): interface not active
+[   88.819400][ T5945] batman_adv: batadv0: Adding interface: batadv_slave_=
+1
+[   88.826898][ T5945] batman_adv: batadv0: The MTU of interface batadv_sla=
+ve_1 is too small (1500) to handle the transport of batman-adv packets. Pac=
+kets going over this interface will be fragmented on layer2 which could imp=
+act the performance. Setting the MTU to 1532 would solve the problem.
+[   88.854775][ T5945] batman_adv: batadv0: Not using interface batadv_slav=
+e_1 (retrying later): interface not active
+[   88.906117][ T5945] hsr_slave_0: entered promiscuous mode
+[   88.913653][ T5945] hsr_slave_1: entered promiscuous mode
+[   88.920136][ T5945] debugfs: 'hsr0' already exists in 'hsr'
+[   88.926073][ T5945] Cannot create hsr debugfs directory
+[   89.100742][ T5945] netdevsim netdevsim0 netdevsim0: renamed from eth0
+[   89.113003][ T5945] netdevsim netdevsim0 netdevsim1: renamed from eth1
+[   89.123282][ T5945] netdevsim netdevsim0 netdevsim2: renamed from eth2
+[   89.134611][ T5945] netdevsim netdevsim0 netdevsim3: renamed from eth3
+[   89.164880][ T5945] bridge0: port 2(bridge_slave_1) entered blocking sta=
+te
+[   89.172220][ T5945] bridge0: port 2(bridge_slave_1) entered forwarding s=
+tate
+[   89.180595][ T5945] bridge0: port 1(bridge_slave_0) entered blocking sta=
+te
+[   89.188151][ T5945] bridge0: port 1(bridge_slave_0) entered forwarding s=
+tate
+[   89.201467][   T13] bridge0: port 1(bridge_slave_0) entered disabled sta=
+te
+[   89.210194][   T13] bridge0: port 2(bridge_slave_1) entered disabled sta=
+te
+[   89.271133][ T5945] 8021q: adding VLAN 0 to HW filter on device bond0
+[   89.292385][ T5945] 8021q: adding VLAN 0 to HW filter on device team0
+[   89.304472][   T13] bridge0: port 1(bridge_slave_0) entered blocking sta=
+te
+[   89.311731][   T13] bridge0: port 1(bridge_slave_0) entered forwarding s=
+tate
+[   89.328520][ T1303] bridge0: port 2(bridge_slave_1) entered blocking sta=
+te
+[   89.336026][ T1303] bridge0: port 2(bridge_slave_1) entered forwarding s=
+tate
+[   89.510299][ T5945] 8021q: adding VLAN 0 to HW filter on device batadv0
+[   89.555268][ T5945] veth0_vlan: entered promiscuous mode
+[   89.567506][ T5945] veth1_vlan: entered promiscuous mode
+[   89.602029][ T5945] veth0_macvtap: entered promiscuous mode
+[   89.611643][ T5945] veth1_macvtap: entered promiscuous mode
+[   89.630992][ T5945] batman_adv: batadv0: Interface activated: batadv_sla=
+ve_0
+[   89.645744][ T5945] batman_adv: batadv0: Interface activated: batadv_sla=
+ve_1
+[   89.661459][   T13] netdevsim netdevsim0 netdevsim0: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   89.675047][   T13] netdevsim netdevsim0 netdevsim1: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   89.685863][   T13] netdevsim netdevsim0 netdevsim2: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   89.695952][   T13] netdevsim netdevsim0 netdevsim3: set [1, 0] type 2 f=
+amily 0 port 6081 - 0
+[   89.763899][ T3460] wlan0: Created IBSS using preconfigured BSSID 50:50:=
+50:50:50:50
+[   89.773242][ T3460] wlan0: Creating new IBSS network, BSSID 50:50:50:50:=
+50:50
+[   89.806188][   T13] wlan1: Created IBSS using preconfigured BSSID 50:50:=
+50:50:50:50
+[   89.814827][   T13] wlan1: Creating new IBSS network, BSSID 50:50:50:50:=
+50:50
+SYZFAIL: failed to recv rpc
+[   90.239026][   T13] netdevsim netdevsim2 netdevsim3 (unregistering): uns=
+et [1, 0] type 2 family 0 port 6081 - 0
 
-diff --git a/fs/namei.c b/fs/namei.c
-index bf0f66f0e9b9..87c99149a152 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -1896,6 +1896,14 @@ static inline int may_lookup(struct mnt_idmap *idmap,
- {
- 	int err, mask;
- 
-+	struct dentry *_dentry = nd->path.dentry;
-+	struct inode *_inode = READ_ONCE(_dentry->d_inode);
-+	if (!d_can_lookup(_dentry) || !_inode || !S_ISDIR(_inode->i_mode)) {
-+		spin_lock(&_dentry->d_lock);
-+		VFS_BUG_ON_INODE(d_can_lookup(_dentry) && !S_ISDIR(_dentry->d_inode->i_mode), _dentry->d_inode);
-+		spin_unlock(&_dentry->d_lock);
-+	}
-+
- 	mask = nd->flags & LOOKUP_RCU ? MAY_NOT_BLOCK : 0;
- 	err = lookup_inode_permission_may_exec(idmap, nd->inode, mask);
- 	if (likely(!err))
-@@ -2527,6 +2535,14 @@ static int link_path_walk(const char *name, struct nameidata *nd)
- 		return 0;
- 	}
- 
-+	struct dentry *_dentry = nd->path.dentry;
-+	struct inode *_inode = READ_ONCE(_dentry->d_inode);
-+	if (!d_can_lookup(_dentry) || !_inode || !S_ISDIR(_inode->i_mode)) {
-+		spin_lock(&_dentry->d_lock);
-+		VFS_BUG_ON_INODE(d_can_lookup(_dentry) && !S_ISDIR(_dentry->d_inode->i_mode), _dentry->d_inode);
-+		spin_unlock(&_dentry->d_lock);
-+	}
-+	
- 	/* At this point we know we have a real path component. */
- 	for(;;) {
- 		struct mnt_idmap *idmap;
+
+syzkaller build log:
+go env (err=3D<nil>)
+AR=3D'ar'
+CC=3D'gcc'
+CGO_CFLAGS=3D'-O2 -g'
+CGO_CPPFLAGS=3D''
+CGO_CXXFLAGS=3D'-O2 -g'
+CGO_ENABLED=3D'1'
+CGO_FFLAGS=3D'-O2 -g'
+CGO_LDFLAGS=3D'-O2 -g'
+CXX=3D'g++'
+GCCGO=3D'gccgo'
+GO111MODULE=3D'auto'
+GOAMD64=3D'v1'
+GOARCH=3D'amd64'
+GOAUTH=3D'netrc'
+GOBIN=3D''
+GOCACHE=3D'/syzkaller/.cache/go-build'
+GOCACHEPROG=3D''
+GODEBUG=3D''
+GOENV=3D'/syzkaller/.config/go/env'
+GOEXE=3D''
+GOEXPERIMENT=3D''
+GOFIPS140=3D'off'
+GOFLAGS=3D''
+GOGCCFLAGS=3D'-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=3D0=
+ -ffile-prefix-map=3D/tmp/go-build2089224975=3D/tmp/go-build -gno-record-gc=
+c-switches'
+GOHOSTARCH=3D'amd64'
+GOHOSTOS=3D'linux'
+GOINSECURE=3D''
+GOMOD=3D'/syzkaller/jobs-2/linux/gopath/src/github.com/google/syzkaller/go.=
+mod'
+GOMODCACHE=3D'/syzkaller/jobs-2/linux/gopath/pkg/mod'
+GONOPROXY=3D''
+GONOSUMDB=3D''
+GOOS=3D'linux'
+GOPATH=3D'/syzkaller/jobs-2/linux/gopath'
+GOPRIVATE=3D''
+GOPROXY=3D'https://proxy.golang.org,direct'
+GOROOT=3D'/usr/local/go'
+GOSUMDB=3D'sum.golang.org'
+GOTELEMETRY=3D'local'
+GOTELEMETRYDIR=3D'/syzkaller/.config/go/telemetry'
+GOTMPDIR=3D''
+GOTOOLCHAIN=3D'auto'
+GOTOOLDIR=3D'/usr/local/go/pkg/tool/linux_amd64'
+GOVCS=3D''
+GOVERSION=3D'go1.24.4'
+GOWORK=3D''
+PKG_CONFIG=3D'pkg-config'
+
+git status (err=3D<nil>)
+HEAD detached at d6526ea3e
+nothing to commit, working tree clean
+
+
+tput: No value for $TERM and no -T specified
+tput: No value for $TERM and no -T specified
+Makefile:31: run command via tools/syz-env for best compatibility, see:
+Makefile:32: https://github.com/google/syzkaller/blob/master/docs/contribut=
+ing.md#using-syz-env
+go list -f '{{.Stale}}' -ldflags=3D"-s -w -X github.com/google/syzkaller/pr=
+og.GitRevision=3Dd6526ea3e6ad9081c902859bbb80f9f840377cb4 -X github.com/goo=
+gle/syzkaller/prog.gitRevisionDate=3D20251126-113115"  ./sys/syz-sysgen | g=
+rep -q false || go install -ldflags=3D"-s -w -X github.com/google/syzkaller=
+/prog.GitRevision=3Dd6526ea3e6ad9081c902859bbb80f9f840377cb4 -X github.com/=
+google/syzkaller/prog.gitRevisionDate=3D20251126-113115"  ./sys/syz-sysgen
+make .descriptions
+tput: No value for $TERM and no -T specified
+tput: No value for $TERM and no -T specified
+Makefile:31: run command via tools/syz-env for best compatibility, see:
+Makefile:32: https://github.com/google/syzkaller/blob/master/docs/contribut=
+ing.md#using-syz-env
+bin/syz-sysgen
+touch .descriptions
+GOOS=3Dlinux GOARCH=3Damd64 go build -ldflags=3D"-s -w -X github.com/google=
+/syzkaller/prog.GitRevision=3Dd6526ea3e6ad9081c902859bbb80f9f840377cb4 -X g=
+ithub.com/google/syzkaller/prog.gitRevisionDate=3D20251126-113115"  -o ./bi=
+n/linux_amd64/syz-execprog github.com/google/syzkaller/tools/syz-execprog
+mkdir -p ./bin/linux_amd64
+g++ -o ./bin/linux_amd64/syz-executor executor/executor.cc \
+	-m64 -O2 -pthread -Wall -Werror -Wparentheses -Wunused-const-variable -Wfr=
+ame-larger-than=3D16384 -Wno-stringop-overflow -Wno-array-bounds -Wno-forma=
+t-overflow -Wno-unused-but-set-variable -Wno-unused-command-line-argument -=
+static-pie -std=3Dc++17 -I. -Iexecutor/_include   -DGOOS_linux=3D1 -DGOARCH=
+_amd64=3D1 \
+	-DHOSTGOOS_linux=3D1 -DGIT_REVISION=3D\"d6526ea3e6ad9081c902859bbb80f9f840=
+377cb4\"
+/usr/bin/ld: /tmp/cc9mWJPn.o: in function `Connection::Connect(char const*,=
+ char const*)':
+executor.cc:(.text._ZN10Connection7ConnectEPKcS1_[_ZN10Connection7ConnectEP=
+KcS1_]+0x104): warning: Using 'gethostbyname' in statically linked applicat=
+ions requires at runtime the shared libraries from the glibc version used f=
+or linking
+./tools/check-syzos.sh 2>/dev/null
+
+
+
+Tested on:
+
+commit:         bc04acf4 Add linux-next specific files for 20251204
+git tree:       linux-next
+kernel config:  https://syzkaller.appspot.com/x/.config?x=3Da94030c847137a1=
+8
+dashboard link: https://syzkaller.appspot.com/bug?extid=3Dd222f4b7129379c3d=
+5bc
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-=
+1~exp1~20250708183702.136), Debian LLD 20.1.8
+patch:          https://syzkaller.appspot.com/x/patch.diff?x=3D1731d01a5800=
+00
+
