@@ -1,108 +1,98 @@
-Received: from mail-ej1-f45.google.com (mail-ej1-f45.google.com [209.85.218.45])
+Received: from mail-oi1-f197.google.com (mail-oi1-f197.google.com [209.85.167.197])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6C9873358D2
-	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Dec 2025 11:58:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5997B2C11EB
+	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Dec 2025 23:06:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.197
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764849526; cv=none; b=VTEwwepHhiyW+kQGP9/dXXgBmMptCisoEdZ9qsbZNLHJn9WrvFjKPltYLIZhP6GUFAT5SppnPi2WXEgWTySduL0vp65P/2ZIWlQ2h6HPP7CMWMXSmygRIiMqncGrza4pEGjCpPNQzVoVUZaZWya31JGe5wm6ynrM5w510RJJBBs=
+	t=1764889588; cv=none; b=WO39WzjPCnlUuvwMqp6JGzsdA8J+R4Gmo64Twft2pJG6LrX14IGnfAu7s8a6sMjcDk0yBY1BdZRMKN3/JplPj0+h85A7rCOy094mFDRUyOagynDxEcVKTBL7NczgG5YeJk4EKX5bo5GTfbAWyRE9tlVCZ6Rbb++kn2rZTQA6Iho=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764849526; c=relaxed/simple;
-	bh=G0P/BjEQyt89BmOUGn/wcDWujkDYsVOGhHTJqZN9U3c=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Vnbl12gXLU/DbrWRZO1JBitttsnfRD0B8iWLlsg8s6+rAh4Flxoe0bkWiDL+2purK+t3MO5REOYUSoN9l0ae22Eiqx6n+HTtsq/1YZnY7I2+adgtnMqQBacWzs9fBkx00nfl/veuI7AXeWppCTczMLnUpwRgx447bq47LOl+0yc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ayLxkjIA; arc=none smtp.client-ip=209.85.218.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ayLxkjIA"
-Received: by mail-ej1-f45.google.com with SMTP id a640c23a62f3a-b79f98adea4so31581766b.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 04 Dec 2025 03:58:42 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1764849521; x=1765454321; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=kdRxtjV4AYaI8LinC3rLYWwY9We5uYRQ7iuB0whbJMw=;
-        b=ayLxkjIA0c3ldOMfi+vzOi5FvUvcLtZVhOn6EItLdlg5BRnofISPnQ/ADmGAA7+36q
-         pZoG7OcFSJzB6siw5pg1wevtO14b4r8De9xIcwBN5b7MHQ4Jjr6LcxNrC2U4rOTPL/x4
-         hXqRXxafudap+9GkaMKkr06l8l9hIhIS9CLdZKWJIU8IsL67feizm5Jwzv/3ia7CSFFP
-         pcQDJeU5NGzTZ2l6kUxhmoW/jpY6eVoqGmF+bwNY936I0r9ZmTUDXb8ZiNorL3rnFuYh
-         vuB7wwud6HFdyeoaRvIR5nj7DobkhLx1kqMBKf8AQeXyeE0rxypO/YANjJOTfCUZJc7X
-         UOMg==
+	s=arc-20240116; t=1764889588; c=relaxed/simple;
+	bh=ZyQslrfSh0vjdbv7yxQZJcs8TXtwHGA4dyickLuH6t0=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Z/VFg7k/pYBwfnmtdwoO7LXk4eafaKjFlrda2UPsrp8ksA2x7ffxFY3Gcs0RJx8Nw1vEK561GUp8h5iIyGAhNx5YwlXg5S61dbZuJVN4E4ILp46UN6Th5QXXzWz9XF3iKn9UsUi/ukzSftU2QmbQ+HqNDklUs3S5JSPURBrGCnY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.197
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f197.google.com with SMTP id 5614622812f47-4501f50b40cso1671843b6e.1
+        for <ocfs2-devel@lists.linux.dev>; Thu, 04 Dec 2025 15:06:27 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764849521; x=1765454321;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=kdRxtjV4AYaI8LinC3rLYWwY9We5uYRQ7iuB0whbJMw=;
-        b=D1fr3CYvsSDT9xKRcSd0QBPvG2ExZe45RAtel/+9ZQlPxEJXlPVKq130Ybley+jx7s
-         hGXRKGpN+mYz1xumINyl13F8gooPDSgWMGRzESvMOrNbivHv37WusEavdCDTuG+haXLf
-         QNtvSt5wA24Bx+GBTdnzgoFtdyOjBcttFDDz/U3SccKnGlI4k3/5EgYHFCWYwYoJ6h5a
-         gSFf1BNgA00oV0RcmXmRUrlHaE1HB27XvAgM9sW8LcZ33DzfjARP0YV9LefYwstA9DWm
-         3kswGqWSha5jUaD6moiLC26peMFOdAuoHgxlpQpcRdg9idIbFUWbKPk9GoL9xjQn8A6b
-         aoXA==
-X-Forwarded-Encrypted: i=1; AJvYcCUtz8V1YhYgtOolXOXQ22svfwfgx6q3YIoQwECoohwPjkB0w6zb3rqlbPTJtKqJ3iXSV6n7mZWNTBjLEg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yy7NS+LUDxtW4TkEjMxN2r0HLTPg/M551PzFdGCMwBk7udYhASE
-	EEWKysF2t4jSeseA4RJ1uY77b4lJA9U6Bbhess+GJUUMn7JEfOMi/FE5OVAPasOJFuXeiET0O3P
-	w0e77ZR5ZCJQuF5Yfu1dGuAHJ4cWOKBg=
-X-Gm-Gg: ASbGncsylHZab/YoIoJhlViY+xYl0suVM/ZYrVtZ5SfQpLmb4yNktnkK+4mC1X1IdfK
-	G4Ksyi2i7hHmnDuY7upC9xFA/A+WXRylmaHoGU5wh0xaRbCbd5QNo4sz3PHkrrCqCbVpb1Ps+Yx
-	DikHJeg0CTh14iPLgwsR7gdCAaZKxT0N5VeastC94H7crtqGpMBPuhxz6/0ViElXthzF2pB7oob
-	vOh/EIakyk7+EU+Ewl9SYePfkLxOWP4kkf1y27SUPgEvg1aoQLkn1EKasaf1XDh9DkRTaVUhNIK
-	XhhUqwNvDmGPQIX2FWlS+jbK0gauXOHS+4NF
-X-Google-Smtp-Source: AGHT+IEZAg/XFTe1Ny7kp3td3ZFktfRztIAEYhqqLPG+NV2hEX+i0dMxJNlWGlVMUPP51XWp+MDN09fnafSDZDrxxXo=
-X-Received: by 2002:a17:907:3f24:b0:b73:b05c:38fd with SMTP id
- a640c23a62f3a-b79dc77dfbfmr569759366b.50.1764849520449; Thu, 04 Dec 2025
- 03:58:40 -0800 (PST)
+        d=1e100.net; s=20230601; t=1764889586; x=1765494386;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=rQ7V0W5Op1KcZh1+tjSSSxtFbnegYQ45uvJmETjaW04=;
+        b=lC/M1QCVjcGDeJoXjDkJbYHnVxzxCZMZyv4kWdyLyBu9n+Bc8PxOPEZzcpNbLIGRks
+         3lwoc9LuGhT0djB+/CjNFY2ZoZUhRE6Ai1pDoJ/eTaZ3SFcuaDIFm6G0ok3ZaOS5NIpy
+         EwvT3pDhFjH+jsZZJk6v0RqYN9dL/1XU4rEKrqsYigUUlT0+HWb/hPHvorFJf313sOCL
+         qVX/lLyFVUaVTJX1qMa0WvbBFJaFGZiu4SkeijbO51MX5cl+0eoBaRN7oOdKcrO3HUih
+         i7s+7UHpx33KRIk9Od6LxyWa3HzDHdiqYybgALsNys5yitwhZLlnTb/M5FVWG77Fa20P
+         RVag==
+X-Forwarded-Encrypted: i=1; AJvYcCXGdahzEn9iPqSlJx1sWU03vwwmr4+uLrULQmLCuMOWV/1pHmJEFG4kQ4AqtgjEP3ymtJFIlf40MjJRqg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwNj++MsMeugC0pKryfKWQ6ZFl8BEy8G+XGyW1PBbfxj4O1+Iuc
+	SuNvshvKJv4Ui4LIgK60cFl1MO0wAHL2KdkeLnKGOConHU3X2t+dWDrnUUR8EV0VNko+LJb99k0
+	rTylI6Xbs1zrhjICxr7Zile8Ge0Cq+Qr741Os10u4nXAjwx8mTL7Bic+CtMk=
+X-Google-Smtp-Source: AGHT+IEMpWLeleOwfAtjH1t7lzwJoMAilwhdCzWQ6VpNIuCdgLD27FjP48NNEyyJvVAF5TlRz29JhNEaL4RRehc14gGs2UUhVo1f
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <y3ucyzxisq6hcrhynzyhmb7h4vpzkyuueqesw547cx5zmzrvl4@offzqo327t4w> <693176d2.a70a0220.d98e3.01ce.GAE@google.com>
-In-Reply-To: <693176d2.a70a0220.d98e3.01ce.GAE@google.com>
-From: Mateusz Guzik <mjguzik@gmail.com>
-Date: Thu, 4 Dec 2025 12:58:28 +0100
-X-Gm-Features: AWmQ_bkIM7DKIOzDV3ZsYcLI4dGCflwhm-WCUoJ2WXb1p2GWU6R9B8YfTmEKDK4
-Message-ID: <CAGudoHG-16TCj3+nMseN9RVeybEPm4WTHn2Xqmek6Hc6k+=e0Q@mail.gmail.com>
-Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
-To: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
-Cc: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
-	ocfs2-devel@lists.linux.dev, sj1557.seo@samsung.com, 
-	syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
+X-Received: by 2002:a05:6808:1a1c:b0:44f:e912:eaa3 with SMTP id
+ 5614622812f47-4536e5045fdmr3812652b6e.32.1764889586546; Thu, 04 Dec 2025
+ 15:06:26 -0800 (PST)
+Date: Thu, 04 Dec 2025 15:06:26 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <693213f2.a70a0220.d98e3.01e0.GAE@google.com>
+Subject: [syzbot] Monthly ocfs2 report (Dec 2025)
+From: syzbot <syzbot+list478ef41f6f09391cb789@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
 Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
 
-On Thu, Dec 4, 2025 at 12:56=E2=80=AFPM syzbot
-<syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com> wrote:
->
-> Hello,
->
-> syzbot has tested the proposed patch but the reproducer is still triggeri=
-ng an issue:
-> kernel BUG in link_path_walk
->
-> VFS_BUG_ON_INODE(d_can_lookup(_dentry) && !S_ISDIR(_dentry->d_inode->i_mo=
-de)) encountered for inode ffff888074eca4f8
-> fs ocfs2 mode 100000 opflags 0x2 flags 0x20 state 0x0 count 2
+Hello ocfs2 maintainers/developers,
 
-note the patch at hand made sure to avoid transient states by taking a
-lock on the dentry:
-+       struct dentry *_dentry =3D nd->path.dentry;
-+       struct inode *_inode =3D READ_ONCE(_dentry->d_inode);
-+       if (!d_can_lookup(_dentry) || !_inode || !S_ISDIR(_inode->i_mode)) =
-{
-+               spin_lock(&_dentry->d_lock);
-+               VFS_BUG_ON_INODE(d_can_lookup(_dentry) &&
-!S_ISDIR(_dentry->d_inode->i_mode), _dentry->d_inode);
-+               spin_unlock(&_dentry->d_lock);
-+       }
+This is a 31-day syzbot report for the ocfs2 subsystem.
+All related reports/information can be found at:
+https://syzkaller.appspot.com/upstream/s/ocfs2
 
-So the state *is* indeed bogus and this is most likely something ocfs2-inte=
-rnal.
+During the period, 3 new issues were detected and 0 were fixed.
+In total, 59 issues are still open and 25 have already been fixed.
 
-I'm buggering off this report.
+Some of the still happening issues:
+
+Ref  Crashes Repro Title
+<1>  331392  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
+                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
+<2>  71056   Yes   possible deadlock in ocfs2_acquire_dquot
+                   https://syzkaller.appspot.com/bug?extid=51244a05705883616c95
+<3>  36887   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
+                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
+<4>  22192   Yes   possible deadlock in ocfs2_init_acl
+                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
+<5>  21752   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
+                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
+<6>  14418   Yes   possible deadlock in ocfs2_setattr
+                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
+<7>  6408    No    possible deadlock in ocfs2_xattr_set
+                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
+<8>  5925    Yes   kernel BUG in ocfs2_write_cluster_by_desc
+                   https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
+<9>  3972    Yes   possible deadlock in ocfs2_lock_global_qf
+                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
+<10> 3033    Yes   possible deadlock in ocfs2_del_inode_from_orphan
+                   https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+To disable reminders for individual bugs, reply with the following command:
+#syz set <Ref> no-reminders
+
+To change bug's subsystems, reply with:
+#syz set <Ref> subsystems: new-subsystem
+
+You may send multiple commands in a single email message.
