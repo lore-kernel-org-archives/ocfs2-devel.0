@@ -1,118 +1,126 @@
-Received: from mail-ej1-f49.google.com (mail-ej1-f49.google.com [209.85.218.49])
+Received: from mail-oi1-f199.google.com (mail-oi1-f199.google.com [209.85.167.199])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D12EE2DCF69
-	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Dec 2025 10:15:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 19BCC2FCBE3
+	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Dec 2025 11:56:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.199
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764843330; cv=none; b=lZ8ipwx5pVxvzpLBWbEQUybgwViCJx94aKonraNMf2ZGADQtEsosCG0oYbH0Mbfa6wMcjo3d1udIRBikggu6THlGaedvcHrgYLHxdVIocbYqCqMQ1IzGthCUAMrvQxgCosJykJtT0FeXjdV4PeTIUNlbdcTuAURSBpAsZ1KKZ/A=
+	t=1764849364; cv=none; b=Pey4FRN94CCk0lJzy5eLCJSh+iKRIKNsEO4sf1WxuAAiiE0YQfX66EOnmc/Q+ascLiguCRFfpvwlNxOBzLAB85yr8U9w/egwiSbSyimwkEH+Prvr0st1ICHkPo0yRgC4MYyN6CT3hLFnnlBPgpR8o0XH3dsA0oKMehF/AXjK5NQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764843330; c=relaxed/simple;
-	bh=G/V5a2DM4z0s4NA1jFBIhpGM5FAP4Ci6VK98GbHxpMA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=i6pRCzoJQAcpizMMjcwwmkDzIfSyfnkYg3XhdoNkoqZ4KxElcRLcDG2uJ78X8I1dxTu6OKQCrENySChN7kqootJW/FCIm7Xdah7JfGP/y16FnzDzg+7r8ekqycATmC7JQN2eZGkKV49roJUW01/LVf248/PBg4IUVPPQEneI0Gc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=D3vOqOWy; arc=none smtp.client-ip=209.85.218.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="D3vOqOWy"
-Received: by mail-ej1-f49.google.com with SMTP id a640c23a62f3a-b770f4accc0so94429066b.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 04 Dec 2025 02:15:28 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1764843327; x=1765448127; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=58j801WLI+nIYxqrnb2VGaqLqwLtuta5ZxrmeODMmzc=;
-        b=D3vOqOWy4jobTRj1VzYioPIMMmCmScaro4vM1yZAH9tYOKdJFI2So7gPnigV8Exw5/
-         YvmlQBWlrZMmPdzIgzITXK/xBKL8/SMpuNdPhbloqR7jHd0r3ZAViLErB97bKZHb8xpK
-         lmOOHHC0Fgdvrsx7mR6uvjZhf+rS9W3UGP5kE/qU9Tz/9Gw9B/UmfCJsTsno/AS0XIAT
-         e6B9lTMBYT2uKWisPsah15DBL+I+BoNrqVV3ZyO1EjbsBoOBaxnN7juonDfU3Q/NAWpp
-         myt2W9VvnaVhgJUZXsZbyVfVynE8oKviH08opGSIfxhmvP1jUxMmpGHu9wJRTmdMmwyP
-         gg6w==
+	s=arc-20240116; t=1764849364; c=relaxed/simple;
+	bh=HuRV66mhwIK+ujuZkfALcvDiKj8dTdPI6TepPMED/WQ=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=l1bbIyABc6nkBtnErl1OVKjgTfoZkP+8KKQHoqIDPlpp9qs/jbzHQJif3lx102Fb3A4vkgquhp5oYNngv6dP/2sR4/mQ8RAvo5qFiAd2iM2mMHTGfHI1EyC5L4fP6zC5vjwyv6+GOLTqj8LICK1XAwD3fmxxitInuUnMrTjVwkk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.199
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f199.google.com with SMTP id 5614622812f47-4530ea23ce6so1156103b6e.1
+        for <ocfs2-devel@lists.linux.dev>; Thu, 04 Dec 2025 03:56:02 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1764843327; x=1765448127;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=58j801WLI+nIYxqrnb2VGaqLqwLtuta5ZxrmeODMmzc=;
-        b=FO0T0ycm/WK4HMl6SzuSEBS36p5FBXV6IzDEvZqfsI1LaQWu54q0ywpe6HXwszsjDm
-         W0imNGh+aox+Zv2Ap38T0Sw8zMY/1jN98WGz+o7O+OOVy39Gmj4Kd/QUUZD0v/kJiW+R
-         n9GnRPH75/a8pBrAfsqu7WmeVV+Gf9Sxom+402oJ07+sK2eA0Pxv12djZaa6fb4kflA0
-         ZHdbDPXmTb4iOMwYGgE8CPvC7g57xPBOP01SaiiZzVe6z2b0coAfC8aoCGaM4qcB6EpZ
-         skHbeA8Z73VQ54wqFIsk+Zch548WctR5PHBW00jaGuVPsYSCM5p5Fwd8RYmLhPD3G8d0
-         8A3w==
-X-Forwarded-Encrypted: i=1; AJvYcCV6VxHUccZbEETTv51LwB67O02SLSnAvvzvU8TkWP0ioNJPtpIZcZ5BO702DZPpOUGK5nznUYyA+OBqbw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxTpBDhK0sjUOQtco8Mt/QNvDWeGq78x2XSlyVt5fTVRTxLOEfd
-	HfMdbaoFwfJGOTDZY4SWjFaXip2xVknyQ3/+dTwfqnz0VfBtIfX1Z71HiePY2B80
-X-Gm-Gg: ASbGnctjukxqQPZT0X0AnUvAzV129EzY9+zi4a12gXh9jtVd8Tm1h3qjYo+f+INOM/C
-	lVUCqIS8JwVlXFLtLZIEF3ffLXny98C1IiEBwvIiookL1QAPWGujMjr64Bl8DOYznSCXCvwrAud
-	1SQcabu0fCP40pqIUYxAPRsCOFeu1q8vM31xlZoW0ZdelWmEOfSukBr+muQgk3FO7SrRLwhsML6
-	FLY5b6SwZb2c0evagfVYPIEppLNvCBCSifwUInTOCPFVfpDH8nNTAikBHL6gSvchG6HQjz0vj1t
-	OnS3i3muVxC33lkKh3CE5MdXmaq+Wwa6+HEYweLXgIwz4UMlb2N4Ghs735dh+GPp4iObvseL52X
-	W/tOwDqHwvVpAOLoEkk++LYQK79k15VDHv672x7wTbqy8nggZ9lBmO1HVJl5/MwetHbHS7WcKTq
-	bBFvbImuYvsHIk7BUW9FKuPCZkumwOTKftDhQVVMg2uIRA96wHkyO3Njvy
-X-Google-Smtp-Source: AGHT+IG5aE1vQvhlm3ydUo6OyEdm6Ub4STF8TNV1hee0aDAXuKoA587zP9S8T0STP6SoUCC84C0yPQ==
-X-Received: by 2002:a17:907:7e9c:b0:b0e:d477:4972 with SMTP id a640c23a62f3a-b79ec486c21mr260273066b.25.1764843326518;
-        Thu, 04 Dec 2025 02:15:26 -0800 (PST)
-Received: from f (cst-prg-14-82.cust.vodafone.cz. [46.135.14.82])
-        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-647b2edf71fsm956544a12.14.2025.12.04.02.15.23
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 04 Dec 2025 02:15:25 -0800 (PST)
-Date: Thu, 4 Dec 2025 11:15:07 +0100
-From: Mateusz Guzik <mjguzik@gmail.com>
-To: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
-Cc: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	sj1557.seo@samsung.com, syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
-Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
-Message-ID: <y3ucyzxisq6hcrhynzyhmb7h4vpzkyuueqesw547cx5zmzrvl4@offzqo327t4w>
-References: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
+        d=1e100.net; s=20230601; t=1764849362; x=1765454162;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=0C/CCiyV8nJfaxNZGgm0t8nS5tX7x5fb2iYGpwFC0ok=;
+        b=gGagGcLqIErT5mWn7mGBE6vABVv4OMcEHhZ5x37s7Xvh8muhABWXuX1mS3xrx/5wBy
+         d+AN4rXXTpwSHW/yjvH5adBaE9RI4GYXsnHzn+e9e8rI8YUhU1FevfSLXYWNERhpHFZ5
+         WCPBD3W+0wICeWwRGSzGzHonhEJzDZ9FwXajQXIVU4tfVSoXXJ5ej5etgkPwBQqmPtD/
+         CJUv5ha9J82cWVlH1tVDXf141bOB0c7qjEqR/0M3IUcjsJecMVpmElTusgW04Ug4YY8S
+         4Tf+HOH1tgjQfxHIfCPRrmimb+b7cqEYttNlUw+3yJaN2uqBbcF1HgdJHywEjlrNylLw
+         TZ9w==
+X-Forwarded-Encrypted: i=1; AJvYcCWpiM/Jq5pnaKcNb/iZ/AIWKGnBX8qamaLRXTMDV/k3IFJoAUzaMq4bJ/27yuVcClG9Cuy3XRw5ZAfrnw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxEJERvzuwH6THoII6Gl0Kqle5WFV8BgEEOEI2T7MsCQp3L21rb
+	C80zQmFYhtewgUuw5jdAsMKNKGvUlx93KejS2YumScONyeRMJ3ybNQLdnJFomYClupIwye++rhC
+	rgllOIjmygTzBFD7Ubpx3O0HMtrCMCqcqkmt2n0ahIbmRYKockvAiv/tqEpI=
+X-Google-Smtp-Source: AGHT+IHNrzg0lUqRiTNM4AjSuYJZKlDaPkqo1TSL3pb5Fp9eZaSHERWKJcevEKtpN7MtVQ1/ESm3dKU8dQKpIyQ2UDqp0p3jYubj
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
+X-Received: by 2002:a05:6808:2225:b0:441:8f74:fbf with SMTP id
+ 5614622812f47-45379eb6e74mr1479684b6e.60.1764849362313; Thu, 04 Dec 2025
+ 03:56:02 -0800 (PST)
+Date: Thu, 04 Dec 2025 03:56:02 -0800
+In-Reply-To: <y3ucyzxisq6hcrhynzyhmb7h4vpzkyuueqesw547cx5zmzrvl4@offzqo327t4w>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <693176d2.a70a0220.d98e3.01ce.GAE@google.com>
+Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
+From: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
+To: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	mjguzik@gmail.com, ocfs2-devel@lists.linux.dev, sj1557.seo@samsung.com, 
+	syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
+Content-Type: text/plain; charset="UTF-8"
 
-syzbot had an internal failure, so let's try again
+Hello,
 
-#syz test
+syzbot has tested the proposed patch but the reproducer is still triggering an issue:
+kernel BUG in link_path_walk
 
-diff --git a/fs/namei.c b/fs/namei.c
-index bf0f66f0e9b9..87c99149a152 100644
---- a/fs/namei.c
-+++ b/fs/namei.c
-@@ -1896,6 +1896,14 @@ static inline int may_lookup(struct mnt_idmap *idmap,
- {
- 	int err, mask;
- 
-+	struct dentry *_dentry = nd->path.dentry;
-+	struct inode *_inode = READ_ONCE(_dentry->d_inode);
-+	if (!d_can_lookup(_dentry) || !_inode || !S_ISDIR(_inode->i_mode)) {
-+		spin_lock(&_dentry->d_lock);
-+		VFS_BUG_ON_INODE(d_can_lookup(_dentry) && !S_ISDIR(_dentry->d_inode->i_mode), _dentry->d_inode);
-+		spin_unlock(&_dentry->d_lock);
-+	}
-+
- 	mask = nd->flags & LOOKUP_RCU ? MAY_NOT_BLOCK : 0;
- 	err = lookup_inode_permission_may_exec(idmap, nd->inode, mask);
- 	if (likely(!err))
-@@ -2527,6 +2535,14 @@ static int link_path_walk(const char *name, struct nameidata *nd)
- 		return 0;
- 	}
- 
-+	struct dentry *_dentry = nd->path.dentry;
-+	struct inode *_inode = READ_ONCE(_dentry->d_inode);
-+	if (!d_can_lookup(_dentry) || !_inode || !S_ISDIR(_inode->i_mode)) {
-+		spin_lock(&_dentry->d_lock);
-+		VFS_BUG_ON_INODE(d_can_lookup(_dentry) && !S_ISDIR(_dentry->d_inode->i_mode), _dentry->d_inode);
-+		spin_unlock(&_dentry->d_lock);
-+	}
-+	
- 	/* At this point we know we have a real path component. */
- 	for(;;) {
- 		struct mnt_idmap *idmap;
+VFS_BUG_ON_INODE(d_can_lookup(_dentry) && !S_ISDIR(_dentry->d_inode->i_mode)) encountered for inode ffff888074eca4f8
+fs ocfs2 mode 100000 opflags 0x2 flags 0x20 state 0x0 count 2
+------------[ cut here ]------------
+kernel BUG at fs/namei.c:2542!
+Oops: invalid opcode: 0000 [#1] SMP KASAN PTI
+CPU: 1 UID: 0 PID: 7668 Comm: syz.0.211 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+RIP: 0010:link_path_walk+0x1d7f/0x1d90 fs/namei.c:2542
+Code: e8 a6 16 ea fe 90 0f 0b e8 de 8c 83 ff 41 89 ef e9 d2 fc ff ff e8 d1 8c 83 ff 4c 89 ff 48 c7 c6 40 d6 79 8b e8 82 16 ea fe 90 <0f> 0b 66 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00 90 90 90 90 90
+RSP: 0018:ffffc9000c5a78a0 EFLAGS: 00010282
+RAX: 00000000000000b2 RBX: ffffc9000c5a7c20 RCX: 68650f632580b300
+RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000000
+RBP: ffff888011640020 R08: 0000000000000003 R09: 0000000000000004
+R10: dffffc0000000000 R11: fffffbfff1bbae20 R12: 0000000000008000
+R13: ffffc9000c5a7c28 R14: ffff888074f0a0b8 R15: ffff888074eca4f8
+FS:  00007f56a8b4f6c0(0000) GS:ffff888125f3a000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f56a73fdf98 CR3: 00000000742f6000 CR4: 00000000003526f0
+Call Trace:
+ <TASK>
+ path_openat+0x2b3/0x3dd0 fs/namei.c:4799
+ do_filp_open+0x1fa/0x410 fs/namei.c:4830
+ do_sys_openat2+0x121/0x200 fs/open.c:1430
+ do_sys_open fs/open.c:1436 [inline]
+ __do_sys_open fs/open.c:1444 [inline]
+ __se_sys_open fs/open.c:1440 [inline]
+ __x64_sys_open+0x11e/0x150 fs/open.c:1440
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f56a7d8f749
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f56a8b4f038 EFLAGS: 00000246 ORIG_RAX: 0000000000000002
+RAX: ffffffffffffffda RBX: 00007f56a7fe5fa0 RCX: 00007f56a7d8f749
+RDX: 0000000000000000 RSI: 0000000000145142 RDI: 0000200000000240
+RBP: 00007f56a7e13f91 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f56a7fe6038 R14: 00007f56a7fe5fa0 R15: 00007ffd61dc1878
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:link_path_walk+0x1d7f/0x1d90 fs/namei.c:2542
+Code: e8 a6 16 ea fe 90 0f 0b e8 de 8c 83 ff 41 89 ef e9 d2 fc ff ff e8 d1 8c 83 ff 4c 89 ff 48 c7 c6 40 d6 79 8b e8 82 16 ea fe 90 <0f> 0b 66 66 66 66 66 66 2e 0f 1f 84 00 00 00 00 00 90 90 90 90 90
+RSP: 0018:ffffc9000c5a78a0 EFLAGS: 00010282
+RAX: 00000000000000b2 RBX: ffffc9000c5a7c20 RCX: 68650f632580b300
+RDX: 0000000000000000 RSI: 0000000000000001 RDI: 0000000000000000
+RBP: ffff888011640020 R08: 0000000000000003 R09: 0000000000000004
+R10: dffffc0000000000 R11: fffffbfff1bbae20 R12: 0000000000008000
+R13: ffffc9000c5a7c28 R14: ffff888074f0a0b8 R15: ffff888074eca4f8
+FS:  00007f56a8b4f6c0(0000) GS:ffff888125f3a000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f56a73fdf98 CR3: 00000000742f6000 CR4: 00000000003526f0
+
+
+Tested on:
+
+commit:         bc04acf4 Add linux-next specific files for 20251204
+git tree:       linux-next
+console output: https://syzkaller.appspot.com/x/log.txt?x=107bd01a580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=a94030c847137a18
+dashboard link: https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+patch:          https://syzkaller.appspot.com/x/patch.diff?x=1377401a580000
+
