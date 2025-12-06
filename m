@@ -1,73 +1,135 @@
-Received: from mail-oo1-f71.google.com (mail-oo1-f71.google.com [209.85.161.71])
+Received: from mail-pf1-f177.google.com (mail-pf1-f177.google.com [209.85.210.177])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D9713244675
-	for <ocfs2-devel@lists.linux.dev>; Sat,  6 Dec 2025 15:43:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.71
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 035A1274FDB
+	for <ocfs2-devel@lists.linux.dev>; Sat,  6 Dec 2025 15:48:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765035784; cv=none; b=k1kFK6oJdqiWlR5VyF4kfjXfr+3A2CmRDQwJEu8PZso5vZYoqTm9ZcxwDGJp63KkVoFFoHk+favG0uKWCQJ0ObasW8qmmrs+VWaX5DrOhK2PqEE0QdFYSfnrpqUDgKl4NURB2ok8PzvD3l2r1jpLk64RHCY2ORYgHTa1ZNxZqbM=
+	t=1765036118; cv=none; b=mKj4odIWWL23Lly2QPDl81lYTUlMs32u/ZOM233DLuEViKL2DW+AWcA+vAQXZLF+/ZnMx3TDYoaD1uEkZZlAJ////KR806ZiBlK8axsZqa38MsWWgXGUddgwuQ+oEs4Y8HW6JZfEY7ZHreaRzwLO3r/VV9UvUaGbSP0VdEq7ulo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765035784; c=relaxed/simple;
-	bh=+gNhZn9P3uGgQo9T/KUIxGLSJKvRdT3srt1ZjeO3EOc=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=MWc6/PCP6qTrUNQaP9KVL6IaUbdQvHAod0w6+ZUKq9WWwIv7amTNJ048D6/i+TwcJXz8OUxla58yO+r97qp1VK7QsnM2IEpIw24Dmk8/rrOS1iVfqjWGU9E0KkrrS8xyXQuQ8w9ykCVmAISImGHvbNet/9yg98M2u9WPxKdEQUA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.71
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f71.google.com with SMTP id 006d021491bc7-65746235dd4so2111360eaf.3
-        for <ocfs2-devel@lists.linux.dev>; Sat, 06 Dec 2025 07:43:02 -0800 (PST)
+	s=arc-20240116; t=1765036118; c=relaxed/simple;
+	bh=GuParDz5eBLylVgW96qpjXBZ/qEXhOMxbh9C6uWa7ac=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=prHmjPE4GHc4oilWaSRyFqsK0P9sK6Njo7Xq2WtF72fJCUwydsPN57gUZLezvqvCdVVyJkUNm0rJlCN4xeMU0LJe6uhkMFFnBrmhFmjrcEcwPGvJPBE/c3XAbB8QlQc4VFffNmKYlAAirWIWQyQF7IG3jKS06GP+4VCktHHuOQ8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ROegrRMb; arc=none smtp.client-ip=209.85.210.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ROegrRMb"
+Received: by mail-pf1-f177.google.com with SMTP id d2e1a72fcca58-7e1651ae0d5so2331466b3a.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 06 Dec 2025 07:48:36 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1765036116; x=1765640916; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=+eRPeM9q2EbXpge8hopYzyHkKbCy3VfPZR9AGB8+LLk=;
+        b=ROegrRMbt7tAJR04w/QBpviK5CwHD6Uwq3GJCKoULAUNJ3T7aly5eCwgGgJwnl0VPw
+         r1lUe1VALMSfaHVx4ItJFBtUdM1NK1LsY403e1tFqHB2TtfIKhb+S00mCD2Y4r4dU/8l
+         04vyJ97VsLh9ko8MkvjG96T6waqKXHihP96RIfJr3Jzuq+Nf+ZSQoVjpKL64za0UTXwe
+         iU7CZge1TVg98ZcwjddsKSIEwZXwcC4FK3O5vXPanC3e1NtXH+SRI5MvKDJgb1RaS4C0
+         qbNAGfWu3ybXD1P6yXtUlMSCNJpiK3eG8U1ZjI2PlE1YlUHU2FZS+NBgickqIulBW2Mm
+         FEhQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765035782; x=1765640582;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=MkZ3BUgxtdC3Jpxqqd2QZ8q3vqflHH3oAgxmShrb3fs=;
-        b=LAlQmCEAVmXSu28aeDTYcylICS2JoFDhmamqbZnsuKTKwUlpJ2H27Vq4fPqN/ZYnTP
-         N8eTuVZWyaIf6XvveX3skhmwkoOqVDyBt0ZlC1HDnBUEq5Oeonop0yDKBEq3Ydjd5ziA
-         7aJMxfGkR9q7+WLJD+f9PSCt7KJDsvpY6stP6fN1cRXytbPwRBU6brUBfhap8XggZN5d
-         g/DAUDHeqdkKQ18hhFO71Av56Xc/O9UcmPoP6Jn6Vwf30iFbEG89sorE2DKfvsRoVHYj
-         fjW3ZkL2fCfTbiSgBG7HvFZXM0Xx3nQK4MGmx8PdERxp5GJ07eVDaTRroZiWPF/m+M+t
-         wfFA==
-X-Forwarded-Encrypted: i=1; AJvYcCUUHnhBHoA0izaB78hDRijCTmXIi9XoZxzhwjmDEiTl3ZmteYIMlpFwEpelyb53Gj7zYZg7O/6QpDtW+g==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxlDiY9cIcYvW0ChcOnDBlU5UYxAoCUN159p0K9rdwrXNBD4PHp
-	BwMzT+9uufRE4O0/iUQZmBGl4cFk4FgnWvT4Cn5/2k/L1sunvP8oirjPtYNUU8td+Aj+ytiwjwI
-	3GNuvm2oCo9QusuCzhDJBlCpGfy5q/M6zG0x8D5x+jCUSWUbjy/yma8663UQ=
-X-Google-Smtp-Source: AGHT+IF8kWUtA1lEBL20RdWiqST6w9ernqVcruZdfolEGS2FZyOUIh2E65L+oH3SKCclGfbHX3RZDzShtPd3/edUneDDgmdisrlk
+        d=1e100.net; s=20230601; t=1765036116; x=1765640916;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=+eRPeM9q2EbXpge8hopYzyHkKbCy3VfPZR9AGB8+LLk=;
+        b=d/JKjBult/m9umtgpJTrGW/MI1owFsbt1OpTtHpxyt7wLFlg/2aDGVaUnIeBGwYa+1
+         eUtyu8CPAKaLGIilAa14Qc4zhptK1WjoFp+NVNxK6vDMnIDZy+Rh02UO9erFA64Koiz/
+         92bKkzUo4okzQOMJfsCZmZgWKjLEY0vyZI9nfIyUBwffvMg1wsNB9vUH/ylYMHShQoJZ
+         8fQnY/m3C8ZOLrfhdyeb0Ur1on+iuCxGc3CAi2eWa4gRRuEofmCxxpGy7wINzauqyd/r
+         2r+0xDLqxfsE+ZcGgstnX4QElYCiI4QXp6IP5U6ZGCrU8sab9DFqozHauaxrc72ysmzZ
+         Tucw==
+X-Gm-Message-State: AOJu0YzvgELhU8AA7DCkUSvLxiBq0Oqg1mzyNf0qZGZKIUbIDewvciB1
+	9UfG6WOh+juzJ0BbrpTA7LzSYcsuDTZ4lsm4wbGn8V6zX4DcIO89M5/J
+X-Gm-Gg: ASbGnctP2ny3jb4yd/4Z8BvNOKYH5GTgm/TFpoqoi5F1sspbbHaEBuJ6b/ThVc/n6hS
+	OxcuvWHu7tqvsnyJHUe6zP1zahxpyHYy5NlxECe2FvofbOYZmn/r4T3rQEhSs2e3daWVitIHEol
+	aHnRN+YVPe/AOmpB41Cwhq0ASXGHYO8CXCoZuoyXPdTpFTbYTntVzAzpmG62mbduU8KpAhQdfs1
+	kWGlMyG1sQWsfYLPAEcfpPaiwMQOpmE/gY3y0SklPIx03GYTBvjYcvBM+tX+nWscrycBunVo6gT
+	Q7w8ol3qvq0k7gKnx8+ulNSMoezNMv42YhisFMRhIrxmvK0xccAKJmiWH7Ju4ewFMZGkN334L/h
+	+3dUjPwYpiud97fizKEIXyIsahB9dKvdo6kOVSdoHqyCBxFSVUSCZCafzItSlp7SbO+y4XKP/AD
+	OqVBxbJ/6nvCkU1md4fRgmycf2Yw==
+X-Google-Smtp-Source: AGHT+IHFctVdxlEN7Gl0atqGBbR40knvStVEAlZWL5HG/t6ahFYt4XUQze3IxeMz74Bn6QMNjDZeag==
+X-Received: by 2002:a05:6a20:a11e:b0:364:31e:2cb1 with SMTP id adf61e73a8af0-36617e6c5dfmr2683085637.17.1765036116169;
+        Sat, 06 Dec 2025 07:48:36 -0800 (PST)
+Received: from localhost.localdomain ([114.79.178.20])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-bf6875cc8eesm7645210a12.16.2025.12.06.07.48.31
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 06 Dec 2025 07:48:35 -0800 (PST)
+From: Prithvi Tambewagh <activprithvi@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	linux-kernel-mentees@lists.linux.dev,
+	skhan@linuxfoundation.org,
+	david.hunter.linux@gmail.com,
+	khalid@kernel.org,
+	Prithvi Tambewagh <activprithvi@gmail.com>,
+	syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
+	stable@vger.kernel.org
+Subject: [PATCH] ocfs2: Fix kernel BUG in ocfs2_write_block
+Date: Sat,  6 Dec 2025 21:18:19 +0530
+Message-ID: <20251206154819.175479-1-activprithvi@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:220e:b0:659:9a49:8e47 with SMTP id
- 006d021491bc7-6599a8c4bbbmr1167182eaf.23.1765035782063; Sat, 06 Dec 2025
- 07:43:02 -0800 (PST)
-Date: Sat, 06 Dec 2025 07:43:02 -0800
-In-Reply-To: <20251206152000.174746-1-activprithvi@gmail.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <69344f06.a70a0220.38f243.002e.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_block
-From: syzbot <syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com>
-To: activprithvi@gmail.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello,
+When the filesystem is being mounted, the kernel panics while the data
+regarding slot map allocation to the local node, is being written to the
+disk. This occurs because the value of slot map buffer head block
+number, which should have been greater than or equal to
+`OCFS2_SUPER_BLOCK_BLKNO` (evaluating to 2) is less than it, indicative
+of disk metadata corruption. This triggers
+BUG_ON(bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) in ocfs2_write_block(),
+causing the kernel to panic.
 
-syzbot has tested the proposed patch and the reproducer did not trigger any issue:
+This is fixed by introducing an if condition block in
+ocfs2_update_disk_slot(), right before calling ocfs2_write_block(), which
+checks if `bh->b_blocknr` is lesser than `OCFS2_SUPER_BLOCK_BLKNO`; if
+yes, then ocfs2_error is called, which prints the error log, for
+debugging purposes, and the return value of ocfs2_error() is returned
+back to caller of ocfs2_update_disk_slot() i.e. ocfs2_find_slot(). If
+the return value is zero. then error code EIO is returned.
 
 Reported-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
 Tested-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
+Cc: stable@vger.kernel.org
+Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+---
+ fs/ocfs2/slot_map.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-Tested on:
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index e544c704b583..788924fc3663 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -193,6 +193,16 @@ static int ocfs2_update_disk_slot(struct ocfs2_super *osb,
+ 	else
+ 		ocfs2_update_disk_slot_old(si, slot_num, &bh);
+ 	spin_unlock(&osb->osb_lock);
++	if (bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) {
++		status = ocfs2_error(osb->sb,
++				     "Invalid Slot Map Buffer Head "
++				     "Block Number : %llu, Should be >= %d",
++				     le16_to_cpu(bh->b_blocknr),
++				     le16_to_cpu((int)OCFS2_SUPER_BLOCK_BLKNO));
++		if (!status)
++			return -EIO;
++		return status;
++	}
+ 
+ 	status = ocfs2_write_block(osb, bh, INODE_CACHE(si->si_inode));
+ 	if (status < 0)
 
-commit:         24172e0d Merge tag 'arm64-fixes' of git://git.kernel.o..
-git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-console output: https://syzkaller.appspot.com/x/log.txt?x=10470eb4580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=41ad820f608cb833
-dashboard link: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
-patch:          https://syzkaller.appspot.com/x/patch.diff?x=10074992580000
+base-commit: 24172e0d79900908cf5ebf366600616d29c9b417
+-- 
+2.43.0
 
-Note: testing is done by a robot and is best-effort only.
