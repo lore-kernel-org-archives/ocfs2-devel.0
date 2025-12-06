@@ -1,63 +1,117 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj1-f54.google.com (mail-pj1-f54.google.com [209.85.216.54])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E686131281B;
-	Sat,  6 Dec 2025 00:19:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C381199FAC
+	for <ocfs2-devel@lists.linux.dev>; Sat,  6 Dec 2025 12:31:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1764980372; cv=none; b=eREgAJ4cbrkOogANfV1Yl/20Fh+IKaOJjUMCrz1uR2it4t4rc8KKYw8+UqrgFyG5T3KROlbwDDeSDOl4dJ6+dfUqUHnhTBcPJR79P/g93ufi6uVVYOTyEAgriO1gwV1W6B6xVsatwPThgkjhFtfDBDVR4YI6CXr6fsYiCIi7R8c=
+	t=1765024301; cv=none; b=jww1SiDBFzPr4X3Q0+zhRVQU0i3avc+NHYctZ7FIHAAXqeqD6a5L539rv8TUmCipeE4mGdbc56B3Tq1+jD3Fbc+SMXCxqUKC7OUfQbbszuuU75zPpLPErXy2MryYwZdatmhsZbSy7d7jRHTNDA/gC11G4Tf1zwRAdSUFTE5K1Lc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1764980372; c=relaxed/simple;
-	bh=3etdHXSgtNYaEFUmgruCO24HTvt5AYTu0uxT7IBnUcQ=;
-	h=Subject:From:In-Reply-To:References:Message-Id:Date:To:Cc; b=FG00Dh3iClXHWdW0u06aUxDBMP8gFKGcA/HRiqNgTBOLMpC0umZGsTOCdxDvW8yLCvcpVeVDiwzre/epm07fiISVW/CLo4bkQOKBuGlWo53+M++g37bc140GQP9A9hsnIjB15spVkda7mvljMspwfnBOj68HeBvPsyJ41Ok6Wk4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=QFGGa8Nf; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1765024301; c=relaxed/simple;
+	bh=qPyv+FhaSq47XVLsCXQLi9CDfoboWzwT/pxzsncu2BQ=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=SCt2cO78xSZwt8Sx7TheqkZAPgDY6/yKrtbJEYp19PRXVv0ytgaj6YliL3A4NAv++FgnYwvlREaKU5nu77sv5uXr0Po2ESwG9v6WEUHf94Ny4G62ffATRQQaJOrMdrUqT9+W46PDDiGIywrHoi/hxW78/zDlu9nvnL+YbNgbZGc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=R2VRct03; arc=none smtp.client-ip=209.85.216.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="QFGGa8Nf"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5FB73C116B1;
-	Sat,  6 Dec 2025 00:19:31 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1764980371;
-	bh=3etdHXSgtNYaEFUmgruCO24HTvt5AYTu0uxT7IBnUcQ=;
-	h=Subject:From:In-Reply-To:References:Date:To:Cc:From;
-	b=QFGGa8NfLjC1InBOhTibkDHpgzIfL1CyCFJJuoSLwER+CI30Z6Ed8kqDqBCysV0Ow
-	 ehy3mpRaC13ofFn0ZG4feletaqBePnlDkOnJWCNnh68c4loysX12Xypo/W1ZEMXAxw
-	 q0wpFI9fIj4hzKR/voXXAvOwhvfpo0I/avm4Gw+o2fIoRnoa39VjKSCD7EQ0C3fLbc
-	 0Vt2S4hBsziFNDwEXtNS51+jaxWEqfTHFU05dehe1ccAHGdACJzgj51W0gDFkKX39B
-	 bMkN4dJbRr1eR2j8m8Is4dCPR9GWlezVuBUMxUNC7IdnINovjJWwLfT4wfgrbyhARn
-	 KUSUcgcnJgNKA==
-Received: from [10.30.226.235] (localhost [IPv6:::1])
-	by aws-us-west-2-korg-oddjob-rhel9-1.codeaurora.org (Postfix) with ESMTP id 0E6203808200;
-	Sat,  6 Dec 2025 00:16:30 +0000 (UTC)
-Subject: Re: [git pull][vfs] tree-in-dcache stuff
-From: pr-tracker-bot@kernel.org
-In-Reply-To: <20251204064706.GJ1712166@ZenIV>
-References: <20251204064706.GJ1712166@ZenIV>
-X-PR-Tracked-List-Id: <linux-mm.kvack.org>
-X-PR-Tracked-Message-Id: <20251204064706.GJ1712166@ZenIV>
-X-PR-Tracked-Remote: git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git tags/pull-persistency
-X-PR-Tracked-Commit-Id: eb028c33451af08bb34f45c6be6967ef1c98cbd1
-X-PR-Merge-Tree: torvalds/linux.git
-X-PR-Merge-Refname: refs/heads/master
-X-PR-Merge-Commit-Id: 7cd122b55283d3ceef71a5b723ccaa03a72284b4
-Message-Id: <176498018885.1869773.11235050751770031700.pr-tracker-bot@kernel.org>
-Date: Sat, 06 Dec 2025 00:16:28 +0000
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Linus Torvalds <torvalds@linux-foundation.org>, Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>, Ian Kent <raven@themaw.net>, Miklos Szeredi <miklos@szeredi.hu>, NeilBrown <neil@brown.name>, Andreas Hindborg <a.hindborg@kernel.org>, linux-mm@kvack.org, linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, Kees Cook <kees@kernel.org>, Steven Rostedt <rostedt@goodmis.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, linux-usb@vger.kernel.org, Paul Moore <paul@paul-moore.com>, Casey Schaufler <casey@schaufler-ca.com>, linuxppc-dev@lists.ozlabs.org, John Johansen <john.johansen@canonical.com>, selinux@vger.kernel.org, Christian Borntraeger <borntraeger@linux.ibm.com>, bpf@vger.kernel.org, Chris Mason <clm@meta.com>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="R2VRct03"
+Received: by mail-pj1-f54.google.com with SMTP id 98e67ed59e1d1-343684a06b2so3069858a91.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 06 Dec 2025 04:31:39 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1765024299; x=1765629099; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=MQ6sUIQeO9wN86/IeO38lG0jZ2ssRJIsnfgLRfSeJng=;
+        b=R2VRct037tB1C9P0gT+bWe6VBsTdKR5D2J/bl9wqK36hNg/kNoKQJVOGO3a9iXNi8d
+         BP6KfUZMLY5PmL5lE2DfQT93BziLNSrsOEq2yQ3zN2RPKl8VkvV/IYaEviwy1VGe8RzE
+         WF1sBh4f0HAd4RPZVibm3H3RazUMlbfZVqXYxcgHEvMOMHJPWx5VClv5zlquwY3bMBGK
+         Kirdq+lzDXs4KpQWBdy30Zgbx9/iy77MDX+3tTjADp/xtyD5LIp6FOnbqYA0i/CEmy23
+         fzmFcN7hJlQWRDOkauhP6nT/ZxFjXQIzvWfbh1P1lF7kDLijdTvgGoXEX9xH4AqM2Qmo
+         zNUg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1765024299; x=1765629099;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=MQ6sUIQeO9wN86/IeO38lG0jZ2ssRJIsnfgLRfSeJng=;
+        b=XQoYuI7UyPrzNy6WSOoP5tPhI3yZJ3qrSZOlsl240PnzYSby4Y95cFX90M8wLEk+5o
+         iEgP624Og+IJ3thRLIBVnlFZKzwkDTD164catLHPtI5pTlj9KUSi6OV+W43P8E5QQpW6
+         4AT+0sgn1zG0OFm8IfZXxapIrdJWZPSDPyZxFcEHJnawSbuQGy79AAL3VSyBAf7XZpWc
+         unJsQxolr0clFSj57dvwM1OZ0kckI7hCJsWP4QKyNxr3lTgOAEN5xWqn0KcDIkYI4k7s
+         8zTGmxITAoJpKL/FklYTIXdnWkH0Fn5dDWiR5srD9G9UflXfVgT8uKD5CBTE7J1qo5l1
+         jBug==
+X-Forwarded-Encrypted: i=1; AJvYcCX5fk230xIVNFYcDioJn+McBtpbo4wITO8rCCRaEhWZTNQtO8exSa8t++0FbJxRzhjIZ4PHk4OkOmdRNQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yz+f0yLwUVabtvDS8ofiaShOBdR+8OVtOXgdTt1S/sxrDimaqRM
+	p/MmtDWq3Dx8WJXiOVCHmubH4iv9mpFHt1pBhZ02FZxzcBmiRnM0EISw
+X-Gm-Gg: ASbGnctnO/4lXVP4DCeQNXbvspTDVBl/ozMAH1WmUPFQmalgSyLpMRjQR1I1FQFlQtU
+	xe8tLwUkiPmS/8Q1TE4+Ta0RUmjPeV+sTzO8PtL8oOKzd7Rl0QwVlfJuhTdrOyb/jjmhga45qjg
+	g/b75pkrro/pkMdXQ4cOpCMUi6+nJEbvW+pNptPj37IRZ8sQLRGTt+nKuV64yEtSI6zPQicqrks
+	Pii27aKrUKaEVgFIZr6P3Eeteg16ycbyEkMz2vUO5KKXbvFuRRwPyL1UkYtKyx3LHo1ivtcIdmw
+	ujimiujTkkb4Ygrq77rXvyZ2xaX22XSSL46Vj31KQX82DvyIqrVwS02RBVZlZbv7ss/IjBeQrl6
+	SVLKDfeURuKFYQyKYK5ny9KYgQjczccX6SOLiAI7qvcT/5+mTP27CYxvn5PP+ZEE/Lk8dxfly+E
+	CIeyvRz37pDxCBa3w/SuTsW+0JdQ==
+X-Google-Smtp-Source: AGHT+IGtaB0EGCaAK2Wt9cTECFElyS6yuLR2Hf6WAOGYhBpxMm2ZHQxuY++ypKoDZzes/kdKOWZ63g==
+X-Received: by 2002:a17:90b:350c:b0:340:ec6f:5ac5 with SMTP id 98e67ed59e1d1-349a24ec644mr1681359a91.2.1765024299363;
+        Sat, 06 Dec 2025 04:31:39 -0800 (PST)
+Received: from localhost.localdomain ([114.79.178.20])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-349b601646esm1265194a91.3.2025.12.06.04.31.35
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 06 Dec 2025 04:31:38 -0800 (PST)
+From: Prithvi Tambewagh <activprithvi@gmail.com>
+To: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	mark@fasheh.com
+Cc: linux-kernel@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	syzkaller-bugs@googlegroups.com,
+	Prithvi Tambewagh <activprithvi@gmail.com>
+Subject: Syzbot testing for ocfs2: Fix kernel BUG in ocfs2_write_block
+Date: Sat,  6 Dec 2025 18:01:26 +0530
+Message-ID: <20251206123128.166117-1-activprithvi@gmail.com>
+X-Mailer: git-send-email 2.43.0
+In-Reply-To: <66eb6a0e.050a0220.115905.001b.GAE@google.com>
+References: <66eb6a0e.050a0220.115905.001b.GAE@google.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 
-The pull request you sent on Thu, 4 Dec 2025 06:47:06 +0000:
+#syz test git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git 24172e0d79900908cf5ebf366600616d29c9b417
 
-> git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git tags/pull-persistency
+Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+---
+ fs/ocfs2/slot_map.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
 
-has been merged into torvalds/linux.git:
-https://git.kernel.org/torvalds/c/7cd122b55283d3ceef71a5b723ccaa03a72284b4
+diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
+index e544c704b583..de793a83555c 100644
+--- a/fs/ocfs2/slot_map.c
++++ b/fs/ocfs2/slot_map.c
+@@ -193,6 +193,16 @@ static int ocfs2_update_disk_slot(struct ocfs2_super *osb,
+ 	else
+ 		ocfs2_update_disk_slot_old(si, slot_num, &bh);
+ 	spin_unlock(&osb->osb_lock);
++	if (bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) {
++		status = ocfs2_error(osb->sb,
++				     "Invalid Buffer Head Block Number : %llu, "
++				     "Should be >= %d",
++				     le16_to_cpu(bh->b_blocknr),
++				     le16_to_cpu((int)OCFS2_SUPER_BLOCK_BLKNO));
++		if(!status) {
++			return -EIO;
++		}
++	}
+ 
+ 	status = ocfs2_write_block(osb, bh, INODE_CACHE(si->si_inode));
+ 	if (status < 0)
 
-Thank you!
-
+base-commit: 24172e0d79900908cf5ebf366600616d29c9b417
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/prtracker.html
+2.43.0
+
