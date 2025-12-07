@@ -1,135 +1,203 @@
-Received: from mail-pf1-f177.google.com (mail-pf1-f177.google.com [209.85.210.177])
+Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 035A1274FDB
-	for <ocfs2-devel@lists.linux.dev>; Sat,  6 Dec 2025 15:48:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D3DD2594BD
+	for <ocfs2-devel@lists.linux.dev>; Sun,  7 Dec 2025 09:50:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765036118; cv=none; b=mKj4odIWWL23Lly2QPDl81lYTUlMs32u/ZOM233DLuEViKL2DW+AWcA+vAQXZLF+/ZnMx3TDYoaD1uEkZZlAJ////KR806ZiBlK8axsZqa38MsWWgXGUddgwuQ+oEs4Y8HW6JZfEY7ZHreaRzwLO3r/VV9UvUaGbSP0VdEq7ulo=
+	t=1765101052; cv=none; b=GRYBvwE13f3v0mM0dQJsuQ2/G3q0l/mN11BsWjPA993MZF/EEFwBVJSmL00dk0qoJ4Ie4gy+BIhQU4WZbUrpC8krfyFKvhfHrmNILobPwDhaZFZA6vfxqgKG6P5Xi2WEhSvD1rY+i92q0jFeUzmmDlefgGDvebngrCRVxa9vtbs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765036118; c=relaxed/simple;
-	bh=GuParDz5eBLylVgW96qpjXBZ/qEXhOMxbh9C6uWa7ac=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=prHmjPE4GHc4oilWaSRyFqsK0P9sK6Njo7Xq2WtF72fJCUwydsPN57gUZLezvqvCdVVyJkUNm0rJlCN4xeMU0LJe6uhkMFFnBrmhFmjrcEcwPGvJPBE/c3XAbB8QlQc4VFffNmKYlAAirWIWQyQF7IG3jKS06GP+4VCktHHuOQ8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ROegrRMb; arc=none smtp.client-ip=209.85.210.177
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1765101052; c=relaxed/simple;
+	bh=DRY1zpmGU/hhRzxL4ovTTz0CIRMnpeL6lEK+z1M9waA=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=SRWEr/PJBe7AZe8Het8SeXQW73xZzaR22Vs0vg4G8JGC2hqHPaB1ftT9kIe2dIcReFe8pgFnffuHk1E5BhT3tkEW9jEKUzJC+dgLZ1gPTvwC5VafScUerFjrkJsjeOhdewwB9c2ehWc4vbCS9RDeSg2dxKbOfPO3uXZhM2vWcTA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=T/ugpnEt; arc=none smtp.client-ip=209.85.128.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ROegrRMb"
-Received: by mail-pf1-f177.google.com with SMTP id d2e1a72fcca58-7e1651ae0d5so2331466b3a.1
-        for <ocfs2-devel@lists.linux.dev>; Sat, 06 Dec 2025 07:48:36 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="T/ugpnEt"
+Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-4775dbde730so4444975e9.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 07 Dec 2025 01:50:49 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1765036116; x=1765640916; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=+eRPeM9q2EbXpge8hopYzyHkKbCy3VfPZR9AGB8+LLk=;
-        b=ROegrRMbt7tAJR04w/QBpviK5CwHD6Uwq3GJCKoULAUNJ3T7aly5eCwgGgJwnl0VPw
-         r1lUe1VALMSfaHVx4ItJFBtUdM1NK1LsY403e1tFqHB2TtfIKhb+S00mCD2Y4r4dU/8l
-         04vyJ97VsLh9ko8MkvjG96T6waqKXHihP96RIfJr3Jzuq+Nf+ZSQoVjpKL64za0UTXwe
-         iU7CZge1TVg98ZcwjddsKSIEwZXwcC4FK3O5vXPanC3e1NtXH+SRI5MvKDJgb1RaS4C0
-         qbNAGfWu3ybXD1P6yXtUlMSCNJpiK3eG8U1ZjI2PlE1YlUHU2FZS+NBgickqIulBW2Mm
-         FEhQ==
+        d=suse.com; s=google; t=1765101048; x=1765705848; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=o6GF59OMxrJlmi+0MeK5ZFFlUaEsCtwZn20BYddiUPc=;
+        b=T/ugpnEtxsU8FSLnvTwkwMlnXbiULhImTJOD51ZYsD8pMIQPxjFXCtBqyHlsLRQa/Q
+         94Hyu3bO89NlI88/sTK2Gu8svxMNFlyxZfj1uYbre3E2Vii2DZRmphPvbLmOViHHpN/b
+         VBeiqohL2ICvEK3Wl1JgwH9BFtD08+NDlbJKJbHtsAcSO5AKLhfoL8T3ezoGXB8lhliH
+         VPUjC2hhwu8Mulr3tl2Q5Jo6SvDtPD+nJ0YTRJGukXj/Ku96p7r49+V3osVth8C9/R4U
+         l9JYuHXu2N0oSTBc5CrRmA0vyCHyhUG165ghPaTYoR8VKnwOLneEO2TxgugWYtrVn0JN
+         AqAg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765036116; x=1765640916;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=+eRPeM9q2EbXpge8hopYzyHkKbCy3VfPZR9AGB8+LLk=;
-        b=d/JKjBult/m9umtgpJTrGW/MI1owFsbt1OpTtHpxyt7wLFlg/2aDGVaUnIeBGwYa+1
-         eUtyu8CPAKaLGIilAa14Qc4zhptK1WjoFp+NVNxK6vDMnIDZy+Rh02UO9erFA64Koiz/
-         92bKkzUo4okzQOMJfsCZmZgWKjLEY0vyZI9nfIyUBwffvMg1wsNB9vUH/ylYMHShQoJZ
-         8fQnY/m3C8ZOLrfhdyeb0Ur1on+iuCxGc3CAi2eWa4gRRuEofmCxxpGy7wINzauqyd/r
-         2r+0xDLqxfsE+ZcGgstnX4QElYCiI4QXp6IP5U6ZGCrU8sab9DFqozHauaxrc72ysmzZ
-         Tucw==
-X-Gm-Message-State: AOJu0YzvgELhU8AA7DCkUSvLxiBq0Oqg1mzyNf0qZGZKIUbIDewvciB1
-	9UfG6WOh+juzJ0BbrpTA7LzSYcsuDTZ4lsm4wbGn8V6zX4DcIO89M5/J
-X-Gm-Gg: ASbGnctP2ny3jb4yd/4Z8BvNOKYH5GTgm/TFpoqoi5F1sspbbHaEBuJ6b/ThVc/n6hS
-	OxcuvWHu7tqvsnyJHUe6zP1zahxpyHYy5NlxECe2FvofbOYZmn/r4T3rQEhSs2e3daWVitIHEol
-	aHnRN+YVPe/AOmpB41Cwhq0ASXGHYO8CXCoZuoyXPdTpFTbYTntVzAzpmG62mbduU8KpAhQdfs1
-	kWGlMyG1sQWsfYLPAEcfpPaiwMQOpmE/gY3y0SklPIx03GYTBvjYcvBM+tX+nWscrycBunVo6gT
-	Q7w8ol3qvq0k7gKnx8+ulNSMoezNMv42YhisFMRhIrxmvK0xccAKJmiWH7Ju4ewFMZGkN334L/h
-	+3dUjPwYpiud97fizKEIXyIsahB9dKvdo6kOVSdoHqyCBxFSVUSCZCafzItSlp7SbO+y4XKP/AD
-	OqVBxbJ/6nvCkU1md4fRgmycf2Yw==
-X-Google-Smtp-Source: AGHT+IHFctVdxlEN7Gl0atqGBbR40knvStVEAlZWL5HG/t6ahFYt4XUQze3IxeMz74Bn6QMNjDZeag==
-X-Received: by 2002:a05:6a20:a11e:b0:364:31e:2cb1 with SMTP id adf61e73a8af0-36617e6c5dfmr2683085637.17.1765036116169;
-        Sat, 06 Dec 2025 07:48:36 -0800 (PST)
-Received: from localhost.localdomain ([114.79.178.20])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-bf6875cc8eesm7645210a12.16.2025.12.06.07.48.31
+        d=1e100.net; s=20230601; t=1765101048; x=1765705848;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=o6GF59OMxrJlmi+0MeK5ZFFlUaEsCtwZn20BYddiUPc=;
+        b=cuHVhEZbz5Ls+IKodZ380lhL7aixAQJzzsTToTMjBlSfFUSNL+kkeXYdPaFvjMAQNr
+         11/n9T1fy5rM9pr8wIqqeccZYPXsJoMMQ+VlglpqlDgltapqOykTD2ajWWHgZ0yAMCBy
+         N5VVFgNaWgW76TWWCbFwdwjxxRWcnfwF+NyB0X3opifrpsOyvBeQRoc1c9GBG2PD3ywf
+         cxGueFka13hiV0PaeIBYnnVAMhVcNMaWiWv9F43yiXKoMUjw1LoHK6jA5uvwrmLpeVSS
+         7nmhHq5G5MT2txhFw9GutGe5RUXQlDmdz78iZbFiZ5Y2Wu++T42sHO7p8UWAk/Ogu3WZ
+         8p4w==
+X-Forwarded-Encrypted: i=1; AJvYcCVqSA9WQUBvJJO0GNBVwLXk+IqShHOPzUNij/8+ypXl4OrOseGEEkt4sXkSAiTgcPfEFM/PNis9zp2Q+A==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwRTJLjSHPejjv1JOLlvKSsGlinwQxG/ntRZep/itgBgUdqod+f
+	etR2IsR6E4FKfAw1L2oJMaeplc9EGGJi2MDAmS+IEOmH40UhdZLTOCV7QI+PZ4VU7uE=
+X-Gm-Gg: ASbGncsl4nIGb6EcLD3Yx6hRDbLcDLhsWpjDw4X6qOWkLIEmKLrkftalg5ZX54rvKWZ
+	dpr9xv3Kz+RLqQhcV9/mDmkw8/z4EBb08uPNRHvVwOrlcsu1A6rFb/3L5a/BEIn1GIb+ryrcxJE
+	4ZlK/PW1dt8XWa2TUT5yD9aMKOk30rj1JYotHEHuXYL8J+K2C0FrFjQs2WrGnHocFLX3mnJ+qsy
+	6lFiiwPBQPmv4FlxWBdweyYzbZMNP34DokYLdlhDTFvMG1XO74SfDqycjU2VPyFwZKl6LwbK0f4
+	+08kCtSb6R0QZ/OWSFtcp2NIq+40s+sLh9PnxulvAmbreGGPFMZqZJj3SrOi1oTNNzFy/w4wHnU
+	Q7dlO37/54zx/R9dZkS6gMkTYAGVYn6o++8G05L6zlXwmCDmKerEDyBovKxzWAHAM9S9x6Xyv2F
+	jUYSqDR4Gjcg==
+X-Google-Smtp-Source: AGHT+IEVr3OPbP9GMYiGhgvcJADSfM8F0pn2aKU1SIFK3qXZQgt5wfKIL51vd7m4DeDadm10PtfZ2w==
+X-Received: by 2002:a05:600c:3143:b0:477:7b16:5f97 with SMTP id 5b1f17b1804b1-47939c8b36bmr33098585e9.0.1765101048403;
+        Sun, 07 Dec 2025 01:50:48 -0800 (PST)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-bf6817395ccsm9064913a12.5.2025.12.07.01.50.47
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 06 Dec 2025 07:48:35 -0800 (PST)
-From: Prithvi Tambewagh <activprithvi@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	linux-kernel-mentees@lists.linux.dev,
-	skhan@linuxfoundation.org,
-	david.hunter.linux@gmail.com,
-	khalid@kernel.org,
-	Prithvi Tambewagh <activprithvi@gmail.com>,
-	syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
-	stable@vger.kernel.org
-Subject: [PATCH] ocfs2: Fix kernel BUG in ocfs2_write_block
-Date: Sat,  6 Dec 2025 21:18:19 +0530
-Message-ID: <20251206154819.175479-1-activprithvi@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        Sun, 07 Dec 2025 01:50:47 -0800 (PST)
+Date: Sun, 7 Dec 2025 17:50:45 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org, glass.su@suse.com
+Subject: Re: [PATCH RESEND v4 0/2] ocfs2: give ocfs2 the ability to reclaim
+ suballocator free bg
+Message-ID: <rn5criadn3vvtoucxnfalw5utfdjpge2rh6qtjjazr445hqm2l@rppqbguol4mk>
+References: <20251202063938.9046-1-heming.zhao@suse.com>
+ <973ba880-01b2-4d1c-992d-01140e24beb4@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <973ba880-01b2-4d1c-992d-01140e24beb4@linux.alibaba.com>
 
-When the filesystem is being mounted, the kernel panics while the data
-regarding slot map allocation to the local node, is being written to the
-disk. This occurs because the value of slot map buffer head block
-number, which should have been greater than or equal to
-`OCFS2_SUPER_BLOCK_BLKNO` (evaluating to 2) is less than it, indicative
-of disk metadata corruption. This triggers
-BUG_ON(bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) in ocfs2_write_block(),
-causing the kernel to panic.
+On Fri, Dec 05, 2025 at 05:22:47PM +0800, Joseph Qi wrote:
+> 
+> 
+> On 2025/12/2 14:39, Heming Zhao wrote:
+> > why resend?
+> > - the v4 summary description in the cover letter is incorrect.
+> > 
+> > v4:
+> > 
+> > Most of the changes involve revising comments. For the code itself, there are
+> > function renames and parameter usage adjustments, but no changes to the code
+> > logic.
+> > 
+> > For patch [1/2]:
+> > - Based on Joseph's v3 review comments:
+> >   1. Modify the caller to initialize the ocfs2_read_hint_group_descriptor()
+> >      input parameter '*released'.
+> >   2. Rename the _reclaim_to_main_bm() to _ocfs2_reclaim_suballoc_to_main()
+> >   3. Change the text "not empty rec" to "non empty rec"
+> > 
+> > - Revise the comments preceding the function _ocfs2_reclaim_suballoc_to_main().
+> > 
+> > - For the question: "How to distinguish the release case or a bug?"
+> >   I write a comment before ocfs2_read_hint_group_descriptor().
+> > 
+> > - Revise the commit log to make it clearer.
+> > 
+> > For patch [2/2]:
+> > - Revise the commit log to make it clearer.
+> > 
+> > Remove the v3 patch: "ocfs2: adjust spinlock_t ip_lock protection scope"
+> > - Reason: This patch belongs to a different topic/job and should be
+> >           handled separately.
+> > 
+> > v3:
+> > 
+> > For patch [1/3]:
+> > - Factor out the reclaim code into a new function '_reclaim_to_main_bm'.
+> > - The function ocfs2_read_hint_group_descriptor doesn't return -EIDRM
+> >   when the group descriptor is invalid. The new code logic returns 0,
+> >   and the input parameter '*released' is set to 1.
+> > 
+> > For patch [2/3]:
+> > - Modify the code to follow the new logic of ocfs2_read_hint_group_descriptor
+> >   as introduced in patch [1/3].
+> > 
+> > For patch [3/3]:
+> > - No new changes.
+> > 
+> > v3 patch has passed the xfstests:
+> > ./check -g quick -T -b -s ocfs2 -e generic/032 -e generic/076 \
+> > -e generic/081 -e generic/266 -e generic/272 -e generic/281 \
+> > -e generic/331 -e generic/338 -e generic/347 -e generic/361 \
+> > -e generic/479 -e generic/480 -e generic/628 -e generic/629 \
+> > -e generic/648 -e generic/650
+> > 
+> 
+> Hi, could you please send out the ocfs2-test results as well?
+> 
+> Thanks,
+> Joseph
 
-This is fixed by introducing an if condition block in
-ocfs2_update_disk_slot(), right before calling ocfs2_write_block(), which
-checks if `bh->b_blocknr` is lesser than `OCFS2_SUPER_BLOCK_BLKNO`; if
-yes, then ocfs2_error is called, which prints the error log, for
-debugging purposes, and the return value of ocfs2_error() is returned
-back to caller of ocfs2_update_disk_slot() i.e. ocfs2_find_slot(). If
-the return value is zero. then error code EIO is returned.
+I have run the xfstest with above style:
+./check -g quick -T -b -s ocfs2 -e generic/032 -e generic/076 \
+-e generic/081 -e generic/266 -e generic/272 -e generic/281 \
+-e generic/331 -e generic/338 -e generic/347 -e generic/361 \
+-e generic/479 -e generic/480 -e generic/628 -e generic/629 \
+-e generic/648 -e generic/650
 
-Reported-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
-Tested-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
-Cc: stable@vger.kernel.org
-Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
----
- fs/ocfs2/slot_map.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+with/without the patch set, *Failures* are same:
+generic/003 generic/007 generic/228 generic/322 generic/329 generic/376
+generic/383 generic/384 generic/385 generic/386 generic/420 generic/424
+generic/448 generic/449 generic/510 generic/513 generic/537 generic/552
+generic/563 generic/578 generic/594 generic/607 generic/620 generic/630
+generic/741 generic/755
 
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index e544c704b583..788924fc3663 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -193,6 +193,16 @@ static int ocfs2_update_disk_slot(struct ocfs2_super *osb,
- 	else
- 		ocfs2_update_disk_slot_old(si, slot_num, &bh);
- 	spin_unlock(&osb->osb_lock);
-+	if (bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) {
-+		status = ocfs2_error(osb->sb,
-+				     "Invalid Slot Map Buffer Head "
-+				     "Block Number : %llu, Should be >= %d",
-+				     le16_to_cpu(bh->b_blocknr),
-+				     le16_to_cpu((int)OCFS2_SUPER_BLOCK_BLKNO));
-+		if (!status)
-+			return -EIO;
-+		return status;
-+	}
- 
- 	status = ocfs2_write_block(osb, bh, INODE_CACHE(si->si_inode));
- 	if (status < 0)
+For the ocfs2-test, it seems that open-mpi4 does not work correctly in my test
+environment (OpenSUSE TumbleWeed). Therefore, I only ran the tests in single-node
+mode. The results were the same between the patched code and the unpatched code.
 
-base-commit: 24172e0d79900908cf5ebf366600616d29c9b417
--- 
-2.43.0
+ocfs2-test cases:
 
+$ single_run-WIP.sh -f 1 -k /usr/local/ocfs2-test/tmp/linux-2.6.39.tar.gz -l \
+/usr/local/ocfs2-test/log -m /mnt/ocfs2 -d /dev/vde -b 4096 -c 32768 -s pcmk \
+-n hacluster -t create_and_open,directaio,fillverifyholes,renamewriterace,\
+aiostress,filesizelimits,mmaptruncate,buildkernel,splice,sendfile,reserve_space,\
+mmap,inline,xattr,reflink,mkfs,tunefs,backup_super
+
+$ discontig_runner.sh -f 1 -d /dev/vde -b 4096 -c 32768 -s pcmk -n hacluster /mnt/ocfs2
+
+- Heming
+> 
+> > v2:
+> > 
+> > Create 2 new patches:
+> > - ocfs2: detect released suballocator bg for fh_to_[dentry|parent]
+> > - ocfs2: adjust spinlock_t ip_lock protection scope
+> > 
+> > In ocfs2_read_hint_group_descriptor()
+> > - bypass the validation of GD when the BH is already managed by jbd2.
+> > 
+> > In _ocfs2_free_suballoc_bits()
+> > - Move up the position of the vars 'idx' & 'rec'.
+> > - Move up the position of the ocfs2_journal_dirty.
+> > - Use le[16|32]_to_cpu() to access cl/fe/rec vars.
+> > - Add error handling for calling ocfs2_extend_trans().
+> > - adjust spin_lock ->ip_lock protection scope.
+> > - Follow Glass's review comments, add 'comment' & 'else-break' for the
+> >   'for-loop'.
+> > 
+> > v1:
+> > 
+> > Only create patch:
+> > - ocfs2: give ocfs2 the ability to reclaim suballoc free bg
+> > 
+> > Heming Zhao (2):
+> >   ocfs2: give ocfs2 the ability to reclaim suballoc free bg
+> >   ocfs2: detect released suballocator BG for fh_to_[dentry|parent]
+> > 
+> >  fs/ocfs2/suballoc.c | 336 +++++++++++++++++++++++++++++++++++++++++---
+> >  1 file changed, 317 insertions(+), 19 deletions(-)
+> > 
+> 
