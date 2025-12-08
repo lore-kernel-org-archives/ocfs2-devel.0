@@ -1,203 +1,155 @@
-Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
+Received: from mail-ot1-f78.google.com (mail-ot1-f78.google.com [209.85.210.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D3DD2594BD
-	for <ocfs2-devel@lists.linux.dev>; Sun,  7 Dec 2025 09:50:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 96A5A25A640
+	for <ocfs2-devel@lists.linux.dev>; Mon,  8 Dec 2025 07:41:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.78
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765101052; cv=none; b=GRYBvwE13f3v0mM0dQJsuQ2/G3q0l/mN11BsWjPA993MZF/EEFwBVJSmL00dk0qoJ4Ie4gy+BIhQU4WZbUrpC8krfyFKvhfHrmNILobPwDhaZFZA6vfxqgKG6P5Xi2WEhSvD1rY+i92q0jFeUzmmDlefgGDvebngrCRVxa9vtbs=
+	t=1765179692; cv=none; b=tTH9intMCv+6pkIjGucEar37SxXyAVrrjq96/29t4SoAjrSfKP0uLXnZ8r4fA09b0xxyo3sU9MQ2OutFvbepsqObaojwWhwAQ6wUn+EoAhvyIXQzuo1Of6JmJc85o5vTJ+X3qlUO/Qfx8z19O6u7DCAGn5CclH9d77sYBssf6yo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765101052; c=relaxed/simple;
-	bh=DRY1zpmGU/hhRzxL4ovTTz0CIRMnpeL6lEK+z1M9waA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=SRWEr/PJBe7AZe8Het8SeXQW73xZzaR22Vs0vg4G8JGC2hqHPaB1ftT9kIe2dIcReFe8pgFnffuHk1E5BhT3tkEW9jEKUzJC+dgLZ1gPTvwC5VafScUerFjrkJsjeOhdewwB9c2ehWc4vbCS9RDeSg2dxKbOfPO3uXZhM2vWcTA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=T/ugpnEt; arc=none smtp.client-ip=209.85.128.52
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="T/ugpnEt"
-Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-4775dbde730so4444975e9.3
-        for <ocfs2-devel@lists.linux.dev>; Sun, 07 Dec 2025 01:50:49 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1765101048; x=1765705848; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=o6GF59OMxrJlmi+0MeK5ZFFlUaEsCtwZn20BYddiUPc=;
-        b=T/ugpnEtxsU8FSLnvTwkwMlnXbiULhImTJOD51ZYsD8pMIQPxjFXCtBqyHlsLRQa/Q
-         94Hyu3bO89NlI88/sTK2Gu8svxMNFlyxZfj1uYbre3E2Vii2DZRmphPvbLmOViHHpN/b
-         VBeiqohL2ICvEK3Wl1JgwH9BFtD08+NDlbJKJbHtsAcSO5AKLhfoL8T3ezoGXB8lhliH
-         VPUjC2hhwu8Mulr3tl2Q5Jo6SvDtPD+nJ0YTRJGukXj/Ku96p7r49+V3osVth8C9/R4U
-         l9JYuHXu2N0oSTBc5CrRmA0vyCHyhUG165ghPaTYoR8VKnwOLneEO2TxgugWYtrVn0JN
-         AqAg==
+	s=arc-20240116; t=1765179692; c=relaxed/simple;
+	bh=tvfZMSrDkC6ta5yr9Alwrmm9vBEkWPqK6e9b3jtcV7o=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=FQK+0l5YOCSYXfYQhpShtJ3oHP0/bs44AKoBwoPNPJpCh+dQmPVWITWsm2pjkzvkBccLAMQFsIXKlEu5spOjmUzAjkK92m+G+4H1CeAiM2wgTYP+SxBzYplmISsJp4xd2e/PWvabPXBQoJznL1R65ywaGdSJb7QcX9ZYDnegSK0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.78
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f78.google.com with SMTP id 46e09a7af769-7c754daf77fso8486913a34.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 07 Dec 2025 23:41:30 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765101048; x=1765705848;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=o6GF59OMxrJlmi+0MeK5ZFFlUaEsCtwZn20BYddiUPc=;
-        b=cuHVhEZbz5Ls+IKodZ380lhL7aixAQJzzsTToTMjBlSfFUSNL+kkeXYdPaFvjMAQNr
-         11/n9T1fy5rM9pr8wIqqeccZYPXsJoMMQ+VlglpqlDgltapqOykTD2ajWWHgZ0yAMCBy
-         N5VVFgNaWgW76TWWCbFwdwjxxRWcnfwF+NyB0X3opifrpsOyvBeQRoc1c9GBG2PD3ywf
-         cxGueFka13hiV0PaeIBYnnVAMhVcNMaWiWv9F43yiXKoMUjw1LoHK6jA5uvwrmLpeVSS
-         7nmhHq5G5MT2txhFw9GutGe5RUXQlDmdz78iZbFiZ5Y2Wu++T42sHO7p8UWAk/Ogu3WZ
-         8p4w==
-X-Forwarded-Encrypted: i=1; AJvYcCVqSA9WQUBvJJO0GNBVwLXk+IqShHOPzUNij/8+ypXl4OrOseGEEkt4sXkSAiTgcPfEFM/PNis9zp2Q+A==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwRTJLjSHPejjv1JOLlvKSsGlinwQxG/ntRZep/itgBgUdqod+f
-	etR2IsR6E4FKfAw1L2oJMaeplc9EGGJi2MDAmS+IEOmH40UhdZLTOCV7QI+PZ4VU7uE=
-X-Gm-Gg: ASbGncsl4nIGb6EcLD3Yx6hRDbLcDLhsWpjDw4X6qOWkLIEmKLrkftalg5ZX54rvKWZ
-	dpr9xv3Kz+RLqQhcV9/mDmkw8/z4EBb08uPNRHvVwOrlcsu1A6rFb/3L5a/BEIn1GIb+ryrcxJE
-	4ZlK/PW1dt8XWa2TUT5yD9aMKOk30rj1JYotHEHuXYL8J+K2C0FrFjQs2WrGnHocFLX3mnJ+qsy
-	6lFiiwPBQPmv4FlxWBdweyYzbZMNP34DokYLdlhDTFvMG1XO74SfDqycjU2VPyFwZKl6LwbK0f4
-	+08kCtSb6R0QZ/OWSFtcp2NIq+40s+sLh9PnxulvAmbreGGPFMZqZJj3SrOi1oTNNzFy/w4wHnU
-	Q7dlO37/54zx/R9dZkS6gMkTYAGVYn6o++8G05L6zlXwmCDmKerEDyBovKxzWAHAM9S9x6Xyv2F
-	jUYSqDR4Gjcg==
-X-Google-Smtp-Source: AGHT+IEVr3OPbP9GMYiGhgvcJADSfM8F0pn2aKU1SIFK3qXZQgt5wfKIL51vd7m4DeDadm10PtfZ2w==
-X-Received: by 2002:a05:600c:3143:b0:477:7b16:5f97 with SMTP id 5b1f17b1804b1-47939c8b36bmr33098585e9.0.1765101048403;
-        Sun, 07 Dec 2025 01:50:48 -0800 (PST)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-bf6817395ccsm9064913a12.5.2025.12.07.01.50.47
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 07 Dec 2025 01:50:47 -0800 (PST)
-Date: Sun, 7 Dec 2025 17:50:45 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, glass.su@suse.com
-Subject: Re: [PATCH RESEND v4 0/2] ocfs2: give ocfs2 the ability to reclaim
- suballocator free bg
-Message-ID: <rn5criadn3vvtoucxnfalw5utfdjpge2rh6qtjjazr445hqm2l@rppqbguol4mk>
-References: <20251202063938.9046-1-heming.zhao@suse.com>
- <973ba880-01b2-4d1c-992d-01140e24beb4@linux.alibaba.com>
+        d=1e100.net; s=20230601; t=1765179689; x=1765784489;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=GE07irCDDq/q2tmA9wlEkvrmYCuBmh6FCVvXbPHRbBM=;
+        b=CwCHckKO4CW9VZE9maLMHMjT/XaQCkSEnrqyeFJg1nf+vx+3dupmxjVGB7NXSz214V
+         NBbqP+XiJxf0/UPH+PnaBJeOUhSgRrPHD5lo7EbcUtGOBzZfm1k9aA1ioblN8q0BwX9S
+         vhVSIl4oTxcd/atX+/+xCNBontm+nkWrZREYSf0M+ut+bPxkoWqOpflOpx3hcsIEF35G
+         UTjQrDZwPIzQvf+kaQ+6/vNzKgzgtU9IifQgB0oc4kAODBB4bIO860qVsUGDfVbi8H5Y
+         D/Yi6WTBQy6x7cW2+ctil36G+KK1UQrSN/rKyTofdr9b1u5QzB1XMzzgcb6j/99bocxe
+         TT/Q==
+X-Forwarded-Encrypted: i=1; AJvYcCXd0PVpFU2zUE+pocGSaCO/B/86b2klDioPoS/smp+VhyZNdVAXSDT3uGpQhBd3sidqyOW6A+UdgYP44g==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yx+PC0SKBSbrS7VQui5M6wzKXWFtkUOEF2/N+D8vx67d7JGEXop
+	qoEXzEtpWWIRlTpVEAyKiyEOZzw4FRV8sMhGnZWotWBB07TiIhR/d+qTr6j+fbD6BAe4FZbr6uu
+	enZ/C4ldEg21tS7Qv8QK36LMUVI25Dz0CpZVUWLSvncjYjq4Xrf3BDAJlNkg=
+X-Google-Smtp-Source: AGHT+IFuE0PTxDTIr8e0pkfDGlzSczbA8WUs2HGi9aboSBZU0RD1oRu1HhmMfJHtA/BE5VsbNAhbMVapOIbsHPJKRBo1TjtW0mjy
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <973ba880-01b2-4d1c-992d-01140e24beb4@linux.alibaba.com>
+X-Received: by 2002:a4a:ef81:0:b0:659:9a49:8e33 with SMTP id
+ 006d021491bc7-6599a499e62mr2276040eaf.37.1765179689733; Sun, 07 Dec 2025
+ 23:41:29 -0800 (PST)
+Date: Sun, 07 Dec 2025 23:41:29 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <69368129.a70a0220.38f243.008e.GAE@google.com>
+Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_remove_refcount_tree
+From: syzbot <syzbot+6d832e79d3efe1c46743@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Fri, Dec 05, 2025 at 05:22:47PM +0800, Joseph Qi wrote:
-> 
-> 
-> On 2025/12/2 14:39, Heming Zhao wrote:
-> > why resend?
-> > - the v4 summary description in the cover letter is incorrect.
-> > 
-> > v4:
-> > 
-> > Most of the changes involve revising comments. For the code itself, there are
-> > function renames and parameter usage adjustments, but no changes to the code
-> > logic.
-> > 
-> > For patch [1/2]:
-> > - Based on Joseph's v3 review comments:
-> >   1. Modify the caller to initialize the ocfs2_read_hint_group_descriptor()
-> >      input parameter '*released'.
-> >   2. Rename the _reclaim_to_main_bm() to _ocfs2_reclaim_suballoc_to_main()
-> >   3. Change the text "not empty rec" to "non empty rec"
-> > 
-> > - Revise the comments preceding the function _ocfs2_reclaim_suballoc_to_main().
-> > 
-> > - For the question: "How to distinguish the release case or a bug?"
-> >   I write a comment before ocfs2_read_hint_group_descriptor().
-> > 
-> > - Revise the commit log to make it clearer.
-> > 
-> > For patch [2/2]:
-> > - Revise the commit log to make it clearer.
-> > 
-> > Remove the v3 patch: "ocfs2: adjust spinlock_t ip_lock protection scope"
-> > - Reason: This patch belongs to a different topic/job and should be
-> >           handled separately.
-> > 
-> > v3:
-> > 
-> > For patch [1/3]:
-> > - Factor out the reclaim code into a new function '_reclaim_to_main_bm'.
-> > - The function ocfs2_read_hint_group_descriptor doesn't return -EIDRM
-> >   when the group descriptor is invalid. The new code logic returns 0,
-> >   and the input parameter '*released' is set to 1.
-> > 
-> > For patch [2/3]:
-> > - Modify the code to follow the new logic of ocfs2_read_hint_group_descriptor
-> >   as introduced in patch [1/3].
-> > 
-> > For patch [3/3]:
-> > - No new changes.
-> > 
-> > v3 patch has passed the xfstests:
-> > ./check -g quick -T -b -s ocfs2 -e generic/032 -e generic/076 \
-> > -e generic/081 -e generic/266 -e generic/272 -e generic/281 \
-> > -e generic/331 -e generic/338 -e generic/347 -e generic/361 \
-> > -e generic/479 -e generic/480 -e generic/628 -e generic/629 \
-> > -e generic/648 -e generic/650
-> > 
-> 
-> Hi, could you please send out the ocfs2-test results as well?
-> 
-> Thanks,
-> Joseph
+Hello,
 
-I have run the xfstest with above style:
-./check -g quick -T -b -s ocfs2 -e generic/032 -e generic/076 \
--e generic/081 -e generic/266 -e generic/272 -e generic/281 \
--e generic/331 -e generic/338 -e generic/347 -e generic/361 \
--e generic/479 -e generic/480 -e generic/628 -e generic/629 \
--e generic/648 -e generic/650
+syzbot found the following issue on:
 
-with/without the patch set, *Failures* are same:
-generic/003 generic/007 generic/228 generic/322 generic/329 generic/376
-generic/383 generic/384 generic/385 generic/386 generic/420 generic/424
-generic/448 generic/449 generic/510 generic/513 generic/537 generic/552
-generic/563 generic/578 generic/594 generic/607 generic/620 generic/630
-generic/741 generic/755
+HEAD commit:    cc3ee4ba57b7 Merge tag 'x86-urgent-2025-12-06' of git://gi..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=1084a992580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=c076ba11dc381bf9
+dashboard link: https://syzkaller.appspot.com/bug?extid=6d832e79d3efe1c46743
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=16affc1a580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=168f221a580000
 
-For the ocfs2-test, it seems that open-mpi4 does not work correctly in my test
-environment (OpenSUSE TumbleWeed). Therefore, I only ran the tests in single-node
-mode. The results were the same between the patched code and the unpatched code.
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/add7b22e16d3/disk-cc3ee4ba.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/df4dfdacc713/vmlinux-cc3ee4ba.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/13e72276bff4/bzImage-cc3ee4ba.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/31e89a92b694/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=121da6c2580000)
 
-ocfs2-test cases:
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+6d832e79d3efe1c46743@syzkaller.appspotmail.com
 
-$ single_run-WIP.sh -f 1 -k /usr/local/ocfs2-test/tmp/linux-2.6.39.tar.gz -l \
-/usr/local/ocfs2-test/log -m /mnt/ocfs2 -d /dev/vde -b 4096 -c 32768 -s pcmk \
--n hacluster -t create_and_open,directaio,fillverifyholes,renamewriterace,\
-aiostress,filesizelimits,mmaptruncate,buildkernel,splice,sendfile,reserve_space,\
-mmap,inline,xattr,reflink,mkfs,tunefs,backup_super
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/refcounttree.c:774!
+Oops: invalid opcode: 0000 [#1] SMP KASAN PTI
+CPU: 1 UID: 0 PID: 5921 Comm: syz-executor Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+RIP: 0010:ocfs2_remove_refcount_tree+0xd51/0xd60 fs/ocfs2/refcounttree.c:774
+Code: fe e9 be fd ff ff 44 89 f9 80 e1 07 80 c1 03 38 c1 0f 8c d8 fd ff ff 4c 89 ff e8 2a 9d 80 fe e9 cb fd ff ff e8 30 3e 1e fe 90 <0f> 0b 66 66 66 66 2e 0f 1f 84 00 00 00 00 00 90 90 90 90 90 90 90
+RSP: 0018:ffffc90003eb72c0 EFLAGS: 00010293
+RAX: ffffffff83a1f400 RBX: 0000000000000010 RCX: ffff888025443c80
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: ffffc90003eb74b0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000100 R11: 00000000fffffffc R12: 1ffff1100aff633b
+R13: 1ffff920007d6e68 R14: 1ffff110092a8c52 R15: 0000000000000000
+FS:  000055557d56b500(0000) GS:ffff888126e4f000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000055557d596648 CR3: 00000000343a8000 CR4: 00000000003526f0
+Call Trace:
+ <TASK>
+ ocfs2_wipe_inode fs/ocfs2/inode.c:888 [inline]
+ ocfs2_delete_inode fs/ocfs2/inode.c:1155 [inline]
+ ocfs2_evict_inode+0x142a/0x4020 fs/ocfs2/inode.c:1297
+ evict+0x5f4/0xae0 fs/inode.c:837
+ d_delete_notify include/linux/fsnotify.h:377 [inline]
+ vfs_rmdir+0x3f4/0x670 fs/namei.c:5249
+ do_rmdir+0x27f/0x4a0 fs/namei.c:5291
+ __do_sys_unlinkat fs/namei.c:5468 [inline]
+ __se_sys_unlinkat fs/namei.c:5462 [inline]
+ __x64_sys_unlinkat+0xc2/0xf0 fs/namei.c:5462
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f9853deed27
+Code: 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 b8 07 01 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fff08488218 EFLAGS: 00000207 ORIG_RAX: 0000000000000107
+RAX: ffffffffffffffda RBX: 0000000000000065 RCX: 00007f9853deed27
+RDX: 0000000000000200 RSI: 00007fff084893c0 RDI: 00000000ffffff9c
+RBP: 00007f9853e73d7d R08: 000055557d58e66b R09: 0000000000000000
+R10: 0000000000001000 R11: 0000000000000207 R12: 00007fff084893c0
+R13: 00007f9853e73d7d R14: 000000000001da3d R15: 00007fff0848b580
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_remove_refcount_tree+0xd51/0xd60 fs/ocfs2/refcounttree.c:774
+Code: fe e9 be fd ff ff 44 89 f9 80 e1 07 80 c1 03 38 c1 0f 8c d8 fd ff ff 4c 89 ff e8 2a 9d 80 fe e9 cb fd ff ff e8 30 3e 1e fe 90 <0f> 0b 66 66 66 66 2e 0f 1f 84 00 00 00 00 00 90 90 90 90 90 90 90
+RSP: 0018:ffffc90003eb72c0 EFLAGS: 00010293
+RAX: ffffffff83a1f400 RBX: 0000000000000010 RCX: ffff888025443c80
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 0000000000000000
+RBP: ffffc90003eb74b0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000100 R11: 00000000fffffffc R12: 1ffff1100aff633b
+R13: 1ffff920007d6e68 R14: 1ffff110092a8c52 R15: 0000000000000000
+FS:  000055557d56b500(0000) GS:ffff888126e4f000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000055557d596648 CR3: 00000000343a8000 CR4: 00000000003526f0
 
-$ discontig_runner.sh -f 1 -d /dev/vde -b 4096 -c 32768 -s pcmk -n hacluster /mnt/ocfs2
 
-- Heming
-> 
-> > v2:
-> > 
-> > Create 2 new patches:
-> > - ocfs2: detect released suballocator bg for fh_to_[dentry|parent]
-> > - ocfs2: adjust spinlock_t ip_lock protection scope
-> > 
-> > In ocfs2_read_hint_group_descriptor()
-> > - bypass the validation of GD when the BH is already managed by jbd2.
-> > 
-> > In _ocfs2_free_suballoc_bits()
-> > - Move up the position of the vars 'idx' & 'rec'.
-> > - Move up the position of the ocfs2_journal_dirty.
-> > - Use le[16|32]_to_cpu() to access cl/fe/rec vars.
-> > - Add error handling for calling ocfs2_extend_trans().
-> > - adjust spin_lock ->ip_lock protection scope.
-> > - Follow Glass's review comments, add 'comment' & 'else-break' for the
-> >   'for-loop'.
-> > 
-> > v1:
-> > 
-> > Only create patch:
-> > - ocfs2: give ocfs2 the ability to reclaim suballoc free bg
-> > 
-> > Heming Zhao (2):
-> >   ocfs2: give ocfs2 the ability to reclaim suballoc free bg
-> >   ocfs2: detect released suballocator BG for fh_to_[dentry|parent]
-> > 
-> >  fs/ocfs2/suballoc.c | 336 +++++++++++++++++++++++++++++++++++++++++---
-> >  1 file changed, 317 insertions(+), 19 deletions(-)
-> > 
-> 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
