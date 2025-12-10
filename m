@@ -1,115 +1,165 @@
-Received: from mail-wr1-f54.google.com (mail-wr1-f54.google.com [209.85.221.54])
+Received: from mail-wm1-f44.google.com (mail-wm1-f44.google.com [209.85.128.44])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A0D126561E
-	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 01:51:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.54
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0B6231FBC8C
+	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 01:54:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.44
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765331473; cv=none; b=FKIbhOey88wJPt552FKqQ4pDrM9paSp0A+OWH35cVRLKaHWGT1GbgN8Jb9imhnWRpDWwLpeHkzqODkp1D3xfqdUTk7KjigoA1hDqkgWyDb9XiHSHp3zaMHYaHrmZXf665ncR48kvRbkrHrja3Mr+OtcvzRhha/H6QWBR29my+JY=
+	t=1765331643; cv=none; b=OYWxnk/Vy3r3K8Sp73K/CqOvZAAjjQg2AYeI8LAAm5mNKe3rZlCNh1wWCNh2VrWpPSTWFh8BLmWtMOPEwsanJ5yi1au+IsoIuRL9wcbvQz/omoF5CAcoV8q2Ym0M7NcAIOxtondNPRrJKOv/F05tFWoR8Kod6O9EwSxavKQcQ54=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765331473; c=relaxed/simple;
-	bh=rIjBSk8W9vHLkEVzp7rPU63DurUszuJ0brbQFnUC4kE=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=jO0SLexSljhlZICnLWteOEetOpmCrXcpbWgoR4YdIjNTaZf8BlbAAG6aeJK1RWtMyLEavG4d1nMJKGelelksvKofAQrU9i/KPsEdXa9MJY+d7qGNoRxiC2JKqTXam5xxnKQOBmviWBKKrr72GDR9+8sZ98hrfrLr5i7xsJlDzdc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=NhqufsEr; arc=none smtp.client-ip=209.85.221.54
+	s=arc-20240116; t=1765331643; c=relaxed/simple;
+	bh=mbobndWLdH175gyo5HAxh8xrj9w260lPq9E4uMPKsb4=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Frx1d4g3/IkmoBzW1yb3qd7IHClIzHtnE3aQWXHZr1b5CdBHW4LjMUgPoTHdBGSpmaVG5NgGl1KkExatX4/lZXq8aqrP3Y/qQmybZb2pYavDVOYmz2BUO8g2YT8cCQlHAU/bdE88cM6darecpjKuYajqu+0h0/F3BYcvxeWv6xo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=LTkoYSF5; arc=none smtp.client-ip=209.85.128.44
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="NhqufsEr"
-Received: by mail-wr1-f54.google.com with SMTP id ffacd0b85a97d-42b2cff817aso578916f8f.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Dec 2025 17:51:09 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="LTkoYSF5"
+Received: by mail-wm1-f44.google.com with SMTP id 5b1f17b1804b1-47797676c62so8331465e9.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Dec 2025 17:54:00 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1765331468; x=1765936268; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=vqN1NKbSsmoO7F1QrFMDpSGOC06IfLpd/c1+vjKbvBI=;
-        b=NhqufsEr5eR31hG/1MAmAp4G9FKAevwq06JT3hsoStl3zXcYYoYdpXZ+c96F/nmoop
-         z1j46NXSh8GA0LHmEAtDF2ZNEcXFXImVTrOzeeQKvkm+0bL/zdmBrL2I/Ntqhrttk3nc
-         hhqfSy1wcHKowk3P7VBE0nBdKoflM1yx2HyBO8dsRmTgRF9M+f+yluQ4QWuQCwexHELh
-         Lrnq3sw9JwbfCyXRO5eeSVwwUoH6FMbXeMJRaom7d8oh8RbauS92Pn9Y4laZ7+iFsNcI
-         rM2DV6KOtDS63j+lPMVim20aDvnwVUBJQesTmp11B1h/7zy8wKqpdBZN9M5NNgpQmZA0
-         05FQ==
+        d=suse.com; s=google; t=1765331639; x=1765936439; darn=lists.linux.dev;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=VRie6qifJusADsCTyMYhZ4FPQ/4zynZODZnNaocTPyQ=;
+        b=LTkoYSF5D9RCsAkV8YV3kFKeZnH2571FLyKKfNcwZqOh5ocmw8Ha55eISnH0SuhXmI
+         MBXs29eL8A96dTReRBdZ3+Rg4/ZdV697TnTsX2xv4/5d+YzihWQ9HRVlgR5nGY3LaZTY
+         Y0dRML3pceCh1n8gI2HzOTaIm0Yu32gx+fRn1sF4Qu4tIbo+1vq1KHtwynICkjlBGr9x
+         wFz/AA2HMRGC07bJbS/ZcS3eC6/rvSoQblJa3JTD74VA6WIEIJY7jChcyZB0ogHWM93a
+         DscmN//5VgnlLl/BcBOwJuf1cqEJrir/MXAQavel+Ep99zdkMDBXao217n1NolN/hce9
+         YgsA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765331468; x=1765936268;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=vqN1NKbSsmoO7F1QrFMDpSGOC06IfLpd/c1+vjKbvBI=;
-        b=ACfNne/tfrqeb4/cAcGsuMIzxcAZIyT5G5eLt3D8IFW2TWvjxaIhpymL+rl7HeANEZ
-         1SPYRwNjRLBBYBf4P6ibEBBuzcWL9OSavY78KPO7JYgTfGaIYIHw/7yMHLzVtjJ6in4C
-         2sSq6SRaeDQrMoWiyFUh+yaU9GLzMcIgsjb/P00UldirGF1IdgjX4gbIJBzvJvV2Xlzg
-         4709PVfFXaGqV972/dMdDevkS0rKOZaM5WBm0N7OIh0vORst7CpWzrqH3fFAhjTSQ9k6
-         mtG3VJR/IUIcnMVDrD2PMX12pMM0dKDyAzvz1ARfGGRs2/QuLcU02uSdZDeUph2SEF59
-         ap4Q==
-X-Forwarded-Encrypted: i=1; AJvYcCVdOvs5ubPm3eP6km/LX6hoLpiWHLGTYi2byWft5jd19Ma2foU3RDAJ+00iAncuLo+lYTYqjRo6rVSwxg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwkTr6uGo6cgWK9+ykdjrTKyCIF9YmyJv8jpRtlLKcipMeBQwmL
-	1XyY2HIkmTZJBDrZP1BW0ICvYi8BTzUsCljcyXRkBYNH91rfW+nXbPn0ZPDaMP0kFAo=
-X-Gm-Gg: ASbGncvgRNMsxPbhuhiKqAU9FoBgzYzlXCnhGN28bnb9JzRRL9KZoQ2+Fm6xP8sRzc6
-	8bcmYjopaBu/OLDIX/8f3YB8Xx/LLU/XT3h8EL8XC7WEcAFG7/15wVsILRTm8aQ/nN5nxlB3/Az
-	1/tH11ri4t0VZnL6IkpnFLlUI7CrSMwhS0SqnyG3Fq/eK6IHrZCNj8UtBVeOC/Z8WTyVlSUq3Ve
-	6ZPDgKRpd6fU/NwyKzKEvdpPxN0k4V+LSzBcSIs5VWrCDF0rHGSdbsLjfHrLqSlLbCARjutcZ4n
-	IVSmWWwDdUb+0x+B6A3BrUmiDbtcMeXskUxw4w6OBy2gespjPN5oYA8JuRDjEtMDipkvqTRJQ7d
-	WBlPBD61HP/DuI7k5gqQo1z3EVS7PeS3o2RMmmpaEeWON5UZR9f6ZKoU8ZCB+7zqf3m+jzIFXn/
-	JHg6PmLWx5kh9fsHLbfdMJyCbJ
-X-Google-Smtp-Source: AGHT+IF3Hyj99KVYH7eKgsob3BQ45Jd/nJmyOnYqu0haD+sew52kZzas8xvaY4Ad9Sm9iGclBL4nXw==
-X-Received: by 2002:a05:600c:1992:b0:45f:2c33:2731 with SMTP id 5b1f17b1804b1-47a83794790mr3584915e9.2.1765331468395;
-        Tue, 09 Dec 2025 17:51:08 -0800 (PST)
-Received: from localhost.localdomain ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-bf748c6bcacsm15706689a12.0.2025.12.09.17.51.05
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 09 Dec 2025 17:51:07 -0800 (PST)
-From: Heming Zhao <heming.zhao@suse.com>
-To: joseph.qi@linux.alibaba.com,
-	mark@fasheh.com,
-	jlbec@evilplan.org
-Cc: Heming Zhao <heming.zhao@suse.com>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH 1/1] ocfs2: fix reflink preserve cleanup issue
-Date: Wed, 10 Dec 2025 09:50:48 +0800
-Message-ID: <20251210015058.8327-2-heming.zhao@suse.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20251210015058.8327-1-heming.zhao@suse.com>
-References: <20251210015058.8327-1-heming.zhao@suse.com>
+        d=1e100.net; s=20230601; t=1765331639; x=1765936439;
+        h=content-transfer-encoding:in-reply-to:content-language:from
+         :references:cc:to:subject:user-agent:mime-version:date:message-id
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to;
+        bh=VRie6qifJusADsCTyMYhZ4FPQ/4zynZODZnNaocTPyQ=;
+        b=QfpBmE4PLvcZqgRIvOWWADCGJZG8NWL9r7Jx7uwkysTpcs0NpSNF/FWIrGWoANZtWU
+         PM28c0m9CPx8JoDtjhyPvwbmJU/ttebXyAKbOTJzkEx8s8AzSfiqFoNQBcR8cCIsDVDD
+         IdeUomfijx709+BWD76KAXwfo0a+W3YPJzrF6jfHqlzUrowUjIqQKRZ33ok/okEzzlwJ
+         Ek51l/nrAHADlnCzz1lcDAuKKyQNpeSN8Uq9l5uIeSZzI3bjF5QuDiCwInEAYBiTKx6A
+         Pnu0LTGY/vThoQclTZsBBVAtiteibEZFPAUEg/ttRau6vZPa4Lcf9lz73v4QgMSdhdpk
+         afFg==
+X-Gm-Message-State: AOJu0YxtPqyAK0K3PUOnjNmrrR9pZFXMrVfrbP0EyAvP01MkPsGL1Kr3
+	egvHW4yG53rfaVcyzA5UPxtga6jfWNbO2li3mJOJS22YSxztlL4iaQGayenWHvduwyY=
+X-Gm-Gg: ASbGnct9civVBrzQoBxkE6JuwS4IwiR0Nh4eeQ9jKpvpAZGhEZuNLF01Id45RoaYqju
+	GovX7sG/w2MTJZ2Bkp4piYt4pwz9d+tZESmzrbWfer4zgD8fcFfa+jOb/ZhofG5uSRRMsdu7lY+
+	WcdZCwGH7xKZ4kI+C/F7S1qKIbLHPYwgc1tMhzRtvXr/dvnu/RmwoXB6MRVRE8UvwS8JdHjvvPr
+	jgG1FSA+sjpLrmplL9GN7d6RC3a6HwEvEqy0QI8znRDoOm0i2bV9tZDM6MJEn/MdB5G00yyzgIO
+	SMd2qznHDIQjAGt5r84zxjq3TE2W8d2Xrv0U+gCngnOAp4WFBZimE1GS/15GFpepJf4ZLOFC9dA
+	/H8TFkeLzYGQuZPtRCXBL1AGkM+kM2D1RtHxm4Vsc6DgZfNAo+egH+e3+lIBiB2Xlhsrb8FU6/X
+	CRuDzxAE9ixSSevoz+Tw==
+X-Google-Smtp-Source: AGHT+IELv4YJgV3w8Da8H1yWimfcFbyrN5FIGR9vxKTaLiQ40PTEvlZHFVkEoRX9UTG5H6sSR/Z+1Q==
+X-Received: by 2002:a05:600c:310c:b0:477:9c9e:ec7e with SMTP id 5b1f17b1804b1-47a8380c6a8mr4362575e9.6.1765331639321;
+        Tue, 09 Dec 2025 17:53:59 -0800 (PST)
+Received: from [10.202.112.30] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29daeaac07csm164532215ad.86.2025.12.09.17.53.57
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 09 Dec 2025 17:53:58 -0800 (PST)
+Message-ID: <538b2cea-3d8d-4f51-b9b0-4ff2132826c5@suse.com>
+Date: Wed, 10 Dec 2025 09:53:55 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 0/1] ocfs2: fix reflink preserve cleanup issue
+To: joseph.qi@linux.alibaba.com, mark@fasheh.com, jlbec@evilplan.org
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+References: <20251210015058.8327-1-heming.zhao@suse.com>
+From: Heming Zhao <heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <20251210015058.8327-1-heming.zhao@suse.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-commit c06c303832ec ("ocfs2: fix xattr array entry __counted_by error")
-doesn't handle all cases and the cleanup job for preserved xattr
-entries still has bug:
-- the 'last' pointer should be shifted by one unit after cleanup
-  an array entry.
-- current code logic doesn't cleanup the first entry when xh_count is 1.
+sorry, the ocfs2-test cases are incorrect, I will resend this patch.
 
-Note, commit c06c303832ec is also a bug fix for 0fe9b66c65f3.
+- Heming
 
-Fixes: 0fe9b66c65f3 ("ocfs2: Add preserve to reflink.")
-Signed-off-by: Heming Zhao <heming.zhao@suse.com>
----
- fs/ocfs2/xattr.c | 4 ++++
- 1 file changed, 4 insertions(+)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index dc1761e84814..31d023f9e2ed 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -6364,6 +6364,10 @@ static int ocfs2_reflink_xattr_header(handle_t *handle,
- 					(void *)last - (void *)xe);
- 				memset(last, 0,
- 				       sizeof(struct ocfs2_xattr_entry));
-+				last = &new_xh->xh_entries[le16_to_cpu(new_xh->xh_count)] - 1;
-+			} else {
-+				memset(xe, 0, sizeof(struct ocfs2_xattr_entry));
-+				last = NULL;
- 			}
- 
- 			/*
--- 
-2.43.0
+On 12/10/25 09:50, Heming Zhao wrote:
+> Linus and Andrew are busy, so I don't include them in the patch review phase.
+> This patch continues Linus's job to fix the remaining issue in the reflink
+> preserve path.
+> 
+> The patch passed the following tests.
+> 
+> from xfstests:
+> 
+> ```
+> ./check -g quick -T -b -s ocfs2 -e generic/032 -e generic/076 \
+> -e generic/081 -e generic/266 -e generic/272 -e generic/281 \
+> -e generic/331 -e generic/338 -e generic/347 -e generic/361 \
+> -e generic/479 -e generic/480 -e generic/628 -e generic/629 \
+> -e generic/648 -e generic/650
+> ```
+> 
+> 
+> from ocfs2-test:
+> 
+> ```
+> single_run-WIP.sh -f 1 -k /usr/local/ocfs2-test/tmp/linux-2.6.39.tar.gz -l /usr/local/ocfs2-test/log -m /mnt/ocfs2 -d /dev/vde -b 4096 -c 32768 -s pcmk -n hacluster -t reflink
+> 
+> xattr-single-run.sh -o /home/ocfs2test/results/ -d /dev/vdb -b 1K -s pcmk -n hacluster -C 4K /mnt/ocfs2
+> ```
+> 
+> special test:
+> (reflink command is from ocfs2-tools)
+> 
+> ```
+> ## this case will leave one entry after cleanup job
+> ## create file
+> cp /usr/bin/basename /mnt/ocfs2/a0
+> ## set OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS
+> setfacl -m u:ocfs2test:rwx /mnt/ocfs2/a0
+> ## check, will output: "user:ocfs2test:rwx"
+> getfacl /mnt/ocfs2/a0
+> ## set OCFS2_XATTR_INDEX_USER, don't trigger cleanup
+> setfattr -n user.comment -v "tst-xattr" /mnt/ocfs2/a0
+> ## check, will output: "tst-xattr"
+> getfattr -n user.comment /mnt/ocfs2/a0
+> ## set OCFS2_XATTR_INDEX_SECURITY
+> setfattr -n security.selinux -v "unconfined_u:object_r:user_home_t:s0" /mnt/ocfs2/a0
+> ## reflink non-preserve
+> reflink /mnt/ocfs2/a0 /mnt/ocfs2/ra0
+> ## reflink preserve
+> reflink -p /mnt/ocfs2/a0 /mnt/ocfs2/ra0-p
+> ## check
+> getfacl /mnt/ocfs2/ra0  # "user:ocfs2test:rwx" non-exist
+> getfacl /mnt/ocfs2/ra0-p
+> getfattr -n user.comment /mnt/ocfs2/ra0 # "tst-xattr" exist
+> getfattr -n user.comment /mnt/ocfs2/ra0-p
+> getfattr -n security.selinux /mnt/ocfs2/ra0 # no security attr item
+> getfattr -n security.selinux /mnt/ocfs2/ra0-p
+> 
+> 
+> ## this case will trigger cleaning up all array entries.
+> ## create file. then set file with OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS and
+> ## OCFS2_XATTR_INDEX_SECURITY
+> cp /usr/bin/basename /mnt/ocfs2/b0
+> setfacl -m u:ocfs2test:rwx /mnt/ocfs2/b0
+> setfattr -n security.selinux -v "unconfined_u:object_r:user_home_t:s0" /mnt/ocfs2/b0
+> ## reflink non-preserve
+> reflink /mnt/ocfs2/b0 /mnt/ocfs2/rb0
+> ## reflink preserve
+> reflink -p /mnt/ocfs2/b0 /mnt/ocfs2/rb0-p
+> ## check
+> getfacl /mnt/ocfs2/rb0 # "user:ocfs2test:rwx" non-exist
+> getfacl /mnt/ocfs2/rb0-p
+> getfattr -n security.selinux /mnt/ocfs2/rb0 # no security attr item
+> getfattr -n security.selinux /mnt/ocfs2/rb0-p
+> ```
+> 
+> 
+> Heming Zhao (1):
+>    ocfs2: fix reflink preserve cleanup issue
+> 
+>   fs/ocfs2/xattr.c | 4 ++++
+>   1 file changed, 4 insertions(+)
+> 
 
