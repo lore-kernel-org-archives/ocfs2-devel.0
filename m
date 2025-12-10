@@ -1,75 +1,92 @@
-Received: from mail-ot1-f71.google.com (mail-ot1-f71.google.com [209.85.210.71])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84119326944
-	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 20:06:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.71
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 644612D063F;
+	Wed, 10 Dec 2025 20:43:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765397166; cv=none; b=a3+RW/w8Vq5BUYBaIeiih35G3PgUP+PtT6a0LI6qqf1sxo83ZOLQP3+FOBpJ5v8rfm5pC1cKUzPoFbNCbHK9U0xCSZ2YdgiGrZwkENJ9ZZ9tSMSNdeTbHiV2PK6E6h2O2xnxHDkhtsb6M+w1uEkhcmy5tbwMYFG5nVOHx5c44To=
+	t=1765399403; cv=none; b=TBXuMM5Ox85/QVB9shV00/wnJ49o9RwACeFlBWMMiuE9OAoPMj4LrUKGI0yxZfmg8ZdrTMNIIBqcqo63fKsxm1ZBOJthv4ydGeEQQh3barrFI0NI+/uNINfPd93TpSCtd2YBO+/9MfW+/snPlRgstiutjBtmUjzrNBQuw0rPZVI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765397166; c=relaxed/simple;
-	bh=o/N9hNYDFGaPPiccpt1MWu5r6nedgV25JSOFHlJwRBE=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=tB30GHQbGUnjyn+6q5M2TrPVEhDek6/fkXPbWUSKTKe5OjcPzknbNtjU/YjkiTUNetTh/+mXr6SkmBd2MTFgCM6Q7frXcwMWnpseJQfsrZmHTYOn8X17pzyogfgMfBzj67P82jsbE3lyEV4JC9LiRZBsoxZd+dxnwSUQgQbqCZU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.71
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-ot1-f71.google.com with SMTP id 46e09a7af769-7c75798bfacso583887a34.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 12:06:04 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765397163; x=1766001963;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=gdpoFQRlR9CsknvUV9HU8+SF/nRNvJP5Go3OaipCpTY=;
-        b=N5k6O9VUCDIWoHxQ9/iV0obKTd1xC9hik++/nBR2nooVMyqgBpMCZvkrzj7spfYfWb
-         /AEjKYAA+T8QwePX0y6I8jPRTMQKAAb9Mq8VforQFRX4Xiga2G5DCNqwBth5G6wWTXUA
-         GWLQ/cwNRsIGATJFPGtR7U6lewc4mPpGqJzTtHzfx25n42OWxf5TFPtI4II2aNmJFb/c
-         vy+mje/kuSNd5ZeSW65A5xWGkEr/sVjmlhXcAO0aA7cmKzA4oaWu/nUTqN6UoSHNMfKR
-         Ei1wUJSt93CuyOyKLQ2l11218aJxA62s4iHBUGrP8p41UukQq/UZx506gzefbKoARUo/
-         lGlA==
-X-Forwarded-Encrypted: i=1; AJvYcCWsqLSf3PutdlWOFcOiYyFafYZ+vSfofBIhs9JBYth+Tmo8Po1N0f5fT0ISa5AysnOcS+UGaTsk0EubFQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyNQNpQNJzZnKehxCR+N/d4zBz7J6SocxPe1gU0q1oMo6/RduJP
-	mtTE+bnw64YCWr6k9IhBzSdHIiyrcNddjhPOgrypB5gHSHhzsxGrcSz1NpXk8I68K8HTrO9FdFP
-	jMwmGIzXILokys77Z9oVvyHN+kkHsEPgbzgPJDzA+B+iQ7yzq3nk+tGClhQI=
-X-Google-Smtp-Source: AGHT+IH2drRLJviEjM9rn0/o/Ucd3/rXK4gn13nxFWO1Yth2qfGPOfT9g4jca/MwVBRdNkdfRv7PnZGaG7JkJGUqUpGB5UWyUmkz
+	s=arc-20240116; t=1765399403; c=relaxed/simple;
+	bh=w+5BUhqwnbpKjWLGR/KNRAzvVLfQAFQgPYhFZRTFWOU=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=iIZIFoSnDyHFrSnLasCjG7rBcCmXa7nP3tz5HfSlXLmwYcxPFBTRoGadyTRnsbJXw44GlxiqlKPCi6YacvETwDBf6rfvm5l+/auaIohj0RDTrshrrvNVbFl5RoXBkKEr5pTB3Pu1RgvY6uimZrNSVe31Rm/FaPmj8sLmemp+C8s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=URIisB4u; arc=none smtp.client-ip=62.89.141.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="URIisB4u"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:
+	Content-Transfer-Encoding:Content-Type:MIME-Version:References:Message-ID:
+	Subject:Cc:To:From:Date:Reply-To:Content-ID:Content-Description;
+	bh=ynvoEItOYACbGez6/0HZQbIM1/079C5Q82KEw98aWRI=; b=URIisB4uWWnjmUElS2NBz2Uq4m
+	Iy4NIoUoroRPT15FfeLKSxdaroDPAuGqSjFJRCFwYuPc8iPWLVFpB+Mpb296l5cWUIuLQ+EFf7+wx
+	mkdnKo07ftiZpDbNsTIw9vzVMK+6fYRO+OMgbywJorAeYZGL7ShnViMINbOGjrd+ZB2pBtxl6k9Og
+	Ofh8JU4zc9JMvEvziNdyh9fna+hVjFJAgkVg6GDzwuB4Stbar69F790QaG3Gdq1nZb962Ys19XpRq
+	ULPuSbcwoezCSXN38h7dabmGgCfHLG+XJ2PS+c7zQugR3n+OWbJDsIGlGPng9eFpeWFVxWudjNq5Y
+	eRvK8DqQ==;
+Received: from viro by zeniv.linux.org.uk with local (Exim 4.99 #2 (Red Hat Linux))
+	id 1vTR2A-00000007RxZ-0CyK;
+	Wed, 10 Dec 2025 20:43:38 +0000
+Date: Wed, 10 Dec 2025 20:43:38 +0000
+From: Al Viro <viro@zeniv.linux.org.uk>
+To: Mateusz Guzik <mjguzik@gmail.com>
+Cc: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>,
+	syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>,
+	brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org,
+	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+	mark@fasheh.com, ocfs2-devel@lists.linux.dev,
+	sj1557.seo@samsung.com, syzkaller-bugs@googlegroups.com,
+	Chuck Lever <chuck.lever@oracle.com>
+Subject: Re: [PATCH for 6.19-rc1] fs: preserve file type in make_bad_inode()
+ unless invalid
+Message-ID: <20251210204338.GY1712166@ZenIV>
+References: <6w4u7ysv6yxdqu3c5ug7pjbbwxlmczwgewukqyrap3ltpazp4s@ozir7zbfyvfj>
+ <6930e200.a70a0220.d98e3.01bd.GAE@google.com>
+ <CAGudoHE0Q-Loi_rsbk5rnzgtGfbvY+Fpo9g=NPJHqLP5G_AaUg@mail.gmail.com>
+ <20251204082156.GK1712166@ZenIV>
+ <CAGudoHGLFBq2Fg5ksJeVkn=S2pv6XzxenjVFrQYScA7QV9kwJw@mail.gmail.com>
+ <7e2bd36e-3347-4781-a6fd-96a41b6c538d@I-love.SAKURA.ne.jp>
+ <CAGudoHF7jPw347kqcDW2mFLzcJcYqiFLsbFtd-ngYG=vWUz8xQ@mail.gmail.com>
+ <20251210153531.GX1712166@ZenIV>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a4a:e842:0:b0:659:9a49:8fcb with SMTP id
- 006d021491bc7-65b2acf8273mr2227515eaf.68.1765397163648; Wed, 10 Dec 2025
- 12:06:03 -0800 (PST)
-Date: Wed, 10 Dec 2025 12:06:03 -0800
-In-Reply-To: <ff7k3zlpiueyyykotdpfcaoxn2tukceoqcbmfdwjfolndy4sen@3f5r362sg67g>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6939d2ab.050a0220.4004e.01e7.GAE@google.com>
-Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
-From: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
-To: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
-	mjguzik@gmail.com, ocfs2-devel@lists.linux.dev, sj1557.seo@samsung.com, 
-	syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <20251210153531.GX1712166@ZenIV>
+Sender: Al Viro <viro@ftp.linux.org.uk>
 
-Hello,
+On Wed, Dec 10, 2025 at 03:35:31PM +0000, Al Viro wrote:
+> On Wed, Dec 10, 2025 at 11:09:24AM +0100, Mateusz Guzik wrote:
+> > On Wed, Dec 10, 2025 at 10:45 AM Tetsuo Handa
+> > <penguin-kernel@i-love.sakura.ne.jp> wrote:
+> > >
+> > > syzbot is hitting VFS_BUG_ON_INODE(!S_ISDIR(inode->i_mode)) check
+> > > introduced by commit e631df89cd5d ("fs: speed up path lookup with cheaper
+> > > handling of MAY_EXEC"), for make_bad_inode() is blindly changing file type
+> > > to S_IFREG. Since make_bad_inode() might be called after an inode is fully
+> > > constructed, make_bad_inode() should not needlessly change file type.
+> > >
+> > 
+> > ouch
+> > 
+> > So let's say calls to make_bad_inode *after* d_instantiate are unavoidable.
+> 
+> ... and each one is a bug.
 
-syzbot has tested the proposed patch and the reproducer did not trigger any issue:
+FWIW, I'm very tempted to fold make_bad_inode() into iget_failed().  Other
+callers tend to be either pointless (e.g. ext2_new_inode() after reaching
+fail: label - we only get there if inode has never reached inode hash
+table; make_bad_inode() in there should've been gone for a long time)
+or outright broken.
 
-Reported-by: syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
-Tested-by: syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
-
-Tested on:
-
-commit:         0048fbb4 Merge tag 'locking-futex-2025-12-10' of git:/..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=15607992580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=de48dccdf203ea90
-dashboard link: https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
-patch:          https://syzkaller.appspot.com/x/patch.diff?x=14261a1a580000
-
-Note: testing is done by a robot and is best-effort only.
+There's not a lot of callers, thankfully; I'm going through those at the
+moment, but so far the impression is that we should be able to simply bury
+the damn thing.
