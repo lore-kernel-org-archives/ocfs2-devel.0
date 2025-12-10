@@ -1,174 +1,166 @@
-Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C14E7260F
-	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 01:55:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CCFF31C69D
+	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 01:57:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.53
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765331717; cv=none; b=eOyxyEx0Wb0V44IGAX0MGMNb3x9d20jvbxiPXn3kU2mI0o5ACnkhMq3uJZw4BRhrye7TDkSr57W65MLFt5NjnXdPw+8p6Xxl9Mh23GydlkuJBptryLdmaDLH8pidTReBsd4Nsn+xALQiOv/SDdv25uj48x8zNOdIIon604Hc5a4=
+	t=1765331854; cv=none; b=p0xUW4ZSv/dcnCMybzziZpzh4t3iQBsed+TlUOF8joWbg/eQrQBwiMMftdzeZgHKDUUA6ZUT+V1nYdYObD+8xxSzlLjK1ssTa+/jM61Hzd5u7ZHzv8vpwK0mdpxAv+AJMpSfFNErdREbr6GS5mcE0YV7COY7ri2aMvA539/dhio=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765331717; c=relaxed/simple;
-	bh=zADPUiySYeb31KI98vj+YGUwMaoXsX73VNHvEZ+56BY=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=bIz3RsRpd0crmyuHG9IhPN2nG5gOK/Mc8/EU794x/fy7xgzrW0faaMfWX0mvnLGXnT8ApiLcnzWUMoK1X4EZ3ygTKf2rbR5/s2FVPMahW3+GJ3WsRGxnSAvql7RtcvLlrC7uD/BBr5G02UY8XdVfMNfiwfEkraJj2AIYYdolRqA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=X9XVqz2f; arc=none smtp.client-ip=115.124.30.99
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1765331854; c=relaxed/simple;
+	bh=EXMGCVAIoyAy/xxruOm9uvQBoxoRGp+GnKT8R/4C6tk=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=piV4tmwjfVXVFtglhIh0gSv36zeSe/GbGuUdJMOj4Ev1NvEcZnBhW/Vs/GBo2xmxheNYODLEvYrA9rO66puujSTiA8dF/3BLJBAuS1PyjWP4k900aRcO4pP8y03fzZ4uP3XTk7/y7LSbS58ioBjVLvg1PPuLVomP6Q4QFurpfwI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=XRgQFXf4; arc=none smtp.client-ip=209.85.128.53
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="X9XVqz2f"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1765331704; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=ITs/5L2ORyxeRn0yiVHP1f3lZb6YagXm0ecPAj3NPJQ=;
-	b=X9XVqz2fP8qUksPH+IXvq/UAV2jB8TMD+oIbVwPsO4fc8Uf6Dm4LUiVEEO4JGdTTC6l2dTJGhAmf+rlKo0fE71tOPCEVcIEIE0tm7YhKXYU7AYuK4uEGkKKvHKxvaOizCw7c0RRbwQCoSzyOX05LWrbaZSeqBpx9wdYpNQ1KpNI=
-Received: from 30.221.145.92(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WuUc16w_1765331703 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 10 Dec 2025 09:55:03 +0800
-Message-ID: <86fe3ab7-943d-415f-822d-ffa2e7c18640@linux.alibaba.com>
-Date: Wed, 10 Dec 2025 09:55:03 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="XRgQFXf4"
+Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-47928022b93so13950265e9.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Dec 2025 17:57:32 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1765331851; x=1765936651; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=t8ovbNgKg/lgTT9dyc+7/3rfj3rR7+zCrXiqUlR8nTg=;
+        b=XRgQFXf4hN1IQpx6xX/Dc0yF8ziupGaYWOEsL4AvhdE8Th7uplNQIUpsYNnOMvvOGB
+         t7TAAOdaue3DHISt8Kp1UalnzpP3mHr+B9BFdRNkpTMZk98aHIxVsUlHjorS1dG2EWAK
+         RWIcoLJb+uR6wX1EdZ3lcE5Y/pjjJ4aB9wP33ugGPVjYeJzIg5b+Bu+exHP/pA0tCQni
+         Nkx4CsCAzXee8phGjR0vaKiEXG6s5oZ2LkYWoXOnUlQUrms1jg7RxnPoFiUAWZL9mrph
+         qP/kpikPMdxFOvzXR/uKRsxxP9rNStdvKoko4STXMMZxvKkP59GEMxp5bGNAGNb32LEr
+         i6Ug==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1765331851; x=1765936651;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=t8ovbNgKg/lgTT9dyc+7/3rfj3rR7+zCrXiqUlR8nTg=;
+        b=wl6Ampeh2IomCYfj6IPNrjkLxw45ulZBYRuyTPMYafLTEK+3/PBE8Ye1hKJR74wK0Y
+         IEB38GcvsqqC8x40sPdQQzuZ2qRgjUyY0+fZyXzyHo0geLWTCQu4lX86kFzr8kAi1XdV
+         bqiS85seYsPG9gOfbKmZncktkX6rsvdyXi/pobdx93pe94r8Fuwu/1cgDG2xudcmlX4Z
+         /6ZzTMEyByK2tUzJi04LOW4wQErU8EoT5ZgE9yx7tF+61wQF9kF6W0vpqPAfMTaFICAA
+         cN1jkg3LjSExrE6LgC1WlPzuBDk7Jjc4AlOcu8Bq0+e2NSqjQYPzJA5zRonVqclpmAZf
+         4frg==
+X-Forwarded-Encrypted: i=1; AJvYcCUE9ILPpi40TIiaPS3JoWIeXf4J6+is4kmh5OnesDooqwULRuDv/xsQNUk1PC2NWRQ/2Mjhd2Q8YfzOTw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyO0k2dvIv30Qcmtg6MA4Otv6TVdRfc9KdAzUMfZngoepQTxjam
+	FtgPXidJiMyXlgH62IUsIrSmCwmtk9IJxSlv8TT676eApnKUNjj6YOisgMn9U6WHrEb5SaPpW77
+	zmxfT
+X-Gm-Gg: ASbGncusJeWav2SPuCVTtnulSM9Fp+OquBKVbXYgCv0/DSrHQCR8TmO4IOjli7ly+QX
+	Mt6yDWsylm3Xl72ssz+pJqa5ayz0kZ3G8/4pQj5/+y89jIa6rW+tj79s5xE6traF5ULf4IiWLk2
+	pkWTlWTBM196KhXXBl2oiyyel/d2vyFRir+IcO3HzrMqB6OSNTAXpsjuV7k2E7xijyBX4m3xmYk
+	jOKdJxgYHBbccLvANAlupZDjgPjReDAfoP5T5g5L0zvt0D3klHtq2iBjEMpjMdxr2QSIyRM3UbA
+	4U0BTb+gL0kPfAcWveCgQVGLUQseShF/kL3GSTyOtRGFFWBicHAc6yT55cQTfZMnS9eUsYV5j7X
+	ujmvmgaxNluJqnmryfAkBN3MFh915jiHs5cH4cWz8lW3WLQEOVqPzu7iaL/tTRx70G+xqoCz9W2
+	t//GhILc1SuBDQsxyH8UEo89ji
+X-Google-Smtp-Source: AGHT+IEF2RfiiTUMOopT5eCWNA5egYPzxrTQLXLc+5epK6vGnh+VtAMca4T8Bzpx55E1JMB1KJCY7Q==
+X-Received: by 2002:a05:600c:46cf:b0:477:a6f1:499d with SMTP id 5b1f17b1804b1-47a837a8c9amr4047365e9.3.1765331851178;
+        Tue, 09 Dec 2025 17:57:31 -0800 (PST)
+Received: from localhost.localdomain ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29dae49ca1esm164755985ad.2.2025.12.09.17.57.28
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 09 Dec 2025 17:57:30 -0800 (PST)
+From: Heming Zhao <heming.zhao@suse.com>
+To: joseph.qi@linux.alibaba.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org
+Cc: Heming Zhao <heming.zhao@suse.com>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH RESEND 0/1] ocfs2: fix reflink preserve cleanup issue
+Date: Wed, 10 Dec 2025 09:57:23 +0800
+Message-ID: <20251210015725.8409-1-heming.zhao@suse.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH RESEND v4 2/2] ocfs2: detect released suballocator BG for
- fh_to_[dentry|parent]
-To: Heming Zhao <heming.zhao@suse.com>, mark@fasheh.com, jlbec@evilplan.org
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- glass.su@suse.com
-References: <20251202063938.9046-1-heming.zhao@suse.com>
- <20251202063938.9046-3-heming.zhao@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251202063938.9046-3-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+
+why resend?
+I pasted incorrect ocfs2-tools test cases.
+(only modified the cover-letter; no code changes)
+-----
+
+Linus and Andrew are busy, so I don't include them in the patch review phase.
+This patch continues Linus's job to fix the remaining issue in the reflink
+preserve path.
+
+The patch passed the following tests.
+
+from xfstests:
+
+```
+./check -g quick -T -b -s ocfs2 -e generic/032 -e generic/076 \
+-e generic/081 -e generic/266 -e generic/272 -e generic/281 \
+-e generic/331 -e generic/338 -e generic/347 -e generic/361 \
+-e generic/479 -e generic/480 -e generic/628 -e generic/629 \
+-e generic/648 -e generic/650
+```
 
 
+from ocfs2-test:
 
-On 2025/12/2 14:39, Heming Zhao wrote:
-> After ocfs2 gained the ability to reclaim suballocator free block
-> group (BGs), a suballocator block group may be released. This change
-> causes the xfstest case generic/426 to fail.
-> 
-> generic/426 expects return value -ENOENT or -ESTALE, but the current
-> code triggers -EROFS.
-> 
-> Call stack before ocfs2 gained the ability to reclaim bg:
-> 
-> ocfs2_fh_to_dentry //or ocfs2_fh_to_parent
->  ocfs2_get_dentry
->   + ocfs2_test_inode_bit
->   |  ocfs2_test_suballoc_bit
->   |   + ocfs2_read_group_descriptor //Since ocfs2 never releases the bg,
->   |   |                             //the bg block was always found.
->   |   + *res = ocfs2_test_bit //unlink was called, and the bit is zero
->   |
->   + if (!set) //because the above *res is 0
->      status = -ESTALE //the generic/426 expected return value
-> 
-> Current call stack that triggers -EROFS:
-> 
-> ocfs2_get_dentry
->  ocfs2_test_inode_bit
->   ocfs2_test_suballoc_bit
->    ocfs2_read_group_descriptor
->     + if reading a released bg, validation fails and triggers -EROFS
-> 
-> How to fix:
-> Since the read BG is already released, we must avoid triggering -EROFS.
-> With this commit, we use ocfs2_read_hint_group_descriptor() to detect
-> the released BG block. This approach quietly handles this type of error
-> and returns -EINVAL, which triggers the caller's existing conversion
-> path to -ESTALE.
-> 
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> Reviewed-by: Su Yue <glass.su@suse.com>
-> ---
->  fs/ocfs2/suballoc.c | 28 ++++++++++++++++++----------
->  1 file changed, 18 insertions(+), 10 deletions(-)
-> 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index de2f09217142..a126d83ddb1c 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -3152,7 +3152,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->  	struct ocfs2_group_desc *group;
->  	struct buffer_head *group_bh = NULL;
->  	u64 bg_blkno;
-> -	int status;
-> +	int status, quiet = 0, released;
->  
->  	trace_ocfs2_test_suballoc_bit((unsigned long long)blkno,
->  				      (unsigned int)bit);
-> @@ -3168,11 +3168,15 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->  
->  	bg_blkno = group_blkno ? group_blkno :
->  		   ocfs2_which_suballoc_group(blkno, bit);
-> -	status = ocfs2_read_group_descriptor(suballoc, alloc_di, bg_blkno,
-> -					     &group_bh);
-> -	if (status < 0) {
-> +	status = ocfs2_read_hint_group_descriptor(suballoc, alloc_di, bg_blkno,
-> +					     &group_bh, &released);
-> +	if (released) {
-> +		quiet = 1;
-> +		status = -EINVAL;
-> +		goto bail;
-> +	} else if (status < 0) {
->  		mlog(ML_ERROR, "read group %llu failed %d\n",
-> -		     (unsigned long long)bg_blkno, status);
-> +				(unsigned long long)bg_blkno, status);
->  		goto bail;
->  	}
->  
-> @@ -3182,7 +3186,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->  bail:
->  	brelse(group_bh);
->  
-> -	if (status)
-> +	if (status && (!quiet))
->  		mlog_errno(status);
->  	return status;
->  }
-> @@ -3202,7 +3206,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
->   */
->  int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->  {
-> -	int status;
-> +	int status, quiet = 0;
->  	u64 group_blkno = 0;
->  	u16 suballoc_bit = 0, suballoc_slot = 0;
->  	struct inode *inode_alloc_inode;
-> @@ -3244,8 +3248,12 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->  
->  	status = ocfs2_test_suballoc_bit(osb, inode_alloc_inode, alloc_bh,
->  					 group_blkno, blkno, suballoc_bit, res);
-> -	if (status < 0)
-> -		mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
-> +	if (status < 0) {
-> +		if (status == -EINVAL)
+```
+single_run-WIP.sh -f 1 -k /usr/local/ocfs2-test/tmp/linux-2.6.39.tar.gz -l /usr/local/ocfs2-test/log -m /mnt/ocfs2 -d /dev/vde -b 4096 -c 32768 -s pcmk -n hacluster -t inline,xattr,reflink
 
-This seems not right, since there is other case which will also return -EINVAL.
-So how about return -ESTALE in this case?
+discontig_runner.sh -f 1 -d /dev/vde -b 4096 -c 32768 -s pcmk -n hacluster /mnt/ocfs2
+```
 
-Thanks,
-Joseph
+special test:
+(reflink command is from ocfs2-tools)
 
-> +			quiet = 1;
-> +		else
-> +			mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
-> +	}
->  
->  	ocfs2_inode_unlock(inode_alloc_inode, 0);
->  	inode_unlock(inode_alloc_inode);
-> @@ -3253,7 +3261,7 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
->  	iput(inode_alloc_inode);
->  	brelse(alloc_bh);
->  bail:
-> -	if (status)
-> +	if (status && !quiet)
->  		mlog_errno(status);
->  	return status;
->  }
+```
+## this case will leave one entry after cleanup job
+## create file
+cp /usr/bin/basename /mnt/ocfs2/a0
+## set OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS
+setfacl -m u:ocfs2test:rwx /mnt/ocfs2/a0
+## check, will output: "user:ocfs2test:rwx"
+getfacl /mnt/ocfs2/a0
+## set OCFS2_XATTR_INDEX_USER, don't trigger cleanup
+setfattr -n user.comment -v "tst-xattr" /mnt/ocfs2/a0
+## check, will output: "tst-xattr"
+getfattr -n user.comment /mnt/ocfs2/a0
+## set OCFS2_XATTR_INDEX_SECURITY
+setfattr -n security.selinux -v "unconfined_u:object_r:user_home_t:s0" /mnt/ocfs2/a0
+## reflink non-preserve
+reflink /mnt/ocfs2/a0 /mnt/ocfs2/ra0
+## reflink preserve
+reflink -p /mnt/ocfs2/a0 /mnt/ocfs2/ra0-p
+## check
+getfacl /mnt/ocfs2/ra0  # "user:ocfs2test:rwx" non-exist
+getfacl /mnt/ocfs2/ra0-p
+getfattr -n user.comment /mnt/ocfs2/ra0 # "tst-xattr" exist
+getfattr -n user.comment /mnt/ocfs2/ra0-p
+getfattr -n security.selinux /mnt/ocfs2/ra0 # no security attr item
+getfattr -n security.selinux /mnt/ocfs2/ra0-p
+
+
+## this case will trigger cleaning up all array entries.
+## create file. then set file with OCFS2_XATTR_INDEX_POSIX_ACL_ACCESS and 
+## OCFS2_XATTR_INDEX_SECURITY
+cp /usr/bin/basename /mnt/ocfs2/b0
+setfacl -m u:ocfs2test:rwx /mnt/ocfs2/b0
+setfattr -n security.selinux -v "unconfined_u:object_r:user_home_t:s0" /mnt/ocfs2/b0
+## reflink non-preserve
+reflink /mnt/ocfs2/b0 /mnt/ocfs2/rb0
+## reflink preserve
+reflink -p /mnt/ocfs2/b0 /mnt/ocfs2/rb0-p
+## check
+getfacl /mnt/ocfs2/rb0 # "user:ocfs2test:rwx" non-exist
+getfacl /mnt/ocfs2/rb0-p
+getfattr -n security.selinux /mnt/ocfs2/rb0 # no security attr item
+getfattr -n security.selinux /mnt/ocfs2/rb0-p
+```
+
+
+Heming Zhao (1):
+  ocfs2: fix reflink preserve cleanup issue
+
+ fs/ocfs2/xattr.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+-- 
+2.43.0
 
