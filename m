@@ -1,145 +1,152 @@
-Received: from mail-pf1-f177.google.com (mail-pf1-f177.google.com [209.85.210.177])
+Received: from mail-ej1-f47.google.com (mail-ej1-f47.google.com [209.85.218.47])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA7A430AD05
-	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 19:33:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 79BDA136351
+	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 19:44:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765395225; cv=none; b=kqWfNfLY7HpSC0AH7uDHLjD84dnR9eTlUx/8irp4nrdLQAz1axSgMfN4tm8TvwSCRTYUQ7D7EHZMZBmGu1Q58ZuqreVEFW6DdPvYG5DVlH/SJGtz5XiHeBOVgAm3pzgT+kIo3K2LJxL1+X1mzTqFSNGQgj7TdUZAkEwp9ionOpY=
+	t=1765395868; cv=none; b=EPsnmJFXEAjb/zXeI5K1hssHTmmxRb5E7cnsmz84Y3NwwBpZmO1FT+00orbp+ujv2tx4v4XIsM2n9z2Zrzd9DB1+8V59hnc7xTlDOGrgl7Ls7EZZFyXvjwy2lc9+RzbdA51YvrM7KvgJYaen2ddNw2afwzazv/O3H+hYQsEeo2E=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765395225; c=relaxed/simple;
-	bh=8UjBTc/l5QErbH4PdB/3AyuN4ByBmBhkEBcnEF8mCkQ=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=TXHun6gWN8Jn5W3LmvU4dgJI9JfZqTSqiX9MpI7FjYJ38hXE0VSq6zlvIj2wMPGnetG1xzrNJmQrLvTysNfFQ0nSKZyKJxCpz4BUvhyDkAH/UDWvCPhi3ZJGMfCthCKpfI5ohFPKCPLZoj0MU5ShVxLgY3823+I5mYD1URFiBwA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=cIBTh6l9; arc=none smtp.client-ip=209.85.210.177
+	s=arc-20240116; t=1765395868; c=relaxed/simple;
+	bh=BM5U+ur8+kuwJUHAcEm6G04NmyxtWiuOzK70jRwbkjg=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=IZTWLJNldTpMJkvhf5lnUKbpxZxtU8Oy2m+RTwP+/ZSLm18K5GRToljN/qR7az0PKOdqUN057hWj5kyLrgoqn5lNMiV/hrq5mPgF1OTDM/pKvZryHnR88+wa0/TzwCdNoaAjqawDbAeaga8xvN7mZQjWH//8k0ooCju3foFP9rE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=K+CCu0TO; arc=none smtp.client-ip=209.85.218.47
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="cIBTh6l9"
-Received: by mail-pf1-f177.google.com with SMTP id d2e1a72fcca58-7f0da2dfeaeso134452b3a.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 11:33:42 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="K+CCu0TO"
+Received: by mail-ej1-f47.google.com with SMTP id a640c23a62f3a-b728a43e410so25805766b.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 11:44:26 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1765395222; x=1766000022; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=I/RcrEPeLqKl6bQA60QkstM/GSbzDgJ1lLxqTexZoic=;
-        b=cIBTh6l9aOFXZ62vHMrDjaGd+s7JpCuOUZAGIMSoyn278Xz1lsb0Ig1tyPbv/dNZs2
-         kqHxPKUxdLrttEyS7YPk+va84X2+RdZuHmMTW1uZnWXLlWxd58IU4oBs8Fq5w1b9jOlG
-         LuY/ipbPYNrMErg3CQQY2qLyavzjcXHq2eWmc2mj+YiFhD17oCpXu4m5FOTrnZ81ewcf
-         LMETe1wMMFeaFIrN8nWS9M7LQqD5w9QPPjFR2hXQk0I1F8qy6g8FlaeoIyFD9EUGMb9k
-         ZOucyctk0hx9UB7fU7LaqnutSPYpHVBQ0yPFL8YDEjfpEuoe9ml0eBxChFXSpaNClZmc
-         g9Tw==
+        d=gmail.com; s=20230601; t=1765395865; x=1766000665; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=AH3EyuDOOrGQUL8UyQ9msmnt00BT3pZvjBZ/byMHlXg=;
+        b=K+CCu0TO/c4eCNP7MYf7WrlZ6seyMUkxVZrakl/CnWk0yoPCXVV1eOz70JGw9QXNrv
+         6w8Gj0eXx1qsJIETf2+tHVH8TWgSDqQ5OFRX4MYlXsiUDCKIAoquA6Qw24UKZUafCLyR
+         iUECoH5HoJYBdWvDxfamcG59HpD2xxHzk/23mFIn3fzN2eyUg41fq/0o5wY3vbSutAQj
+         Iol/iWFaYGz5IogUszxc/eIpup5Jiimrf8rTcucOO8X6en3vryMD4SM2j7PDZl+aeBir
+         z4r42I9pR6VgJ++YXQQbGse2QY+ndOB+eEXq9VjPj43PkX/YGGV76aCsypNu6KbqO/3b
+         kgaA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765395222; x=1766000022;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=I/RcrEPeLqKl6bQA60QkstM/GSbzDgJ1lLxqTexZoic=;
-        b=l1XORDv+PlJyjNHa4qTy8VbOO5k+cuOIF16YB9GEe/ar/DYo3CBuZdXI8/cSixVxT0
-         j/aJVOZD5tVjg2poNA7ZCxFUZkNTXvrw4ard1+6E05yZTKs3WCVzRbVWFknN/Rk4wn9w
-         2/SImcwYXZUbFXWu6UGltVT44S3CeGJJMWm0Zzjbep5vDZQf5zSnHxWNgVMMjSzL8iyZ
-         ZGRwRHsKKb6csOFLk1oNDBgkODJ1J5KB02uE2VJ0WiFLBhhUppCJb8sKofD5SSAzcoIQ
-         Yd8tYE61ToYSrnpuaBU2iS/+vusZ2wYuDuhyMIJevJ6xM1BlD6ry7N8/5XOiOa8MpV13
-         iKzQ==
-X-Gm-Message-State: AOJu0YwaFBKHFlyFcCOFKxDX9yyeprtxQsYZ/CRx5OMUJlg2rXd5ai52
-	ldIEPvjjcmfQDnjfTH5igSXAip+AWU90zVeKz8FnSTLNBXdAMUbXi4wK
-X-Gm-Gg: AY/fxX4/9g3HYg5cvoJXQ0AMHd9uIgtk90KFkUoXzhggfYCtyFUJBUQkYeTOTKw3L6o
-	X5T6dwiBucPfr85riQWyms/sel1HP0J70ExANIGRf6fXUwbdmp/pWazgPxVMwpuMvlVax75fByV
-	OPtTA9aQdWn8BCI+oxiYBvPvxPkjFz8/8tGhGWW/arx8MM7D9oZXUtAbYKWfxjAVvIFTv8HCjlI
-	rQ+X3EHQkvediTLXHvg6n7ykiFKMZGY/vQtEXpvbIz41gHrdw02tkw35MX+mi8Hor4XLukwN4pN
-	UcB+9eGdoaYOFaS2s85RH0C9TbIUHzJRWRTa3UbQZBVNaRn8QmlN/XdX1U5P6oVl3aEbgbQxOBi
-	68qEnAx4Vp2omgRh9EPr0BPtXsrk9TCMKCeiJTFwumS9wgeG+xtcbmPMD47xrlnyLK8fZiCGio6
-	9J43M70MerZ5cpVvND983/hmMt8+HB2whitVHfsQ==
-X-Google-Smtp-Source: AGHT+IH/7AZHVflGDIAmJDUB8km9duB1spqmtxvC8h5wY8EGyhYSwMmwBdGOw/GUihrZdBUrNpWeqQ==
-X-Received: by 2002:a05:6a00:94f1:b0:7e8:43f5:bd0c with SMTP id d2e1a72fcca58-7f22f716104mr3793601b3a.33.1765395222112;
-        Wed, 10 Dec 2025 11:33:42 -0800 (PST)
-Received: from localhost.localdomain ([111.125.240.40])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7f4c27771b3sm304828b3a.27.2025.12.10.11.33.38
+        d=1e100.net; s=20230601; t=1765395865; x=1766000665;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=AH3EyuDOOrGQUL8UyQ9msmnt00BT3pZvjBZ/byMHlXg=;
+        b=sXQDhM8y20fb9fykVuig2IHx/W3uIk8eX/bij0AwBXs8Jr2TlWdC3+qToGLvGN0nfi
+         8BTlKnQd1l3ko4lY7uqGMrVEshVvPOnR8i18NBsdqjENQ/99gbgRqT0OunMzfdZTcJeH
+         S75+WPMZ3S49RpAckwGn0XP8vEGJj3SuNhJmOYMJKWKIvRoHqHhXY/HTpezZ9wbdZM4W
+         4Z/GRHGwl5jznUp/XzwaJvky2iaWEaWslUpr6dHse3taX4i0v/hVPoivWMmDr7CDPLpi
+         ZonaKkrR8rEMHyTZ+kCVSBq3SAJvYM8wc1fW8RFeymLiyc5DfWxAg31bUF392+Kv6Nh5
+         48jw==
+X-Forwarded-Encrypted: i=1; AJvYcCUCqPXS5NGErGEjF7KDYL9mZpPssJujRxic+KFUMLy5vkKoPQGy2OJXsHzgP/1OzkOtmyGdFCFecQHPEw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzWQIKiN+ds+LjedY2ngac4+WNoqi5r7Fn76XrZqkfo5T3vfhV6
+	FwMgipWMTGgqdUtuI8/B6x90g3Vv6xlpFyKj2YKOKJAHkyJb3ibmAYlD
+X-Gm-Gg: ASbGncv9PmRyp/xuFu1v/44D7zPMyMN1S7FiYI4jVAmrtKQLQ8ggZrYyQGfMwzJYPrt
+	ijawXUa3PgGcodd4amX0xTtByWEoGkTHHTW5DcAFIP/O+7r1Kwo2VqMxh3ayDsgKGvdYqxMvdPk
+	NnhyAwY+QItYgRCTmO20zm+iEnbifa6ysoUroOyhdrVU2jSiX+Esa5eb1FeGjioIxtMgc4zoI3O
+	js8isa3800+ipHsyGbs5DatNj2KR6lzFSIpqsLumTDq+VelY+nze3jwpu9RzAw2N0uSGfdnXCQj
+	Q0RiD+460SH+h7OU9pyWs4SkvYaNmZ0Ohc5l5jSYjlyqrRUJWTXljtuwVuEb3EclHMGY15+eqgQ
+	uo+KfO9OXk5gr0Aj3SteOyg/Nue97oraDMAeTtr6wugBEeFD+4fPauZV6iDkpBap9U2SALhpwta
+	eBLYeVRoHNKqNrU9c1+cFdCf+eRhZH8rtXCFaG8KvzuqFUFPSrmetGV6Vmg3P3ElXI46LIKg==
+X-Google-Smtp-Source: AGHT+IGGmaJskMrczwvREm0lrYOhNSY1gkqqtq5Hr2CDTE4maS/m0w6W08TOf7XoqXekv+k+DhfmTA==
+X-Received: by 2002:a17:907:6e94:b0:b79:e99d:913d with SMTP id a640c23a62f3a-b7ce84a901dmr342173766b.42.1765395864453;
+        Wed, 10 Dec 2025 11:44:24 -0800 (PST)
+Received: from f (cst-prg-23-145.cust.vodafone.cz. [46.135.23.145])
+        by smtp.gmail.com with ESMTPSA id a640c23a62f3a-b7cfa56c152sm39047466b.56.2025.12.10.11.44.20
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 10 Dec 2025 11:33:41 -0800 (PST)
-From: Prithvi Tambewagh <activprithvi@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	linux-kernel-mentees@lists.linux.dev,
-	skhan@linuxfoundation.org,
-	david.hunter.linux@gmail.com,
-	khalid@kernel.org,
-	Prithvi Tambewagh <activprithvi@gmail.com>,
-	syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
-	stable@vger.kernel.org
-Subject: [PATCH v2] ocfs2: fix kernel BUG in ocfs2_write_block
-Date: Thu, 11 Dec 2025 01:02:55 +0530
-Message-ID: <20251210193257.25500-1-activprithvi@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        Wed, 10 Dec 2025 11:44:23 -0800 (PST)
+Date: Wed, 10 Dec 2025 20:44:08 +0100
+From: Mateusz Guzik <mjguzik@gmail.com>
+To: syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>
+Cc: brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	sj1557.seo@samsung.com, syzkaller-bugs@googlegroups.com, viro@zeniv.linux.org.uk
+Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
+Message-ID: <ff7k3zlpiueyyykotdpfcaoxn2tukceoqcbmfdwjfolndy4sen@3f5r362sg67g>
+References: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
 
-When the filesystem is being mounted, the kernel panics while the data
-regarding slot map allocation to the local node, is being written to the
-disk. This occurs because the value of slot map buffer head block
-number, which should have been greater than or equal to
-`OCFS2_SUPER_BLOCK_BLKNO` (evaluating to 2) is less than it, indicative
-of disk metadata corruption. This triggers
-BUG_ON(bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) in ocfs2_write_block(),
-causing the kernel to panic.
+Justin Case suggested the following:
 
-This is fixed by introducing an if condition block in
-ocfs2_update_disk_slot(), right before calling ocfs2_write_block(), which
-checks if `bh->b_blocknr` is lesser than `OCFS2_SUPER_BLOCK_BLKNO`; if
-yes, then ocfs2_error is called, which prints the error log, for
-debugging purposes, and the return value of ocfs2_error() is returned
-back to caller of ocfs2_update_disk_slot() i.e. ocfs2_find_slot(). If
-the return value is zero. then error code EIO is returned.
+#syz test
 
-Reported-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
-Tested-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
-Cc: stable@vger.kernel.org
-Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
----
-v1->v2:
- - Remove usage of le16_to_cpu() from ocfs2_error()
- - Cast bh->b_blocknr to unsigned long long
- - Remove type casting for OCFS2_SUPER_BLOCK_BLKNO
- - Fix Sparse warnings reported in v1 by kernel test robot
- - Update title from 'ocfs2: Fix kernel BUG in ocfs2_write_block' to
-   'ocfs2: fix kernel BUG in ocfs2_write_block'
-
-v1 link: https://lore.kernel.org/all/20251206154819.175479-1-activprithvi@gmail.com/T/
-
- fs/ocfs2/slot_map.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
-
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index e544c704b583..e916a2e8f92d 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -193,6 +193,16 @@ static int ocfs2_update_disk_slot(struct ocfs2_super *osb,
- 	else
- 		ocfs2_update_disk_slot_old(si, slot_num, &bh);
- 	spin_unlock(&osb->osb_lock);
-+	if (bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) {
-+		status = ocfs2_error(osb->sb,
-+				     "Invalid Slot Map Buffer Head "
-+				     "Block Number : %llu, Should be >= %d",
-+				     (unsigned long long)bh->b_blocknr,
-+				     OCFS2_SUPER_BLOCK_BLKNO);
-+		if (!status)
-+			return -EIO;
-+		return status;
-+	}
+diff --git a/fs/bad_inode.c b/fs/bad_inode.c
+index 0ef9bcb744dd..8e9127d4dcc1 100644
+--- a/fs/bad_inode.c
++++ b/fs/bad_inode.c
+@@ -207,11 +207,17 @@ void make_bad_inode(struct inode *inode)
+ {
+ 	remove_inode_hash(inode);
  
- 	status = ocfs2_write_block(osb, bh, INODE_CACHE(si->si_inode));
- 	if (status < 0)
-
-base-commit: 24172e0d79900908cf5ebf366600616d29c9b417
--- 
-2.43.0
-
++	/*
++	 * Taking the spinlock is a temporary hack to let lookup assert on the state,
++	 * see lookup_inode_permission_may_exec().
++	 */
++	spin_lock(&inode->i_lock);
+ 	inode->i_mode = S_IFREG;
+ 	simple_inode_init_ts(inode);
+ 	inode->i_op = &bad_inode_ops;	
+ 	inode->i_opflags &= ~IOP_XATTR;
+ 	inode->i_fop = &bad_file_ops;	
++	spin_unlock(&inode->i_lock);
+ }
+ EXPORT_SYMBOL(make_bad_inode);
+ 
+diff --git a/fs/namei.c b/fs/namei.c
+index bf0f66f0e9b9..79cc14d635b5 100644
+--- a/fs/namei.c
++++ b/fs/namei.c
+@@ -626,12 +626,31 @@ EXPORT_SYMBOL(inode_permission);
+ static __always_inline int lookup_inode_permission_may_exec(struct mnt_idmap *idmap,
+ 	struct inode *inode, int mask)
+ {
+-	/* Lookup already checked this to return -ENOTDIR */
+-	VFS_BUG_ON_INODE(!S_ISDIR(inode->i_mode), inode);
+ 	VFS_BUG_ON((mask & ~MAY_NOT_BLOCK) != 0);
++#ifdef CONFIG_DEBUG_VFS
++	/*
++	 * We skip the type check on the assumption this is a directory, which was
++	 * checked for by our caller.
++	 *
++	 * However, there are bogus consumers of make_bad_inode() which can mess this up,
++	 * to be fixed soon(tm).
++	 *
++	 * In the meantime make sure we are dealing with the expected state before tripping
++	 * over. If this *is* a "bad inode", the resulting state is bug-compatible with
++	 * historical behavior. See the previous remark about sorting this out.
++	 */
++	if (!S_ISDIR(inode->i_mode)) {
++		spin_lock(&inode->i_lock);
++		if (!is_bad_inode(inode))
++			VFS_BUG_ON_INODE(!S_ISDIR(inode->i_mode), inode);
++		spin_unlock(&inode->i_lock);
++	}
++#endif
+ 
+ 	mask |= MAY_EXEC;
+ 
++	return inode_permission(idmap, inode, mask);
++#if 0
+ 	if (unlikely(!(inode->i_opflags & (IOP_FASTPERM | IOP_FASTPERM_MAY_EXEC))))
+ 		return inode_permission(idmap, inode, mask);
+ 
+@@ -639,6 +658,7 @@ static __always_inline int lookup_inode_permission_may_exec(struct mnt_idmap *id
+ 		return inode_permission(idmap, inode, mask);
+ 
+ 	return security_inode_permission(inode, mask);
++#endif
+ }
+ 
+ /**
