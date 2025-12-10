@@ -1,117 +1,73 @@
-Received: from mail-pl1-f174.google.com (mail-pl1-f174.google.com [209.85.214.174])
+Received: from mail-oo1-f72.google.com (mail-oo1-f72.google.com [209.85.161.72])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6C9FE1E8320
-	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 18:40:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.174
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 26DDF2EE608
+	for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 19:10:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.72
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765392032; cv=none; b=oEF15KrQdHJF0RFnoFFNvr77TGtNZcBpt/SH+8dcB4Ez6AJplUZAqzAdcTADbyYNt09wVcQFJjSmggeNHwYi+tRvZ3JAS7xgG52aJkwoQQiWTV+SzK5v69JEDcObLuA6k43ltwPtRhPI+fCii9C46/l2TL3pfKthO8VqACpRk9c=
+	t=1765393808; cv=none; b=j+ioft5BBuJdCtrHJpmf0etScqq9vLlnpnKZzJARuo1suyygx/0dh8lEeU63RXHeEytH3zY4cSNNxCrVORmZFtP9OEi3+NSZObnGpSD82hiqZPqndTrHPPmVLnBX0K8V2KSUiX9Qp+iWF5fAmgJIr/fVHnid38D10oJIprUKeh8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765392032; c=relaxed/simple;
-	bh=J87FXvc0Ebdki5nlyjcqAi4bbCPFZwvZNK/lFr60TrU=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=HmiJZyK8ITt0QeMu5p7maSuTgBplM5JDKkGJW7pzetBnfqCR7YzhE8kjCND4IA9T7Vwm+l4jc75fidU/aBCxOtG0joeH6nEFqsNiFoAwoY+uAI01MoEmz3ojb3kbzqoxHDC1rP4AmgQBGgwLFhygJx+Gu/gqdV/oobZ3Iuo3MRg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Cfot4s1j; arc=none smtp.client-ip=209.85.214.174
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Cfot4s1j"
-Received: by mail-pl1-f174.google.com with SMTP id d9443c01a7336-29ba9249e9dso2578015ad.3
-        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 10:40:31 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1765392031; x=1765996831; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=9AUgIpP8Oo8wx9K3vD172gZ9DXcnSJ5r4V1t+NtBMbw=;
-        b=Cfot4s1j/+UB7eXMAwOOl+d9tBGa6ThXzgvG2Lvjo3tdxT32uap46xEk02j3zeQztr
-         ECinDiO+8go1pUS1JVQ9YZIJPN0Tmf8dV9C3MPJLgCaCbuOQe968v/b+1AgiyKDgPuF6
-         JXBN4Jqxcqpljn4dPkioHc6PhlCPUqurWa0i0TDJG5l8RSsXK12gz4x8WnebZ9k7oOPD
-         StLlt6oQQNC8Lebzmd5KsJOCLFxyLSrhDHQ44cPl4Oqkv+IdEPvGaW9BE3+NACxVkqnz
-         46H+jOyOfZojgWkcwRK3e6SWARsKLYoIeTU38yyYuZv4By8eBU75ty/VrojeMIgyPHVv
-         UM6A==
+	s=arc-20240116; t=1765393808; c=relaxed/simple;
+	bh=Vm0ydrDzS5Kvf8Dru8NK4tCouNNSjGFUoEDoNmT6mrU=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=NO1Dw8D5cqrqawrnQttwbCpAv9LFGavTvxvTRWkKtEZ1qaJeunsKBR3nUa9uVeplY6PJ/JYw39558jsHXBNir7gDSS4S+kqY3iuaWQlEhwtVTss9PcxoYxOVvmZ6V3MRjgi4LOa/ZAE+O+BnbRqOl/DV5OVAsOw17gAEyDqhges=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.72
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f72.google.com with SMTP id 006d021491bc7-65703b66ebfso255469eaf.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 11:10:06 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765392031; x=1765996831;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=9AUgIpP8Oo8wx9K3vD172gZ9DXcnSJ5r4V1t+NtBMbw=;
-        b=qU+tF2CrvWib13bzFgafmLGbN5HSTea5CP28DmgZZqXnxTTa+x0U6GwR1SjYnfsOcH
-         0gBvl59n4bc8QZWub1mZT7C28TCIwLd8daJswH5WBsgfSbuzSGx02EJ7CjtvMqLNVOIT
-         jSgh3O2xkoaB3S6uBD+npgW5DhuZ97jmtz1sej7+f12Syhn+cbuCCbqqSg0j2Unek1JH
-         tLz72kLL7FwX6wOav0BtsrK3Kib6AVv6u4nLx60MRdTHxgSNWNmi02LbssxoHvOM8O0I
-         rPhsgRxIEt0sL+AeEhhxHt3GFdPFz8pHfDLjLiBFcz07zkmKJA34eYstEakIBuicb9Il
-         0wvA==
-X-Forwarded-Encrypted: i=1; AJvYcCU40b7GDcsIsCz4d7sZ4Um8ZDkNl1mSFFc6SvejJeZa6vZ0tWRf3g4oSCY1D7hvbAXlHr3hNrhkS9YVQw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxFUZDQOGii32fZV787nabhNYiGw53qya18Fczq2hRoSROJTJzn
-	n0mNZ5vMUC48vdruPMk9pYW4LnTo8IVD+/hHjiepfxOsQxRH8nNA7DW6
-X-Gm-Gg: AY/fxX7e5ZU35xc9iQI+hBLfPqCBmnvSWN+r1UNwj9mtgLKMIDL7j5g6EY6dQrOPUoN
-	vEEfusVJhL+IRTT06FWxToHU+SGQHFUV98lAtKIuqAvhVK+mztgbYO1gY47fo0wZX488sP8rxzP
-	usBVOkKF57fm3EBhcNzS8gLrb6EvkJ8J8RjFTx8T44m8hFVrotsFT0KVVyh//Q8Ylqgqbc03YZg
-	VVVmSvuq8XYlKskIQYbGW/F4S8TOuLCcycT5BAOE5QzwIV17ZbGCZ+TKjzOOWt4wm40qIvQI8cZ
-	2TxFExa1qhhCM1TlLHH4uvF35AnEjOrtr6qHP/BXW7h0fwxUHosG+z4WY+AJRDjElC8zQh0mtCK
-	4mz/iLjEndtMEPkd3DvVK89rzKzNm/vnK6ttNvrxPJRFXMJvOWvKEwKaYIBqevfWQliL2MPQPiT
-	u8SSfPSZD+IfyUyDcYolNw64508pY=
-X-Google-Smtp-Source: AGHT+IH7q9flqkfKABX+Ntf1VTKRWHSnR60YNh1DWdPARW2mjPWEOPD/rMTfpkg8L6yiSfVnq7pu9g==
-X-Received: by 2002:a17:902:cecc:b0:295:9a46:a1d0 with SMTP id d9443c01a7336-29ec27bb1e5mr29916365ad.45.1765392030490;
-        Wed, 10 Dec 2025 10:40:30 -0800 (PST)
-Received: from localhost.localdomain ([111.125.240.40])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29eea06b49csm588205ad.95.2025.12.10.10.40.26
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 10 Dec 2025 10:40:30 -0800 (PST)
-From: Prithvi Tambewagh <activprithvi@gmail.com>
-To: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	mark@fasheh.com
-Cc: linux-kernel@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev,
-	syzkaller-bugs@googlegroups.com,
-	Prithvi Tambewagh <activprithvi@gmail.com>
-Subject: Syzbot test for ocfs2: fix kernel BUG in ocfs2_write_block
-Date: Thu, 11 Dec 2025 00:10:07 +0530
-Message-ID: <20251210184014.22798-1-activprithvi@gmail.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <66eb6a0e.050a0220.115905.001b.GAE@google.com>
-References: <66eb6a0e.050a0220.115905.001b.GAE@google.com>
+        d=1e100.net; s=20230601; t=1765393806; x=1765998606;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=++8xteggjsb/xUOjCcZlFw6RFMLiYeZRmEplfqmrkqg=;
+        b=aYhLPiIiHBxE3bgsXowspVAyoYNmpm6LR2reTn6lqe77mURb3Z3k6RluW4zgjqW0yz
+         Cd83sn7vNI97Frmz1ZELyVhEaZNU2KGf63oW2fAzeRT9npx6yU7hjecxwCMdpQ2J3Jj2
+         gHFZDnZ1mS+w3PS6+Gs/IsEgOYWOKGqh62NQwuv1nIxO17sjLev5GqwPJaHbX4JYrBh3
+         PmzoAMArmJFLLd5TdAlA0dKkM3aHxfQBUl8TLmsWxyYIyrslviuz5y2PEBt35g1ts7Ks
+         AwB+EXLWmHow/emY64+LpQzrmvGeAwRFRsfz0Z4yAWDAyDLFDH5ILA5Emf5ldWGnLbt6
+         8YyQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXWF+M8GRFAC6zbVTAH84KfChki5ZQuW1MK48SWzvAqR/OzaNFe1nzkHQhggTcmEdoQ0E5v5dW/poHvIQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxwupZEdtF8M0xvyv2UTvUPxGdVd/9Xj5t9UXP07qgrNYORoRjU
+	iYMeqbcZxrNOFiBxsE+t7bwyTeoZL33zktdmXYg/zMOSQmnMPKQ6EMHFLz34t+CLDki7Rey9rmI
+	97oOeje1zU6KNlmB+13+04cGRw4kq+PE2phKATLut5cCKZus/A55gqMRziIg=
+X-Google-Smtp-Source: AGHT+IGPr9o7NL/T+tH+/fEFI1IVxU6dSDdzJXaWKqZGhZ1Y1P8UQI42tJKWN53x+Os7oiVVYJDe2FFUbTQPKAropPvj12QJznR3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6820:6387:b0:65b:24e3:6435 with SMTP id
+ 006d021491bc7-65b346efff2mr178222eaf.35.1765393806233; Wed, 10 Dec 2025
+ 11:10:06 -0800 (PST)
+Date: Wed, 10 Dec 2025 11:10:06 -0800
+In-Reply-To: <20251210184014.22798-1-activprithvi@gmail.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6939c58e.050a0220.4004e.01d7.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_block
+From: syzbot <syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com>
+To: activprithvi@gmail.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-#syz test git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git 24172e0d79900908cf5ebf366600616d29c9b417
+Hello,
 
-Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
----
- fs/ocfs2/slot_map.c | 10 ++++++++++
- 1 file changed, 10 insertions(+)
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-index e544c704b583..e916a2e8f92d 100644
---- a/fs/ocfs2/slot_map.c
-+++ b/fs/ocfs2/slot_map.c
-@@ -193,6 +193,16 @@ static int ocfs2_update_disk_slot(struct ocfs2_super *osb,
- 	else
- 		ocfs2_update_disk_slot_old(si, slot_num, &bh);
- 	spin_unlock(&osb->osb_lock);
-+	if (bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) {
-+		status = ocfs2_error(osb->sb,
-+				     "Invalid Slot Map Buffer Head "
-+				     "Block Number : %llu, Should be >= %d",
-+				     (unsigned long long)bh->b_blocknr,
-+				     OCFS2_SUPER_BLOCK_BLKNO);
-+		if (!status)
-+			return -EIO;
-+		return status;
-+	}
- 
- 	status = ocfs2_write_block(osb, bh, INODE_CACHE(si->si_inode));
- 	if (status < 0)
+Reported-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
+Tested-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
 
-base-commit: 24172e0d79900908cf5ebf366600616d29c9b417
--- 
-2.43.0
+Tested on:
 
+commit:         24172e0d Merge tag 'arm64-fixes' of git://git.kernel.o..
+git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+console output: https://syzkaller.appspot.com/x/log.txt?x=132c3eb4580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=41ad820f608cb833
+dashboard link: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+patch:          https://syzkaller.appspot.com/x/patch.diff?x=17e43eb4580000
+
+Note: testing is done by a robot and is best-effort only.
