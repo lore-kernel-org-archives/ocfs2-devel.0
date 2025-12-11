@@ -1,194 +1,134 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+Received: from mail-pj1-f50.google.com (mail-pj1-f50.google.com [209.85.216.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6617C2DE6EF
-	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 09:00:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 87CDD33E7
+	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 11:52:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765443652; cv=none; b=VpiEO0tQlndsPMHPklM1brUk10Et3ASQGZhQU6FWE8RSNJZC2Vs7Z9j2xbEvLm90h/3tttnaGPyqqhOYuWnVxqxcq6FBJ8ptFweOVp4xAjDjXwr/uVTd6CKuaXOuQSulc0u6r7uZpW9bIF1FDilv+ofBCmX7xAydx/rrmjys+rQ=
+	t=1765453964; cv=none; b=cIUOLVaLfuB0/KjLbyMcTWfDFZ6YaZPw5zByYQrXCgxgZ7BB7X1ji4VUU/OPGhj1Gg5I0paqeA1A0ceND88jqx85F8chX7okjlXKmrhYHJL13Y4vZ/miDJAIiYYbKZrZDv+bgUSQSpoe07mwozb3cd+xTgBq60yhy105ujTik9w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765443652; c=relaxed/simple;
-	bh=icoW+zKJUi8DVFn9kknuZXO9/pphNDRX3q+u77ogAsw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=GZb+9VgyV7R1LpxAd2GmCEWgY+w5oTiRDY+IwdA7f5veDL0yVqgK1cbKPQvoF5wT6CIZYYyTcVG2J36EhFN3FilTyLHK2DOg3vXXqeX8IaUkFGCgVHHmudHXCgKqtiyXxgkmjEIiJ2ODKQMPH6wz7jjAvyE/s90hQK7n67zUDjg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=wLFZxyQT; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=bZuzX1wF; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=A2Hr2ots; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=GABhwmgB; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1765453964; c=relaxed/simple;
+	bh=IHcdPwDYaOP9mnRlaK2tBNRlVnQPrGDe6fxMGkmdV8A=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=uTpJ6HQmdHWMahElLOwPV73ektwaF82dXaB76ZpXZ4z/AH3D3+VeFHruhefaln1mEWkZLaFj9JZq7C35uy1SJ72k5csUmHo9QNAKF+5uM//c6Lp6y2CuCyFOYfBvF19DO0xf7Pcplq6LZp3oXWO+9181i/ud65aPxo6/v7z3I48=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=WCGMooPV; arc=none smtp.client-ip=209.85.216.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="wLFZxyQT";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="bZuzX1wF";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="A2Hr2ots";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="GABhwmgB"
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 864AB337E7;
-	Thu, 11 Dec 2025 09:00:40 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1765443644; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8iYLS7sZO8q+tS7aamHvFDMq7WdCi0zhLn18HFY2py4=;
-	b=wLFZxyQTs3xCxYqQsNOD0VjKdg+P9RowtQal+/8XmmL2+xm+B7ptfZD1hRg8SYmphJ5dSu
-	E2BanDkYnUOWzghpQkntn5NlcsdYWUyW/rdnsGJrfrco2ytcTuzv5kXLJ5oYUfC7kw89VX
-	oS+mXutBbIuJzEqvyXYTF6TBSjJswfU=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1765443644;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8iYLS7sZO8q+tS7aamHvFDMq7WdCi0zhLn18HFY2py4=;
-	b=bZuzX1wFssA8kdrfqbwIuJXq9no9gzBBV0TQik+sZ9kuiqr6YWuTeiftoIsKT+27eoYYjn
-	J2epufbExUfYIeDQ==
-Authentication-Results: smtp-out1.suse.de;
-	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=A2Hr2ots;
-	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=GABhwmgB
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1765443640; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8iYLS7sZO8q+tS7aamHvFDMq7WdCi0zhLn18HFY2py4=;
-	b=A2Hr2otsyVZv0iiYsP13uQy3CpC9q2dq1A2Wmm2c461lGjWJeQuEbcBJ8h9TyZKK5q8E0n
-	rPJrS0Vbc0x2pMOVQ5At06B5JY9ILbvR72JDWFFC+FDHtxRrAVoZl0Z9+6dFuuhJwzY3Iy
-	ymhR3RnY6iaWrYwFGG5lML/+pQ/74wQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1765443640;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8iYLS7sZO8q+tS7aamHvFDMq7WdCi0zhLn18HFY2py4=;
-	b=GABhwmgBxwq/IsrLj+7X4u/6P/FzOQ7r8WdbLKigazQY8e4h1p8FDEU2RQlEgz8Gnmb5qO
-	XnoIy173+ssOKsBw==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 750263EA63;
-	Thu, 11 Dec 2025 09:00:40 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id KAaJHDiIOmnBYAAAD6G6ig
-	(envelope-from <jack@suse.cz>); Thu, 11 Dec 2025 09:00:40 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 1DF43A0A04; Thu, 11 Dec 2025 10:00:40 +0100 (CET)
-Date: Thu, 11 Dec 2025 10:00:40 +0100
-From: Jan Kara <jack@suse.cz>
-To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Mateusz Guzik <mjguzik@gmail.com>, 
-	syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>, brauner@kernel.org, jack@suse.cz, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linkinjeon@kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	sj1557.seo@samsung.com, syzkaller-bugs@googlegroups.com, 
-	Ahmet Eray Karadag <eraykrdg1@gmail.com>, Albin Babu Varghese <albinbabuvarghese20@gmail.com>, 
-	Heming Zhao <heming.zhao@suse.com>
-Subject: Re: [syzbot] [exfat?] [ocfs2?] kernel BUG in link_path_walk
-Message-ID: <5idkf5nyzgfzj5y7t27um7j27hpmt7seae47oztekbm2ggdeby@wxhvvmtvihxw>
-References: <6930d0bf.a70a0220.2ea503.00d4.GAE@google.com>
- <ff7k3zlpiueyyykotdpfcaoxn2tukceoqcbmfdwjfolndy4sen@3f5r362sg67g>
- <20251210214730.GC1712166@ZenIV>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WCGMooPV"
+Received: by mail-pj1-f50.google.com with SMTP id 98e67ed59e1d1-343dfb673a8so906556a91.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 03:52:42 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1765453961; x=1766058761; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=psXlLAerr36Cu3nb3TCz/ORHSimLjF4H60tNxXRDbEY=;
+        b=WCGMooPVzPmZAKZZz2Gdasppiu9/hAiBU+VA43NRGOkGqQV7cKyage197pqQRqDGe+
+         UfYLpIYkvAZrSJBQSOK5q4/j5eA/mV+l6PWJ5yVBnwqps7Uw6sjeY5jsaBYZJlr2+Uk+
+         5nY36jV90lsU4kC1AV09cTiy0RoDURwZBZ/8yDzD5wCWtcAg4qnriy1cKGDQt+2IiLHt
+         MtVYf7c34UMGq0ue6vS4LILcwJzJZjHVfDl1lKFfouR2LslfZoS0xCirQn0d39uelXdO
+         t9f79IB8mUR8ttiY/GHpJljdeC1kggTFXf+K+K0YdDjyRKA0ofd/SYXTMguKlhKJzvbT
+         jdWQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1765453961; x=1766058761;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=psXlLAerr36Cu3nb3TCz/ORHSimLjF4H60tNxXRDbEY=;
+        b=ULG1nFsVpeZPvJHrVzhnPMT6ZF0226w4JcBhztupy3X3y0r6VQuKTiCOI+lztgj5Ba
+         vN+ajd1AQhJTxSPiSqjyN0OY3iJZTNAwIU82mv/h11YguSoV5tCe5sWSBPSp0r1njby9
+         O3u9PedSUinwBMuruIuiYPxtt3IMC9xf1lUxTxWeeWCVfAMCN2jWe1nKk3Cm03SzfZZb
+         M/NygoA7emJ9vpvkatlS8HD8V/MwvG9yfafoicZkC9RRITLsYLTjJpxog/9pioCNvi0O
+         9ttV5CsmP/btbZj4XEFJG/MmaqEbyznFUw906y1qguZolW8+3UhumC1GQu/qF6cbrF9k
+         gyxA==
+X-Gm-Message-State: AOJu0YywH+h2Gc8OlI+6jyLA0yKL1S9I6E5rtQyH8/awf/+froSJbQ4R
+	yZ1St2hjlQQ1sH5f+UybyZhoJLUk/SlxPk/e0k6jyTc8YLzp7xHuuYIp
+X-Gm-Gg: AY/fxX48GkjN0pBonZbN/Ey/2nmE5i0J6XDNC0Qc+BL16Vw+plcWFUMyDgNj7Q1nEqF
+	f2Dh2N1j4jnkTgvrzwF8b+9WE3bp593auWTqx/ZtlmGwKqHzSqUudNmOd401JB8Dlb7fb0SABp4
+	qMhjjJqB5CUXX9lnkVlka/HXoUCCDHWhOKd80KTlSXgAXjgkrL42hXb45SmRb83KVD84J35DLzv
+	XGvRx20n5JGxYEJit5+raeRiCMGtUVT2yf7SZ+9+4YCl+TbUtOfyTU0Rvj8JawCZF2/JiiTkTWx
+	g84cCS+uHOXxc6iAPbCPiS6iXJSBCvOBRYGPw02Qr9YKGaIT+w4HOAlmVkoj9vabNM8UQn6iJYB
+	Vg1jVkajE2Iz1iLJbwFPOA80sDjsx/Ro6bgE+xgxubmMv/+NEtoGOiqpe67mXL7XV7LMcNduKAy
+	duwN24DXLCEsAD++OGqIZjTSRCWzUoqGB971d684cZu3DQTTYsMVIGSRA5RIceC6dQkLsgRzSRi
+	NFQ
+X-Google-Smtp-Source: AGHT+IG6APBLZxbb/LYrdmx22uddAVJjZ+LzQjdEPj+olmhhgmQHKYUVdd5RPNYmpXE4g4gd6sXHwg==
+X-Received: by 2002:a17:90b:4b85:b0:343:688e:3252 with SMTP id 98e67ed59e1d1-34a7281c71emr6270191a91.12.1765453961476;
+        Thu, 11 Dec 2025 03:52:41 -0800 (PST)
+Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:7fd7:d1cd:305:6207])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-34a92754ab8sm681880a91.4.2025.12.11.03.52.37
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 11 Dec 2025 03:52:40 -0800 (PST)
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Deepanshu Kartikey <kartikey406@gmail.com>,
+	syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: validate inline directory i_size during inode read
+Date: Thu, 11 Dec 2025 17:22:31 +0530
+Message-ID: <20251211115231.3560028-1-kartikey406@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251210214730.GC1712166@ZenIV>
-X-Spamd-Result: default: False [-2.51 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	RCVD_TLS_LAST(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	FUZZY_RATELIMITED(0.00)[rspamd.com];
-	RCPT_COUNT_TWELVE(0.00)[17];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	MIME_TRACE(0.00)[0:+];
-	ARC_NA(0.00)[];
-	FREEMAIL_ENVRCPT(0.00)[gmail.com];
-	FREEMAIL_CC(0.00)[gmail.com,syzkaller.appspotmail.com,kernel.org,suse.cz,evilplan.org,linux.alibaba.com,vger.kernel.org,fasheh.com,lists.linux.dev,samsung.com,googlegroups.com,suse.com];
-	DKIM_TRACE(0.00)[suse.cz:+];
-	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,suse.cz:dkim,linux.org.uk:email,suse.com:email];
-	FROM_EQ_ENVFROM(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	TO_DN_SOME(0.00)[];
-	DNSWL_BLOCKED(0.00)[2a07:de40:b281:106:10:150:64:167:received,2a07:de40:b281:104:10:150:64:97:from];
-	TAGGED_RCPT(0.00)[d222f4b7129379c3d5bc];
-	DWL_DNSWL_BLOCKED(0.00)[suse.cz:dkim];
-	MISSING_XM_UA(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	SUBJECT_HAS_QUESTION(0.00)[]
-X-Rspamd-Action: no action
-X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
-X-Spam-Level: 
-X-Rspamd-Queue-Id: 864AB337E7
-X-Spam-Flag: NO
-X-Spam-Score: -2.51
+Content-Transfer-Encoding: 8bit
 
-On Wed 10-12-25 21:47:30, Al Viro wrote:
-> #syz test
->  
-> commit 9c7d3d572d0a67484e9cbe178184cfd9a89aa430
-> Author: Al Viro <viro@zeniv.linux.org.uk>
-> Date:   Wed Dec 10 16:44:53 2025 -0500
-> 
->     Revert "ocfs2: mark inode bad upon validation failure during read"
->     
->     This reverts commit 58b6fcd2ab34399258dc509f701d0986a8e0bcaa.
->     
->     You can't use make_bad_inode() on live inodes.
+When reading an inode from disk, ocfs2_validate_inode_block() performs
+various sanity checks but does not validate the size of inline
+directories. If the filesystem is corrupted, an inline directory's
+i_size can exceed the actual inline data capacity (id_count).
 
-At first I was confused because ocfs2_read_inode_block_full() gets called
-when loading new inode into memory and that's a place for which
-make_bad_inode() is safe. But then I've noticed ocfs2 does reread the inode
-in many places through ocfs2_read_inode_block() and that could be marking
-fully alive inode as bad. So this commit is indeed buggy. Adding relevant
-people to CC.
+This causes ocfs2_dir_foreach_blk_id() to iterate beyond the inline
+data buffer, triggering a use-after-free when accessing directory
+entries from freed memory.
 
-Guys, maybe I'm misunderstanding the changelog of 58b6fcd2ab34 but the
-justification:
+In the syzbot report:
+  - i_size was 1099511627576 bytes (~1TB)
+  - Actual inline data capacity (id_count) is typically <256 bytes
+  - A garbage rec_len (54648) caused ctx->pos to jump out of bounds
+  - This triggered a UAF in ocfs2_check_dir_entry()
 
-    The VFS open(O_DIRECT) operation appears to incorrectly clear the inode's
-    I_DIRTY flag without ensuring the dirty metadata (reflecting the earlier
-    buffered write, e.g., an updated i_size) is flushed to disk.
+Fix by adding a validation check in ocfs2_validate_inode_block() to
+ensure inline directories have i_size <= id_count. This catches the
+corruption early during inode read and prevents all downstream code
+from operating on invalid data.
 
-looks bogus. Combinations of direct and buffered IO work perfectly fine for
-other filesystems (definitely not corrupting them). VFS definitely does not
-clear dirty flags without writing back the inode. 
+Reported-by: syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=c897823f699449cc3eb4
+Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+---
+ fs/ocfs2/inode.c | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
 
-The particular syzbot reproducers mentioned in 58b6fcd2ab34 are likely
-confusing ocfs2 by calling LOOP_SET_STATUS(64) on the loopback device with
-mounted ocfs2 filesystem which may effectively corrupt the filesystem
-underneath. So I suspect proper fix for your issues is actually
-https://lore.kernel.org/all/20251114144204.2402336-2-rpthibeault@gmail.com/.
-
-Perhaps we should ping Jens to pick it up.
-
-								Honza
-
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 8340525e5589..53d649436017 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1708,8 +1708,6 @@ int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
->  	rc = ocfs2_read_blocks(INODE_CACHE(inode), OCFS2_I(inode)->ip_blkno,
->  			       1, &tmp, flags, ocfs2_validate_inode_block);
->  
-> -	if (rc < 0)
-> -		make_bad_inode(inode);
->  	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
->  	if (!rc && !*bh)
->  		*bh = tmp;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 8340525e5589..9eb364bef5c3 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1521,6 +1520,20 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		}
+ 	}
+ 
++	if (S_ISDIR(le16_to_cpu(di->i_mode)) &&
++	    (di->i_dyn_features & cpu_to_le16(OCFS2_INLINE_DATA_FL))) {
++		struct ocfs2_inline_data *data = &di->id2.i_data;
++
++		if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count)) {
++			rc = ocfs2_error(sb,
++					 "Invalid dinode #%llu: inline directory i_size %llu exceeds id_count %u\n",
++					 (unsigned long long)bh->b_blocknr,
++					 (unsigned long long)le64_to_cpu(di->i_size),
++					 le16_to_cpu(data->id_count));
++			goto bail;
++		}
++	}
++
+ 	rc = 0;
+ 
+ bail:
 -- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+2.43.0
+
