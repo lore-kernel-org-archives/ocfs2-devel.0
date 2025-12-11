@@ -1,119 +1,134 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oo1-f80.google.com (mail-oo1-f80.google.com [209.85.161.80])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44A2D4594A;
-	Thu, 11 Dec 2025 02:17:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A26232744F
+	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 02:20:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765419456; cv=none; b=YTfc4Bm0mSKePjhfC4RrINH1uv5PqkKhxcUoClAeqhnMoamgPSW8B6hlR6eAoKrcsHdodz7Z48PeIA3I+MiIm1ae/d/3kwTnR4BnhhuNz+EPgWSD1rn4nueUxyvEZWB7FKi6G9tBgGfAWqxKdfhhNL3JM9h2vluaVjSw/HUCljc=
+	t=1765419627; cv=none; b=XG/jLuVcbS2bxq8hz430764lpBg4MoorlFjR/0AfCds5010xIpg+JOLWcl27m9gu86e3HFVHk6CyghK+OpEz98FoM8txPaUmgtuY3I8hvcpeYeV0u0ssWwIrYWlq6d7XHydmo+j49qk4WHjgWLGLrTZjTrpVyuXwfriA1DdcBxY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765419456; c=relaxed/simple;
-	bh=a+tfNJgQPF+uN9UshD59v9mkXXYfgebFMUr3mlaw3f8=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=dpFfLN+ljuiOMUHAe2GD1zWJF/0XgndZkSvNPGAqZLkS+UOBGMM7FVzoE9Wa0Soo4G3dhXzgPL/2MliBgucS+5EHpmpBHggn27OLn+ARtf3evPF1oqOCITIaqVsTO1PtTcfPl5VsmRisTNlMU/DcIct4WW34JmNd5Wb868qXClA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=waorHZ45; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="waorHZ45"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1765419443; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=Upr/ZI57OkYJyDopLBCsUvYpG+siWtd4+W1Pv/Saam4=;
-	b=waorHZ453O9KguzRjVvF8mIpxJR+plpMzomJ27/R64Ftf1hhmXVpkm8x+3gBu/2b+3U8tgoWh2d8TkqdLMV4RwYlOSuUZ3p+uQIR4VqOivXuqs0c7H47PXB7Cm0GT0h6fy89qE99luXlfFxNZXlA3EUENUuldu+FAVGigfCH19Y=
-Received: from 30.221.145.54(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WuYVcyM_1765419442 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 11 Dec 2025 10:17:22 +0800
-Message-ID: <9bad11da-0655-4fb4-b424-8c124b127290@linux.alibaba.com>
-Date: Thu, 11 Dec 2025 10:17:21 +0800
+	s=arc-20240116; t=1765419627; c=relaxed/simple;
+	bh=uAh3SX7bUKL+34oYxYCTvZ6/dYmXtLjDb3iocGqe7Qs=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=CE2P/Z2boXkGypZ3Gzie5omgriXyl74IXSmZpkMGjdoDRYra2yEnMyhqnD5Z0WeBra8UrBXGVFWRN09JqzVoht6vnPrEr8Un8wRJ3puLtxUo064t98D/YyTlgd6UvpvK7IxUYuOTCqYCqG242JT17v7nQfnlunLYO8Q3c/ko9GM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f80.google.com with SMTP id 006d021491bc7-6597c514eddso402393eaf.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 18:20:25 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1765419625; x=1766024425;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=i53Vsj8Q8r6Bs88aHx1o/1OfZw6DtuQiltggdysWbI8=;
+        b=svox75mxgLaJa8uWk1VM3qN7IlN/Sm3k39JViSJOIUBYrLDNjXWsl5A3KthW7AtA6s
+         WMYmlp/5ihN3j72YECVupBU6xn7Lt1Gi1HrMJYXiwRYJatvTa7Q/kEAtJ+P6gBFvxOmL
+         uPJumqiyRd4dvOpmPZu2HqlmeTHMx5CkJ1IeefqRPf+1W0t1SQEj8boUD+EWGxo9O2PZ
+         sES57fFOSOU9DmdLHFmD5GJNzqSmB8MJ/O3HPtnPM4Iz8HgSo8Qjkf4wHG58YHg5tEGr
+         fd3Rba1TXBY0VNRt55Mk46t1EDK8dlyDsmoLEt8+vqrbWUMGhhe87iW3lkXXs5Shqs2+
+         LE0A==
+X-Forwarded-Encrypted: i=1; AJvYcCUynpGGvthnHQFdnyndlWETrYAV+ohFp7SXCTq1EeB7hN0kC+fWsr/W43nfGpvnn8QFTm2ES3if77qPxw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwaqV4kkhaXIVD+RFBM9A9glex+lzNQs6tlEnEjFf1nDigyNF4R
+	tnebBQIKTaj3rNPwsUdHjLE7sdFMEeVbcUg8LYfEh6RLGs2vHTsw9HA6v3FlUWJ5QW3V9PV88pt
+	7iom5yL41YyOVIyvvh4Uk71Rz/FVmHk+Z8dDGdL1jG1aaEA+O2o9jxDVnV8s=
+X-Google-Smtp-Source: AGHT+IFoJmyIFvFVsGpWEMg4HPMEtEaNURt3N35jtewc5P3LMAUlsEfFSEEgtqE6GEPIt0Y9DN3Ap8mu05R6SMNKfg7xToi3xJLa
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: fix kernel BUG in ocfs2_write_block
-To: Prithvi Tambewagh <activprithvi@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, Heming Zhao <heming.zhao@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org,
- david.hunter.linux@gmail.com, khalid@kernel.org,
- syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com, stable@vger.kernel.org
-References: <20251210193257.25500-1-activprithvi@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20251210193257.25500-1-activprithvi@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6820:1c83:b0:659:9a49:909d with SMTP id
+ 006d021491bc7-65b2ac52747mr2811368eaf.28.1765419624796; Wed, 10 Dec 2025
+ 18:20:24 -0800 (PST)
+Date: Wed, 10 Dec 2025 18:20:24 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <693a2a68.050a0220.4004e.02c1.GAE@google.com>
+Subject: [syzbot] [ocfs2?] UBSAN: array-index-out-of-bounds in ocfs2_grow_tree
+From: syzbot <syzbot+7c93eb455e59ca14c7cd@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    0048fbb4011e Merge tag 'locking-futex-2025-12-10' of git:/..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=16457992580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=de48dccdf203ea90
+dashboard link: https://syzkaller.appspot.com/bug?extid=7c93eb455e59ca14c7cd
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-0048fbb4.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/d7e936edc53d/vmlinux-0048fbb4.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/84b695b1f82c/bzImage-0048fbb4.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+7c93eb455e59ca14c7cd@syzkaller.appspotmail.com
+
+------------[ cut here ]------------
+UBSAN: array-index-out-of-bounds in fs/ocfs2/alloc.c:1090:9
+index -1 is out of range for type 'struct ocfs2_extent_rec[] __counted_by(l_count)' (aka 'struct ocfs2_extent_rec[]')
+CPU: 0 UID: 0 PID: 5338 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x189/0x250 lib/dump_stack.c:120
+ ubsan_epilogue+0xa/0x40 lib/ubsan.c:233
+ __ubsan_handle_out_of_bounds+0xe9/0xf0 lib/ubsan.c:455
+ ocfs2_sum_rightmost_rec fs/ocfs2/alloc.c:1090 [inline]
+ ocfs2_shift_tree_depth fs/ocfs2/alloc.c:1412 [inline]
+ ocfs2_grow_tree+0x35af/0x3dc0 fs/ocfs2/alloc.c:1560
+ ocfs2_insert_extent+0xb54/0x15a0 fs/ocfs2/alloc.c:4755
+ ocfs2_add_clusters_in_btree+0x64f/0xf50 fs/ocfs2/alloc.c:4857
+ ocfs2_add_inode_data+0xce/0x120 fs/ocfs2/file.c:550
+ ocfs2_write_cluster fs/ocfs2/aops.c:1115 [inline]
+ ocfs2_write_cluster_by_desc+0x547/0x1cf0 fs/ocfs2/aops.c:1219
+ ocfs2_write_begin_nolock+0x3180/0x4300 fs/ocfs2/aops.c:1796
+ ocfs2_write_begin+0x1bb/0x310 fs/ocfs2/aops.c:1884
+ generic_perform_write+0x2c5/0x900 mm/filemap.c:4314
+ ocfs2_file_write_iter+0x1582/0x1cf0 fs/ocfs2/file.c:2469
+ new_sync_write fs/read_write.c:593 [inline]
+ vfs_write+0x5c9/0xb30 fs/read_write.c:686
+ ksys_write+0x145/0x250 fs/read_write.c:738
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f6962b8f7c9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f6963a6b038 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+RAX: ffffffffffffffda RBX: 00007f6962de6090 RCX: 00007f6962b8f7c9
+RDX: 0000000000000140 RSI: 0000000000000000 RDI: 0000000000000005
+RBP: 00007f6962c13f91 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f6962de6128 R14: 00007f6962de6090 R15: 00007ffc0ec42858
+ </TASK>
+---[ end trace ]---
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 2025/12/11 03:32, Prithvi Tambewagh wrote:
-> When the filesystem is being mounted, the kernel panics while the data
-> regarding slot map allocation to the local node, is being written to the
-> disk. This occurs because the value of slot map buffer head block
-> number, which should have been greater than or equal to
-> `OCFS2_SUPER_BLOCK_BLKNO` (evaluating to 2) is less than it, indicative
-> of disk metadata corruption. This triggers
-> BUG_ON(bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) in ocfs2_write_block(),
-> causing the kernel to panic.
-> 
-> This is fixed by introducing an if condition block in
-> ocfs2_update_disk_slot(), right before calling ocfs2_write_block(), which
-> checks if `bh->b_blocknr` is lesser than `OCFS2_SUPER_BLOCK_BLKNO`; if
-> yes, then ocfs2_error is called, which prints the error log, for
-> debugging purposes, and the return value of ocfs2_error() is returned
-> back to caller of ocfs2_update_disk_slot() i.e. ocfs2_find_slot(). If
-> the return value is zero. then error code EIO is returned.
-> 
-> Reported-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
-> Tested-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
-> ---
-> v1->v2:
->  - Remove usage of le16_to_cpu() from ocfs2_error()
->  - Cast bh->b_blocknr to unsigned long long
->  - Remove type casting for OCFS2_SUPER_BLOCK_BLKNO
->  - Fix Sparse warnings reported in v1 by kernel test robot
->  - Update title from 'ocfs2: Fix kernel BUG in ocfs2_write_block' to
->    'ocfs2: fix kernel BUG in ocfs2_write_block'
-> 
-> v1 link: https://lore.kernel.org/all/20251206154819.175479-1-activprithvi@gmail.com/T/
-> 
->  fs/ocfs2/slot_map.c | 10 ++++++++++
->  1 file changed, 10 insertions(+)
-> 
-> diff --git a/fs/ocfs2/slot_map.c b/fs/ocfs2/slot_map.c
-> index e544c704b583..e916a2e8f92d 100644
-> --- a/fs/ocfs2/slot_map.c
-> +++ b/fs/ocfs2/slot_map.c
-> @@ -193,6 +193,16 @@ static int ocfs2_update_disk_slot(struct ocfs2_super *osb,
->  	else
->  		ocfs2_update_disk_slot_old(si, slot_num, &bh);
->  	spin_unlock(&osb->osb_lock);
-> +	if (bh->b_blocknr < OCFS2_SUPER_BLOCK_BLKNO) {
-> +		status = ocfs2_error(osb->sb,
-> +				     "Invalid Slot Map Buffer Head "
-> +				     "Block Number : %llu, Should be >= %d",
-> +				     (unsigned long long)bh->b_blocknr,
-> +				     OCFS2_SUPER_BLOCK_BLKNO);
-> +		if (!status)
-> +			return -EIO;
-> +		return status;
-> +	}
->  
->  	status = ocfs2_write_block(osb, bh, INODE_CACHE(si->si_inode));
->  	if (status < 0)
-> 
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-Ummm... The 'bh' is from ocfs2_slot_info, which is load from crafted
-image during mount.
-So IIUC, the root cause is we read slot info without validating, see
-ocfs2_refresh_slot_info().
-So I'd prefer to implement a validate func and pass it into
-ocfs2_read_blocks() to do this job.
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-Thanks,
-Joseph
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
