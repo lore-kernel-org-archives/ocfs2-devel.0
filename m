@@ -1,330 +1,144 @@
-Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
+Received: from mail-oa1-f80.google.com (mail-oa1-f80.google.com [209.85.160.80])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5D0E570824
-	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 03:37:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.50
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8F97621CC71
+	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 06:22:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765424242; cv=none; b=O8KQOwnBfb2Fv0nHHwCGFzKixyZY6G4JaOl0/X0IfiBKy6PhPnnpB1QKce3sEzbJzLWCjjK4WrAe4ih9GmmlNhLs3N5wNWR07lO+xUC7qc/uOH68+ba/fKl1OZn+zSTyo6MHBoK38VlqIa5fv4fKd2+nqXTXfugwUdjidbLwTdU=
+	t=1765434145; cv=none; b=eRWjxL1crxuy32fVppXM9w2/vffquJ2JkvxcNBzkPFS++m0G20TBUJLxLi9Lz24+v8F7HW5wnnwtmAaaebVyoRAGgX/gtGTvh9w3WFtvVxW1MBM6D4W+zpDdkorbgTk4Z8lWdHDpT7vNKjtZPEplR1Dc7aMa4ZexCDh9w5k5ex0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765424242; c=relaxed/simple;
-	bh=pMBryqspFGllY2yB7iZj5z7TWvNF9BMTFEPlAc5MA3g=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=LPyl16erawLLzH1aursKda2zHM8b16pLyBAsvo6Bke9zPHog1eNopsym/l/JpHaM2LkllwSR5GosDzDFpIYipsrWVdnqNX+TU2lrsg5iM5kNpSqnx7fiuDCIIeBoww1gntY7jzpOZUXnW71uhNVyE3/tIItn0UCVJfUH/DSAidk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=EZSXyW7N; arc=none smtp.client-ip=209.85.128.50
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="EZSXyW7N"
-Received: by mail-wm1-f50.google.com with SMTP id 5b1f17b1804b1-4779c9109ceso392575e9.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 19:37:18 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1765424237; x=1766029037; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=BTWozHyERVsSfZD/GG7cmjqGInwvtH0SsjVp3DyLhLo=;
-        b=EZSXyW7NG6PO+vRhQ65+Xl1On4tsj0rlqLwejz/U5jbgH91D/1+eCqcLtDXllwRTj9
-         cxTIRJTzc8b5OvjBqwVju0L3aP4pfyg2tOnY6qOpkOs+CicTENZQteuKzoAir0hYcLVm
-         v+7XeK/UFZIXMOf6q1fRu/kAsRCaEpzLC8Yz9f1q5YWU+lP35DJUyztHXYhCTNdYBk5N
-         N5j3A3fXkUzhb2rQgI6Hh+tw+nUqU3eFSWv8h/B+x3hvM6BwAUSwkSSnHt13a+cFvYem
-         CYJXN19XED/gSNno7wL5dE4AKpPmjgjmeSjWeIKjjTKskLmNuXfrH4Cyj38XsOBUDxgz
-         DC8A==
+	s=arc-20240116; t=1765434145; c=relaxed/simple;
+	bh=/YiReAxBCpeWdRo3bAgvtKLPsDensEj5oTKPz94UIbg=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=O+rpYQf/cXVbEvwdNqf0fSo/Zu4saBSeVdPsT2XkfTDopHRlua6ZXo8omCiS7oux6BMq7nfQNpPWPbI1OKS1MFVP/zi6lk7nnluxNsEpxp6C/doHwsUybBVYhL1b48KWUzCpE4oowb2fc1ydKlHzJd/qXK1LftZz+JiUQpLSW0I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.160.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oa1-f80.google.com with SMTP id 586e51a60fabf-3f578b8136fso837437fac.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 10 Dec 2025 22:22:23 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765424237; x=1766029037;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=BTWozHyERVsSfZD/GG7cmjqGInwvtH0SsjVp3DyLhLo=;
-        b=uyfpnFGprvo/j3gLCtTguXpmOEqxCzoJGH1e1qsu9PUADyR+wR8w2D8IkJaYrjRauk
-         TW9NdlJAArfJYBC5sQWHVYQKJIN46EQMMm+rE0WMX2guK/UrVjszjp6uJpUxrGe3mVEp
-         hxhkKsjgaPyrbcYpVYkKE9slE69UqUeMrvuZoopQ5U+rS75KTgIptEaMFAlnQbVijJcD
-         CF3llsLIxtE1Rra8m5MaI1l00ESy8HkfvhaQOAPIvQLDsj0NAFQlpqBVIm7800AjXxLb
-         41YztNZ4+UjsoPLrV0tm4B0xbsW7ficisHKGNlVxny0mUV0+ROGwBZD7xcTc1ZFufdHs
-         CTCg==
-X-Forwarded-Encrypted: i=1; AJvYcCX/TA607ZBquXxBxH78fyZr6QkEU7f5mb4U6KY1S+fkt51Rbl3AiwSBR+9dE1TYvTcdS/j1CMrIRldLjw==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw+7zalo70LTo6aGWjc4vGmJO5D1m3bIRvPyACR1J+nsR7C2Sis
-	Worwg/SdvAkF3A5KYra58faRrsOg3KWIKAe28vQUeTsqnoqqTwISDAUAQLaaStLg/cZqLHu03t6
-	JYawXVdI=
-X-Gm-Gg: AY/fxX5mdaUMzOkasIpMBnSO+PEPpRQhNKw0daJ20tCD2ekTbEsuqTHTk5GackWSKNd
-	YAj9+7omqzwfLV8g3rXoOMxYVV+0vs5L2UuQhUXoJ3Gqt3Tv1Eye5XDRjCuvK/NoB1pU3a4f+t8
-	d3UeB08CITaaH+RC654dudGgT8WMJUSOwcjb9UzDP57w+ak5wy2CP/n11oEZkGPpF6gV63GD9Xt
-	hjQbKEqXMUEchHmCTVKKiXKKXWVm5m1Ks5tdDFQ6d6Goj1hgVClUfcL9+ylCCF3bduVtMbHv9N+
-	Ggn1vOD7By8MEVt17aqZShGaXWLuoQzq8O3XqXwRMxzdcHg/njzEkR6RKqEGc3ysaBCKOpM3FvM
-	nHiXfJRPazpWRniO+BxgtCBfzGdihnT0Ybk5L12zmzeJc0e5yAOSXW4O1coGV7ZsdHNx4HoiMMH
-	YFvYBiKpH2tftqABYLsigm
-X-Google-Smtp-Source: AGHT+IEKNM5pFaL1eE859/V8+0dvqpkKtMHvVhOYXMBAfdD1Iaeq5RTolZblsYBmv1d+NjOVbg9Kmw==
-X-Received: by 2002:a05:600c:524c:b0:477:5ca6:4d51 with SMTP id 5b1f17b1804b1-47a8991d0eemr3635895e9.3.1765424236530;
-        Wed, 10 Dec 2025 19:37:16 -0800 (PST)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29eea040376sm7645925ad.72.2025.12.10.19.37.15
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 10 Dec 2025 19:37:15 -0800 (PST)
-Date: Thu, 11 Dec 2025 11:37:12 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, glass.su@suse.com
-Subject: Re: [PATCH RESEND v4 2/2] ocfs2: detect released suballocator BG for
- fh_to_[dentry|parent]
-Message-ID: <zp76bdiyzcmff2hidrygqvmfnpm2eyxfm5gkjgvb4grogpipvd@26hl3vb3hg3a>
-References: <20251202063938.9046-1-heming.zhao@suse.com>
- <20251202063938.9046-3-heming.zhao@suse.com>
- <86fe3ab7-943d-415f-822d-ffa2e7c18640@linux.alibaba.com>
- <jegkzhlqfygaxwthju5pijim44gurqxkpjvgxak7geacv35tdx@33lfq6jjv2dj>
- <99870b4d-8fdf-4690-93a2-a206fbb223fe@linux.alibaba.com>
- <totiw3xkf67vewj3o4bittuk3lhec6sfehmyl7vhd44dhndgkl@76s5s2lcesiw>
- <349ce103-8cab-4df4-9768-bfb9c805badd@linux.alibaba.com>
+        d=1e100.net; s=20230601; t=1765434142; x=1766038942;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=SP9rduGqQqvyOFgqoix+vuKTjDQGXT/fswvFmZxXUFk=;
+        b=ZWBi/pVi7ZIrn+IuOQ9NkRbNiwPdTjnbdTqmDXbsF7tx5QUqj2TTL/qpfwON0FR+q6
+         VdIQIc8G5G5Uu1CyQBleGJD/f6K1XBGXuuue6TXyuWUI+4ByeRHOkPrqfYX8X0U8HN50
+         cD106f7krdP61kHVxPJ5iZ97qI30qANRKnKGJvwMSmaknrtKlZI/r4wqH+C4IjIagx5q
+         AcLYJcE9Iw4e67G2x7J8ZfTKCGUQrs68OvCkrRo3QWCCIElTWZBzjIMoSWDQCi9Ue7yl
+         KG7djcW8+nKIl955gLGH8ZtbBpO7u4aGUS8QeArH0rlS+IfH72wUKLjxHJTF+1E4yi67
+         5hsQ==
+X-Forwarded-Encrypted: i=1; AJvYcCXiUNxCGFbN4xhNZFTg++KfimJZ3EwOQzFg4ieGXN0WLqae/trq8OjAVeA747wH/iDzEkKc99cLPOYDug==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzXljW73U3xqH5jqVKdPBTWznp3T9fOIsc6VnJBl3FidfJAQ/+o
+	STVKcGU2NIFPai0v3r0ea0n+Z+8q8AeWgCE1K7BgUTC2xWB1BK4HS1NOwKtSA19l2yCvoYzh1Vy
+	dC2lCAk/TklIzAj5dw1E1Wb81F9tlTs6YKgzbKDCAmUXMstLaninIre4FDD0=
+X-Google-Smtp-Source: AGHT+IEmgVf+Fl6Do0mxfv1Qpm3U7SOdnWocUThAOoIUtE2ynxcuEQXfbhYJljDYIJSYm9gnsATPFXcTCiYO5TH5oTS9q3eO02vH
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <349ce103-8cab-4df4-9768-bfb9c805badd@linux.alibaba.com>
+X-Received: by 2002:a05:6820:180f:b0:659:9a49:8f94 with SMTP id
+ 006d021491bc7-65b2abc1776mr3075999eaf.13.1765434142736; Wed, 10 Dec 2025
+ 22:22:22 -0800 (PST)
+Date: Wed, 10 Dec 2025 22:22:22 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <693a631e.a70a0220.33cd7b.0027.GAE@google.com>
+Subject: [syzbot] [ocfs2?] UBSAN: array-index-out-of-bounds in ocfs2_xa_remove_entry
+From: syzbot <syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Thu, Dec 11, 2025 at 09:12:34AM +0800, Joseph Qi wrote:
-> 
-> 
-> On 2025/12/10 22:07, Heming Zhao wrote:
-> > On Wed, Dec 10, 2025 at 05:00:09PM +0800, Joseph Qi wrote:
-> >>
-> >>
-> >> On 2025/12/10 12:14, Heming Zhao wrote:
-> >>> On Wed, Dec 10, 2025 at 09:55:03AM +0800, Joseph Qi wrote:
-> >>>>
-> >>>>
-> >>>> On 2025/12/2 14:39, Heming Zhao wrote:
-> >>>>> After ocfs2 gained the ability to reclaim suballocator free block
-> >>>>> group (BGs), a suballocator block group may be released. This change
-> >>>>> causes the xfstest case generic/426 to fail.
-> >>>>>
-> >>>>> generic/426 expects return value -ENOENT or -ESTALE, but the current
-> >>>>> code triggers -EROFS.
-> >>>>>
-> >>>>> Call stack before ocfs2 gained the ability to reclaim bg:
-> >>>>>
-> >>>>> ocfs2_fh_to_dentry //or ocfs2_fh_to_parent
-> >>>>>  ocfs2_get_dentry
-> >>>>>   + ocfs2_test_inode_bit
-> >>>>>   |  ocfs2_test_suballoc_bit
-> >>>>>   |   + ocfs2_read_group_descriptor //Since ocfs2 never releases the bg,
-> >>>>>   |   |                             //the bg block was always found.
-> >>>>>   |   + *res = ocfs2_test_bit //unlink was called, and the bit is zero
-> >>>>>   |
-> >>>>>   + if (!set) //because the above *res is 0
-> >>>>>      status = -ESTALE //the generic/426 expected return value
-> >>>>>
-> >>>>> Current call stack that triggers -EROFS:
-> >>>>>
-> >>>>> ocfs2_get_dentry
-> >>>>>  ocfs2_test_inode_bit
-> >>>>>   ocfs2_test_suballoc_bit
-> >>>>>    ocfs2_read_group_descriptor
-> >>>>>     + if reading a released bg, validation fails and triggers -EROFS
-> >>>>>
-> >>>>> How to fix:
-> >>>>> Since the read BG is already released, we must avoid triggering -EROFS.
-> >>>>> With this commit, we use ocfs2_read_hint_group_descriptor() to detect
-> >>>>> the released BG block. This approach quietly handles this type of error
-> >>>>> and returns -EINVAL, which triggers the caller's existing conversion
-> >>>>> path to -ESTALE.
-> >>>>>
-> >>>>> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> >>>>> Reviewed-by: Su Yue <glass.su@suse.com>
-> >>>>> ---
-> >>>>>  fs/ocfs2/suballoc.c | 28 ++++++++++++++++++----------
-> >>>>>  1 file changed, 18 insertions(+), 10 deletions(-)
-> >>>>>
-> >>>>> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> >>>>> index de2f09217142..a126d83ddb1c 100644
-> >>>>> --- a/fs/ocfs2/suballoc.c
-> >>>>> +++ b/fs/ocfs2/suballoc.c
-> >>>>> @@ -3152,7 +3152,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
-> >>>>>  	struct ocfs2_group_desc *group;
-> >>>>>  	struct buffer_head *group_bh = NULL;
-> >>>>>  	u64 bg_blkno;
-> >>>>> -	int status;
-> >>>>> +	int status, quiet = 0, released;
-> >>>>>  
-> >>>>>  	trace_ocfs2_test_suballoc_bit((unsigned long long)blkno,
-> >>>>>  				      (unsigned int)bit);
-> >>>>> @@ -3168,11 +3168,15 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
-> >>>>>  
-> >>>>>  	bg_blkno = group_blkno ? group_blkno :
-> >>>>>  		   ocfs2_which_suballoc_group(blkno, bit);
-> >>>>> -	status = ocfs2_read_group_descriptor(suballoc, alloc_di, bg_blkno,
-> >>>>> -					     &group_bh);
-> >>>>> -	if (status < 0) {
-> >>>>> +	status = ocfs2_read_hint_group_descriptor(suballoc, alloc_di, bg_blkno,
-> >>>>> +					     &group_bh, &released);
-> >>>>> +	if (released) {
-> >>>>> +		quiet = 1;
-> >>>>> +		status = -EINVAL;
-> >>>>> +		goto bail;
-> >>>>> +	} else if (status < 0) {
-> >>>>>  		mlog(ML_ERROR, "read group %llu failed %d\n",
-> >>>>> -		     (unsigned long long)bg_blkno, status);
-> >>>>> +				(unsigned long long)bg_blkno, status);
-> >>>>>  		goto bail;
-> >>>>>  	}
-> >>>>>  
-> >>>>> @@ -3182,7 +3186,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
-> >>>>>  bail:
-> >>>>>  	brelse(group_bh);
-> >>>>>  
-> >>>>> -	if (status)
-> >>>>> +	if (status && (!quiet))
-> >>>>>  		mlog_errno(status);
-> >>>>>  	return status;
-> >>>>>  }
-> >>>>> @@ -3202,7 +3206,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
-> >>>>>   */
-> >>>>>  int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
-> >>>>>  {
-> >>>>> -	int status;
-> >>>>> +	int status, quiet = 0;
-> >>>>>  	u64 group_blkno = 0;
-> >>>>>  	u16 suballoc_bit = 0, suballoc_slot = 0;
-> >>>>>  	struct inode *inode_alloc_inode;
-> >>>>> @@ -3244,8 +3248,12 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
-> >>>>>  
-> >>>>>  	status = ocfs2_test_suballoc_bit(osb, inode_alloc_inode, alloc_bh,
-> >>>>>  					 group_blkno, blkno, suballoc_bit, res);
-> >>>>> -	if (status < 0)
-> >>>>> -		mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
-> >>>>> +	if (status < 0) {
-> >>>>> +		if (status == -EINVAL)
-> >>>>
-> >>>> This seems not right, since there is other case which will also return -EINVAL.
-> >>>> So how about return -ESTALE in this case?
-> >>>>
-> >>>> Thanks,
-> >>>> Joseph
-> >>>
-> >>> I agree with your idea that we can get a more specific errno, but we might
-> >>> introduce some slightly unnecessary work here.
-> >>>
-> >>> The ocfs2_test_inode_bit() and ocfs2_test_suballoc_bit() only serve for NFS
-> >>> export paths:
-> >>>
-> >>> ```
-> >>> ocfs2_fh_to_[dentry|parent]
-> >>>  ocfs2_get_dentry //converts -EINVAL to -ESTALE
-> >>>   ocfs2_test_inode_bit //<== here, current returns -EINVAL
-> >>>    ocfs2_test_suballoc_bit //test the released gd
-> >>>
-> >>> ocfs2_get_parent //converts -EINVAL to -ESTALE
-> >>>  ocfs2_test_inode_bit //<== here, current returns -EINVAL
-> >>>   ocfs2_test_suballoc_bit
-> >>> ```
-> >>>
-> >>> the current code design treats -EINVAL as a speical case, converting it to -ESTALE.
-> >>>
-> >>> If we change the ocfs2_test_inode_bit() return value from -EINVAL to -ESTALE.
-> >>> This will add another special errno in the error handling path.
-> >>>
-> >>> The code changes are show below:
-> >>>
-> >>> ```
-> >>> diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
-> >>> index b95724b767e1..8992989b85a5 100644
-> >>> --- a/fs/ocfs2/export.c
-> >>> +++ b/fs/ocfs2/export.c
-> >>> @@ -74,7 +74,7 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
-> >>>               * nice
-> >>>               */
-> >>>              status = -ESTALE;
-> >>> -        } else
-> >>> +        } else if (status != -ESTALE)
-> >>>              mlog(ML_ERROR, "test inode bit failed %d\n", status);
-> >>>          goto unlock_nfs_sync;
-> >>>      }
-> >>> @@ -162,7 +162,7 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
-> >>>      if (status < 0) {
-> >>>          if (status == -EINVAL) {
-> >>>              status = -ESTALE;
-> >>> -        } else
-> >>> +        } else if (status != -ESTALE)
-> >>>              mlog(ML_ERROR, "test inode bit failed %d\n", status);
-> >>>          parent = ERR_PTR(status);
-> >>>          goto bail_unlock;
-> >>>
-> >>> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> >>> index c274b649b022..ddcfa6e001e8 100644
-> >>> --- a/fs/ocfs2/suballoc.c
-> >>> +++ b/fs/ocfs2/suballoc.c
-> >>> @@ -3172,7 +3172,7 @@ static int ocfs2_test_suballoc_bit(struct ocfs2_super *osb,
-> >>>                           &group_bh, &released);
-> >>>      if (released) {
-> >>>          quiet = 1;
-> >>> -        status = -EINVAL;
-> >>> +        status = -ESTALE;
-> >>>          goto bail;
-> >>>      } else if (status < 0) {
-> >>>          mlog(ML_ERROR, "read group %llu failed %d\n",
-> >>> @@ -3249,7 +3249,7 @@ int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res)
-> >>>      status = ocfs2_test_suballoc_bit(osb, inode_alloc_inode, alloc_bh,
-> >>>                       group_blkno, blkno, suballoc_bit, res);
-> >>>      if (status < 0) {
-> >>> -        if (status == -EINVAL)
-> >>> +        if (status == -ESTALE)
-> >>>              quiet = 1;
-> >>>          else
-> >>>              mlog(ML_ERROR, "test suballoc bit failed %d\n", status);
-> >>> ```
-> >>>
-> >>> However, I am ok with your approach. If you think it is better to return -ESTALE,
-> >>> I will fix it in the next version.
-> >>>
-> >>
-> >> Okay, it seems -EINVAL is also fine. But why you silent the error log
-> >> for -EINVAL? This will also silent another case, which is different from
-> >> before.
-> > 
-> > You are right, the patch code silents all -EINVAL cases, which is
-> > incorrect logic.
-> > 
-> >> BTW, why can't we just return 0 in case of release?
-> >>
-> >> Joseph
-> >>
-> > 
-> > There are two reasons why we should return an errno:
-> > 1> This is still an abnormal case where user is searching for an inode that
-> >    is already deleted.
-> > 
-> > 2> I am not familiar with NFS. However, the meaning from the xfstests
-> >    generic/426 source code, which calls "open_by_handle -d", and the comment
-> >    at the beginning of the src/open_by_handle.c [1]:
-> > 
-> >    ```
-> >    6. Get file handles for existing test set, unlink all test files,
-> >       remove test_dir, drop caches, try to open all files by handle
-> >       and expect ESTALE:
-> >    
-> >       open_by_handle -dp <test_dir> [N]
-> >    ```
-> > 
-> >    The expected return value is '-ESTALE', not '0' (success).
-> > 
-> > Returning to my patch, I think your previous idea (to return specific
-> > -ESTALE) makes sense. Although we are adding another special error case,
-> > this change keeps the existing error path working as before.
-> > 
-> > May I sent the v5 patch which includes the change for -ESTALE (using code
-> > similar to my previous email in this thread)?
-> > 
-> Or reuse the existing -EINVAL logic but without silent error log?
-> It seems log this case also make sense.
-> 
-> Joseph
+Hello,
 
-The ext4 doesn't output any warning/error messages during generic/426, and before
-this patch set (where ocfs2 never released suballocator space), ocfs2 also never
-output any messages. So, I suggest ocfs2 should remain quite.
-Adding -ESTALE makes sense, because the new behavior, where ocfs2 can release bg,
-introduces a new error handling path.
+syzbot found the following issue on:
 
-- Heming
+HEAD commit:    c2f2b01b74be Merge tag 'i3c/for-6.19' of git://git.kernel...
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=11a4eeb4580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=cf15a4b50e1152e3
+dashboard link: https://syzkaller.appspot.com/bug?extid=cf96bc82a588a27346a8
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=16e89992580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15a4eeb4580000
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-c2f2b01b.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/753c2b596a8a/vmlinux-c2f2b01b.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/9e3ad31aad53/bzImage-c2f2b01b.xz
+mounted in repro #1: https://storage.googleapis.com/syzbot-assets/befacb04d20d/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=12e89992580000)
+mounted in repro #2: https://storage.googleapis.com/syzbot-assets/08da0e96bc06/mount_4.gz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
+
+=======================================================
+JBD2: Ignoring recovery information on journal
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+------------[ cut here ]------------
+UBSAN: array-index-out-of-bounds in fs/ocfs2/xattr.c:1955:3
+index 2 is out of range for type 'struct ocfs2_xattr_entry[] __counted_by(xh_count)' (aka 'struct ocfs2_xattr_entry[]')
+CPU: 0 UID: 0 PID: 5508 Comm: syz.0.17 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x189/0x250 lib/dump_stack.c:120
+ ubsan_epilogue+0xa/0x40 lib/ubsan.c:233
+ __ubsan_handle_out_of_bounds+0xe9/0xf0 lib/ubsan.c:455
+ ocfs2_xa_remove_entry+0x36d/0x3e0 fs/ocfs2/xattr.c:1955
+ ocfs2_xa_remove fs/ocfs2/xattr.c:2043 [inline]
+ ocfs2_xa_set+0xaf4/0x2a70 fs/ocfs2/xattr.c:2247
+ ocfs2_xattr_block_set+0x3ca/0x31b0 fs/ocfs2/xattr.c:2985
+ __ocfs2_xattr_set_handle+0x27e/0xf20 fs/ocfs2/xattr.c:-1
+ ocfs2_xattr_set+0xde8/0x11f0 fs/ocfs2/xattr.c:3650
+ __vfs_removexattr+0x431/0x470 fs/xattr.c:518
+ __vfs_removexattr_locked+0x1e8/0x230 fs/xattr.c:553
+ vfs_removexattr+0x80/0x1b0 fs/xattr.c:575
+ removexattr fs/xattr.c:1023 [inline]
+ filename_removexattr fs/xattr.c:1052 [inline]
+ path_removexattrat+0x35d/0x690 fs/xattr.c:1088
+ __do_sys_lremovexattr fs/xattr.c:1106 [inline]
+ __se_sys_lremovexattr fs/xattr.c:1103 [inline]
+ __x64_sys_lremovexattr+0x65/0x80 fs/xattr.c:1103
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f65fcd8f7c9
+Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffc4fa4bdb8 EFLAGS: 00000246 ORIG_RAX: 00000000000000c6
+RAX: ffffffffffffffda RBX: 00007f65fcfe5fa0 RCX: 00007f65fcd8f7c9
+RDX: 0000000000000000 RSI: 0000200000000280 RDI: 0000200000000240
+RBP: 00007f65fce13f91 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f65fcfe5fa0 R14: 00007f65fcfe5fa0 R15: 0000000000000002
+ </TASK>
+---[ end trace ]---
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
