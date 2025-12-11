@@ -1,88 +1,125 @@
-Received: from forward102d.mail.yandex.net (forward102d.mail.yandex.net [178.154.239.213])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08CA930C629
-	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 12:04:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.213
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EB3328D8DF
+	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 14:51:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765454646; cv=none; b=A5kogKSA+4Q6R6LBV7Tlg6pSkGEg8Vmkz5FyKiKuE7kpmxKAPcgQ+s1kwhdTrhWnuCmK1VZmwgQJSxetbr7y3w90Ia9/HWLTiqgg4tfaWBid/iuz4EJZdcSJnPoS9P0Ad/F4+A5x2dnxd8IJVph3vTckLHR/U2oDahiZwOOepoY=
+	t=1765464674; cv=none; b=ixsWKGo8PHpzzHJo1gjKtv5vjOFKHdwG/gxu+b9X02OtmGvLtJsJyYrxo5oHpX2dr0gk/eNB52WTEiWywltqBpqwbYoKHZtuBUGTv9ffAY/4SCegS+Bv6p7mOdVlPr7J1Klfnc1dUWU3WOKAomUVknLTOGoEMHomPRYhTzFRl0M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765454646; c=relaxed/simple;
-	bh=d5DdcH7e3V91SffZDhX2mFMvkm7hwOJOgeud7+VdBGA=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=X0fEH8grtnPpd7sRcee6HufhVnNnxUb01IsJz2DdjVLS2RhrssJbczAkZGGkTZeoPIfuZ5MW0ABKmBgqrqRZGPtVow/mVM3EnOyumkkRHv2S27zsBDTF+v81kZbTzHkpU7ud0rrTBnjpzvOn9qyW8DI82q0k3nORqbBCMSTM1ks=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=dXWznaDB; arc=none smtp.client-ip=178.154.239.213
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1765464674; c=relaxed/simple;
+	bh=GaUgbGvyF2x5g5cOrbKbhlaYJel/H3JXbOScwzYa9YQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=DilbV/MfLH212HT1GhwXIun3JJDi4+q6NzW9EWDXcBWlusocF4Qec+phvHEj4OzzkWnDQSKkuY3yR4NPwCmzykR80M7eAre/GHeqSrp18/GrYnUAS9FlUsNIlhVKgZr/tTGgFirYDTGV44Cziwn9ydzPLx05AwZGvDQw65pStYM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=CN8MmL8x; arc=none smtp.client-ip=209.85.128.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="dXWznaDB"
-Received: from mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:3d48:0:640:52d7:0])
-	by forward102d.mail.yandex.net (Yandex) with ESMTPS id C3738C01D9;
-	Thu, 11 Dec 2025 15:03:53 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id q3OB2xXL2Sw0-Dp1PO9wp;
-	Thu, 11 Dec 2025 15:03:53 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1765454633; bh=CMuwD5Pd/PVm3pAnV5IVDzILSZy9j1JnXUfnKKMhRZM=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=dXWznaDBCfXC4MRzpAbhx0SytpIflsu83yWMcmoPv2uIn8NMSoryk7anguKg3xlwL
-	 50mcusmxfZRO8b9Y4DMuQuLR6s/dDvz9snYefESFM3ufffMfoB475F/h1Ml9FQI4/r
-	 mKyuJ/qlBD0IU0ehQ5ZkwEpUSk2cYVn9oNF//IzE=
-Authentication-Results: mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Deepanshu Kartikey <kartikey406@gmail.com>,
-	ocfs2-devel@lists.linux.dev,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: adjust ocfs2_xa_remove_entry() to match UBSAN boundary checks
-Date: Thu, 11 Dec 2025 15:03:50 +0300
-Message-ID: <20251211120350.693428-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.52.0
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="CN8MmL8x"
+Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-4779b49d724so453435e9.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 06:51:11 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1765464670; x=1766069470; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=HyOWep6Z+3l/4huZPXFl9941sB3JmGErDJCXMCXIk50=;
+        b=CN8MmL8xrkDy9KTnXAZrMjkuzES8E6hacUM8J2pqt4SRrDtfq1EaJEEBBbdgR6x+/+
+         bxgGz0HA7BlQjsmas+wpyslFp/dWoxnZQTHNv+mVG/hoqvki14be1wpdW4J88Uffg8uB
+         zDSCbPmjwUHRVgrJyZXT2Y195a6Jr33S2BWi7UJ6kKdFhaMvPOAMR/GCcRdgpd0nHpST
+         6/yUmgjpM2BE/iv1D+mHOjgLF22QaQd0cN+fsHQcCh0tLURjUptUmunJcjHm6x+sp3En
+         HB9eXynD3qGA5kPYYywEuTfXTY+NYWZm2sLJoDefCdhFa2u7GH3JpwGwmofsMRBUZRNA
+         sRSQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1765464670; x=1766069470;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=HyOWep6Z+3l/4huZPXFl9941sB3JmGErDJCXMCXIk50=;
+        b=hgFlcPnQHYLVQYOQArzflbsAm5h84kKcfpKNPl/WQH9rMG+U84sPBV+ndYOJLs2x39
+         7zRSvJtcjhVa//0DFocsLIkDvNQSbz9chAqf+ShZMT/f30eW/LWO8pLjtvj5NvAKJ5vi
+         oK/vVG6Bp/pRGjx4Hc34rpFBlY42DhcYxEeeN53jDyYudyLArszpRczlS5OzDMRAuuIQ
+         teH2XJ3yHrWNu5NyL92xBmFYlJ0r7jWnpuV5hOuFbFzekkU9dVt2Q38indKollE3Pt+m
+         ZQUSEwXMfyJemJwV42ZkB7B3vzCPXlhcg9nDxa3yn601dfH37EMcVAUboRs04pGc3iEV
+         wMRQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWRhhP9NR6cUm+FuUq7Eqw75LFemIB4TknEhR797yTVzleCjuF3yE5BoLhNFM4/L+HoXRH3I1KFK4Q4qw==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yzl6rbpUHj+kvXJaoMCUCbZyBlTgbUQGcxg/p1O5auM1Jfi1+yU
+	HkUC8VQ+G/mu1rd6zlIKq1cw3zmcgyPEEJoA5zlhemxbpXQTUacwojwSaSWFSMUPJK0=
+X-Gm-Gg: AY/fxX7vt/AMb/6f6Z0iBSi5mt2wkA0wTukKNek4hMWsLSrt5jMIhsG7KlzzBMR5iBW
+	beG1amDFZ8rjdQxoy17dQ+yc2ueT+h3ekaPXvK/DGrfzFLa/jPcOLZm+cYOY2QKcs2A4+MxzFJw
+	rdXBjeeaslAItEp5tFGKZfyxDzVoKv4YcMdz28Q6te3Jit5QNz3AD+tycnzKsLATnR3uUx1MPhF
+	emUnso5G5NKE2JwerWhxwT2PY2SvIKRJqWqNrInjUafli//XsIGmX9YOX+otQaOkpqinZSgj8Sl
+	b/xNUzDLFRZvJY6+5QLXuH0ShZEbytWf1K45n/VBRx5hNB9e1y/9PPqZ0FZodYCXNtzJlTVgS6Z
+	256e48j4mEIdk/sqOd4HQ/JhO0Mnz10CSpn1KsgSM0UW+xMEnW+HsfSbJoiSyI777S7HQdVBM2S
+	xZKCxQ+Chb3Q==
+X-Google-Smtp-Source: AGHT+IGCDJmIBka64qw7XQLh8lncOPi3VNKakaTXueo2a9IY6YuqbZ8xrM2Pyp4mI9EzjDxSTHBr0g==
+X-Received: by 2002:a05:600c:b93:b0:477:a203:66dd with SMTP id 5b1f17b1804b1-47a898d2dd9mr16906085e9.2.1765464670332;
+        Thu, 11 Dec 2025 06:51:10 -0800 (PST)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7f4c4ab52aasm2750610b3a.38.2025.12.11.06.51.09
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 11 Dec 2025 06:51:09 -0800 (PST)
+Date: Thu, 11 Dec 2025 22:51:06 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Deepanshu Kartikey <kartikey406@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	syzbot+6d832e79d3efe1c46743@syzkaller.appspotmail.com
+Subject: Re: [PATCH] ocfs2: validate i_refcount_loc when refcount flag is set
+Message-ID: <syaaw5p5nyx3bgp4xrzzb4zze5ljelesfaxzuify7pgo7f3m2n@ooxqgjji73ri>
+References: <20251208084407.3021466-1-kartikey406@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251208084407.3021466-1-kartikey406@gmail.com>
 
-In 'ocfs2_xa_remove_entry()', perform 'xh_entries[]' member removal
-before actually changing 'xh_count', thus making sure that all array
-accesses matches the boundary checks performed by UBSAN.
+On Mon, Dec 08, 2025 at 02:14:07PM +0530, Deepanshu Kartikey wrote:
+> Add validation in ocfs2_validate_inode_block() to check that if an
+> inode has OCFS2_HAS_REFCOUNT_FL set, it must also have a valid
+> i_refcount_loc. A corrupted filesystem image can have this inconsistent
+> state, which later triggers a BUG_ON in ocfs2_remove_refcount_tree()
+> when the inode is being wiped during unlink.
+> 
+> Catch this corruption early during inode validation to fail gracefully
+> instead of crashing the kernel.
+> 
+> Reported-by: syzbot+6d832e79d3efe1c46743@syzkaller.appspotmail.com
+> Tested-by: syzbot+6d832e79d3efe1c46743@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=6d832e79d3efe1c46743
+> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+> ---
+>  fs/ocfs2/inode.c | 7 +++++++
+>  1 file changed, 7 insertions(+)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 78f81950c9ee..dd56407fc056 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1484,6 +1484,13 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		goto bail;
+>  	}
+>  
+> +	if ((di->i_dyn_features & cpu_to_le16(OCFS2_HAS_REFCOUNT_FL)) &&
+> +	    !di->i_refcount_loc) {
+> +		rc = ocfs2_error(sb, "Invalid dinode #%llu: refcount flag set but i_refcount_loc is zero\n",
+> +		      (unsigned long long)bh->b_blocknr);
+> +		goto bail;
+> +	}
+> +
 
-Reported-by: syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=cf96bc82a588a27346a8
-Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
- fs/ocfs2/xattr.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
+The code logic looks good to me, but please run "kernel/scripts/checkpatch.pl"
+on the patch before sending it out. We can see that the line length is too long.
 
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index dc1761e84814..de99276d12f0 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -1941,8 +1941,7 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
- 	ocfs2_xa_wipe_namevalue(loc);
- 	loc->xl_entry = NULL;
- 
--	le16_add_cpu(&xh->xh_count, -1);
--	count = le16_to_cpu(xh->xh_count);
-+	count = le16_to_cpu(xh->xh_count) - 1;
- 
- 	/*
- 	 * Only zero out the entry if there are more remaining.  This is
-@@ -1957,6 +1956,8 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
- 		memset(&xh->xh_entries[count], 0,
- 		       sizeof(struct ocfs2_xattr_entry));
- 	}
-+
-+	xh->xh_count = cpu_to_le16(count);
- }
- 
- /*
--- 
-2.52.0
-
+Thanks,
+Heming
+>  	rc = 0;
+>  
+>  bail:
+> -- 
+> 2.43.0
+> 
+> 
