@@ -1,74 +1,45 @@
-Received: from mail-pj1-f50.google.com (mail-pj1-f50.google.com [209.85.216.50])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward102d.mail.yandex.net (forward102d.mail.yandex.net [178.154.239.213])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 87CDD33E7
-	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 11:52:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.50
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 08CA930C629
+	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 12:04:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.213
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765453964; cv=none; b=cIUOLVaLfuB0/KjLbyMcTWfDFZ6YaZPw5zByYQrXCgxgZ7BB7X1ji4VUU/OPGhj1Gg5I0paqeA1A0ceND88jqx85F8chX7okjlXKmrhYHJL13Y4vZ/miDJAIiYYbKZrZDv+bgUSQSpoe07mwozb3cd+xTgBq60yhy105ujTik9w=
+	t=1765454646; cv=none; b=A5kogKSA+4Q6R6LBV7Tlg6pSkGEg8Vmkz5FyKiKuE7kpmxKAPcgQ+s1kwhdTrhWnuCmK1VZmwgQJSxetbr7y3w90Ia9/HWLTiqgg4tfaWBid/iuz4EJZdcSJnPoS9P0Ad/F4+A5x2dnxd8IJVph3vTckLHR/U2oDahiZwOOepoY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765453964; c=relaxed/simple;
-	bh=IHcdPwDYaOP9mnRlaK2tBNRlVnQPrGDe6fxMGkmdV8A=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=uTpJ6HQmdHWMahElLOwPV73ektwaF82dXaB76ZpXZ4z/AH3D3+VeFHruhefaln1mEWkZLaFj9JZq7C35uy1SJ72k5csUmHo9QNAKF+5uM//c6Lp6y2CuCyFOYfBvF19DO0xf7Pcplq6LZp3oXWO+9181i/ud65aPxo6/v7z3I48=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=WCGMooPV; arc=none smtp.client-ip=209.85.216.50
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1765454646; c=relaxed/simple;
+	bh=d5DdcH7e3V91SffZDhX2mFMvkm7hwOJOgeud7+VdBGA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=X0fEH8grtnPpd7sRcee6HufhVnNnxUb01IsJz2DdjVLS2RhrssJbczAkZGGkTZeoPIfuZ5MW0ABKmBgqrqRZGPtVow/mVM3EnOyumkkRHv2S27zsBDTF+v81kZbTzHkpU7ud0rrTBnjpzvOn9qyW8DI82q0k3nORqbBCMSTM1ks=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=dXWznaDB; arc=none smtp.client-ip=178.154.239.213
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="WCGMooPV"
-Received: by mail-pj1-f50.google.com with SMTP id 98e67ed59e1d1-343dfb673a8so906556a91.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 03:52:42 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1765453961; x=1766058761; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=psXlLAerr36Cu3nb3TCz/ORHSimLjF4H60tNxXRDbEY=;
-        b=WCGMooPVzPmZAKZZz2Gdasppiu9/hAiBU+VA43NRGOkGqQV7cKyage197pqQRqDGe+
-         UfYLpIYkvAZrSJBQSOK5q4/j5eA/mV+l6PWJ5yVBnwqps7Uw6sjeY5jsaBYZJlr2+Uk+
-         5nY36jV90lsU4kC1AV09cTiy0RoDURwZBZ/8yDzD5wCWtcAg4qnriy1cKGDQt+2IiLHt
-         MtVYf7c34UMGq0ue6vS4LILcwJzJZjHVfDl1lKFfouR2LslfZoS0xCirQn0d39uelXdO
-         t9f79IB8mUR8ttiY/GHpJljdeC1kggTFXf+K+K0YdDjyRKA0ofd/SYXTMguKlhKJzvbT
-         jdWQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765453961; x=1766058761;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=psXlLAerr36Cu3nb3TCz/ORHSimLjF4H60tNxXRDbEY=;
-        b=ULG1nFsVpeZPvJHrVzhnPMT6ZF0226w4JcBhztupy3X3y0r6VQuKTiCOI+lztgj5Ba
-         vN+ajd1AQhJTxSPiSqjyN0OY3iJZTNAwIU82mv/h11YguSoV5tCe5sWSBPSp0r1njby9
-         O3u9PedSUinwBMuruIuiYPxtt3IMC9xf1lUxTxWeeWCVfAMCN2jWe1nKk3Cm03SzfZZb
-         M/NygoA7emJ9vpvkatlS8HD8V/MwvG9yfafoicZkC9RRITLsYLTjJpxog/9pioCNvi0O
-         9ttV5CsmP/btbZj4XEFJG/MmaqEbyznFUw906y1qguZolW8+3UhumC1GQu/qF6cbrF9k
-         gyxA==
-X-Gm-Message-State: AOJu0YywH+h2Gc8OlI+6jyLA0yKL1S9I6E5rtQyH8/awf/+froSJbQ4R
-	yZ1St2hjlQQ1sH5f+UybyZhoJLUk/SlxPk/e0k6jyTc8YLzp7xHuuYIp
-X-Gm-Gg: AY/fxX48GkjN0pBonZbN/Ey/2nmE5i0J6XDNC0Qc+BL16Vw+plcWFUMyDgNj7Q1nEqF
-	f2Dh2N1j4jnkTgvrzwF8b+9WE3bp593auWTqx/ZtlmGwKqHzSqUudNmOd401JB8Dlb7fb0SABp4
-	qMhjjJqB5CUXX9lnkVlka/HXoUCCDHWhOKd80KTlSXgAXjgkrL42hXb45SmRb83KVD84J35DLzv
-	XGvRx20n5JGxYEJit5+raeRiCMGtUVT2yf7SZ+9+4YCl+TbUtOfyTU0Rvj8JawCZF2/JiiTkTWx
-	g84cCS+uHOXxc6iAPbCPiS6iXJSBCvOBRYGPw02Qr9YKGaIT+w4HOAlmVkoj9vabNM8UQn6iJYB
-	Vg1jVkajE2Iz1iLJbwFPOA80sDjsx/Ro6bgE+xgxubmMv/+NEtoGOiqpe67mXL7XV7LMcNduKAy
-	duwN24DXLCEsAD++OGqIZjTSRCWzUoqGB971d684cZu3DQTTYsMVIGSRA5RIceC6dQkLsgRzSRi
-	NFQ
-X-Google-Smtp-Source: AGHT+IG6APBLZxbb/LYrdmx22uddAVJjZ+LzQjdEPj+olmhhgmQHKYUVdd5RPNYmpXE4g4gd6sXHwg==
-X-Received: by 2002:a17:90b:4b85:b0:343:688e:3252 with SMTP id 98e67ed59e1d1-34a7281c71emr6270191a91.12.1765453961476;
-        Thu, 11 Dec 2025 03:52:41 -0800 (PST)
-Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:7fd7:d1cd:305:6207])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-34a92754ab8sm681880a91.4.2025.12.11.03.52.37
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 11 Dec 2025 03:52:40 -0800 (PST)
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: validate inline directory i_size during inode read
-Date: Thu, 11 Dec 2025 17:22:31 +0530
-Message-ID: <20251211115231.3560028-1-kartikey406@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="dXWznaDB"
+Received: from mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:3d48:0:640:52d7:0])
+	by forward102d.mail.yandex.net (Yandex) with ESMTPS id C3738C01D9;
+	Thu, 11 Dec 2025 15:03:53 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net (smtp/Yandex) with ESMTPSA id q3OB2xXL2Sw0-Dp1PO9wp;
+	Thu, 11 Dec 2025 15:03:53 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1765454633; bh=CMuwD5Pd/PVm3pAnV5IVDzILSZy9j1JnXUfnKKMhRZM=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=dXWznaDBCfXC4MRzpAbhx0SytpIflsu83yWMcmoPv2uIn8NMSoryk7anguKg3xlwL
+	 50mcusmxfZRO8b9Y4DMuQuLR6s/dDvz9snYefESFM3ufffMfoB475F/h1Ml9FQI4/r
+	 mKyuJ/qlBD0IU0ehQ5ZkwEpUSk2cYVn9oNF//IzE=
+Authentication-Results: mail-nwsmtp-smtp-production-main-81.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Deepanshu Kartikey <kartikey406@gmail.com>,
+	ocfs2-devel@lists.linux.dev,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: adjust ocfs2_xa_remove_entry() to match UBSAN boundary checks
+Date: Thu, 11 Dec 2025 15:03:50 +0300
+Message-ID: <20251211120350.693428-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -77,58 +48,41 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-When reading an inode from disk, ocfs2_validate_inode_block() performs
-various sanity checks but does not validate the size of inline
-directories. If the filesystem is corrupted, an inline directory's
-i_size can exceed the actual inline data capacity (id_count).
+In 'ocfs2_xa_remove_entry()', perform 'xh_entries[]' member removal
+before actually changing 'xh_count', thus making sure that all array
+accesses matches the boundary checks performed by UBSAN.
 
-This causes ocfs2_dir_foreach_blk_id() to iterate beyond the inline
-data buffer, triggering a use-after-free when accessing directory
-entries from freed memory.
-
-In the syzbot report:
-  - i_size was 1099511627576 bytes (~1TB)
-  - Actual inline data capacity (id_count) is typically <256 bytes
-  - A garbage rec_len (54648) caused ctx->pos to jump out of bounds
-  - This triggered a UAF in ocfs2_check_dir_entry()
-
-Fix by adding a validation check in ocfs2_validate_inode_block() to
-ensure inline directories have i_size <= id_count. This catches the
-corruption early during inode read and prevents all downstream code
-from operating on invalid data.
-
-Reported-by: syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=c897823f699449cc3eb4
-Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+Reported-by: syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=cf96bc82a588a27346a8
+Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 ---
- fs/ocfs2/inode.c | 15 +++++++++++++++
- 1 file changed, 15 insertions(+)
+ fs/ocfs2/xattr.c | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 8340525e5589..9eb364bef5c3 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1521,6 +1520,20 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		}
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index dc1761e84814..de99276d12f0 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -1941,8 +1941,7 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
+ 	ocfs2_xa_wipe_namevalue(loc);
+ 	loc->xl_entry = NULL;
+ 
+-	le16_add_cpu(&xh->xh_count, -1);
+-	count = le16_to_cpu(xh->xh_count);
++	count = le16_to_cpu(xh->xh_count) - 1;
+ 
+ 	/*
+ 	 * Only zero out the entry if there are more remaining.  This is
+@@ -1957,6 +1956,8 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
+ 		memset(&xh->xh_entries[count], 0,
+ 		       sizeof(struct ocfs2_xattr_entry));
  	}
- 
-+	if (S_ISDIR(le16_to_cpu(di->i_mode)) &&
-+	    (di->i_dyn_features & cpu_to_le16(OCFS2_INLINE_DATA_FL))) {
-+		struct ocfs2_inline_data *data = &di->id2.i_data;
 +
-+		if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count)) {
-+			rc = ocfs2_error(sb,
-+					 "Invalid dinode #%llu: inline directory i_size %llu exceeds id_count %u\n",
-+					 (unsigned long long)bh->b_blocknr,
-+					 (unsigned long long)le64_to_cpu(di->i_size),
-+					 le16_to_cpu(data->id_count));
-+			goto bail;
-+		}
-+	}
-+
- 	rc = 0;
++	xh->xh_count = cpu_to_le16(count);
+ }
  
- bail:
+ /*
 -- 
-2.43.0
+2.52.0
 
