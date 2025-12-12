@@ -1,145 +1,116 @@
-Received: from mail-pl1-f177.google.com (mail-pl1-f177.google.com [209.85.214.177])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1DBDC1FDA
-	for <ocfs2-devel@lists.linux.dev>; Fri, 12 Dec 2025 04:04:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51E162E542A
+	for <ocfs2-devel@lists.linux.dev>; Fri, 12 Dec 2025 04:49:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765512251; cv=none; b=DPPBj5raLCNoCsEJ1gvTP9TNNfs2PWbOOrb635KesMyggmMoIq89kqv9pK9nRABdacElXW+4v/zQePBff21Rg7+WOErfxV0ruSj4Nhgh74oKk8/1f3V59LNeb+pCwIdKqrge+r7pF0plKYbQ+HKOLFHfv93b3urpwr6VKOmUy94=
+	t=1765514987; cv=none; b=qKkR76dkz+0r3T0/9k65MdNTMoWf+tvz9gjwup9wCQs7feWdprVCu17U0Vd1Q7ojgFIyPVcB1gO62IU4zBii1PNALDgIb+4PU9F0QR6Le5Mq9T0gpOyFyP2DPwC0ZYteR2jemoyHWLK2xUnoqC6ZqNgBqIEEEKsKcv+WxdVr4xw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765512251; c=relaxed/simple;
-	bh=KdDZ6W3VRrAwMnJ2DhTgc8C7kWnotA8raPuWE0OaeRk=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=gkuJOK4fJtyxlVdrcHcJgACQPtd6Q2xGDnU9EwZrpgiS44CQiUNjtl8CIZXklkovZB+AF5QibND+FDKAHypLvMN4V3WF+2BsXtCzar/CsZ0Jcz2h0UGNg2eQY7Y37mpYGOZ6Dar2OQz/aw7Y2eZfaCSPxQdHhyLocDQB2yJ2L1w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=nds3ysX+; arc=none smtp.client-ip=209.85.214.177
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1765514987; c=relaxed/simple;
+	bh=f+589vYQgYSdCKjUpCT+5kPhJlM3cU24mzWD6Gb+ywc=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=WL9YlEy4JufMOYr++kL4afPuVshypPIhmg4iOwC3eHEZqqbgsZCzqCI9aqVHYnmsFW+Hy3KGlQFkl4EtuMxqi0k/JtASBrZHN9XxItOaeVGwsRn6oCTaxUbFrSz326U0OU6JbIWNB71GtZXNO+XZfvJQQH1zyN6QTsDGIVljrvk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=yTE3JOoH; arc=none smtp.client-ip=115.124.30.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="nds3ysX+"
-Received: by mail-pl1-f177.google.com with SMTP id d9443c01a7336-297ec50477aso3361995ad.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 11 Dec 2025 20:04:09 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1765512249; x=1766117049; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=4Ya6S7/tWoBQ5tlm6IYlGn88u04M1bv/FGjazh0al2U=;
-        b=nds3ysX+P2U0Ejtt9qO3sBVqenHtuckmi0+SLN5MhgAUhS7bplLUhg68HVBxuRYjKJ
-         1XrOAi4plEz03WmH3pZzp/HFsw8Dveyo8nXEXd8hIRfBKC3b5xdPjAI860d1ww5E3nQz
-         IkflznaYselTmVijMuCWvTNYcrMv2e7UU/9DE4VYBsNWjtVD7+fs6cLdhjWMogLv7PZN
-         OPJdZz0ys5TORpKtNpzx/CsvzOlwcZs5vEfNcVwgcVx5wJpvgsTrkOnCKizqERSE6zyd
-         fJku3UKapq7Y9O7niJShpQGNmnHW5jbIxJH0k3olaW1n6yt/heKQ+JddcPiaQKyK5vfR
-         m7cg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765512249; x=1766117049;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=4Ya6S7/tWoBQ5tlm6IYlGn88u04M1bv/FGjazh0al2U=;
-        b=btedMopm3CKoBk5ecq3QbQ83jsVcXb9odH94umDWOPkRZfRNkDE9xAgHG+q2qT60Se
-         e8BhIwUm0tVq6in+yUP9tU1pNALvFs/vmELHzfvjyE+hNLH8sZptiIkUTFgGDeDHunrh
-         ZEGbAeUm+3v9ycUKW9gzNbi0Lk8vWnnIPKbRS5a/zXIMXYwiVbjZD8GqeRX+fmslpRVT
-         DTmd/qJQJwiM1ZBXt21VWa2Qy5g6UPdcUg0deYH/00MuykZ+kzmuj/kqpQaJPaImzB0P
-         HPfFMF5i7is3+9iPLBUU0byTGndtT6lkBZkvwuvm9Nf+ho4wqsML3NP4/q51C9VlUb4e
-         fDGw==
-X-Gm-Message-State: AOJu0YyuwbUlF8NEUCkX1YMi6YqrfspnPAZJw88eoTAhpQIYHFsPpPfD
-	tadWogieNdmvohbnFD/zN0tMcXwEC2r7EpGOBof2KCyzPLb4xtA0dAIC
-X-Gm-Gg: AY/fxX4l3MstSmn93/kPsIFCyFzIQLhTchxyiVXXrjiW9X+GJA25pw+aCOM5w/tLn7L
-	T0v6XsabGII45RZ5odA88ftFdoBebwFKgTUE5Bg74KPra2XdF9vLh0W/gQn000Nonjns7a8TM4w
-	Ni9BZBVafnfbmzVnJ/NPiJfvWreSnFvy82LGHG4rhfufMA3bgC12b3LHqVH1xacuvGFy+MUfdqI
-	WqivM3s9CLCP8rpFBOqljTBEr2pz21JSuOHZgpHInZvplKMQ5Q9xUOzJz53u4J9iD/DkbWg+0xp
-	ZrEigtA5JGPxWy+Js45f1APfKBuLDuY7s773HRy/PdaMOmGkoinn9i68Vqh33ECqAXsUXrIDl3K
-	cXDw2ACJBc5LxbQo1jFJnF+7q1zb4JflQ6XABPYtvR+HDwGFqHoIcvYecQGooLrqQ2n8J95ewUc
-	Co/MmLP7H3H7rHTLnIII3ZbOEmtDYnYzVOfhnz1D8lJc08XdsRrCsJueGWgPKiJDLong==
-X-Google-Smtp-Source: AGHT+IFfW5AV/DoTBRTZbv83eJQ4iRTeVwQvR1CH731mPh4G85inpcR/toLkcas9Z6gZklPDTYFTGQ==
-X-Received: by 2002:a17:902:f60a:b0:297:e1f5:190b with SMTP id d9443c01a7336-29eeebf3167mr45838765ad.22.1765512249300;
-        Thu, 11 Dec 2025 20:04:09 -0800 (PST)
-Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:754:daba:87be:a6b2])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-29ee9b376e2sm39346985ad.14.2025.12.11.20.04.05
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 11 Dec 2025 20:04:08 -0800 (PST)
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	heming.zhao@suse.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
-Subject: [PATCH v2] ocfs2: validate inline data i_size during inode read
-Date: Fri, 12 Dec 2025 09:34:00 +0530
-Message-ID: <20251212040400.6377-1-kartikey406@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="yTE3JOoH"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1765514975; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=n44X9PZ2y6rUvnqezePfcaEOX9F2DNKd6PwRJyr1+8M=;
+	b=yTE3JOoHN1GmF6GIS6DzAJ2jAwtGMSLeQM0jrwXx8ak+H6rdBKhggBlySmdezu/2d+b2Nvs/hlwYWA0M80Ps6MquQ6R3Sd8rDyqyWDJccRdVE9SfYQLiJVuzgRAhtSJM2Fa+qJ4H75E+gWR92Ajst9LwV+1slDnxtUw4xFaj7d0=
+Received: from 30.221.145.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wuczm.z_1765514973 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 12 Dec 2025 12:49:34 +0800
+Message-ID: <5561c14a-9aaa-43b7-95f9-8428a2364f09@linux.alibaba.com>
+Date: Fri, 12 Dec 2025 12:49:33 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: adjust ocfs2_xa_remove_entry() to match UBSAN
+ boundary checks
+To: Heming Zhao <heming.zhao@suse.com>, Dmitry Antipov <dmantipov@yandex.ru>,
+ akpm <akpm@linux-foundation.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Deepanshu Kartikey <kartikey406@gmail.com>, ocfs2-devel@lists.linux.dev,
+ lvc-project@linuxtesting.org,
+ syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
+References: <lhnx6meceuvndkxjpxaapwkiqvlp6recho77b4yjirznjn62jr@fu5gq2gsg2yu>
+ <20251211155949.774485-1-dmantipov@yandex.ru>
+ <4ttnx34q3ispjgdeoezr4tuxbuezs6qhzpocidc6sdbrf6feeh@i65rsj2nv5tb>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <4ttnx34q3ispjgdeoezr4tuxbuezs6qhzpocidc6sdbrf6feeh@i65rsj2nv5tb>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-When reading an inode from disk, ocfs2_validate_inode_block() performs
-various sanity checks but does not validate the size of inline data.
-If the filesystem is corrupted, an inode's i_size can exceed the actual
-inline data capacity (id_count).
 
-This causes ocfs2_dir_foreach_blk_id() to iterate beyond the inline
-data buffer, triggering a use-after-free when accessing directory
-entries from freed memory.
 
-In the syzbot report:
-  - i_size was 1099511627576 bytes (~1TB)
-  - Actual inline data capacity (id_count) is typically <256 bytes
-  - A garbage rec_len (54648) caused ctx->pos to jump out of bounds
-  - This triggered a UAF in ocfs2_check_dir_entry()
+On 2025/12/12 11:21, Heming Zhao wrote:
+> On Thu, Dec 11, 2025 at 06:59:49PM +0300, Dmitry Antipov wrote:
+>> After introducing 2f26f58df041 ("ocfs2: annotate flexible array members
+>> with __counted_by_le()"), syzbot has reported the following issue:
+>>
+>> UBSAN: array-index-out-of-bounds in fs/ocfs2/xattr.c:1955:3
+>> index 2 is out of range for type 'struct ocfs2_xattr_entry[]
+>> __counted_by(xh_count)' (aka 'struct ocfs2_xattr_entry[]')
+>> ...
+>> Call Trace:
+>>  <TASK>
+>>  dump_stack_lvl+0x189/0x250 lib/dump_stack.c:120
+>>  ubsan_epilogue+0xa/0x40 lib/ubsan.c:233
+>>  __ubsan_handle_out_of_bounds+0xe9/0xf0 lib/ubsan.c:455
+>>  ocfs2_xa_remove_entry+0x36d/0x3e0 fs/ocfs2/xattr.c:1955
+>>  ...
+>>
+>> To address this issue, 'xh_entries[]' member removal should be performed
+>> before actually changing 'xh_count', thus making sure that all array
+>> accesses matches the boundary checks performed by UBSAN.
+>>
+>> Reported-by: syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
+>> Closes: https://syzkaller.appspot.com/bug?extid=cf96bc82a588a27346a8
+>> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+> 
+> LGTM.
+> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 
-Fix by adding a validation check in ocfs2_validate_inode_block() to
-ensure inodes with inline data have i_size <= id_count. This catches
-the corruption early during inode read and prevents all downstream
-code from operating on invalid data.
-
-Reported-by: syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=c897823f699449cc3eb4
-Tested-by: syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
-Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
----
-v2:
-  - Removed unnecessary S_ISDIR() check since OCFS2_INLINE_DATA_FL
-    applies to both directories and regular files (Heming Zhao)
-  - Fixed checkpatch.pl warnings
-  - Updated commit message to say "inline data" instead of
-    "inline directory"
----
- fs/ocfs2/inode.c | 17 +++++++++++++++++
- 1 file changed, 17 insertions(+)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 8340525e5589..1fac457cb04a 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1521,6 +1521,23 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		}
- 	}
- 
-+	/*
-+	 * Validate inline data size. If the inode has inline data,
-+	 * i_size must not exceed the inline data capacity.
-+	 */
-+	if (di->i_dyn_features & cpu_to_le16(OCFS2_INLINE_DATA_FL)) {
-+		struct ocfs2_inline_data *data = &di->id2.i_data;
-+
-+		if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count)) {
-+			rc = ocfs2_error(sb,
-+					 "Invalid dinode #%llu: inline data i_size %llu exceeds id_count %u\n",
-+					 (unsigned long long)bh->b_blocknr,
-+					 (unsigned long long)le64_to_cpu(di->i_size),
-+					 le16_to_cpu(data->id_count));
-+			goto bail;
-+		}
-+	}
-+
- 	rc = 0;
- 
- bail:
--- 
-2.43.0
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> 
+>> ---
+>> v2: adjust commit metadata per Heming's notices
+>> ---
+>>  fs/ocfs2/xattr.c | 5 +++--
+>>  1 file changed, 3 insertions(+), 2 deletions(-)
+>>
+>> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+>> index dc1761e84814..de99276d12f0 100644
+>> --- a/fs/ocfs2/xattr.c
+>> +++ b/fs/ocfs2/xattr.c
+>> @@ -1941,8 +1941,7 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
+>>  	ocfs2_xa_wipe_namevalue(loc);
+>>  	loc->xl_entry = NULL;
+>>  
+>> -	le16_add_cpu(&xh->xh_count, -1);
+>> -	count = le16_to_cpu(xh->xh_count);
+>> +	count = le16_to_cpu(xh->xh_count) - 1;
+>>  
+>>  	/*
+>>  	 * Only zero out the entry if there are more remaining.  This is
+>> @@ -1957,6 +1956,8 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
+>>  		memset(&xh->xh_entries[count], 0,
+>>  		       sizeof(struct ocfs2_xattr_entry));
+>>  	}
+>> +
+>> +	xh->xh_count = cpu_to_le16(count);
+>>  }
+>>  
+>>  /*
+>> -- 
+>> 2.52.0
+>>
 
