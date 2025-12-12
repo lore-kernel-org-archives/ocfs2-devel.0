@@ -1,31 +1,31 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 51E162E542A
-	for <ocfs2-devel@lists.linux.dev>; Fri, 12 Dec 2025 04:49:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 205EC72602
+	for <ocfs2-devel@lists.linux.dev>; Fri, 12 Dec 2025 04:54:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765514987; cv=none; b=qKkR76dkz+0r3T0/9k65MdNTMoWf+tvz9gjwup9wCQs7feWdprVCu17U0Vd1Q7ojgFIyPVcB1gO62IU4zBii1PNALDgIb+4PU9F0QR6Le5Mq9T0gpOyFyP2DPwC0ZYteR2jemoyHWLK2xUnoqC6ZqNgBqIEEEKsKcv+WxdVr4xw=
+	t=1765515273; cv=none; b=kKp1en8yTpPUPMmdw8YoLh8lBnAfJ90Y0OZvHopUANE4oTK3vr4vbiPLjJEpZ/i9UtBNTKXSZmDIk6KfmukpgvRd+qteNaPy6xIzugO/4FfXkQZG9v8Ic9KIcktl+NJX6EPBH4E2oK8DaQT88JoGP4z9/sEx+Fqt48s5+Vuu8so=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765514987; c=relaxed/simple;
-	bh=f+589vYQgYSdCKjUpCT+5kPhJlM3cU24mzWD6Gb+ywc=;
+	s=arc-20240116; t=1765515273; c=relaxed/simple;
+	bh=dALrwtfmab6iLzkwQeH0zAqpKOKJ42GU/ttYzEsyiqM=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=WL9YlEy4JufMOYr++kL4afPuVshypPIhmg4iOwC3eHEZqqbgsZCzqCI9aqVHYnmsFW+Hy3KGlQFkl4EtuMxqi0k/JtASBrZHN9XxItOaeVGwsRn6oCTaxUbFrSz326U0OU6JbIWNB71GtZXNO+XZfvJQQH1zyN6QTsDGIVljrvk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=yTE3JOoH; arc=none smtp.client-ip=115.124.30.130
+	 In-Reply-To:Content-Type; b=uTqbjygkOZsfFrDRnY02mad+0pb1r5rnY9wuTWVFth9Udq1WXfpQ7citdYRwT9LdBiQ+Azq4bKY6WhN1QTbiIdhbUHFZAPZaOWei8jOGe8BDlipSv+niuQ0mw8pdG9NSkj+ZShnAAZPesMiM7DnTiI0ZD7BXEwdOiWn+EZG1/K4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=jz5oADD+; arc=none smtp.client-ip=115.124.30.132
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="yTE3JOoH"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="jz5oADD+"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1765514975; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=n44X9PZ2y6rUvnqezePfcaEOX9F2DNKd6PwRJyr1+8M=;
-	b=yTE3JOoHN1GmF6GIS6DzAJ2jAwtGMSLeQM0jrwXx8ak+H6rdBKhggBlySmdezu/2d+b2Nvs/hlwYWA0M80Ps6MquQ6R3Sd8rDyqyWDJccRdVE9SfYQLiJVuzgRAhtSJM2Fa+qJ4H75E+gWR92Ajst9LwV+1slDnxtUw4xFaj7d0=
-Received: from 30.221.145.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wuczm.z_1765514973 cluster:ay36)
+	t=1765515262; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=Bp0oQevPMDV/RcaTqN7YfDKIn2BiFXa7m5+nDHZtJ8s=;
+	b=jz5oADD+oywdb6rRDsoo0hZjkEthpR+lSfOeKeUmH91uEfI2wKEzncsN9YS9kQvL2MwCmhUYjqziV+Dk1EhDbCIqF+sb46hPV+jg4Pard0tCkUU9JDRuNHYTQ97YT0iN4xaPESbfo4PmSMf4R9rQZimN3FNe1HUi0CGo9l8Pzg4=
+Received: from 30.221.145.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0Wucwrau_1765514945 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 12 Dec 2025 12:49:34 +0800
-Message-ID: <5561c14a-9aaa-43b7-95f9-8428a2364f09@linux.alibaba.com>
-Date: Fri, 12 Dec 2025 12:49:33 +0800
+          Fri, 12 Dec 2025 12:49:05 +0800
+Message-ID: <b3f7d236-0879-445f-8f46-09045f37ec99@linux.alibaba.com>
+Date: Fri, 12 Dec 2025 12:49:04 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,84 +33,88 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: adjust ocfs2_xa_remove_entry() to match UBSAN
- boundary checks
-To: Heming Zhao <heming.zhao@suse.com>, Dmitry Antipov <dmantipov@yandex.ru>,
- akpm <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Deepanshu Kartikey <kartikey406@gmail.com>, ocfs2-devel@lists.linux.dev,
- lvc-project@linuxtesting.org,
- syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
-References: <lhnx6meceuvndkxjpxaapwkiqvlp6recho77b4yjirznjn62jr@fu5gq2gsg2yu>
- <20251211155949.774485-1-dmantipov@yandex.ru>
- <4ttnx34q3ispjgdeoezr4tuxbuezs6qhzpocidc6sdbrf6feeh@i65rsj2nv5tb>
+Subject: Re: [PATCH v2] ocfs2: validate inline data i_size during inode read
+To: Deepanshu Kartikey <kartikey406@gmail.com>, mark@fasheh.com,
+ jlbec@evilplan.org, heming.zhao@suse.com
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
+References: <20251212040400.6377-1-kartikey406@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <4ttnx34q3ispjgdeoezr4tuxbuezs6qhzpocidc6sdbrf6feeh@i65rsj2nv5tb>
+In-Reply-To: <20251212040400.6377-1-kartikey406@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 2025/12/12 11:21, Heming Zhao wrote:
-> On Thu, Dec 11, 2025 at 06:59:49PM +0300, Dmitry Antipov wrote:
->> After introducing 2f26f58df041 ("ocfs2: annotate flexible array members
->> with __counted_by_le()"), syzbot has reported the following issue:
->>
->> UBSAN: array-index-out-of-bounds in fs/ocfs2/xattr.c:1955:3
->> index 2 is out of range for type 'struct ocfs2_xattr_entry[]
->> __counted_by(xh_count)' (aka 'struct ocfs2_xattr_entry[]')
->> ...
->> Call Trace:
->>  <TASK>
->>  dump_stack_lvl+0x189/0x250 lib/dump_stack.c:120
->>  ubsan_epilogue+0xa/0x40 lib/ubsan.c:233
->>  __ubsan_handle_out_of_bounds+0xe9/0xf0 lib/ubsan.c:455
->>  ocfs2_xa_remove_entry+0x36d/0x3e0 fs/ocfs2/xattr.c:1955
->>  ...
->>
->> To address this issue, 'xh_entries[]' member removal should be performed
->> before actually changing 'xh_count', thus making sure that all array
->> accesses matches the boundary checks performed by UBSAN.
->>
->> Reported-by: syzbot+cf96bc82a588a27346a8@syzkaller.appspotmail.com
->> Closes: https://syzkaller.appspot.com/bug?extid=cf96bc82a588a27346a8
->> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+On 2025/12/12 12:04, Deepanshu Kartikey wrote:
+> When reading an inode from disk, ocfs2_validate_inode_block() performs
+> various sanity checks but does not validate the size of inline data.
+> If the filesystem is corrupted, an inode's i_size can exceed the actual
+> inline data capacity (id_count).
 > 
-> LGTM.
-> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> This causes ocfs2_dir_foreach_blk_id() to iterate beyond the inline
+> data buffer, triggering a use-after-free when accessing directory
+> entries from freed memory.
+> 
+> In the syzbot report:
+>   - i_size was 1099511627576 bytes (~1TB)
+>   - Actual inline data capacity (id_count) is typically <256 bytes
+>   - A garbage rec_len (54648) caused ctx->pos to jump out of bounds
+>   - This triggered a UAF in ocfs2_check_dir_entry()
+> 
+> Fix by adding a validation check in ocfs2_validate_inode_block() to
+> ensure inodes with inline data have i_size <= id_count. This catches
+> the corruption early during inode read and prevents all downstream
+> code from operating on invalid data.
+> 
+> Reported-by: syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=c897823f699449cc3eb4
+> Tested-by: syzbot+c897823f699449cc3eb4@syzkaller.appspotmail.com
+> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+> ---
+> v2:
+>   - Removed unnecessary S_ISDIR() check since OCFS2_INLINE_DATA_FL
+>     applies to both directories and regular files (Heming Zhao)
+>   - Fixed checkpatch.pl warnings
+>   - Updated commit message to say "inline data" instead of
+>     "inline directory"
+> ---
+>  fs/ocfs2/inode.c | 17 +++++++++++++++++
+>  1 file changed, 17 insertions(+)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 8340525e5589..1fac457cb04a 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1521,6 +1521,23 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		}
+>  	}
+>  
+> +	/*
+> +	 * Validate inline data size. If the inode has inline data,
+> +	 * i_size must not exceed the inline data capacity.
+> +	 */
+> +	if (di->i_dyn_features & cpu_to_le16(OCFS2_INLINE_DATA_FL)) {
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> 
->> ---
->> v2: adjust commit metadata per Heming's notices
->> ---
->>  fs/ocfs2/xattr.c | 5 +++--
->>  1 file changed, 3 insertions(+), 2 deletions(-)
->>
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index dc1761e84814..de99276d12f0 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -1941,8 +1941,7 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
->>  	ocfs2_xa_wipe_namevalue(loc);
->>  	loc->xl_entry = NULL;
->>  
->> -	le16_add_cpu(&xh->xh_count, -1);
->> -	count = le16_to_cpu(xh->xh_count);
->> +	count = le16_to_cpu(xh->xh_count) - 1;
->>  
->>  	/*
->>  	 * Only zero out the entry if there are more remaining.  This is
->> @@ -1957,6 +1956,8 @@ static void ocfs2_xa_remove_entry(struct ocfs2_xa_loc *loc)
->>  		memset(&xh->xh_entries[count], 0,
->>  		       sizeof(struct ocfs2_xattr_entry));
->>  	}
->> +
->> +	xh->xh_count = cpu_to_le16(count);
->>  }
->>  
->>  /*
->> -- 
->> 2.52.0
->>
+Since we've already have a branch to checking OCFS2_INLINE_DATA_FL, why not
+fold them together?
+
+Thanks,
+Joseph
+
+> +		struct ocfs2_inline_data *data = &di->id2.i_data;
+> +
+> +		if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count)) {
+> +			rc = ocfs2_error(sb,
+> +					 "Invalid dinode #%llu: inline data i_size %llu exceeds id_count %u\n",
+> +					 (unsigned long long)bh->b_blocknr,
+> +					 (unsigned long long)le64_to_cpu(di->i_size),
+> +					 le16_to_cpu(data->id_count));
+> +			goto bail;
+> +		}
+> +	}
+> +
+>  	rc = 0;
+>  
+>  bail:
 
