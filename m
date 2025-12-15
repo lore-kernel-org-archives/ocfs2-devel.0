@@ -1,114 +1,73 @@
-Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ot1-f70.google.com (mail-ot1-f70.google.com [209.85.210.70])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE4D831CA50;
-	Mon, 15 Dec 2025 04:44:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 140FA3C38
+	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Dec 2025 05:01:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.70
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765773856; cv=none; b=EalMvp9npkujXjnqhj+dqOOLFUFvRYqMZBi/+sGyQxdhiKlc4zeCvU6B0CNQoEfRY13l6BwDlN3KCblhj9+gI/4wJrUBjJyURO0TMiq/Q27XUNkO4gH8DIgvvE1hbA/7hdQhU6qjTDB9BucxiYgDSzGq0h2ORNkn5sILEISc3YU=
+	t=1765774864; cv=none; b=KLK8kTgyXcALOz3mi09z92Oz0Q1BSh84tATv09q4axiGt4MX0Hv7LgI64lBypJGzhZ5Zy3eJsgxqw2zEJf0qqVESwv8cco7mGGnZ70JOUSQVKRNsjMMgS/eKrUjuiff+TmmpeGR3LXiXdvePcy1wRHTixRixg12daKduaK9VuLg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765773856; c=relaxed/simple;
-	bh=lSBw2rly7++DDGvNqiNsLpN7cpmDp4zMZ4rWrL7BcU0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=nGSLnjmd8EuTl+Rwp9/6mIVoEyJouKTnvsfN5b1iKmpCqv2ozrUP/vWyl2ea1M2uIs+UY4/HYao0NmGhrTq02Sn94sBpNd3zqcCimspT929HiYE0bpgUBwED1+uVMZpkgOKCkQgE1VEVCiUKiA1Q7fC6AQ2DIbedH+aDyet+Ql8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=Zvraj/3F; arc=none smtp.client-ip=192.198.163.18
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="Zvraj/3F"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
-  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1765773855; x=1797309855;
-  h=date:from:to:cc:subject:message-id:references:
-   mime-version:in-reply-to;
-  bh=lSBw2rly7++DDGvNqiNsLpN7cpmDp4zMZ4rWrL7BcU0=;
-  b=Zvraj/3FTIfEg8Q/49yq51Xj5c6badKQmVeJuzXW8U2hfDoBEovCgwzr
-   sohzZmD3lslkow60t3h6kn0vkkz/1PAQkzHE2ATnr4PXrma/+wwAHIrNs
-   05skJ5Rak3gES9S4q9jZA3TCyDCg1EPDbRzPysk8bNvZeWu/8b0jquujq
-   Q1kHT2uFVGa+5cbPUTQ0yx7eShOpFJpR3fTIg25kUse+ZefD49G5vpGqY
-   ek/8nsNY88KUlu8pjsobrXrc6Lna3Ef0gS8ZXrF4QNyBnCu1EqBf9/DK7
-   abU+czfOSfvSVuU1MSNUSzmyMEPH/u15x5wCXIHqR9EBmoHJEUalN/c3F
-   Q==;
-X-CSE-ConnectionGUID: mhMyVbd4TvKewIEa1ztU6w==
-X-CSE-MsgGUID: 4/jqY2JjSdyaUZbK660a3A==
-X-IronPort-AV: E=McAfee;i="6800,10657,11642"; a="66852255"
-X-IronPort-AV: E=Sophos;i="6.21,150,1763452800"; 
-   d="scan'208";a="66852255"
-Received: from orviesa002.jf.intel.com ([10.64.159.142])
-  by fmvoesa112.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Dec 2025 20:44:13 -0800
-X-CSE-ConnectionGUID: kOw0mJ8/S6uRoZTy+TjT/Q==
-X-CSE-MsgGUID: wuWJyBlESeC25kf2oL3WmA==
-X-ExtLoop1: 1
-X-IronPort-AV: E=Sophos;i="6.21,150,1763452800"; 
-   d="scan'208";a="228277783"
-Received: from lkp-server01.sh.intel.com (HELO d335e3c6db51) ([10.239.97.150])
-  by orviesa002.jf.intel.com with ESMTP; 14 Dec 2025 20:44:10 -0800
-Received: from kbuild by d335e3c6db51 with local (Exim 4.98.2)
-	(envelope-from <lkp@intel.com>)
-	id 1vV0RM-000000009nT-2QAq;
-	Mon, 15 Dec 2025 04:44:08 +0000
-Date: Mon, 15 Dec 2025 12:44:07 +0800
-From: kernel test robot <lkp@intel.com>
-To: Prithvi Tambewagh <activprithvi@gmail.com>,
-	syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, mark@fasheh.com,
-	heming.zhao@suse.com
-Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
-	linux-kernel@vger.kernel.org, ocfs2-devel@lists.linux.dev,
-	syzkaller-bugs@googlegroups.com,
-	Prithvi Tambewagh <activprithvi@gmail.com>
-Subject: Re: Syzbot test for v3: ocfs2: fix kernel BUG in ocfs2_write_block
-Message-ID: <202512151201.4cweqZmR-lkp@intel.com>
-References: <20251214192047.34811-1-activprithvi@gmail.com>
+	s=arc-20240116; t=1765774864; c=relaxed/simple;
+	bh=gLZwWSs4u+cruR2xgZMiMDVFAgmrPn2jph4iW9NNK/M=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=UXbLxiJ1Zi0N2KAWb+IfDipuuqaigN/cAYuyfWYRE8vdylGuWgcAE9hUL/n79qGfNw7kl+VNP+hEH3IeTk2xn+yY4wMyaj6Zadob0pqBFmlbDusnaBUBeuXkaJWQW9lmIMuIP4waATLi2GQi5y/ZPUBFXZ7lKXc520olP0erPPw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.70
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f70.google.com with SMTP id 46e09a7af769-7c7032a5b40so3498220a34.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 14 Dec 2025 21:01:02 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1765774862; x=1766379662;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=HKRJ1XRnk7KG3B+7Ar1huYVUWQfvzIDJvvwL5D5iHWQ=;
+        b=cPF9lLZ74LLh9ahgx2nstrVB+irEfz2JRASGO2m2mNZKvKsSM4iERWQwyOuMNvgs7c
+         DOcuSEcNllIOiXOOv3OgdT9wAGgG0bysOdNtPdpwvS5GzzsQ3l9Ve/wSDfHbIKnTClk4
+         Pi+hlKUL5Go4liBjj+fINWW2haGI+5UqcI1B81cxs6LSL8pLTUDFlSsiYaWrxDkaHgSC
+         fJoIO50VqSXxqlNjed80VzqKfP94TeHvVPICjt2XslmKwEPhWRVPb8g6zi1ppWJA7xVO
+         9nJgcijQk/jTq8g5pZYUdfr+1W9966UpH29OO5vAIf6f5f0tAhsHxUEmDE29J2sTiGs0
+         ZEkQ==
+X-Forwarded-Encrypted: i=1; AJvYcCUMZxfRAOjdE6Ct/ryd19rcTEjpD0T6IySoOQH6IJ0VGOK1t+ncs199VlNNeHZUegofed34utvjwGSegQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Ywik5CkHmYFITeu9wxfJUdw54hrvSIWnFnXcnPCiEltq+FPyHvK
+	0tPyBNL+sUw4zfHhxk6ubYXIlGLMZCnW0kO8WHLVCHT9x8YssqIwluDlsBX4L4e6wrluSr7+ZAh
+	q3mdg1GgulDx/zKENGwfqSP5Lm5L88PYhh3PDz0DeFoH0Qn8ifKdJmk0/Gfc=
+X-Google-Smtp-Source: AGHT+IHibkrkH09l6FBP8y118eTWtBoVaF/bC/rLQXiubSjnXp40wPpiWUyVa9HDSKrxP15gsEPDjoaC+FT73HD/+qW0/Qx47TMO
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20251214192047.34811-1-activprithvi@gmail.com>
+X-Received: by 2002:a05:6820:1989:b0:659:9a49:8dcf with SMTP id
+ 006d021491bc7-65b4515174bmr4096064eaf.17.1765774862043; Sun, 14 Dec 2025
+ 21:01:02 -0800 (PST)
+Date: Sun, 14 Dec 2025 21:01:02 -0800
+In-Reply-To: <20251215043813.9536-1-activprithvi@gmail.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <693f960e.a70a0220.104cf0.0336.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_block
+From: syzbot <syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com>
+To: activprithvi@gmail.com, heming.zhao@suse.com, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-Hi Prithvi,
+Hello,
 
-kernel test robot noticed the following build errors:
+syzbot has tested the proposed patch and the reproducer did not trigger any issue:
 
-[auto build test ERROR on 24172e0d79900908cf5ebf366600616d29c9b417]
+Reported-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
+Tested-by: syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com
 
-url:    https://github.com/intel-lab-lkp/linux/commits/Prithvi-Tambewagh/Syzbot-test-for-v3-ocfs2-fix-kernel-BUG-in-ocfs2_write_block/20251215-032310
-base:   24172e0d79900908cf5ebf366600616d29c9b417
-patch link:    https://lore.kernel.org/r/20251214192047.34811-1-activprithvi%40gmail.com
-patch subject: Syzbot test for v3: ocfs2: fix kernel BUG in ocfs2_write_block
-config: x86_64-kexec (https://download.01.org/0day-ci/archive/20251215/202512151201.4cweqZmR-lkp@intel.com/config)
-compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20251215/202512151201.4cweqZmR-lkp@intel.com/reproduce)
+Tested on:
 
-If you fix the issue in a separate patch/commit (i.e. not just a new version of
-the same patch/commit), kindly add following tags
-| Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202512151201.4cweqZmR-lkp@intel.com/
+commit:         24172e0d Merge tag 'arm64-fixes' of git://git.kernel.o..
+git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
+console output: https://syzkaller.appspot.com/x/log.txt?x=12c5d11a580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=41ad820f608cb833
+dashboard link: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+patch:          https://syzkaller.appspot.com/x/patch.diff?x=1599d11a580000
 
-All errors (new ones prefixed by >>):
-
->> fs/ocfs2/slot_map.c:48:31: error: expected ';' after top level declarator
-      48 |                                           struct buffer_head *bh)
-         |                                                                  ^
-         |                                                                  ;
-   1 error generated.
-
-
-vim +48 fs/ocfs2/slot_map.c
-
-    42	
-    43	
-    44	static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
-    45					    unsigned int node_num);
-    46	
-    47	static int ocfs2_validate_slot_map_block(struct super_block *sb,
-  > 48						  struct buffer_head *bh)
-    49	
-
--- 
-0-DAY CI Kernel Test Service
-https://github.com/intel/lkp-tests/wiki
+Note: testing is done by a robot and is best-effort only.
