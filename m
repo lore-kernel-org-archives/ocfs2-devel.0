@@ -1,71 +1,146 @@
-Received: from mail-oi1-f200.google.com (mail-oi1-f200.google.com [209.85.167.200])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A6F081E4AF
-	for <ocfs2-devel@lists.linux.dev>; Sun, 14 Dec 2025 19:28:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.200
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D24293090CA
+	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Dec 2025 01:13:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765740485; cv=none; b=slRDGus9+xrFT2sov6Q3wss5sT27AJ0WmiHz6nA8wnaMQzgkkhvl8ielLomaNmB86LFxsyPqGP+RuMlkr51ncjMZrahNjV5P+YZpOTxhi4guZYLshP6/f5B2ghODoWNkrSBJAgNRo6lY/VfwgLtHDll+wBfcpj2zUzLOayuxGb8=
+	t=1765761187; cv=none; b=M+j00o0q0rxk2wF5ep7F1mBa2EhhLmUIn2YGMEtnaY8lNL3Xx+j3qR/u2ZMmE4eubj2S9AFhGMM4XhSsR9rUJcF1EFspWx2X1bOZ/qQGO5DgK3RYPkLbWIDloIXDa9nsLhkFKH62kDbpuS5Zbj17w3Gs4aA0cRWk3qG4GlmIcEg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765740485; c=relaxed/simple;
-	bh=8UmhtHKWMpWqWpDnJkRA/DdGrZl5Frw5XKA/M/wsgsQ=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=qx91lGpJMmWDp2h23a5FKJG4ld1hEpLgTA82qopFcu90jMK0QteyNE2cGAYklZ1am1Pdyn+DQkixDYu7//9Q80kwKb+1NOhFSZAxNycB9D9lHCPc+0O9IxkceTZvGBZtlTA5YZxIoktcVnEu9zw6pK2wQPjlx6Hw39sVr07F6GM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.200
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f200.google.com with SMTP id 5614622812f47-4510650aea0so4925840b6e.3
-        for <ocfs2-devel@lists.linux.dev>; Sun, 14 Dec 2025 11:28:03 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1765740483; x=1766345283;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=e0V6uE3kxu97tWf7ZhLW0o18ehYzKv4vhG/Gpv7oR4g=;
-        b=Kr1U2nuhQkT3Ol/7yFfZ1GkXlwJto7T0qoeMjS9NJxBCOqh90N02c2m4xne99tKFLD
-         E06Kq3SU6JApaiAXfpsx0jZVkudpLJi0/H9QcQEmZnwnb7oy3P2yvzRyNamJrm3uySCY
-         6MV+k5bVHGRwCypMBdSS6klw+WiX0lJaRTrDpncZhqwWYUkin80vBqQCHtxDf8mJSnDz
-         q313MSPmd8r/MhHE8/Viarph5FTX2eImbdMwUY816AZw53ld30M99Bj6DwFpEjTNtue8
-         W8fQa2YZyxy8YD+MUCM3gX/4/Hri7qFm7KZOPZ+UV6Q8ujNaRMAvA1zg5ElixFkpmoVs
-         OC9g==
-X-Forwarded-Encrypted: i=1; AJvYcCU/n4VdQBg9g14ekUctJ4GqnfXsQ6qwp/NR5wvQUF3uD/VoQtQ2mjSEzp3abnReVdb9sgPS4k+oSU578A==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzmUKyLjZL0iXFZGFZ0ACU984K0+GTcfkeJ8viAecJeZFKXqXFp
-	GVromUMOzhwNeh7gjgqonnqJjSPqztE/ktHGxmufgFFzl4XXEzkngbegyX1g97ynn8m+wkxx6Cn
-	HuGVLnWWn3SRKMHIvgImd5NLIEC43/qkfYjlSWKI5CvcNS2ZT2GXzm+Qaj64=
-X-Google-Smtp-Source: AGHT+IFqfKICI6fXdEoUInHVeaCJmCTFkT+2+wzsXMtLSf0oRZ6/3CtVmylpdpFwq+ALVK2+J89asMjpq3qJfYRgmy/BK/PtGQ8e
+	s=arc-20240116; t=1765761187; c=relaxed/simple;
+	bh=shuchTh16I6/rNq8nzDTt15vL6NDA/OnNNzgXsxNwSc=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=HOHBRp5Ft3WLXKL3XTwmgF/A316KdXhaCHRA1YRBBBkhSRvGmjk9C18b6Si62p32FsWbzxcZScVw6r6gDlLbG99hyGJlwcjyv/4qz7V/wc3MRPv0X6eo5MsVXJVS35KuI8EQEzGK+0TE5kq9LSCHHVoB44DhbnLAN1XfZRp5Iaw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=RbwySmo5; arc=none smtp.client-ip=115.124.30.110
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="RbwySmo5"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1765761176; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=4YBDbbXQgAxISxzRGxx4IAKs0Ucqa5zP+cWTl3mlV2o=;
+	b=RbwySmo5ED59mdSZYqyvaJhdCvAAHCoWYrpE6nmcRPyxfGVYA22rLMvvrlhhUY7Um6H6I+RD8La8bRjO7nlNBN2l2PxYtOZMNqiQEdlrSzSu8X3CkNgwHHtxFffkaCgoBBwk05yf9LQ696nOVXe3oaai6BUGt//wa7ZLEdVdvnc=
+Received: from 30.221.145.98(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WulLMQ1_1765761175 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Mon, 15 Dec 2025 09:12:56 +0800
+Message-ID: <40943ae1-1856-4038-bd84-374f28504fad@linux.alibaba.com>
+Date: Mon, 15 Dec 2025 09:12:55 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:1690:b0:65b:37a9:8b25 with SMTP id
- 006d021491bc7-65b45287498mr4453652eaf.62.1765740482911; Sun, 14 Dec 2025
- 11:28:02 -0800 (PST)
-Date: Sun, 14 Dec 2025 11:28:02 -0800
-In-Reply-To: <20251214192047.34811-1-activprithvi@gmail.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <693f0fc2.a70a0220.104cf0.0327.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_block
-From: syzbot <syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com>
-To: activprithvi@gmail.com, heming.zhao@suse.com, jlbec@evilplan.org, 
-	joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, mark@fasheh.com, 
-	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
-
-Hello,
-
-syzbot tried to test the proposed patch but the build/boot failed:
-
-fs/ocfs2/slot_map.c:48:31: error: expected ';' after top level declarator
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: Constify struct configfs_item_operations and
+ configfs_group_operations
+To: Christophe JAILLET <christophe.jaillet@wanadoo.fr>,
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ akpm <akpm@linux-foundation.org>, Heming Zhao <heming.zhao@suse.com>
+Cc: linux-kernel@vger.kernel.org, kernel-janitors@vger.kernel.org,
+ ocfs2-devel@lists.linux.dev
+References: <7c7c00ba328e5e514d8debee698154039e9640dd.1765708880.git.christophe.jaillet@wanadoo.fr>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <7c7c00ba328e5e514d8debee698154039e9640dd.1765708880.git.christophe.jaillet@wanadoo.fr>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
-Tested on:
 
-commit:         24172e0d Merge tag 'arm64-fixes' of git://git.kernel.o..
-git tree:       git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
-kernel config:  https://syzkaller.appspot.com/x/.config?x=41ad820f608cb833
-dashboard link: https://syzkaller.appspot.com/bug?extid=c818e5c4559444f88aa0
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
-patch:          https://syzkaller.appspot.com/x/patch.diff?x=10f4811a580000
+On 2025/12/14 18:41, Christophe JAILLET wrote:
+> 'struct configfs_item_operations' and 'configfs_group_operations' are not
+> modified in this driver.
+> 
+> Constifying these structures moves some data to a read-only section, so
+> increases overall security, especially when the structure holds some
+> function pointers.
+> 
+> On a x86_64, with allmodconfig, as an example:
+> Before:
+> ======
+>    text	   data	    bss	    dec	    hex	filename
+>   74011	  19312	   5280	  98603	  1812b	fs/ocfs2/cluster/heartbeat.o
+> 
+> After:
+> =====
+>    text	   data	    bss	    dec	    hex	filename
+>   74171	  19152	   5280	  98603	  1812b	fs/ocfs2/cluster/heartbeat.o
+> 
+> Signed-off-by: Christophe JAILLET <christophe.jaillet@wanadoo.fr>
+
+Looks fine.
+Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+> Compile tested only.
+> 
+> This change is possible since commits f2f36500a63b and f7f78098690d.
+> ---
+>  fs/ocfs2/cluster/heartbeat.c   | 4 ++--
+>  fs/ocfs2/cluster/nodemanager.c | 8 ++++----
+>  2 files changed, 6 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index 724350925aff..8e9cbc334cf4 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -1942,7 +1942,7 @@ static struct configfs_attribute *o2hb_region_attrs[] = {
+>  	NULL,
+>  };
+>  
+> -static struct configfs_item_operations o2hb_region_item_ops = {
+> +static const struct configfs_item_operations o2hb_region_item_ops = {
+>  	.release		= o2hb_region_release,
+>  };
+>  
+> @@ -2193,7 +2193,7 @@ static struct configfs_attribute *o2hb_heartbeat_group_attrs[] = {
+>  	NULL,
+>  };
+>  
+> -static struct configfs_group_operations o2hb_heartbeat_group_group_ops = {
+> +static const struct configfs_group_operations o2hb_heartbeat_group_group_ops = {
+>  	.make_item	= o2hb_heartbeat_group_make_item,
+>  	.drop_item	= o2hb_heartbeat_group_drop_item,
+>  };
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index 6bc4e064ace4..c5e83c774d73 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -396,7 +396,7 @@ static struct configfs_attribute *o2nm_node_attrs[] = {
+>  	NULL,
+>  };
+>  
+> -static struct configfs_item_operations o2nm_node_item_ops = {
+> +static const struct configfs_item_operations o2nm_node_item_ops = {
+>  	.release		= o2nm_node_release,
+>  };
+>  
+> @@ -638,7 +638,7 @@ static void o2nm_node_group_drop_item(struct config_group *group,
+>  	config_item_put(item);
+>  }
+>  
+> -static struct configfs_group_operations o2nm_node_group_group_ops = {
+> +static const struct configfs_group_operations o2nm_node_group_group_ops = {
+>  	.make_item	= o2nm_node_group_make_item,
+>  	.drop_item	= o2nm_node_group_drop_item,
+>  };
+> @@ -657,7 +657,7 @@ static void o2nm_cluster_release(struct config_item *item)
+>  	kfree(cluster);
+>  }
+>  
+> -static struct configfs_item_operations o2nm_cluster_item_ops = {
+> +static const struct configfs_item_operations o2nm_cluster_item_ops = {
+>  	.release	= o2nm_cluster_release,
+>  };
+>  
+> @@ -741,7 +741,7 @@ static void o2nm_cluster_group_drop_item(struct config_group *group, struct conf
+>  	config_item_put(item);
+>  }
+>  
+> -static struct configfs_group_operations o2nm_cluster_group_group_ops = {
+> +static const struct configfs_group_operations o2nm_cluster_group_group_ops = {
+>  	.make_group	= o2nm_cluster_group_make_group,
+>  	.drop_item	= o2nm_cluster_group_drop_item,
+>  };
 
