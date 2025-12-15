@@ -1,51 +1,51 @@
 Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ED77D221723;
-	Mon, 15 Dec 2025 04:44:13 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CE4D831CA50;
+	Mon, 15 Dec 2025 04:44:14 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1765773855; cv=none; b=Na+C8Uj5eNbagoODRRSCKota49cvwnKInadVTY37NHUB8KV9aEzOZ7hmMFFeDZPbisNZoajHfYc66nN41m6lnny6LQGSoesrs3+h3e5VJlJ+xMopXrZzsR1GmxuGt21DEN2VuLEG7fnx9oSSs40phlASpL44PZlRu9C5m+uWuu4=
+	t=1765773856; cv=none; b=EalMvp9npkujXjnqhj+dqOOLFUFvRYqMZBi/+sGyQxdhiKlc4zeCvU6B0CNQoEfRY13l6BwDlN3KCblhj9+gI/4wJrUBjJyURO0TMiq/Q27XUNkO4gH8DIgvvE1hbA/7hdQhU6qjTDB9BucxiYgDSzGq0h2ORNkn5sILEISc3YU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1765773855; c=relaxed/simple;
-	bh=3rUeMWsspT5JA1/nTSwKUbICpsYeFHgJDwhM6n1QxQs=;
+	s=arc-20240116; t=1765773856; c=relaxed/simple;
+	bh=lSBw2rly7++DDGvNqiNsLpN7cpmDp4zMZ4rWrL7BcU0=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=mNNMp1YvBBOuDweJHJp2yNhykaREOXoAHwIcVTJFmeOJ1wmGs4jRJb9KYZ4ikXC7pySbit7ESQq24IONmajj6QxWK7RiMgnKXSzy/n87ussaaZQttn9CNvyLYIwIjFdfcLb34ssllavGQ3myxbr4sL45VojjGMnQCYuEjkjHLbw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=kvVh+Gt8; arc=none smtp.client-ip=192.198.163.18
+	 Content-Type:Content-Disposition:In-Reply-To; b=nGSLnjmd8EuTl+Rwp9/6mIVoEyJouKTnvsfN5b1iKmpCqv2ozrUP/vWyl2ea1M2uIs+UY4/HYao0NmGhrTq02Sn94sBpNd3zqcCimspT929HiYE0bpgUBwED1+uVMZpkgOKCkQgE1VEVCiUKiA1Q7fC6AQ2DIbedH+aDyet+Ql8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=Zvraj/3F; arc=none smtp.client-ip=192.198.163.18
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="kvVh+Gt8"
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="Zvraj/3F"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
   d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
-  t=1765773854; x=1797309854;
+  t=1765773855; x=1797309855;
   h=date:from:to:cc:subject:message-id:references:
    mime-version:in-reply-to;
-  bh=3rUeMWsspT5JA1/nTSwKUbICpsYeFHgJDwhM6n1QxQs=;
-  b=kvVh+Gt8Z4MziXj/cCzDPEY2QPhUAOWW54rgMOX3y2/WYaut2LZqTvb7
-   u4mxXCTLCxxjb/Xs5FU4jbCQYksliy8cqqx0a2UJxSum5q/X9ls77vMtt
-   r1YF2WGK73XaUeqEqfGrFO3S3K+cAGNKwZm7USwCZf/ohz1SevfYLZwIV
-   VAd0Q1GNOQh1T5cpX2/ZtdjRKMRRrHYs30orj7K8Lz4tiTYHDL5Ei7P1i
-   QpjtGQdjMaphyDQgfOBoUkvVyQgRu/YW26EkurOSfmwQOaLhcb09rIQI9
-   gIwGBy/cAjFS2xgWGyBDnHc1DWtrVP1R9zBu9BdDZ672i1tu92JCfpgpu
-   g==;
-X-CSE-ConnectionGUID: 2e0H+C+kTKa3Ynmf9zeamw==
-X-CSE-MsgGUID: qJjzBvSNQpisXLrTIUJukw==
-X-IronPort-AV: E=McAfee;i="6800,10657,11642"; a="66852248"
+  bh=lSBw2rly7++DDGvNqiNsLpN7cpmDp4zMZ4rWrL7BcU0=;
+  b=Zvraj/3FTIfEg8Q/49yq51Xj5c6badKQmVeJuzXW8U2hfDoBEovCgwzr
+   sohzZmD3lslkow60t3h6kn0vkkz/1PAQkzHE2ATnr4PXrma/+wwAHIrNs
+   05skJ5Rak3gES9S4q9jZA3TCyDCg1EPDbRzPysk8bNvZeWu/8b0jquujq
+   Q1kHT2uFVGa+5cbPUTQ0yx7eShOpFJpR3fTIg25kUse+ZefD49G5vpGqY
+   ek/8nsNY88KUlu8pjsobrXrc6Lna3Ef0gS8ZXrF4QNyBnCu1EqBf9/DK7
+   abU+czfOSfvSVuU1MSNUSzmyMEPH/u15x5wCXIHqR9EBmoHJEUalN/c3F
+   Q==;
+X-CSE-ConnectionGUID: mhMyVbd4TvKewIEa1ztU6w==
+X-CSE-MsgGUID: 4/jqY2JjSdyaUZbK660a3A==
+X-IronPort-AV: E=McAfee;i="6800,10657,11642"; a="66852255"
 X-IronPort-AV: E=Sophos;i="6.21,150,1763452800"; 
-   d="scan'208";a="66852248"
+   d="scan'208";a="66852255"
 Received: from orviesa002.jf.intel.com ([10.64.159.142])
   by fmvoesa112.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 14 Dec 2025 20:44:13 -0800
-X-CSE-ConnectionGUID: vcDC0i1PQZOoC8UUMBJe5g==
-X-CSE-MsgGUID: HXpl1/5oRg69+TOHlvj78g==
+X-CSE-ConnectionGUID: kOw0mJ8/S6uRoZTy+TjT/Q==
+X-CSE-MsgGUID: wuWJyBlESeC25kf2oL3WmA==
 X-ExtLoop1: 1
 X-IronPort-AV: E=Sophos;i="6.21,150,1763452800"; 
-   d="scan'208";a="228277781"
+   d="scan'208";a="228277783"
 Received: from lkp-server01.sh.intel.com (HELO d335e3c6db51) ([10.239.97.150])
   by orviesa002.jf.intel.com with ESMTP; 14 Dec 2025 20:44:10 -0800
 Received: from kbuild by d335e3c6db51 with local (Exim 4.98.2)
 	(envelope-from <lkp@intel.com>)
-	id 1vV0RM-000000009nR-2Iol;
+	id 1vV0RM-000000009nT-2QAq;
 	Mon, 15 Dec 2025 04:44:08 +0000
 Date: Mon, 15 Dec 2025 12:44:07 +0800
 From: kernel test robot <lkp@intel.com>
@@ -53,11 +53,12 @@ To: Prithvi Tambewagh <activprithvi@gmail.com>,
 	syzbot+c818e5c4559444f88aa0@syzkaller.appspotmail.com,
 	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, mark@fasheh.com,
 	heming.zhao@suse.com
-Cc: oe-kbuild-all@lists.linux.dev, linux-kernel@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com,
+Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
+	linux-kernel@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+	syzkaller-bugs@googlegroups.com,
 	Prithvi Tambewagh <activprithvi@gmail.com>
 Subject: Re: Syzbot test for v3: ocfs2: fix kernel BUG in ocfs2_write_block
-Message-ID: <202512151210.z9u1Ypu5-lkp@intel.com>
+Message-ID: <202512151201.4cweqZmR-lkp@intel.com>
 References: <20251214192047.34811-1-activprithvi@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -79,114 +80,34 @@ url:    https://github.com/intel-lab-lkp/linux/commits/Prithvi-Tambewagh/Syzbot-
 base:   24172e0d79900908cf5ebf366600616d29c9b417
 patch link:    https://lore.kernel.org/r/20251214192047.34811-1-activprithvi%40gmail.com
 patch subject: Syzbot test for v3: ocfs2: fix kernel BUG in ocfs2_write_block
-config: arc-randconfig-002-20251215 (https://download.01.org/0day-ci/archive/20251215/202512151210.z9u1Ypu5-lkp@intel.com/config)
-compiler: arc-linux-gcc (GCC) 12.5.0
-reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20251215/202512151210.z9u1Ypu5-lkp@intel.com/reproduce)
+config: x86_64-kexec (https://download.01.org/0day-ci/archive/20251215/202512151201.4cweqZmR-lkp@intel.com/config)
+compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20251215/202512151201.4cweqZmR-lkp@intel.com/reproduce)
 
 If you fix the issue in a separate patch/commit (i.e. not just a new version of
 the same patch/commit), kindly add following tags
 | Reported-by: kernel test robot <lkp@intel.com>
-| Closes: https://lore.kernel.org/oe-kbuild-all/202512151210.z9u1Ypu5-lkp@intel.com/
+| Closes: https://lore.kernel.org/oe-kbuild-all/202512151201.4cweqZmR-lkp@intel.com/
 
-All error/warnings (new ones prefixed by >>):
+All errors (new ones prefixed by >>):
 
-   fs/ocfs2/slot_map.c: In function 'ocfs2_validate_slot_map_block':
->> fs/ocfs2/slot_map.c:52:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-      52 | {
-         | ^
-   fs/ocfs2/slot_map.c:59:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-      59 | {
-         | ^
-   fs/ocfs2/slot_map.c:68:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-      68 | {
-         | ^
-   fs/ocfs2/slot_map.c:93:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-      93 | {
-         | ^
-   fs/ocfs2/slot_map.c:108:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     108 | {
-         | ^
-   fs/ocfs2/slot_map.c:120:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     120 | {
-         | ^
-   fs/ocfs2/slot_map.c:154:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     154 | {
-         | ^
-   fs/ocfs2/slot_map.c:172:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     172 | {
-         | ^
-   fs/ocfs2/slot_map.c:190:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     190 | {
-         | ^
-   fs/ocfs2/slot_map.c:215:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     215 | {
-         | ^
-   fs/ocfs2/slot_map.c:239:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     239 | {
-         | ^
-   fs/ocfs2/slot_map.c:255:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     255 | {
-         | ^
-   fs/ocfs2/slot_map.c:276:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     276 | {
-         | ^
-   fs/ocfs2/slot_map.c:289:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     289 | {
-         | ^
-   fs/ocfs2/slot_map.c:305:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     305 | {
-         | ^
-   fs/ocfs2/slot_map.c:326:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     326 | {
-         | ^
-   fs/ocfs2/slot_map.c:341:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     341 | {
-         | ^
-   fs/ocfs2/slot_map.c:361:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     361 | {
-         | ^
-   fs/ocfs2/slot_map.c:425:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     425 | {
-         | ^
-   fs/ocfs2/slot_map.c:464:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     464 | {
-         | ^
-   fs/ocfs2/slot_map.c:472:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     472 | {
-         | ^
-   fs/ocfs2/slot_map.c:525:1: error: expected '=', ',', ';', 'asm' or '__attribute__' before '{' token
-     525 | {
-         | ^
->> fs/ocfs2/slot_map.c:546: error: expected '{' at end of input
->> fs/ocfs2/slot_map.c:545:1: warning: no return statement in function returning non-void [-Wreturn-type]
-     545 | }
-         | ^
-   fs/ocfs2/slot_map.c: At top level:
->> fs/ocfs2/slot_map.c:44:12: warning: '__ocfs2_node_num_to_slot' declared 'static' but never defined [-Wunused-function]
-      44 | static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
-         |            ^~~~~~~~~~~~~~~~~~~~~~~~
->> fs/ocfs2/slot_map.c:47:12: warning: 'ocfs2_validate_slot_map_block' defined but not used [-Wunused-function]
-      47 | static int ocfs2_validate_slot_map_block(struct super_block *sb,
-         |            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+>> fs/ocfs2/slot_map.c:48:31: error: expected ';' after top level declarator
+      48 |                                           struct buffer_head *bh)
+         |                                                                  ^
+         |                                                                  ;
+   1 error generated.
 
 
-vim +52 fs/ocfs2/slot_map.c
+vim +48 fs/ocfs2/slot_map.c
 
-d85b20e4b300ed Joel Becker       2008-02-01  42  
-d85b20e4b300ed Joel Becker       2008-02-01  43  
-fc881fa0d59596 Joel Becker       2008-02-01 @44  static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
-fc881fa0d59596 Joel Becker       2008-02-01  45  				    unsigned int node_num);
-fc881fa0d59596 Joel Becker       2008-02-01  46  
-39ad33650c4c83 Prithvi Tambewagh 2025-12-15 @47  static int ocfs2_validate_slot_map_block(struct super_block *sb,
-39ad33650c4c83 Prithvi Tambewagh 2025-12-15  48  					  struct buffer_head *bh)
-39ad33650c4c83 Prithvi Tambewagh 2025-12-15  49  
-fc881fa0d59596 Joel Becker       2008-02-01  50  static void ocfs2_invalidate_slot(struct ocfs2_slot_info *si,
-fc881fa0d59596 Joel Becker       2008-02-01  51  				  int slot_num)
-fc881fa0d59596 Joel Becker       2008-02-01 @52  {
-fc881fa0d59596 Joel Becker       2008-02-01  53  	BUG_ON((slot_num < 0) || (slot_num >= si->si_num_slots));
-fc881fa0d59596 Joel Becker       2008-02-01  54  	si->si_slots[slot_num].sl_valid = 0;
-fc881fa0d59596 Joel Becker       2008-02-01  55  }
-fc881fa0d59596 Joel Becker       2008-02-01  56  
+    42	
+    43	
+    44	static int __ocfs2_node_num_to_slot(struct ocfs2_slot_info *si,
+    45					    unsigned int node_num);
+    46	
+    47	static int ocfs2_validate_slot_map_block(struct super_block *sb,
+  > 48						  struct buffer_head *bh)
+    49	
 
 -- 
 0-DAY CI Kernel Test Service
