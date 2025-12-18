@@ -1,156 +1,164 @@
-Received: from mail-oo1-f77.google.com (mail-oo1-f77.google.com [209.85.161.77])
+Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DC8C71F874C
-	for <ocfs2-devel@lists.linux.dev>; Thu, 18 Dec 2025 15:15:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.77
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1369534250F
+	for <ocfs2-devel@lists.linux.dev>; Thu, 18 Dec 2025 16:08:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1766070939; cv=none; b=I9HN7DIisAj6YL0KLPim8laXtuLa1VEHYUycz91wIpTXq1vo93Po1s138XEM9NDAHyXqwZX1eSy5hkzR3so9vKivL9chM12wl7619Rp+tY3qiExM8JgjtUdZyFb336rCIeKmRu4Mz5FuarJG9IEUyERlkoM1/j3jcP/BbzA2Rvo=
+	t=1766074085; cv=none; b=uE+KW9GkBhOx8BC0Hz+9BfqveiyxcPnEL2tMkUSGRSBPH8A+AnkDTviJ03iKYKdZI5DjARyULHLUgAZ21icHhX54i2IUzw0izMf6O48WH5fD7ERI5EJHLIAEvXMthCMv1Hp27o6GGlM81crtV1TPH1WWKwuBOoWiTPg58fL4vzQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1766070939; c=relaxed/simple;
-	bh=sUOFaU02Zy/kdvKtoxhBQCPrLJsVk+gO+qKT+CQgfgM=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=T5Q7fPKA7QLkMyFAr/q0L01TnT8tZ6F4mntr9G2P8WE0gfgguGbUCj6z4q4BJIMXqIhMqknzSkKm4gK1bj8W77nbSYrhwRADH7x8X2gUd0N1sZRhrMbiNiOx7Rw+yvra8XyflM583Z2mU5vnYo3eLolxGJeTu6rAr8KQ8iY1KkA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.77
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f77.google.com with SMTP id 006d021491bc7-6579875eaa2so819488eaf.3
-        for <ocfs2-devel@lists.linux.dev>; Thu, 18 Dec 2025 07:15:33 -0800 (PST)
+	s=arc-20240116; t=1766074085; c=relaxed/simple;
+	bh=9fY3A5b4zET37FjxItWEHTv8ADHy/IGZ3gVaaXcN4G0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=LUhzknr76S/v3kTYSPNNFZr862p+EPQd7n0/T1SA8LRDnH62VNpnqfXFsmSCBufbOgV6vt7wdbGT9jmfw+vWOsixvbGZ9HybBU+bKSr4+WBH+trJ15FAxXGVrYot796bPYa4SOrV016JHdbud3RyYodMBi1M8POn3O70kwyvcto=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=JwxxfNOA; arc=none smtp.client-ip=209.85.128.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="JwxxfNOA"
+Received: by mail-wm1-f50.google.com with SMTP id 5b1f17b1804b1-47797676c62so1078885e9.1
+        for <ocfs2-devel@lists.linux.dev>; Thu, 18 Dec 2025 08:08:01 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1766074080; x=1766678880; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=Ll5fg56zYYiWFQstkxfa8620KqOD1ctc79MVD69plr0=;
+        b=JwxxfNOAgAT+1mJkqzeDRqzEjZCmtNbjc4VMVXomYna9KDk7xJbJGlYFzXJG9AFazf
+         ts8leoYvye+ijin7Y8k4sCrxpGQyne9CVWHfl2tdZ78nOUVsvqivKYaaxnqc6gk/5fbe
+         IAC0ZVQdGVViWmsvfx0M6B/+nFrYj+Ur0k5WMEXGAm4noPNdAOLEzDXFbdX6pFqYXrDq
+         4EINkl2K5t4RbER+DK7p9xOLrS/aZXOJLjFVs3BOQDJlYznaEBD04Rpp2nm2lE0LMCKO
+         EBnMBAQhAnXbB0zJhGH4n+ziS3cpeS9unTIQXrwyeVAadBTrM/T38uFI5cnZRfenyj2W
+         dRpw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1766070930; x=1766675730;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=26AQ1iXf+7Vt16LXqCfxdwjtkNq6rSrIyTXasEhwexc=;
-        b=W2vyz+AS5qUvyRwU/1jHCEqFp583FE5kSFEDvtYWdmq4tcp24T8KMlKKqUn8QzwlH5
-         WB1rloM099TY8QQBYHmbITN8AXVmXaxwCzqDZEp5sH4A9BybInauLzgIlmJmSkbA661Y
-         xWbswsL4tn+/Rp3Ub5kMg3WlIUspvyUc/NMlZVk4y2FoVe4wP6/IReGVUha0x1NTKwY1
-         TNFnDP/hLYedtNi21PBcvnd2+jP06XweBqA9cVD0LpPiebajf8tJlQRrJpQTB2V98530
-         B57L9Ok33E8YxCFz1mvFGmFqCOHUP1faLM2WRL6FS4Y60PGs0kACZ3Cmj3u7+kDULAgl
-         S2ug==
-X-Forwarded-Encrypted: i=1; AJvYcCVHFNCaotVWo2eYdv4oo2vi2vuylp+IC4a4PqxR5CSL+kFYCfTyUX0Q/VsmXbaB46bjlX3qHXjmXfP/lA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzRUe36XOIifmaxV1Mz9QMZ5DSZJuyWdeKRht98QTB5lba4/xJR
-	kmDKnwN9XWDnWOtdPoH3z7eG28W8UCZ2dxH8tJ6tKkdbdyKcC/R/XYgjwNtU4mAgd7UrQFW1gXV
-	GfuM4N5bd/pS2OIqWv6VLye1EetVkiZT/OyfNN91Z+r43MeWs+79fijPHgrU=
-X-Google-Smtp-Source: AGHT+IGYQcJvWittys27dBCzKf7TNs4HmUrv+VmnEjZ/y6hYize7sN1dDrFutDLl2feOdc74pfu2ZqScJC3Is6T+St91tKBJSwyD
+        d=1e100.net; s=20230601; t=1766074080; x=1766678880;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Ll5fg56zYYiWFQstkxfa8620KqOD1ctc79MVD69plr0=;
+        b=JYr33TJoGN1nsrk7nTRifBaOq+RsQV1h/Ri70CKR01UfmIk0a2c1ntKya5W3KR4Pca
+         owJkQyVyU4h+jUuoG+OZCpIncurm5/iTep5LIBIc1dQmJ/8nxrhXXWYiE3egKC4s+ew3
+         DfUHcZUT47/GbPQbG4M4nauDTunDGDDCPGew3v5yw3RC7x4nBcPnCaqS9sUS7fjseCIT
+         afxq38iYbDGM9CS1ZN1z8OZVXs3i/WJTbNqMSDnzIe80kPdwgjoY1arnjAlQQl2BnLjq
+         C66zEhMKClNurqYsqm2pY9JVEPVcwpmMsTbnY/YED4FnfQLS9c8dPOAhYsWNz6brdRuA
+         a+SA==
+X-Forwarded-Encrypted: i=1; AJvYcCX39ak7hl7knEI0ptQf2aRUm0kM8xIEWvxdLdIc6i/XLyf5IfN9NJ2D/7xnAdRiWe8jvXpH4G//inhHqQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxsSv3BI89VxUlh6m/xlnSi/h9259c/t26xZGSkxZf4166Ov9mi
+	7Cs/eEyv+lHsZzJWdEL8c6mPKAqB/KQRokCPJnPGUvIggZj/BTUqJRWXyf2KLJPdLPI=
+X-Gm-Gg: AY/fxX7uGQsXPS33rCpcZVOH0acBuRMc2hpcgTIEkZSD2MHztWLDJ1bDaJ/HdK2kaCm
+	l7i+u0xcve9raKmcR1eHlrNSwSyuvjR7Id2wDs5ghL20ZvvSGuVb0jVvvmPL2e4UumdFOR5kYW6
+	hwbmI2JeqTGDO8afVGuMZpYi3lD1Nv3V1yWx0Qg/MieIT9fzlJ61cgWIAcoCbf+JhlCoViRRi/l
+	QYP8MoqcOmOMlSqW8HhEpkoEFy216ZLrT6A5i7CVFBqx0Tdx/15L5F8XXxXYOVj9Mbx0/cKOr1T
+	YLvExE0jkgqejquADsN/oko3oTro30Fmk+Dne/YF6MCy3exMZNuPghhWaohw+bLxtGjdPTZl92H
+	SLPFZXsn6qS7FPvrbn3Hz+MnsbuZTa3wXkOOJ7ucfN2Hq7GpqGJ+FRHJPJjq2eo4VBzYPEOv7ET
+	EffJ4Y4cRYvA==
+X-Google-Smtp-Source: AGHT+IFfChPcdXBQmW4OnfiET0IribR1F0Ir/X6rOlOywgz8dsCin5NgK+sVVKYU+DaOhPJ/6fhXmg==
+X-Received: by 2002:a05:600c:4ed2:b0:471:ab1:18f5 with SMTP id 5b1f17b1804b1-47be3cffd6amr17869585e9.7.1766074080318;
+        Thu, 18 Dec 2025 08:08:00 -0800 (PST)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c1d2fa20a22sm2673669a12.20.2025.12.18.08.07.59
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 18 Dec 2025 08:07:59 -0800 (PST)
+Date: Fri, 19 Dec 2025 00:07:56 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Prithvi Tambewagh <activprithvi@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org, david.hunter.linux@gmail.com, 
+	khalid@kernel.org, syzbot+779d072a1067a8b1a917@syzkaller.appspotmail.com, 
+	stable@vger.kernel.org
+Subject: Re: [PATCH] ocfs2: handle OCFS2_SUPER_BLOCK_FL flag in system dinode
+Message-ID: <njikmwfpnsdzalxump7dj7wnlvkwfmvuqwxhpwzly45v7ioj5l@yckvd3veaifi>
+References: <20251216200544.4114-1-activprithvi@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a4a:d74c:0:b0:65d:5e1:ed1f with SMTP id
- 006d021491bc7-65d05e1f7bamr380364eaf.29.1766070930672; Thu, 18 Dec 2025
- 07:15:30 -0800 (PST)
-Date: Thu, 18 Dec 2025 07:15:30 -0800
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <69441a92.a70a0220.207337.00e4.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_move_extents
-From: syzbot <syzbot+7960178e777909060224@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20251216200544.4114-1-activprithvi@gmail.com>
 
-Hello,
+On Wed, Dec 17, 2025 at 01:35:44AM +0530, Prithvi Tambewagh wrote:
+> When ocfs2_populate_inode() is called during mount process, if the flag
+> OCFS2_SUPER_BLOCK_FL is set in on-disk system dinode, then BUG() is
+> triggered, causing kernel to panic. This is indicative of metadata
+> corruption.
+> 
+> This is fixed by calling ocfs2_error() to print the error log and the
+> corresponding inode is marked as 'bad', so that it is not used further
+> during the mount process. It is ensured that the fact of that inode being
+> bad is propagated to caller ocfs2_populate_inode() i.e.
+> ocfs2_read_locked_inode() using is_bad_inode() and further behind along
+> the call trace as well.
+> 
+> Reported-by: syzbot+779d072a1067a8b1a917@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=779d072a1067a8b1a917
+> Tested-by: syzbot+779d072a1067a8b1a917@syzkaller.appspotmail.com
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+> ---
+>  fs/ocfs2/inode.c | 14 ++++++++++++--
+>  1 file changed, 12 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 12e5d1f73325..f439dc801845 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -347,7 +347,12 @@ void ocfs2_populate_inode(struct inode *inode, struct ocfs2_dinode *fe,
+>  	} else if (fe->i_flags & cpu_to_le32(OCFS2_SUPER_BLOCK_FL)) {
+>  		/* we can't actually hit this as read_inode can't
+>  		 * handle superblocks today ;-) */
+> -		BUG();
+> +		ocfs2_error(sb,
+> +			    "System Inode %llu has "
+> +			    "OCFS2_SUPER_BLOCK_FL set",
+> +			    (unsigned long long)le64_to_cpu(fe->i_blkno));
+> +		make_bad_inode(inode);
+> +		return;
+>  	}
+>  
+>  	switch (inode->i_mode & S_IFMT) {
+> @@ -555,6 +560,11 @@ static int ocfs2_read_locked_inode(struct inode *inode,
+>  
+>  	ocfs2_populate_inode(inode, fe, 0);
+>  
+> +	if (is_bad_inode(inode)) {
+> +		status = -EIO;
+> +		goto bail;
+> +	}
+> +
+>  	BUG_ON(args->fi_blkno != le64_to_cpu(fe->i_blkno));
+>  
+>  	if (buffer_dirty(bh) && !buffer_jbd(bh)) {
+> @@ -576,7 +586,7 @@ static int ocfs2_read_locked_inode(struct inode *inode,
+>  	if (can_lock)
+>  		ocfs2_inode_unlock(inode, lock_level);
+>  
+> -	if (status < 0)
+> +	if (status < 0 && !is_bad_inode(inode))
+>  		make_bad_inode(inode);
+>  
+>  	brelse(bh);
+> 
+> base-commit: d76bb1ebb5587f66b0f8b8099bfbb44722bc08b3
+> -- 
+> 2.43.0
+> 
+> 
 
-syzbot found the following issue on:
+ocfs2_populate_inode has two callers: __ocfs2_mknod_locked() and
+ocfs2_read_locked_inode()
 
-HEAD commit:    ea1013c15392 Merge tag 'bpf-fixes' of git://git.kernel.org..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=179abdc2580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=513255d80ab78f2b
-dashboard link: https://syzkaller.appspot.com/bug?extid=7960178e777909060224
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+Your code only works for the ocfs2_read_locked_inode() path, but not for the
+__ocfs2_mknod_locked() path.
+In __ocfs2_mknod_locked(), there are two tasks after ocfs2_populate_inode:
+"creating locks" and "updating the transaction". If you use a 'goto' to bypass
+these two tasks, ocfs2 will crash in the near future. Conversely, if you choose
+to execute the two jobs, the logic is flawed because we perform on a bad inode.
 
-Unfortunately, I don't have any reproducer for this issue yet.
+In my view, the existing code (using BUG()) is acceptable. We don't need to
+worry about this syzbot report.
 
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-ea1013c1.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/ea4d0b50128d/vmlinux-ea1013c1.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/f2e7f1524121/bzImage-ea1013c1.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+7960178e777909060224@syzkaller.appspotmail.com
-
-loop0: detected capacity change from 0 to 32768
-=======================================================
-WARNING: The mand mount option has been deprecated and
-         and is ignored by this kernel. Remove the mand
-         option from the mount to silence this warning.
-=======================================================
-JBD2: Ignoring recovery information on journal
-ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
-(syz.0.0,5341,0):ocfs2_dio_end_io:2401 ERROR: Direct IO failed, bytes = -28
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/suballoc.c:1383!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5341 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_block_group_set_bits+0x857/0x980 fs/ocfs2/suballoc.c:1383
-Code: 07 fe c1 38 c1 0f 8c b8 fe ff ff 4c 89 e7 89 f3 e8 ce ae 76 fe 89 de e9 a7 fe ff ff e8 82 c7 0e fe 90 0f 0b e8 7a c7 0e fe 90 <0f> 0b f3 0f 1e fa 65 8b 1d b0 65 ec 0e bf 07 00 00 00 89 de e8 a0
-RSP: 0018:ffffc9000ec973e0 EFLAGS: 00010246
-RAX: ffffffff83b2fa76 RBX: 0000000000000001 RCX: 0000000000100000
-RDX: ffffc90020802000 RSI: 00000000000fffff RDI: 0000000000100000
-RBP: ffffc9000ec97500 R08: 0000000000000007 R09: 00000000000000f8
-R10: 00000000fffffffc R11: 0000000000000002 R12: 1ffff1100253aa01
-R13: 00000000000000f8 R14: ffff8880478e4fb8 R15: dffffc0000000000
-FS:  00007f460e7df6c0(0000) GS:ffff88808d22a000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f46027ff000 CR3: 0000000011427000 CR4: 0000000000352ef0
-Call Trace:
- <TASK>
- ocfs2_move_extent fs/ocfs2/move_extents.c:693 [inline]
- __ocfs2_move_extents_range fs/ocfs2/move_extents.c:865 [inline]
- ocfs2_move_extents+0x2c39/0x3dd0 fs/ocfs2/move_extents.c:937
- ocfs2_ioctl_move_extents+0x568/0x740 fs/ocfs2/move_extents.c:1069
- ocfs2_ioctl+0x191/0x750 fs/ocfs2/ioctl.c:942
- vfs_ioctl fs/ioctl.c:51 [inline]
- __do_sys_ioctl fs/ioctl.c:597 [inline]
- __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f460d98f7c9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f460e7df038 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
-RAX: ffffffffffffffda RBX: 00007f460dbe5fa0 RCX: 00007f460d98f7c9
-RDX: 00002000000000c0 RSI: 0000000040406f06 RDI: 0000000000000004
-RBP: 00007f460da13f91 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007f460dbe6038 R14: 00007f460dbe5fa0 R15: 00007fff6d300b38
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_block_group_set_bits+0x857/0x980 fs/ocfs2/suballoc.c:1383
-Code: 07 fe c1 38 c1 0f 8c b8 fe ff ff 4c 89 e7 89 f3 e8 ce ae 76 fe 89 de e9 a7 fe ff ff e8 82 c7 0e fe 90 0f 0b e8 7a c7 0e fe 90 <0f> 0b f3 0f 1e fa 65 8b 1d b0 65 ec 0e bf 07 00 00 00 89 de e8 a0
-RSP: 0018:ffffc9000ec973e0 EFLAGS: 00010246
-RAX: ffffffff83b2fa76 RBX: 0000000000000001 RCX: 0000000000100000
-RDX: ffffc90020802000 RSI: 00000000000fffff RDI: 0000000000100000
-RBP: ffffc9000ec97500 R08: 0000000000000007 R09: 00000000000000f8
-R10: 00000000fffffffc R11: 0000000000000002 R12: 1ffff1100253aa01
-R13: 00000000000000f8 R14: ffff8880478e4fb8 R15: dffffc0000000000
-FS:  00007f460e7df6c0(0000) GS:ffff88808d22a000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007f46027ff000 CR3: 0000000011427000 CR4: 0000000000352ef0
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+Thanks,
+Heming
