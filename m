@@ -1,77 +1,170 @@
-Received: from mail-oo1-f69.google.com (mail-oo1-f69.google.com [209.85.161.69])
+Received: from mail-pf1-f175.google.com (mail-pf1-f175.google.com [209.85.210.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 73691315765
-	for <ocfs2-devel@lists.linux.dev>; Wed, 24 Dec 2025 00:32:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.69
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DF87B32A3DA
+	for <ocfs2-devel@lists.linux.dev>; Wed, 24 Dec 2025 06:38:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1766536323; cv=none; b=RwAKfTIbj88meEBD4sXQwc2SJsZTjrShw+a0q2Lt8pwdFu2pqeDk5sSeb0QnY1G3X5zQ8tH49k8TltGURFcjaXEjlvJavLfPf3LCOiemigfSlOOTXm9QydaKuykUi6HHku1Z3gSjlWMrlrOvExoLOZb6hGCpV/JeyY7RQ8f7FeQ=
+	t=1766558299; cv=none; b=u4gHFUrXfpdFNBTiPf747Bk4M8MucTe3llw/OCNIAj1D61YeTLgns5AOKPFUHJUiZrXY/liRW1ItVEuqTMV4USxvDN2r34IP3bFtzPGb47+4HZaNrGm3Q7ShMpRuXTIt76DZ7Kn7X2fJE2NGYRnkbaEMlbqjJbreFURfFfCAi8o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1766536323; c=relaxed/simple;
-	bh=WLDYsKeqtHC1X7/foxDAGGLfxjA90yTqPp+EiscQlX4=;
-	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=QvCv4zhjTwKl9pVzhxaB2EAsMZ/bFH217p+vos9Xu8YrWTlP4rUB4ERf/laMsf7zG3luht6zOXxgjmgTY5sJGj4QDzrjvXiy5aIC7TTYeOz4t43uptn0T8CtE6kgZI76jvMt7zLAP/9Tuv8cVtvqW4BhDJ9geEzvuPML4Fttkco=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.69
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f69.google.com with SMTP id 006d021491bc7-657537cef7cso8926163eaf.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 23 Dec 2025 16:32:02 -0800 (PST)
+	s=arc-20240116; t=1766558299; c=relaxed/simple;
+	bh=gsrHNNbocSyGlKE7vERXRimkrvrozZZCJmIIb6a960o=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=DfC/QkiUJGeEO4P0zLxvlxwxLCl5hS0eC2TstUroLiV0eqyzj9xwLo2B1UoFX+9mPtJGoxfGbjAQCzJie14Va5mLtaDPiP9C+YUVRhbtizt7+3wc/h4mcXriQMdYkI9/UoJrXvoLYL28DGrtfNwDoa62dKZZNBUpQlxmXAQkapE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=gUxDNgXa; arc=none smtp.client-ip=209.85.210.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gUxDNgXa"
+Received: by mail-pf1-f175.google.com with SMTP id d2e1a72fcca58-7f1243792f2so3923757b3a.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 23 Dec 2025 22:38:17 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1766558297; x=1767163097; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=k1Anp1lY1We4/zAVuAi7e7U46WAxj4AfEwKzru4nCjs=;
+        b=gUxDNgXa7BiQT+G02uGTotJe9DOM7IQlIi2B0u5dyXeet2tOh/lrI1IqPsOrcflp5P
+         hayrqY0S4OK4plSgEIvi5X9oBZDu8KgtvvKt3VYiBUerVAqOQFmX3yyYp82p2RsFrKKH
+         EiPwXpTPYwbgQoqDu2Gg5505k3kzdorp9VkQjtKSXaUa6GFvnW2yh0V56UZ05+ZAKAhG
+         rP/B+aq341kFrEoR2bXu45OdnqDrr3BGBqBxZ0eAxmr5wxi5c+r0trqfUW7TqOil8D5r
+         zHuZhex1FO61+Q2TXyzJ69XFgU/szkHGsz229ShFXKBNps7E0BgJpiQSgDxaBrAg5BD8
+         ZvDA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1766536321; x=1767141121;
-        h=to:from:subject:message-id:in-reply-to:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=Va2VfPs9ApZjSsj5ATJ7KVoiJwVbCQA0CZHsuoEnzCg=;
-        b=v7R3IQz8A1T7fFgcR5RaJwIVGsDThBPaUOALwnuDnKnyitqpFzf8CR3KOkLt6jz/++
-         6QXUypwWNBG5uY3dby2gORSSCcb+ppPnk3uU566gycTXprzUQqyjUUkfD8WBmbVdNvSb
-         f9YZab+zvDwpPAza4LYm4Ctk6hY6dW1QviPgKqgwqfnXb4heqamEcU7lV+0rwqzbHE16
-         4MV4ZvFtCtkkeME9QOrII6rBTGG8OlEy8dmQKM6WHpILzK5tj+jN+9FL/bnDGlcGpyqO
-         LMWj6lyZu0FlZDAsAFepbEi52tSbuIhXPJW5tAKp3EpPQsCOPwJZUS/3Ubw+oqMH18Gl
-         x2oQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVFU9ilCMjliVT4O3AehGCQqDOCV+RcYrRYzsA9bhYGCkRw++b7ry4RtkctwGEr0wFI54QOaEY+O6tG3g==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzEXyxe+ikFq7YjmsId2VPF8z/KOokjBzeVUTyR6BJEd6DKfY3V
-	FodWMGLN6wNerXTm+ZXQPbr6X8YPIJoNbiDcdwNiG29uL1UuGb8lhHJFY/Tg4XoPVbGlaIH9Z6J
-	pnnrUEEAj/uKEwg/Vu2ls9mzHVylNIKIAeN/5aZMxm0lV7mmgWJxSQmn1C1c=
-X-Google-Smtp-Source: AGHT+IHOZfF91uzeoESVPCmUGI5rO+RB8szUXHzbAvDO46/yx4H8YqG3HZpHGicG5m8L3famMF9a4gnkPXDENXrHWS/b5aTfi6Wj
+        d=1e100.net; s=20230601; t=1766558297; x=1767163097;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=k1Anp1lY1We4/zAVuAi7e7U46WAxj4AfEwKzru4nCjs=;
+        b=Xcf4vA2uhXKMmnC+2M5mRJRa121293RNBzj7ZzolaaHJtosh5GOPQtVv2V08V5UNBY
+         YK/53Rd24IcchR8Aa5lQDBp1r06FExItm+DMPRnWLGcDdvTNZbtR3UJNSrW/M5f3bXzM
+         1IKcowG6VO81ZsWjrIFIJeUR2VCiQxOfcCRj0+uUkhMQ+on8mN1Htg6VHIve7Vz1hEoO
+         1aWvrZuKiyExnNyUOeWJru/9A2zyxvGvrKFw1gPMX62aqENiXvrCjqcpdgp3WMC9Cpi3
+         lFZMIrW6RDODlXQf11aAu913WEQ07+UIiwiHtuiMa9Sob5pSS2XNO3Xj8NbUF9NTy7nH
+         mkvA==
+X-Forwarded-Encrypted: i=1; AJvYcCUsaNfjcOamtNCOBxMfE6Z3wqOZqt0hfYg9DekoYFg/vF0PAlwv6EqWBdMTnXuUIbShYjgzKsqSkVdQZg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yx0KWYFsmEHpG7/Bq6kVTPqqKhzYmV3oeGDFtMMI0nBmyXpUhE+
+	c22ufngX9S6hzcv0QKTF0DBwor4+ouVZ4YxF4YWEtkv6EOu4N/4fecnl
+X-Gm-Gg: AY/fxX4o1U4dWRZ8Gvw8safLY6iyXtCqAMnghudfZ5HHotdsgdK0C2B6I9uCEJhAv2f
+	SBffCundoX8gdA8Q5jbooTEFMQpWx5ypJTilHIibQXGb9W6nSRH9G7NXcitsUKs30eNUTOtsrF+
+	1mcwjJgPhUPMkhTgINCvlJqSu1WW8Va8G9iotUhHtCC1dVcf3pwUDqhaCX0Z7na3RFUfn6EqjsG
+	owcbFr8CMXFBGHCNSu8J2GyGSUP2i6Kahva4CmVjDnqLQVPCAxyrTR7PhXS0bcXqmAhbiTp3kaD
+	zqW/JyO8tRkp5jBSFfS+c8sg9YtxrPZ0Cy8L+dalnzqajSczYr7/W4ye6S+bSZpt6XzFBf7Fwnk
+	RBpVk1pMdXoL4XJ/Qwrp84WMABkrNWI8wXFbQNVqIWo3EIgjUCgng3oe+02+fXEfOqpVRQ0nnnE
+	PiUuQPR2+JmCc=
+X-Google-Smtp-Source: AGHT+IGeF+1DNi4wBQ+citO8we8db5AW369vz0FLW8lrY82nDFCZVApz9JhjcAMfqp7ryzxlPiNF4Q==
+X-Received: by 2002:a05:6a00:328f:b0:7e8:43f5:bd36 with SMTP id d2e1a72fcca58-7ff66d5f579mr15039520b3a.34.1766558297009;
+        Tue, 23 Dec 2025 22:38:17 -0800 (PST)
+Received: from inspiron ([111.125.235.126])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-7ff7e589b0csm15892605b3a.56.2025.12.23.22.38.12
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 23 Dec 2025 22:38:16 -0800 (PST)
+Date: Wed, 24 Dec 2025 12:08:09 +0530
+From: Prithvi <activprithvi@gmail.com>
+To: Heming Zhao <heming.zhao@suse.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org,
+	david.hunter.linux@gmail.com, khalid@kernel.org,
+	syzbot+af14efe17dfa46173239@syzkaller.appspotmail.com,
+	stable@vger.kernel.org
+Subject: Re: [PATCH] ocfs2: Add check for total number of chains in chain list
+Message-ID: <20251224063809.b5zs7uiiupeexzwa@inspiron>
+References: <20251220094928.134849-1-activprithvi@gmail.com>
+ <dcbfbwivj2pgid24lp7xynsli5v44fw5lskyg6r6yodr223irp@alqswzjnxmmu>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:2229:b0:659:9a49:9026 with SMTP id
- 006d021491bc7-65d0eb10455mr7186596eaf.83.1766536321463; Tue, 23 Dec 2025
- 16:32:01 -0800 (PST)
-Date: Tue, 23 Dec 2025 16:32:01 -0800
-In-Reply-To: <67775d94.050a0220.178762.003a.GAE@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <694b3481.050a0220.35954c.0009.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] [ext4?] WARNING in __jbd2_log_wait_for_space
-From: syzbot <syzbot+04ae2c9e709a347f1a81@syzkaller.appspotmail.com>
-To: akpm@linux-foundation.org, dmantipov@yandex.ru, jack@suse.com, 
-	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, kartikey406@gmail.com, 
-	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
-	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com, tytso@mit.edu
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <dcbfbwivj2pgid24lp7xynsli5v44fw5lskyg6r6yodr223irp@alqswzjnxmmu>
 
-syzbot suspects this issue was fixed by commit:
+On Mon, Dec 22, 2025 at 11:21:11PM +0800, Heming Zhao wrote:
+> On Sat, Dec 20, 2025 at 03:19:28PM +0530, Prithvi Tambewagh wrote:
+> > The functions ocfs2_reserve_suballoc_bits(), ocfs2_block_group_alloc(),
+> > ocfs2_block_group_alloc_contig() and ocfs2_find_smallest_chain() trust
+> > the on-disk values related to the allocation chain. However, KASAN bug
+> > was triggered in these functions, and the kernel panicked when accessing
+> > redzoned memory. This occurred due to the corrupted value of `cl_count`
+> > field of `struct ocfs2_chain_list`. Upon analysis, the value of `cl_count`
+> > was observed to be overwhemingly large, due to which the code accessed
+> > redzoned memory.
+> > 
+> > The fix introduces an if statement which validates value of `cl_count`
+> > (both lower and upper bounds). Lower bound check ensures the value of
+> > `cl_count` is not zero and upper bound check ensures that the value of
+> > `cl_count` is in the range such that it has a value less than the total
+> > size of struct ocfs2_chain_list and maximum number of chains that can be
+> > present, so as to fill one block.
+> > 
+> > Reported-by: syzbot+af14efe17dfa46173239@syzkaller.appspotmail.com
+> > Closes: https://syzkaller.appspot.com/bug?extid=af14efe17dfa46173239
+> > Tested-by: syzbot+af14efe17dfa46173239@syzkaller.appspotmail.com
+> > Cc: stable@vger.kernel.org
+> > Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+> > ---
+> >  fs/ocfs2/suballoc.c | 15 +++++++++++++++
+> >  1 file changed, 15 insertions(+)
+> > 
+> > diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> > index f7b483f0de2a..7ea63e9cc4f8 100644
+> > --- a/fs/ocfs2/suballoc.c
+> > +++ b/fs/ocfs2/suballoc.c
+> > @@ -671,6 +671,21 @@ static int ocfs2_block_group_alloc(struct ocfs2_super *osb,
+> >  	BUG_ON(ocfs2_is_cluster_bitmap(alloc_inode));
+> >  
+> >  	cl = &fe->id2.i_chain;
+> > +	unsigned int block_size = osb->sb->s_blocksize;
+> > +	unsigned int max_cl_count =
+> > +	(block_size - offsetof(struct ocfs2_chain_list, cl_recs)) /
+> > +	sizeof(struct ocfs2_chain_rec);
+> > +
+> > +	if (!le16_to_cpu(cl->cl_count) ||
+> > +	    le16_to_cpu(cl->cl_count) > max_cl_count) {
+> > +		ocfs2_error(osb->sb,
+> > +			    "Invalid chain list: cl_count %u "
+> > +			    "exceeds max %u",
+> > +			    le16_to_cpu(cl->cl_count), max_cl_count);
+> > +		status = -EIO;
+> > +		goto bail;
+> > +	}
+> > +
+> >  	status = ocfs2_reserve_clusters_with_limit(osb,
+> >  						   le16_to_cpu(cl->cl_cpg),
+> >  						   max_block, flags, &ac);
+> > 
+> > base-commit: 36c254515dc6592c44db77b84908358979dd6b50
+> > -- 
+> > 2.34.1
+> > 
+> 
+> Since 'fe' is read by ocfs2_read_inode_block(), the validation function
+> ocfs2_validate_inode_block() is the appropriate place to perform this sanity
+> check.
+> 
+> Please follow the pattern in commit e1c70505ee81 ("ocfs2: add extra consistency
+> checks for chain allocator dinodes") when adding your code.
+> 
+> btw, I am a little bit confused, it seems commit e1c70505ee81 is enough to fix
+> this syzbot issue.
+> 
+> Thanks,
+> Heming
 
-commit 93ce0ff117b0c468961d7c296a03ad57e1e8da9f
-Author: Deepanshu Kartikey <kartikey406@gmail.com>
-Date:   Thu Oct 30 15:30:03 2025 +0000
+Hello Heming,
 
-    ocfs2: validate cl_bpc in allocator inodes to prevent divide-by-zero
+Thanks or the clarification. I applied the commit e1c70505ee81 ("ocfs2: add 
+extra consistency checks for chain allocator dinodes") above the commit on 
+which syzbot reported the bug : 36c254515dc6 ("Merge tag 'powerpc-6.12-4' 
+of git://git.kernel.org/pub/scm/linux/kernel/git/powerpc/linux") and 
+verified that it fixes this KASAN bug. 
 
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=11b4ef1a580000
-start commit:   63676eefb7a0 Merge tag 'sched_ext-for-6.13-rc5-fixes' of g..
-git tree:       upstream
-kernel config:  https://syzkaller.appspot.com/x/.config?x=ba7cde9482d6bb6
-dashboard link: https://syzkaller.appspot.com/bug?extid=04ae2c9e709a347f1a81
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=15c678b0580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=112bcedf980000
+You are right that commit e1c70505ee81 is enough to fix this bug, and my 
+patch is redundant in this case.
 
-If the result looks correct, please mark the issue as fixed by replying with:
+Thanks for the review and guidance!
 
-#syz fix: ocfs2: validate cl_bpc in allocator inodes to prevent divide-by-zero
-
-For information about bisection process see: https://goo.gl/tpsmEJ#bisection
+Best Regards, 
+Prithvi
