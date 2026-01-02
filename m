@@ -1,127 +1,316 @@
-Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
+Received: from mail-ot1-f80.google.com (mail-ot1-f80.google.com [209.85.210.80])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9F51F72634
-	for <ocfs2-devel@lists.linux.dev>; Wed, 31 Dec 2025 11:58:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 971D91E521A
+	for <ocfs2-devel@lists.linux.dev>; Fri,  2 Jan 2026 15:39:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767182291; cv=none; b=dfJbo7bGvu0ooc+QWN8n32NcqZ3KQaUaLUvw3VH5Oa32FvhcIBeIZg/BUz1I9kopxqgX5SQ3cuj+baYb3GcF0ZqeoTCoQ4UTaOeXoFUtGSBILd8frdjduw7VSZ2FnsEoNDr1L19mtfJNQBTcUKaOtvxKnpwC//GoxoCsLi1fXik=
+	t=1767368366; cv=none; b=m2m+jCesrwtz9r3lhthZpQSOacwnwY/7m//Q/GfqcY2c0qob88CO8T6yCWoWGlboTZdqL6I2MEUP6ePBw9GwY7SHC6FRaQW2MRDwui/m5p9DZ4Uvpseav1BQFM6Tul8X9HEV1wRX2aLF/dEN17wtjHRaItkPh9415/nJdcuHmUk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767182291; c=relaxed/simple;
-	bh=k88tlWBQYYOEPRPsr7HVftPakb/hjG28OzQPctybQLM=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Le650ERyu8SDYzDjm4uynLeI1xbADEwO+oGyV8aOXcvQ69abj5gPCqyinxRQi+EwZA8R/8dI7v35wB84pqUyi9jQvf2X6hYyqFSF9niuQTb8HUt/wiBxh50HRRiIq57vMUxku+/FiK/2hfGwRLdY4kase2WqrUQFT/bfMpKBNgg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=PPMF1iy3; arc=none smtp.client-ip=209.85.214.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="PPMF1iy3"
-Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-2a0a33d0585so99606625ad.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 31 Dec 2025 03:58:09 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1767182289; x=1767787089; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=wz/+EK600urPKAZwKCkmBYjLyy6YfjogOlH1FKpFrF8=;
-        b=PPMF1iy3GK7eDoqvM5ugG95XJvXDdrjVhbw9IgiyFxuy/hiMCNBCsuBUnmAxMykXa+
-         9mYX8BIgJfv+wQVZpmbwM80QO1sDwCcRqYmsxq5J4HH+DdeVmEzO7msqiWs1KhzUF1GW
-         3RJ7a0ArZLtksRPWXX7iCAng/RhRcMREbIGjnsSes7PYcUm562Z1kQ4KkaAvCh8K3L8I
-         twyOSW3BTTKoNwWcPWZfhu5pDJrGzwx/+IXIs1uZJlRgq1vVW2ENhB9CrfShPuc4RFMU
-         JRGSP719+Yu6otnFv+sFIGwY6he0IiQbeEoJa7VpB4GMelsA2B/4loajgd2b7TbxJyHl
-         GnvA==
+	s=arc-20240116; t=1767368366; c=relaxed/simple;
+	bh=JYQ5MXBduPBH32Wc7ZnUl5GYirGfXK0sgJnA2dIkwlY=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=j3aiImuluIfRaTHqpHjDbkftW2gO1Y7lVy1yE+kajI56L73/fUSv7kRWI+pvMDu6lVZBaq2Wd+uvpebitxMG0Z+yTKj2wIJn3hI5WmOum+GFT7toF9c0US9qzv31v4HzNNg2Pk4Ni10/K05lolrGXsE2RetRk9g1nOV0gjzb+Rk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f80.google.com with SMTP id 46e09a7af769-7c702347c6eso14728514a34.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 02 Jan 2026 07:39:23 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1767182289; x=1767787089;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=wz/+EK600urPKAZwKCkmBYjLyy6YfjogOlH1FKpFrF8=;
-        b=nRgUz2n/hkZL9TCJ0yhgAPplaxS6Zye0haKVOcytWj4T+qbpZCLNiV6lSx4yXi52Oc
-         cO/gttu0g/j9anppbA5TO44ZsKmQq0Z76VfN0Ro4vnZfIHO5vEMjrz86CLJYNbxG1agG
-         hnQALWQfQTXE1Cd/QRJ5AvCNc+2SvGETpS8o3KB94MNilmqqbCO0v5M+SuhuEQbXPK3m
-         Y/ewgtj5dHsqFyTIvrDMVVOVevweytUY+aGozIw4C9lDifJbnLGqYnfMjlqkun6MUbua
-         ABHu/xk28oMjDCJa/+XR7EnZLQ7wUQrAuYagAmJxDukU40V7/LwEISZWBu3xfPZeJ/8C
-         Sp8w==
-X-Gm-Message-State: AOJu0Yx/CCCzKkVaU6UpD6lETdij4WijUFy9JegeQI9CRxGOxizhnzYz
-	I8uIWxX5V4i2kCDpN4tIVyhesCAMGPkIQID6hD2rkTykW6fWRBje+C3k4ZOhFw==
-X-Gm-Gg: AY/fxX7yJE8iMdZrtPGo3xrZ1yuenS6BKECulLKrPTsfIOYmXCcM7ZLMZV7+Wy+uWuC
-	KPjkcuAuFDfp4EsvIEucED64qL61DaKooZVcqNoEPjUKjuYRXj9QbGOAcy++MJRjx683U8ha+ai
-	T9jvXCE3QWF3Wf6WBIhm1R3MvW47P8d1/aGG0+vblvvpzIQl27j2arIIXIeSyluN1hh/VMBUa4z
-	aRGXYHEWVGhO9Kv4JdUA677sQPqZCqUELsZDYZxrTCQ8U3rgrvWJqiMyN62ecECYp1vKze3fLI/
-	bHJz4r9gQVYw7fl1MmL/m4Q7HoHGGDFklHl6J9FCGK/TW5I0sD7e+jTTrhbV7xxymdJBWZT0S5n
-	FGf3lyseeKyiwc75t0ukcXS7Swh7IP/ShDas9oMDb7GqJlDD8ORC43NrT/+YUW2SOwoEQjzvWaf
-	Sirzu4RvM/CS8++ZyrqoVVGogBD/7/jUjR2aLbrNIzhUyS+HCcSQCspLclKyrSvd1S21WV/tCTP
-	8TixQ==
-X-Google-Smtp-Source: AGHT+IGziUsfUmQRaqOCxW6sieLIMR86pWG/brH0bc1pTwoC64rtPjrWcOpkzW3UzSVYaAAA4nYAog==
-X-Received: by 2002:a17:903:2ac5:b0:2a1:3ee7:cc7a with SMTP id d9443c01a7336-2a2f2223616mr342395905ad.17.1767182288787;
-        Wed, 31 Dec 2025 03:58:08 -0800 (PST)
-Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:8329:515d:5002:11e7])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2a2f3c66834sm319109045ad.9.2025.12.31.03.58.05
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 31 Dec 2025 03:58:08 -0800 (PST)
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	syzbot+7960178e777909060224@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: add check for free bits before allocation in ocfs2_move_extent()
-Date: Wed, 31 Dec 2025 17:28:01 +0530
-Message-ID: <20251231115801.293726-1-kartikey406@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        d=1e100.net; s=20230601; t=1767368362; x=1767973162;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=S9RR1etedDUNsh2HjwO80X5kjZ6c6Eh1rNJxCt2ZlFc=;
+        b=nam2PRPqIQE7WbC13nSCjkZtN/jz5gaMOviAz9YOuOfQIc82LEgWosGKoHu0fLoPF7
+         XFlyN1fJRO0GrDl8UJQMZakycGjkej8NEFL0l48u/OECpJt4zQzp0632pPg2WrCe+528
+         xLzX/B8eTb/TkpCVL9/CExGzEY1mSuI0LWJVtxHjOvOHyFxH5SRz7rdjbOjQcXqPmLFK
+         AnYMcsbE6YvKao5glLup7buRMEh3+ptMR0jdReqCTpKwtUYbaSPWJj43IDR2HLl+FSe4
+         xoZjaMQ0SOAHR2cq6QXycsBqpWuiFL8/FS1eYMrT4qSU/eifKxcjIIETCT5zzsBQq686
+         BYPg==
+X-Forwarded-Encrypted: i=1; AJvYcCW2tSOWzam2dU8Y7dg4rIWx1DZ27t7o2zKc599z06ljKGzVHZ8moGtK7Xj/ADwNDadG0FM59rB66dHTOw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyM0TN3HaSOpVkJNyLBYQ/Nu6nx9daGNywdXHpao4Zqvg5Tx5W/
+	UyL2QCZ+D6AbVr2mEALzN0YcjsLakGxalFZw9Qxu+MEEYBMKSAm3rxmIdI1/ZaFx8BJHMGMsIK5
+	IMx5WLDxBOv+HhjbOTtoW4AnvOGah3cTqB4GBdNDd3L9jztodW8f/O8KxdhU=
+X-Google-Smtp-Source: AGHT+IEPD545U2SSvzbu/cbWUk8DZNvb+gsxbkZOaUQ9yy2e+/Ifp1WPNRWv6srsGMVGIBeRYypIeH2BT5HXJbP0xcKKqu15kL3c
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6820:8505:b0:659:9a49:8e84 with SMTP id
+ 006d021491bc7-65d0eb58aa8mr10282850eaf.84.1767368362363; Fri, 02 Jan 2026
+ 07:39:22 -0800 (PST)
+Date: Fri, 02 Jan 2026 07:39:22 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6957e6aa.050a0220.1c9965.0003.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in _ocfs2_free_suballoc_bits
+From: syzbot <syzbot+73d1166b94ed9875af54@syzkaller.appspotmail.com>
+To: akpm@linux-foundation.org, glass.su@suse.com, heming.zhao@suse.com, 
+	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org, 
+	mark@fasheh.com, ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-Add a check to verify the group descriptor has enough free bits before
-attempting allocation in ocfs2_move_extent(). This prevents a kernel
-BUG_ON crash in ocfs2_block_group_set_bits() when the move_extents ioctl
-is called on a crafted or corrupted filesystem.
+Hello,
 
-The existing validation in ocfs2_validate_gd_self() only checks static
-metadata consistency (bg_free_bits_count <= bg_bits) when the descriptor
-is first read from disk. However, during move_extents operations,
-multiple allocations can exhaust the free bits count below the requested
-allocation size, triggering BUG_ON(le16_to_cpu(bg->bg_free_bits_count)
-num_bits).
+syzbot found the following issue on:
 
-The debug trace shows the issue clearly:
-  - Block group 32 validated with bg_free_bits_count=427
-  - Repeated allocations decreased count: 427 -> 171 -> 43 -> ... -> 1
-  - Final request for 2 bits with only 1 available triggers BUG_ON
+HEAD commit:    cc3aa43b44bd Add linux-next specific files for 20251219
+git tree:       linux-next
+console output: https://syzkaller.appspot.com/x/log.txt?x=17c5b792580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=da1bc82c6189c463
+dashboard link: https://syzkaller.appspot.com/bug?extid=73d1166b94ed9875af54
+compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=164b0a9a580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=123c329a580000
 
-By adding an early check in ocfs2_move_extent() before calling
-ocfs2_block_group_set_bits(), we return -ENOSPC gracefully instead of
-crashing the kernel.
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/30bf539e6f28/disk-cc3aa43b.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/0e2f8b08e342/vmlinux-cc3aa43b.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/ec7ee6ece11f/bzImage-cc3aa43b.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/9340ba13ff7c/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=144b0a9a580000)
 
-Reported-by: syzbot+7960178e777909060224@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=7960178e777909060224
-Tested-by: syzbot+7960178e777909060224@syzkaller.appspotmail.com
-Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+The issue was bisected to:
+
+commit e6f7b6feb0d2a913e28218a51d63230be2effdf2
+Author: Heming Zhao <heming.zhao@suse.com>
+Date:   Fri Dec 12 07:45:03 2025 +0000
+
+    ocfs2: give ocfs2 the ability to reclaim suballocator free bg
+
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=120d0a22580000
+final oops:     https://syzkaller.appspot.com/x/report.txt?x=110d0a22580000
+console output: https://syzkaller.appspot.com/x/log.txt?x=160d0a22580000
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+73d1166b94ed9875af54@syzkaller.appspotmail.com
+Fixes: e6f7b6feb0d2 ("ocfs2: give ocfs2 the ability to reclaim suballocator free bg")
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Not tainted
+------------------------------------------------------
+syz-executor/5944 is trying to acquire lock:
+ffff88805e3ad100 (&ocfs2_sysfile_lock_key[GLOBAL_BITMAP_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1028 [inline]
+ffff88805e3ad100 (&ocfs2_sysfile_lock_key[GLOBAL_BITMAP_SYSTEM_INODE]){+.+.}-{4:4}, at: _ocfs2_reclaim_suballoc_to_main fs/ocfs2/suballoc.c:2757 [inline]
+ffff88805e3ad100 (&ocfs2_sysfile_lock_key[GLOBAL_BITMAP_SYSTEM_INODE]){+.+.}-{4:4}, at: _ocfs2_free_suballoc_bits+0x13f1/0x2130 fs/ocfs2/suballoc.c:2911
+
+but task is already holding lock:
+ffff88801df660e8 (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x36a/0x6d0 fs/ocfs2/journal.c:372
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 (&journal->j_trans_barrier){.+.+}-{4:4}:
+       down_read+0x47/0x2e0 kernel/locking/rwsem.c:1537
+       ocfs2_start_trans+0x36a/0x6d0 fs/ocfs2/journal.c:372
+       ocfs2_block_group_alloc fs/ocfs2/suballoc.c:754 [inline]
+       ocfs2_reserve_suballoc_bits+0x722/0x4600 fs/ocfs2/suballoc.c:903
+       ocfs2_reserve_new_inode+0x4f4/0xc90 fs/ocfs2/suballoc.c:1143
+       ocfs2_mknod+0x831/0x2030 fs/ocfs2/namei.c:307
+       ocfs2_mkdir+0x181/0x420 fs/ocfs2/namei.c:660
+       vfs_mkdir+0x414/0x630 fs/namei.c:5196
+       do_mkdirat+0x276/0x500 fs/namei.c:5230
+       __do_sys_mkdirat fs/namei.c:5252 [inline]
+       __se_sys_mkdirat fs/namei.c:5250 [inline]
+       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:5250
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #1 (sb_internal#2){.+.+}-{0:0}:
+       percpu_down_read_internal include/linux/percpu-rwsem.h:53 [inline]
+       percpu_down_read_freezable include/linux/percpu-rwsem.h:83 [inline]
+       __sb_start_write include/linux/fs/super.h:19 [inline]
+       sb_start_intwrite include/linux/fs/super.h:177 [inline]
+       ocfs2_start_trans+0x26b/0x6d0 fs/ocfs2/journal.c:370
+       ocfs2_block_group_alloc fs/ocfs2/suballoc.c:754 [inline]
+       ocfs2_reserve_suballoc_bits+0x722/0x4600 fs/ocfs2/suballoc.c:903
+       ocfs2_reserve_new_inode+0x4f4/0xc90 fs/ocfs2/suballoc.c:1143
+       ocfs2_mknod+0x831/0x2030 fs/ocfs2/namei.c:307
+       ocfs2_mkdir+0x181/0x420 fs/ocfs2/namei.c:660
+       vfs_mkdir+0x414/0x630 fs/namei.c:5196
+       do_mkdirat+0x276/0x500 fs/namei.c:5230
+       __do_sys_mkdirat fs/namei.c:5252 [inline]
+       __se_sys_mkdirat fs/namei.c:5250 [inline]
+       __x64_sys_mkdirat+0x87/0xa0 fs/namei.c:5250
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&ocfs2_sysfile_lock_key[GLOBAL_BITMAP_SYSTEM_INODE]){+.+.}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3165 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+       validate_chain kernel/locking/lockdep.c:3908 [inline]
+       __lock_acquire+0x15a6/0x2cf0 kernel/locking/lockdep.c:5237
+       lock_acquire+0x117/0x340 kernel/locking/lockdep.c:5868
+       down_write+0x96/0x1f0 kernel/locking/rwsem.c:1590
+       inode_lock include/linux/fs.h:1028 [inline]
+       _ocfs2_reclaim_suballoc_to_main fs/ocfs2/suballoc.c:2757 [inline]
+       _ocfs2_free_suballoc_bits+0x13f1/0x2130 fs/ocfs2/suballoc.c:2911
+       ocfs2_free_suballoc_bits fs/ocfs2/suballoc.c:2925 [inline]
+       ocfs2_free_dinode+0xb1/0xe0 fs/ocfs2/suballoc.c:2940
+       ocfs2_remove_inode fs/ocfs2/inode.c:774 [inline]
+       ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+       ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+       ocfs2_evict_inode+0x1d84/0x4040 fs/ocfs2/inode.c:1299
+       evict+0x5f4/0xae0 fs/inode.c:837
+       d_delete_notify include/linux/fsnotify.h:377 [inline]
+       vfs_rmdir+0x427/0x6e0 fs/namei.c:5315
+       do_rmdir+0x281/0x500 fs/namei.c:5357
+       __do_sys_unlinkat fs/namei.c:5534 [inline]
+       __se_sys_unlinkat fs/namei.c:5528 [inline]
+       __x64_sys_unlinkat+0xc2/0xf0 fs/namei.c:5528
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &ocfs2_sysfile_lock_key[GLOBAL_BITMAP_SYSTEM_INODE] --> sb_internal#2 --> &journal->j_trans_barrier
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  rlock(&journal->j_trans_barrier);
+                               lock(sb_internal#2);
+                               lock(&journal->j_trans_barrier);
+  lock(&ocfs2_sysfile_lock_key[GLOBAL_BITMAP_SYSTEM_INODE]);
+
+ *** DEADLOCK ***
+
+8 locks held by syz-executor/5944:
+ #0: ffff888033eda420 (sb_writers#12){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:499
+ #1: ffff88805e3a89c0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1073 [inline]
+ #1: ffff88805e3a89c0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2864 [inline]
+ #1: ffff88805e3a89c0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2875 [inline]
+ #1: ffff88805e3a89c0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: do_rmdir+0x1be/0x500 fs/namei.c:5350
+ #2: ffff88802ab80bd0 (&osb->nfs_sync_rwlock){.+.+}-{4:4}, at: ocfs2_nfs_sync_lock+0x106/0x250 fs/ocfs2/dlmglue.c:2875
+ #3: ffff88805e3adf40 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1028 [inline]
+ #3: ffff88805e3adf40 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_wipe_inode fs/ocfs2/inode.c:854 [inline]
+ #3: ffff88805e3adf40 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+ #3: ffff88805e3adf40 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_evict_inode+0xf6c/0x4040 fs/ocfs2/inode.c:1299
+ #4: ffff88805e3b09c0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1028 [inline]
+ #4: ffff88805e3b09c0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_remove_inode fs/ocfs2/inode.c:733 [inline]
+ #4: ffff88805e3b09c0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+ #4: ffff88805e3b09c0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+ #4: ffff88805e3b09c0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_evict_inode+0x1507/0x4040 fs/ocfs2/inode.c:1299
+ #5: ffff888033eda610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_remove_inode fs/ocfs2/inode.c:742 [inline]
+ #5: ffff888033eda610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+ #5: ffff888033eda610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+ #5: ffff888033eda610 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_evict_inode+0x15ea/0x4040 fs/ocfs2/inode.c:1299
+ #6: ffff88801df660e8 (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x36a/0x6d0 fs/ocfs2/journal.c:372
+ #7: ffff88807945a950 (jbd2_handle#2){.+.+}-{0:0}, at: start_this_handle+0x1f87/0x21c0 fs/jbd2/transaction.c:444
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 5944 Comm: syz-executor Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 10/25/2025
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0x189/0x250 lib/dump_stack.c:120
+ print_circular_bug+0x2e2/0x300 kernel/locking/lockdep.c:2043
+ check_noncircular+0x12e/0x150 kernel/locking/lockdep.c:2175
+ check_prev_add kernel/locking/lockdep.c:3165 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+ validate_chain kernel/locking/lockdep.c:3908 [inline]
+ __lock_acquire+0x15a6/0x2cf0 kernel/locking/lockdep.c:5237
+ lock_acquire+0x117/0x340 kernel/locking/lockdep.c:5868
+ down_write+0x96/0x1f0 kernel/locking/rwsem.c:1590
+ inode_lock include/linux/fs.h:1028 [inline]
+ _ocfs2_reclaim_suballoc_to_main fs/ocfs2/suballoc.c:2757 [inline]
+ _ocfs2_free_suballoc_bits+0x13f1/0x2130 fs/ocfs2/suballoc.c:2911
+ ocfs2_free_suballoc_bits fs/ocfs2/suballoc.c:2925 [inline]
+ ocfs2_free_dinode+0xb1/0xe0 fs/ocfs2/suballoc.c:2940
+ ocfs2_remove_inode fs/ocfs2/inode.c:774 [inline]
+ ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+ ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+ ocfs2_evict_inode+0x1d84/0x4040 fs/ocfs2/inode.c:1299
+ evict+0x5f4/0xae0 fs/inode.c:837
+ d_delete_notify include/linux/fsnotify.h:377 [inline]
+ vfs_rmdir+0x427/0x6e0 fs/namei.c:5315
+ do_rmdir+0x281/0x500 fs/namei.c:5357
+ __do_sys_unlinkat fs/namei.c:5534 [inline]
+ __se_sys_unlinkat fs/namei.c:5528 [inline]
+ __x64_sys_unlinkat+0xc2/0xf0 fs/namei.c:5528
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xfa/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f742998ed27
+Code: 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 b8 07 01 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffe40bbd268 EFLAGS: 00000207 ORIG_RAX: 0000000000000107
+RAX: ffffffffffffffda RBX: 0000000000000065 RCX: 00007f742998ed27
+RDX: 0000000000000200 RSI: 00007ffe40bbe410 RDI: 00000000ffffff9c
+RBP: 00007f7429a13d7d R08: 000055555e6c066b R09: 0000000000000000
+R10: 0000000000001000 R11: 0000000000000207 R12: 00007ffe40bbe410
+R13: 00007f7429a13d7d R14: 0000000000016c75 R15: 00007ffe40bc05d0
+ </TASK>
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+
+
 ---
- fs/ocfs2/move_extents.c | 5 +++++
- 1 file changed, 5 insertions(+)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 99637e34d9da..2548a8908a1b 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -690,6 +690,11 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
- 		goto out_commit;
- 	}
- 
-+	if (le16_to_cpu(gd->bg_free_bits_count) < len) {
-+		ret = -ENOSPC;
-+		goto out_commit;
-+	}
-+
- 	ret = ocfs2_block_group_set_bits(handle, gb_inode, gd, gd_bh,
- 					 goal_bit, len, 0, 0);
- 	if (ret) {
--- 
-2.43.0
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
 
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
