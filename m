@@ -1,163 +1,142 @@
-Received: from mail-oo1-f78.google.com (mail-oo1-f78.google.com [209.85.161.78])
+Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8627E1F12F8
-	for <ocfs2-devel@lists.linux.dev>; Sat,  3 Jan 2026 22:53:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.78
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 831F41E7C03
+	for <ocfs2-devel@lists.linux.dev>; Sun,  4 Jan 2026 01:40:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.179
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767480802; cv=none; b=P+gkVsE2E+qw99CsQlvgvjqNyMMRZLk73Cz9kLrQ6HNKrnzIS6FjDhkxhFn5ybp6ZT5ogic+wi0kvU9aFPlgnQJ38ECKp4cF/lY5gw5tJO7e+IsebtadrYm2eTHFzZUMrTmAUt44lCz4cE/GXtcFLJ5g/aUPl7QhvDk9GNa+HpU=
+	t=1767490840; cv=none; b=Jd74szzEYwmX9aWarue0ca8fQtkRck1/3B3GLI3ZxRXErNd+tLU6zlXMTvzCKRsfQOtFNWniUSiSlqeuGxZDK4GRhFjiwok17wjGqZn9hnbpp3sPunxaGvNk/HRCTZ2iehWq39lkegvTlt5mVQvdAX4VjetBOwsOErtf6MkuEV8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767480802; c=relaxed/simple;
-	bh=mGs1bRVeSh+t4py1Gfv7FfzT4HdDCsHUyftLVmmZSFU=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=oPXDd+aGyPgrHSlljJguC7FsKiSMEl2+alhshNDXfZSeAyizYuUfxcL0bvZw/fivbIP2vIhfvIwDdDmWW91+ZBFt7RsqG2aRmuEdqqAorAWcecuXD9bx3M6wzt68ZQCU9Bb//acAt0wTD71/8ngRRng6TouUnTq0Te4qF1cQrlc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.78
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f78.google.com with SMTP id 006d021491bc7-65ec1bb9db9so22956742eaf.0
-        for <ocfs2-devel@lists.linux.dev>; Sat, 03 Jan 2026 14:53:20 -0800 (PST)
+	s=arc-20240116; t=1767490840; c=relaxed/simple;
+	bh=y7/MyBJ/9luYBjLqkeIXsQQJWFW1iw7+OxRG6AiXpEY=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=lLvdAiwLUZfHID3zpfENYJBoqQ44kujrP0Gi4CUeCzRgLXcwBoR/W+1Wxp7MRLiV6apuLp4ffs9qzYMLHgX9YVHS/ELk7XzJebzaLCqtTHKqbou2WXwC4qnq06m5TFZTFyIcMyEqAKK7Fcwv9cXV8p9ZSfiUXT+VUOkTilPHhSA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jPsOIzkD; arc=none smtp.client-ip=209.85.214.179
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jPsOIzkD"
+Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-2a0d67f1877so171688835ad.2
+        for <ocfs2-devel@lists.linux.dev>; Sat, 03 Jan 2026 17:40:38 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1767490838; x=1768095638; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=u/tXdSO3fVx76Ok1kJAIyCPe7HRmB+07nRH72tLtOlU=;
+        b=jPsOIzkDdJ868SvZg4vP4M4zZhkZG+CXw4B1VVrFZaDmKWoBp91svkOVuI8dEaHA04
+         4YNSHCy6FAqYyC4OtWxVpU+sdQ9OFyQlzZErZzEvz9zwtNFed0P+rC0EMf+nUgJfV3VX
+         XmgA8tgYKfr12O7kHX2DqAf2GHNIfpdC1yR6I3ZQLJplUj807s33zITtq/qZZr7Bigy6
+         aOcyc5+Q0Y9kZisvPZTfQdgRVm56MSEv1jdO9gcFRP+B4l+JxmpGZh/Um2dGR1M8FFMp
+         /bbqp603tMsNKyYdlhbX+rnd7dcxy1kU/zDulGqkNe9IbuDL7JE/n1SwYNvsG+jVdOd4
+         91vw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1767480799; x=1768085599;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=flIXbE021FeCMcmFlqoisZsta6Sm7CPdwvsH3rttcQs=;
-        b=gM8D2OIZQj9CGvrXncilHXPKjkGDuVlxL8g4+06LLcMjt9uvSD0eIfadlICIgLztGb
-         QdjuFXA10xycJXfA6baBSgvITIO6wJlvBaNkeOCr4yV0BhGgGDBPPIMM9weNDRQ4u/jZ
-         lNxDc4NKsJgyKGv5RxwTTLTvQZluVWh91AJA26z5xFcoZP+fdMYXBG7acMtXkL1WSmDl
-         PiBNQHvktgVq3QfUTpmI1HoT1p/BHryz2quaFgxv5wzp8VGYfF6l4osHYdSGF9Nh8Nas
-         0eypNEKXV+iBDR//lMlUy1f2FVa+zDsAYFQWloK0BM6u4niwPYa2FauRt2bRreInwGte
-         RbyQ==
-X-Forwarded-Encrypted: i=1; AJvYcCXZaqe/ZLdfa+eLVpAr3o0XXm8MehngYMnO6dUD+p6+udMR76lnmV7Oji8yS7ZCy1hoq00cdi7t0QzWHw==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yz7fbWmteYDI8vClbYzetetu0SNP0fKrvzhd23i2nwTO/MTkDwW
-	aijeuPMkzAsYrjvhGwANf1lc1Vy8MrsHRXcRNFTgvyHCUU4D44GvYmLFMi38z2s1HI+vr84l94Y
-	cZNO9adJYXRlxX4vFNQ9gbgvJcB4ZbBxHuDNpQxap2Oj/J+u8tCGgBGxsdrM=
-X-Google-Smtp-Source: AGHT+IH2BdaFrqbM39x2lPWkSMiuGBRHMptrduW1lB4/t4JbnKVpEehidnncN6Vo+wRrjwQqEjbzTPDCtW3XjcbXgPEMkUC+9p4m
+        d=1e100.net; s=20230601; t=1767490838; x=1768095638;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=u/tXdSO3fVx76Ok1kJAIyCPe7HRmB+07nRH72tLtOlU=;
+        b=dNN7DEWR2pNvU3y2l1iEU1HV9BsJMpvFYmjeaz5BmHukVVDYJo8GHgnwI4UXUzeFr2
+         ItmgYZTRpQjmu7MqGCxuE6sl1j8QDiAohno4y+IRxwJMQa1hS2WM1qv93/tjK8sKgc5T
+         8K7UInBrJbGFMRaDjplJQ0aN4xrZFoGlzXhRGpsQ8kUvKG8VyRYfGabZZ+1khJnlzRvh
+         N2f0XdvfBesi7Ayx/cACXc6btz6xvx2rdv18wYZ1BgEd05O0wU8Z9kzmoQKl+O0sh4nM
+         B8ZVDxMfB2qxd3E7V83c2ZoDLrZbOXJo0suuP6uVu5YsJ4vy+yMhBlXQYIagdvLei2La
+         R37A==
+X-Gm-Message-State: AOJu0YyQS9fiQ5fJQV39G8Ycq8RA95jkqPTUvNBjvO6K3Sag9gp5ptTt
+	UsAdbWOVMLUOL+2xM/bAwv+9jNZM+VHIjRKABQnHTo/CAdZh0xGlqi4f
+X-Gm-Gg: AY/fxX5gl6h7VCnn8K8hqOvRXjPKCFJ9Y5BxEb03aRPAGZyB8WeFxwTqLC/jSzas4Tw
+	RphprzPItGnKqO2wLQTXiIvjclpyuNz4zDjsX0D3W/sE5z9eaeUwqkz69dK4Y57mN6LY0Tj2/DV
+	hDIrTJD5PeZXhahkrrVXanxJUkj4Ncnd1USGmkx7CoGgHA1r9/cIK0t0WOkk4VLDqMZh5t2SKZf
+	WJlhU3SALmKtQIXtfv/0k5GPY5gri+k8S48MSz9/9VbQCYwBzhpURetzZL6+XpxTyHuTNusNpXZ
+	pKzVI6KG4icY9FDR5eMunE65Rh8YpF4QWZM5tJiOpVP+/p7TFg0zcOFzOM3dH04QPF+Ibl0JFbT
+	rhkVrfbsQQG13LBA4iU/jclob71ilmQgevkPZgWZAiCc11GP1kRvar1ZSFJZKIumw1Xk7Oc/hNU
+	WHb2Wg6pCCifDyHPEDG/7k4bNN3Gko22TTW/hJAbJWhaet8fjHn+7f3vpoaMQJo1SzJKE=
+X-Google-Smtp-Source: AGHT+IHXVUVm6YVAUnC0nMuF0Hqoyzfgg7VE2iGfV1T56h0OA80JwuYzPsH3OTKdGoZ1FH7DMWcazw==
+X-Received: by 2002:a17:903:38c7:b0:2a0:c1ca:20f7 with SMTP id d9443c01a7336-2a2f2214973mr418825005ad.15.1767490837646;
+        Sat, 03 Jan 2026 17:40:37 -0800 (PST)
+Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:273c:63ea:24a7:bc91])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2a2f3c83325sm416486585ad.34.2026.01.03.17.40.33
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 03 Jan 2026 17:40:36 -0800 (PST)
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Deepanshu Kartikey <kartikey406@gmail.com>,
+	syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: validate allocator type to prevent BUG_ON in ocfs2_block_group_search
+Date: Sun,  4 Jan 2026 07:10:28 +0530
+Message-ID: <20260104014028.305029-1-kartikey406@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a4a:d84b:0:b0:659:9a49:8fbc with SMTP id
- 006d021491bc7-65d0eb2ffcdmr17182359eaf.53.1767480799398; Sat, 03 Jan 2026
- 14:53:19 -0800 (PST)
-Date: Sat, 03 Jan 2026 14:53:19 -0800
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <69599ddf.050a0220.1c9965.0014.GAE@google.com>
-Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_block_group_search
-From: syzbot <syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello,
+A corrupted filesystem image can have an inode allocator with the
+OCFS2_BITMAP_FL flag incorrectly set, making ocfs2_is_cluster_bitmap()
+return true. When the code later calls ocfs2_block_group_search(),
+it triggers BUG_ON(ocfs2_is_cluster_bitmap(inode)) causing a kernel panic.
 
-syzbot found the following issue on:
+Call trace:
+  ocfs2_block_group_search+0x1c7/0x2c0 fs/ocfs2/suballoc.c:1611
+  ocfs2_search_chain+0x38a/0x1010 fs/ocfs2/suballoc.c:1764
+  ocfs2_claim_suballoc_bits+0x3a4/0x650 fs/ocfs2/suballoc.c:1978
+  ocfs2_claim_new_inode+0x95/0x130 fs/ocfs2/suballoc.c:2137
+  ocfs2_mknod_locked+0x129/0x510 fs/ocfs2/namei.c:568
+  ocfs2_mknod+0x5c7/0x11d0 fs/ocfs2/namei.c:802
+  ocfs2_create+0x136/0x170 fs/ocfs2/namei.c:852
 
-HEAD commit:    dbf8fe85a16a Merge tag 'net-6.19-rc4' of git://git.kernel...
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=16b19792580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=513255d80ab78f2b
-dashboard link: https://syzkaller.appspot.com/bug?extid=44c564a3cb08605f34a1
-compiler:       Debian clang version 20.1.8 (++20250708063551+0c9f909b7976-1~exp1~20250708183702.136), Debian LLD 20.1.8
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=10ef2422580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=11b19792580000
+Add validation in ocfs2_reserve_suballoc_bits() to check that the
+allocator inode type matches the expected type:
+- Global bitmap allocator must have OCFS2_BITMAP_FL flag set
+- Other allocators (inode, extent) must NOT have OCFS2_BITMAP_FL set
 
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-dbf8fe85.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/86d0a4a4173a/vmlinux-dbf8fe85.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/23bd847a572d/bzImage-dbf8fe85.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/97470b986566/mount_0.gz
-  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=1047329a580000)
+This follows the existing pattern of validating OCFS2_CHAIN_FL in the
+same function and uses ocfs2_error() for graceful error handling.
 
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
 Reported-by: syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com
-
-=======================================================
-JBD2: Ignoring recovery information on journal
-ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
-------------[ cut here ]------------
-kernel BUG at fs/ocfs2/suballoc.c:1611!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-CPU: 0 UID: 0 PID: 5527 Comm: syz.0.17 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2~bpo12+1 04/01/2014
-RIP: 0010:ocfs2_block_group_search+0x367/0x490 fs/ocfs2/suballoc.c:1611
-Code: d9 80 e1 07 80 c1 03 38 c1 0f 8c c5 fe ff ff 48 89 df e8 0c 40 77 fe e9 b8 fe ff ff e8 92 95 0f fe 90 0f 0b e8 8a 95 0f fe 90 <0f> 0b f3 0f 1e fa 65 44 8b 3d 4f 2e cf 0e bf 07 00 00 00 44 89 fe
-RSP: 0018:ffffc90002616bb8 EFLAGS: 00010293
-RAX: ffffffff83b171d6 RBX: 000000000000004a RCX: ffff888000b70000
-RDX: 0000000000000000 RSI: 000000000000004a RDI: 000000000000004a
-RBP: 0000000000000001 R08: 00000000ffffffff R09: ffffc900026171a0
-R10: dffffc0000000000 R11: ffffffff83b16e70 R12: ffff8880470b0740
-R13: ffff88804453c740 R14: ffff8880230d7000 R15: 000000000000004a
-FS:  000055556aa08500(0000) GS:ffff88808d416000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007fbdcf97f000 CR3: 00000000113be000 CR4: 0000000000352ef0
-Call Trace:
- <TASK>
- ocfs2_search_chain+0x5f3/0x1d60 fs/ocfs2/suballoc.c:1836
- ocfs2_claim_suballoc_bits+0xc1e/0x1f60 fs/ocfs2/suballoc.c:2011
- ocfs2_claim_new_inode+0x332/0x7a0 fs/ocfs2/suballoc.c:2303
- ocfs2_mknod_locked+0x100/0x250 fs/ocfs2/namei.c:638
- ocfs2_mknod+0x10a5/0x2030 fs/ocfs2/namei.c:385
- ocfs2_create+0x195/0x420 fs/ocfs2/namei.c:677
- lookup_open fs/namei.c:4440 [inline]
- open_last_lookups fs/namei.c:4540 [inline]
- path_openat+0x18bb/0x3dd0 fs/namei.c:4784
- do_filp_open+0x1fa/0x410 fs/namei.c:4814
- do_sys_openat2+0x121/0x200 fs/open.c:1430
- do_sys_open fs/open.c:1436 [inline]
- __do_sys_openat fs/open.c:1452 [inline]
- __se_sys_openat fs/open.c:1447 [inline]
- __x64_sys_openat+0x138/0x170 fs/open.c:1447
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xec/0xf80 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fe1e2d8f7c9
-Code: ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fff02afc7a8 EFLAGS: 00000246 ORIG_RAX: 0000000000000101
-RAX: ffffffffffffffda RBX: 00007fe1e2fe5fa0 RCX: 00007fe1e2d8f7c9
-RDX: 000000000000275a RSI: 0000200000000040 RDI: ffffffffffffff9c
-RBP: 00007fe1e2e13f91 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007fe1e2fe5fa0 R14: 00007fe1e2fe5fa0 R15: 0000000000000004
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_block_group_search+0x367/0x490 fs/ocfs2/suballoc.c:1611
-Code: d9 80 e1 07 80 c1 03 38 c1 0f 8c c5 fe ff ff 48 89 df e8 0c 40 77 fe e9 b8 fe ff ff e8 92 95 0f fe 90 0f 0b e8 8a 95 0f fe 90 <0f> 0b f3 0f 1e fa 65 44 8b 3d 4f 2e cf 0e bf 07 00 00 00 44 89 fe
-RSP: 0018:ffffc90002616bb8 EFLAGS: 00010293
-RAX: ffffffff83b171d6 RBX: 000000000000004a RCX: ffff888000b70000
-RDX: 0000000000000000 RSI: 000000000000004a RDI: 000000000000004a
-RBP: 0000000000000001 R08: 00000000ffffffff R09: ffffc900026171a0
-R10: dffffc0000000000 R11: ffffffff83b16e70 R12: ffff8880470b0740
-R13: ffff88804453c740 R14: ffff8880230d7000 R15: 000000000000004a
-FS:  000055556aa08500(0000) GS:ffff88808d416000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007fd8f777e286 CR3: 00000000113be000 CR4: 0000000000352ef0
-
-
+Closes: https://syzkaller.appspot.com/bug?extid=44c564a3cb08605f34a1
+Tested-by: syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com
+Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+ fs/ocfs2/suballoc.c | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
 
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+index 8e6e5235b30c..fb72c062a8d5 100644
+--- a/fs/ocfs2/suballoc.c
++++ b/fs/ocfs2/suballoc.c
+@@ -813,6 +813,26 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
+ 		goto bail;
+ 	}
+ 
++	/*
++	 * Validate allocator type matches expected bitmap type.
++	 * Global bitmap must have BITMAP flag, other allocators must not.
++	 * This prevents a corrupted filesystem from triggering BUG_ON
++	 * in ocfs2_block_group_search() or ocfs2_cluster_group_search().
++	 */
++	if (type == GLOBAL_BITMAP_SYSTEM_INODE) {
++		if (!ocfs2_is_cluster_bitmap(alloc_inode)) {
++			status = ocfs2_error(alloc_inode->i_sb,
++					     "Global bitmap %llu missing bitmap flag\n",
++					     (unsigned long long)le64_to_cpu(fe->i_blkno));
++			goto bail;
++		}
++	} else if (ocfs2_is_cluster_bitmap(alloc_inode)) {
++		status = ocfs2_error(alloc_inode->i_sb,
++				     "Allocator %llu has invalid bitmap flag\n",
++				     (unsigned long long)le64_to_cpu(fe->i_blkno));
++		goto bail;
++	}
++
+ 	free_bits = le32_to_cpu(fe->id1.bitmap1.i_total) -
+ 		le32_to_cpu(fe->id1.bitmap1.i_used);
+ 
+-- 
+2.43.0
 
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
