@@ -1,142 +1,98 @@
-Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
+Received: from mail-ot1-f71.google.com (mail-ot1-f71.google.com [209.85.210.71])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 41FBB30DEB9
-	for <ocfs2-devel@lists.linux.dev>; Sun,  4 Jan 2026 13:35:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A3D202D7DDE
+	for <ocfs2-devel@lists.linux.dev>; Mon,  5 Jan 2026 08:20:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.71
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767533715; cv=none; b=hfCDI2VJxSjWD7d4abr5uyTqXi1vzzjt3qqITYG5gaKZJzbTJlzJMl1Jk6qMwRKGsNUkFa1t9OZrgG71eDBZ8hvnR1m05EuxXEHo22osuobU9XGwu2/NQpercCQww2A6rvnX4wJpJGhu4VSSxL14NtYdmBAf1tx+th5nA5BtSjs=
+	t=1767601221; cv=none; b=XqckZk0Lo0OFi+aRVH4G4/n0eonksz9/L1k4GxcGiUbWCb+EDi1Ky7FTDa1HlkZieogkw3IU7+QAp2bF7YKX23v8kz9bD8rxbO2HyXQfv2gTgqaXLHNvpJ4DMD76l6T8gwsfh2W7aMZ6W2dXPvay12YiuxJLkoU0KYKlH1avjxE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767533715; c=relaxed/simple;
-	bh=gsITpUOGdQDLvCVOzdeUMZ3zpJsx1qlz2qHxo5nVveo=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Lkp1e/QYiRk//WA8D/q7WbLDPJ8fQ0goB6iriC4NWmIBtUdbjl/vRuhHSrgI8fBKQStHMNBwxkM1cYl6YiO08RkgWmCOLEIexF622P5tay0JBrFWkpgobAVadlvR89aE+xfIE0cgOkrRG5fE5Cb8vIT6xFzyYTKnVUbkl41tpL0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=IDroqPIv; arc=none smtp.client-ip=209.85.214.179
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="IDroqPIv"
-Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-2a0c09bb78cso7549975ad.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 04 Jan 2026 05:35:14 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1767533713; x=1768138513; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=2BBSlS/sUmpDgECm0JFuorFD0hPkfViLXKE80/Mz72E=;
-        b=IDroqPIve6uP1y5/S0d6iTHLxcb7FE3oN1JhycZ8wUUn9SOs/WwL2JNzAsQQvtGuEi
-         RLAFheZ8uG1qhfAi4qozNzOhvNRA8MG4H0V107g7xfiwgLy+p9rjEjoiVXzpN07tIK14
-         kZpNDx64CGRibtUH6ZUYVqK7JoGOIYaIIOzEBeDPy+lcV4plf64pb4GYXnKdv6/dcY6a
-         mTsPIDR+ybIU9QVXmwfLA8Lc0Sb4ut/E/2BrKdsldt+PCCy40oBJtiqXsPGEDIyqZGki
-         dow7HEjlypBYPgW0zmOQvNPhUdPOEcWAlKp+ctBFroj7g1pJUiOSzrYPNUV3ZLyn8OOF
-         1AKg==
+	s=arc-20240116; t=1767601221; c=relaxed/simple;
+	bh=p2o5Zb/sw8QKPT8iusvRoVPUC8mWWMcldIy0Bn+YbQs=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=jpivTj1q14RMNNqAXzdWlhDEDHS77R+bp1Ei/iY1r/Fw5EPJCrYiu4afoTeIyrNEQpcXiuBf+1LvAQajzTEgBECI6px3XDTxDJiyo9P8HLbNwdBWi535g7lM0s54+fmifIfk6ymMHHKULLsyHiTt03lAZAIqCvJ8DHf9RXblmys=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.71
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f71.google.com with SMTP id 46e09a7af769-7c7599be25cso37137948a34.2
+        for <ocfs2-devel@lists.linux.dev>; Mon, 05 Jan 2026 00:20:19 -0800 (PST)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1767533713; x=1768138513;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=2BBSlS/sUmpDgECm0JFuorFD0hPkfViLXKE80/Mz72E=;
-        b=nBV9t3d1RUmtQUi2vFhHApDZ+WAU41p7lveM/BfDXJeLuiU0ejmpuCkOi01zxXxFhH
-         Lph29wYa1Yori+06rOIRl+c9YtddHjZYT7bMGml8/bnWsUCejq86hCxlg54EWUEVaDAr
-         Hg/+4Mf4dJkvg8i8AqplujQL11WDvZKT9KyBP/kGsXxeUDqi9sA25e9ERV/lIdAaFjiA
-         0lk2VT6NkR10X9x4Apqj7f4MXxIjUqE8wuHy7p31CLnhw78iq+4hh5axzTVMskYbgsyj
-         bESALmBePpPRueMbHBpYL4duCryU5z7W6jhI2HQtLHlCPPAZ96tYDo+jx62Fk59AhOwI
-         qMBQ==
-X-Gm-Message-State: AOJu0Yy7C9/d6s2DssH4KnBX6N8dZeeNgfX1fW7ACcc7CK1KEa1rvFpU
-	cZsqtmagG9cYq6jGw7/vlH746uvqn3czsPD9R0D8aWJDYZg9f9LG5tXS
-X-Gm-Gg: AY/fxX4p67E2gxy1Dn3kmsRRJaRIFn0h6gk5pn3+vw75zC8MW6gd+zdvgAUV5yJUILd
-	Vy5bLw5oJxW7rRJBck0ZYyjCqDn63ze/WdpIS+98Za+iPn6Yp3UndRl/FHBOAcP5hGx6jV55aJr
-	9SIJtcX3HMsvIPCFW7Sg7auYOxcU1mmkq3TlzHIZACXLvxro9e4/ZjGklEh4ARGjQeBTRqK6tvf
-	mpv8YOj6GDx4SN0ovc7v3jBsYgmr1bpAvjzWKqIZfop2tKbshsoT8X1KRPXgRp3i0hCNG3ebDFW
-	wBL2qApfwCKmdoQTNELVtbzCSh8L8jdKVwmhKmDocF/gGT9tbc0fV9WMzNOVeZXhv5rJqm1383d
-	IBk28VDqndSDdpAEzrDYoA8GIVcgYZMl9NNko82i6Cxm4PCP91miz5lGN6Wo+Mp1HoUWEqHE9FO
-	S1KWjvYsQjpygukZuoTfCwZ2R9qYnUDmK2OWRM+cEpzOiYGeV4IYsvgGz50Ie5cMxU694=
-X-Google-Smtp-Source: AGHT+IGIlOvMhqWcVXHVVnRdmo2BxUI7PrzIbxyarhVVyfVzGIbsKISoPxKEzukQ5jH+92p+2N1zcw==
-X-Received: by 2002:a17:903:1984:b0:2a0:d0ae:454d with SMTP id d9443c01a7336-2a3c09b7ae4mr40296305ad.22.1767533713379;
-        Sun, 04 Jan 2026 05:35:13 -0800 (PST)
-Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:3d5d:94a5:a074:8109])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2a2f3d4d36esm429756545ad.63.2026.01.04.05.35.09
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 04 Jan 2026 05:35:12 -0800 (PST)
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	syzbot+7960178e777909060224@syzkaller.appspotmail.com
-Subject: [PATCH v2] ocfs2: add check for free bits before allocation in ocfs2_move_extent()
-Date: Sun,  4 Jan 2026 19:05:04 +0530
-Message-ID: <20260104133504.14810-1-kartikey406@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        d=1e100.net; s=20230601; t=1767601218; x=1768206018;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=Rrd56Q+vMinNBLS8QrXy5Td5XqJF0ZAtFtuULGke8iw=;
+        b=YuNcpJHboY2M7ennBkOt+sFeHrprg/uBd3J0NPFb3AHyN4goblwDfW3KqAcywyZJ8W
+         6Fw7en9k/VXR9lCG3ayedG8dOlcE87KH8UgxOMwrPMvIS9phqMm2sjizPrjjR7UlTpIE
+         4IZb0lkHqV7ihP5rdo78AxZPP5aygmtkhmMy1ub9esfCo1qcsaPgKfLxCQfRojy8mnx8
+         WVJbYoFC2KD4mwUiuuJng2Fwmr/fLxjFagHXQbMS5xqk4oQqVniFZn5H327tgx1Y0CuK
+         caVydcFhFr8vNX/iUil4mdO2w8gGHLXOCLqLS4upKQ3jXLTe6zClqubJHfKTkaz2ceFP
+         EPvA==
+X-Forwarded-Encrypted: i=1; AJvYcCUDlo4MWCSmCBTt28PQYlweDLMTEZMbS0u71TxGRwNxF5TADKO51oOIv84VrFTNZqNgmwrKbaN0ioyEFw==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yyi2aV5AXZKSellMuTTbYIeclPV+Q0OJAujrGmHPCloR1sW6sM7
+	FM0/VcRIVie0UGN8sgCFsTltKz5G48OYoi4zD9CoFRo10SBBBGw4AshzwZvZc2Igqo9E4wtbjdI
+	MpZmWaU0pfbsxBIhDzS9QXGDzKBchJccXaqjh+RTUVBVdGR8u+cU/J9P98UM=
+X-Google-Smtp-Source: AGHT+IGW7EX4JgGa06fhI8dSmYKO2lZGODwPdzX1KElVxLpoj7q9fH3ktImkY1Y7cSAe5mcjO3jxw0Ad+XNMJwcQ66DjuXWBjNgq
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a4a:b2c8:0:b0:659:9a49:8f40 with SMTP id
+ 006d021491bc7-65d0eb303fbmr13843630eaf.81.1767601218571; Mon, 05 Jan 2026
+ 00:20:18 -0800 (PST)
+Date: Mon, 05 Jan 2026 00:20:18 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <695b7442.050a0220.1c9965.0026.GAE@google.com>
+Subject: [syzbot] Monthly ocfs2 report (Jan 2026)
+From: syzbot <syzbot+list02cfeae29bbd48f214f1@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-Add a check to verify the group descriptor has enough free bits before
-attempting allocation in ocfs2_move_extent(). This prevents a kernel
-BUG_ON crash in ocfs2_block_group_set_bits() when the move_extents ioctl
-is called on a crafted or corrupted filesystem.
+Hello ocfs2 maintainers/developers,
 
-The existing validation in ocfs2_validate_gd_self() only checks static
-metadata consistency (bg_free_bits_count <= bg_bits) when the descriptor
-is first read from disk. However, during move_extents operations,
-multiple allocations can exhaust the free bits count below the requested
-allocation size, triggering BUG_ON(le16_to_cpu(bg->bg_free_bits_count)
-< num_bits).
+This is a 31-day syzbot report for the ocfs2 subsystem.
+All related reports/information can be found at:
+https://syzkaller.appspot.com/upstream/s/ocfs2
 
-The debug trace shows the issue clearly:
-  - Block group 32 validated with bg_free_bits_count=427
-  - Repeated allocations decreased count: 427 -> 171 -> 43 -> ... -> 1
-  - Final request for 2 bits with only 1 available triggers BUG_ON
+During the period, 6 new issues were detected and 0 were fixed.
+In total, 58 issues are still open and 25 have already been fixed.
 
-By adding an early check in ocfs2_move_extent() right after
-ocfs2_find_victim_alloc_group(), we return -ENOSPC gracefully instead of
-crashing the kernel. This also avoids unnecessary work in
-ocfs2_probe_alloc_group() and __ocfs2_move_extent() when the allocation
-will fail.
+Some of the still happening issues:
 
-Reported-by: syzbot+7960178e777909060224@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=7960178e777909060224
-Link: https://lore.kernel.org/all/20251231115801.293726-1-kartikey406@gmail.com/T/ [v1]
-Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+Ref  Crashes Repro Title
+<1>  354845  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
+                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
+<2>  40911   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
+                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
+<3>  24725   Yes   possible deadlock in ocfs2_init_acl
+                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
+<4>  23196   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
+                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
+<5>  15759   Yes   possible deadlock in ocfs2_setattr
+                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
+<6>  7163    No    possible deadlock in ocfs2_xattr_set
+                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
+<7>  6159    Yes   kernel BUG in ocfs2_write_cluster_by_desc
+                   https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
+<8>  3989    Yes   possible deadlock in ocfs2_lock_global_qf
+                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
+<9>  3666    Yes   possible deadlock in ocfs2_del_inode_from_orphan
+                   https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
+<10> 3593    Yes   kernel BUG in link_path_walk
+                   https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
+
 ---
-v2:
-  - Fixed missing '<' in commit message (Joseph)
-  - Moved check right after ocfs2_find_victim_alloc_group() to fail
-    early and avoid unnecessary work (Joseph)
----
- fs/ocfs2/move_extents.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index 99637e34d9da..c037fb34b1e3 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -662,6 +662,12 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
- 		goto out_commit;
- 	}
- 
-+	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
-+	if (le16_to_cpu(gd->bg_free_bits_count) < len) {
-+		ret = -ENOSPC;
-+		goto out_commit;
-+	}
-+
- 	/*
- 	 * probe the victim cluster group to find a proper
- 	 * region to fit wanted movement, it even will perform
-@@ -682,7 +688,6 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
- 		goto out_commit;
- 	}
- 
--	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
- 	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
- 					       le16_to_cpu(gd->bg_chain));
- 	if (ret) {
--- 
-2.43.0
+To disable reminders for individual bugs, reply with the following command:
+#syz set <Ref> no-reminders
 
+To change bug's subsystems, reply with:
+#syz set <Ref> subsystems: new-subsystem
+
+You may send multiple commands in a single email message.
