@@ -1,31 +1,31 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+Received: from www262.sakura.ne.jp (www262.sakura.ne.jp [202.181.97.72])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AAD1728151C
-	for <ocfs2-devel@lists.linux.dev>; Tue,  6 Jan 2026 04:24:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3701930EF75
+	for <ocfs2-devel@lists.linux.dev>; Tue,  6 Jan 2026 10:11:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.181.97.72
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767673500; cv=none; b=Ti6TPtDrUXhobmlB9thuDIfQ6fJvfOaE7KooKTolGF/unp/WmvdzCgIc7CNYxse7BgZjs12qp1UqimRxtXe0GrTUN3uJOztUuFH0or12n7+2vwclYKZKVDnZHgHyTl+RaZe8yjKJ+Mjdz63zpThwRG76gBEDaUbAjmCPskr4bJ4=
+	t=1767694288; cv=none; b=FJLsm+iscB7CNczURxN8vSzYrkXzU+dyunOWu7ohUKFfcb1y4/jBYF7vr8uQsIavhhwq8fxQvdMPtqzTP8kFV6IXKmGL27RVC3pdIZORHBDHDiDtfMm9xlvvO2q61UZJIZ9glrvyg1/LObDt7ED8eoLQQtiY5qZFBeVCNq71GRI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767673500; c=relaxed/simple;
-	bh=Jpbps//cwARc1XquVrU1tc+JNu605lG0eh135KspRYU=;
+	s=arc-20240116; t=1767694288; c=relaxed/simple;
+	bh=7+pJ9a9wzlsO0NlkO0D77NZZGffvvy6kI4LGzXtpMqs=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=RyJy3/STHE9WbwZ0VY6URHkzn3Dmn22ykN0eRLFdkiZy9EM/stdfu0DZgDZqFUBciEuAdI7bNEKF0nZK/SaafahZlir/oFNIhgqvDkkz60eG0AQTRpr8Hh0vEUjYCuHh1TwgJUZCH9Puunvzc1qRyCihis2+Y2FpnJF9P5HpJuo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Aszw2+Kr; arc=none smtp.client-ip=115.124.30.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Aszw2+Kr"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1767673489; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=zYMEBifjXil6F91v7+0wlCFzZNGBJa98+MntA/4nORo=;
-	b=Aszw2+Kr8bQCixipbJbFgWXXdX3JJ+6VacpUATxkFQvYM8cnBqcR+Rmi91UKpphFZ2c9nhnjjb3HEoRt4LfdVcrBBYZPDoQK41lrHTVEWhAW7z19x1Ij3blulqaeJ8NhgxGyRynTbSZ1fP/R3jpmdpVukkzGOxtPeW2Dq5PoF2Q=
-Received: from 30.41.143.132(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WwUUiTy_1767673487 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 06 Jan 2026 12:24:48 +0800
-Message-ID: <891d26e3-8930-4fe8-847b-c3919934de0a@linux.alibaba.com>
-Date: Tue, 6 Jan 2026 12:24:47 +0800
+	 In-Reply-To:Content-Type; b=oxglT19jjrz+4k21phgm5zy7axvQlViGrqVCxgoQZ912sT24oIWL438O1vIFrSbrLEkIVQzADIrJ6BzxkR8X4ahgKbfwQ9Pv/2dDsoCiahva4RKY2hhadk6P9dL7pLwGV9jaRCFxW76dqU7p0C8FtavftFWQuAlcf057KEMZgOo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=I-love.SAKURA.ne.jp; spf=pass smtp.mailfrom=I-love.SAKURA.ne.jp; arc=none smtp.client-ip=202.181.97.72
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=I-love.SAKURA.ne.jp
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=I-love.SAKURA.ne.jp
+Received: from www262.sakura.ne.jp (localhost [127.0.0.1])
+	by www262.sakura.ne.jp (8.15.2/8.15.2) with ESMTP id 606AAhR4051469;
+	Tue, 6 Jan 2026 19:10:43 +0900 (JST)
+	(envelope-from penguin-kernel@I-love.SAKURA.ne.jp)
+Received: from [192.168.1.10] (M106072142033.v4.enabler.ne.jp [106.72.142.33])
+	(authenticated bits=0)
+	by www262.sakura.ne.jp (8.15.2/8.15.2) with ESMTPSA id 606AAhFa051464
+	(version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NO);
+	Tue, 6 Jan 2026 19:10:43 +0900 (JST)
+	(envelope-from penguin-kernel@I-love.SAKURA.ne.jp)
+Message-ID: <afaeed87-66bd-4203-ae81-842ca4619db9@I-love.SAKURA.ne.jp>
+Date: Tue, 6 Jan 2026 19:10:41 +0900
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,83 +33,81 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: add check for free bits before allocation in
- ocfs2_move_extent()
-To: Deepanshu Kartikey <kartikey406@gmail.com>, mark@fasheh.com,
- jlbec@evilplan.org, akpm <akpm@linux-foundation.org>,
- Heming Zhao <heming.zhao@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- syzbot+7960178e777909060224@syzkaller.appspotmail.com
-References: <20260104133504.14810-1-kartikey406@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260104133504.14810-1-kartikey406@gmail.com>
+Subject: Re: [PATCH for 6.19-rc1] fs: preserve file type in make_bad_inode()
+ unless invalid
+To: Jan Kara <jack@suse.cz>
+Cc: Mateusz Guzik <mjguzik@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>,
+        syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>,
+        brauner@kernel.org, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+        linkinjeon@kernel.org, linux-fsdevel@vger.kernel.org,
+        linux-kernel@vger.kernel.org, mark@fasheh.com,
+        ocfs2-devel@lists.linux.dev, sj1557.seo@samsung.com,
+        syzkaller-bugs@googlegroups.com, Chuck Lever <chuck.lever@oracle.com>
+References: <6w4u7ysv6yxdqu3c5ug7pjbbwxlmczwgewukqyrap3ltpazp4s@ozir7zbfyvfj>
+ <6930e200.a70a0220.d98e3.01bd.GAE@google.com>
+ <CAGudoHE0Q-Loi_rsbk5rnzgtGfbvY+Fpo9g=NPJHqLP5G_AaUg@mail.gmail.com>
+ <20251204082156.GK1712166@ZenIV>
+ <CAGudoHGLFBq2Fg5ksJeVkn=S2pv6XzxenjVFrQYScA7QV9kwJw@mail.gmail.com>
+ <7e2bd36e-3347-4781-a6fd-96a41b6c538d@I-love.SAKURA.ne.jp>
+ <wqkxevwtev5p77czk2com5zvbbwcpxxeucrt7zbgjciqxjyivx@c7624klburuh>
+Content-Language: en-US
+From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+In-Reply-To: <wqkxevwtev5p77czk2com5zvbbwcpxxeucrt7zbgjciqxjyivx@c7624klburuh>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
+X-Anti-Virus-Server: fsav304.rs.sakura.ne.jp
+X-Virus-Status: clean
 
+On 2025/12/10 19:09, Jan Kara wrote:
+> On Wed 10-12-25 18:45:26, Tetsuo Handa wrote:
+>> syzbot is hitting VFS_BUG_ON_INODE(!S_ISDIR(inode->i_mode)) check
+>> introduced by commit e631df89cd5d ("fs: speed up path lookup with cheaper
+>> handling of MAY_EXEC"), for make_bad_inode() is blindly changing file type
+>> to S_IFREG. Since make_bad_inode() might be called after an inode is fully
+>> constructed, make_bad_inode() should not needlessly change file type.
+>>
+>> Reported-by: syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
+>> Closes: https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
+>> Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+> 
+> No. make_bad_inode() must not be called once the inode is fully visible
+> because that can cause all sorts of fun. That function is really only good
+> for handling a situation when read of an inode from the disk failed or
+> similar early error paths.
+I'm surprised to hear that.
 
+But since commit 58b6fcd2ab34 ("ocfs2: mark inode bad upon validation failure
+during read") is a bug fix, we want to somehow prevent this bug from re-opening.
 
-On 2026/1/4 21:35, Deepanshu Kartikey wrote:
-> Add a check to verify the group descriptor has enough free bits before
-> attempting allocation in ocfs2_move_extent(). This prevents a kernel
-> BUG_ON crash in ocfs2_block_group_set_bits() when the move_extents ioctl
-> is called on a crafted or corrupted filesystem.
-> 
-> The existing validation in ocfs2_validate_gd_self() only checks static
-> metadata consistency (bg_free_bits_count <= bg_bits) when the descriptor
-> is first read from disk. However, during move_extents operations,
-> multiple allocations can exhaust the free bits count below the requested
-> allocation size, triggering BUG_ON(le16_to_cpu(bg->bg_free_bits_count)
-> < num_bits).
-> 
-> The debug trace shows the issue clearly:
->   - Block group 32 validated with bg_free_bits_count=427
->   - Repeated allocations decreased count: 427 -> 171 -> 43 -> ... -> 1
->   - Final request for 2 bits with only 1 available triggers BUG_ON
-> 
-> By adding an early check in ocfs2_move_extent() right after
-> ocfs2_find_victim_alloc_group(), we return -ENOSPC gracefully instead of
-> crashing the kernel. This also avoids unnecessary work in
-> ocfs2_probe_alloc_group() and __ocfs2_move_extent() when the allocation
-> will fail.
-> 
-> Reported-by: syzbot+7960178e777909060224@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=7960178e777909060224
-> Link: https://lore.kernel.org/all/20251231115801.293726-1-kartikey406@gmail.com/T/ [v1]
-> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+Minimal change for this release cycle might look like
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
-> v2:
->   - Fixed missing '<' in commit message (Joseph)
->   - Moved check right after ocfs2_find_victim_alloc_group() to fail
->     early and avoid unnecessary work (Joseph)
-> ---
->  fs/ocfs2/move_extents.c | 7 ++++++-
->  1 file changed, 6 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index 99637e34d9da..c037fb34b1e3 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -662,6 +662,12 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  		goto out_commit;
->  	}
->  
-> +	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
-> +	if (le16_to_cpu(gd->bg_free_bits_count) < len) {
-> +		ret = -ENOSPC;
-> +		goto out_commit;
-> +	}
-> +
->  	/*
->  	 * probe the victim cluster group to find a proper
->  	 * region to fit wanted movement, it even will perform
-> @@ -682,7 +688,6 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
->  		goto out_commit;
->  	}
->  
-> -	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
->  	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
->  					       le16_to_cpu(gd->bg_chain));
->  	if (ret) {
+----------
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index b5fcc2725a29..2c97c8b4013f 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1715,8 +1715,13 @@ int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
+ 	rc = ocfs2_read_blocks(INODE_CACHE(inode), OCFS2_I(inode)->ip_blkno,
+ 			       1, &tmp, flags, ocfs2_validate_inode_block);
+ 
+-	if (rc < 0)
++	if (rc < 0) {
++		/* Preserve file type while making operations no-op. */
++		umode_t	mode = inode->i_mode & S_IFMT;
++
+ 		make_bad_inode(inode);
++		inode->i_mode = mode;
++	}
+ 	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
+ 	if (!rc && !*bh)
+ 		*bh = tmp;
+----------
+
+but what approach do you prefer?
+
+Introduce a copy of bad_{inode,file}_ops for ocfs2 and replace
+a call to make_bad_inode() with updating only {inode,file}_ops ?
+
+Or, modify existing {inode,file}_ops for ocfs2 to check whether
+an I/O error has occurred in the past?
 
