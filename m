@@ -1,113 +1,119 @@
-Received: from www262.sakura.ne.jp (www262.sakura.ne.jp [202.181.97.72])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3701930EF75
-	for <ocfs2-devel@lists.linux.dev>; Tue,  6 Jan 2026 10:11:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.181.97.72
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8473226ED41
+	for <ocfs2-devel@lists.linux.dev>; Tue,  6 Jan 2026 11:31:16 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767694288; cv=none; b=FJLsm+iscB7CNczURxN8vSzYrkXzU+dyunOWu7ohUKFfcb1y4/jBYF7vr8uQsIavhhwq8fxQvdMPtqzTP8kFV6IXKmGL27RVC3pdIZORHBDHDiDtfMm9xlvvO2q61UZJIZ9glrvyg1/LObDt7ED8eoLQQtiY5qZFBeVCNq71GRI=
+	t=1767699077; cv=none; b=Db1MKH7JICzznsjh99ZwxJc6Ed0smU/QxuKqN2w5h2cOJtM49D9TOpCzEBX7xj0c+ZEOck7LK1DB5KAdFcagZhnV8Y11oMTDi/FKmHvozHmEuUFpctmMmUzGjNrdrwQO5R0bvacFjpN6P/o7+Z69OXga7DfvBN7KL2WsnqJrdPM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767694288; c=relaxed/simple;
-	bh=7+pJ9a9wzlsO0NlkO0D77NZZGffvvy6kI4LGzXtpMqs=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=oxglT19jjrz+4k21phgm5zy7axvQlViGrqVCxgoQZ912sT24oIWL438O1vIFrSbrLEkIVQzADIrJ6BzxkR8X4ahgKbfwQ9Pv/2dDsoCiahva4RKY2hhadk6P9dL7pLwGV9jaRCFxW76dqU7p0C8FtavftFWQuAlcf057KEMZgOo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=I-love.SAKURA.ne.jp; spf=pass smtp.mailfrom=I-love.SAKURA.ne.jp; arc=none smtp.client-ip=202.181.97.72
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=I-love.SAKURA.ne.jp
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=I-love.SAKURA.ne.jp
-Received: from www262.sakura.ne.jp (localhost [127.0.0.1])
-	by www262.sakura.ne.jp (8.15.2/8.15.2) with ESMTP id 606AAhR4051469;
-	Tue, 6 Jan 2026 19:10:43 +0900 (JST)
-	(envelope-from penguin-kernel@I-love.SAKURA.ne.jp)
-Received: from [192.168.1.10] (M106072142033.v4.enabler.ne.jp [106.72.142.33])
-	(authenticated bits=0)
-	by www262.sakura.ne.jp (8.15.2/8.15.2) with ESMTPSA id 606AAhFa051464
-	(version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NO);
-	Tue, 6 Jan 2026 19:10:43 +0900 (JST)
-	(envelope-from penguin-kernel@I-love.SAKURA.ne.jp)
-Message-ID: <afaeed87-66bd-4203-ae81-842ca4619db9@I-love.SAKURA.ne.jp>
-Date: Tue, 6 Jan 2026 19:10:41 +0900
+	s=arc-20240116; t=1767699077; c=relaxed/simple;
+	bh=fO6UupZFERJDlIqdOpw2trQhlGReg9afEXPDwnqDu6U=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=msGJ2CTSA8WSD14a62SxoOkOgUnd6AWwHbZJjjfIhY0RZSuh/gzteb8qpcsgZWD0oQ3R2KG00h5Ha30tcAsheaS0GUY6a641DOkAYv0bAZRD2y3KCRp/ZZRtyLOUkFn31C5d8yp+yiyMpkIGG+qWkZOKM6AzJqQKiiOgiFqHwbg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=aYn2uX0N; arc=none smtp.client-ip=209.85.214.173
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="aYn2uX0N"
+Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-2a12ed4d205so8553395ad.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 06 Jan 2026 03:31:16 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1767699076; x=1768303876; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=/VMdGXBoUMv4tiAoGbxdhRDIq3r8oLq9e7PJQPOZXxY=;
+        b=aYn2uX0NEAZjluy2hPQN65ccoH26wEwRRGBHOpKIZSCDEvwn3vn4jGH6oL+ZiBZKaC
+         yhXMlsdy/KSG9FdlYABARUQ2Cnj6DopwRw2q0eOmFBK5cgivCh5MfzD3aEIqWgYHIjiM
+         yA52wCuepJY76DzUovNKrEuTYQA8eQaSfGxO3O/t8jqx91e89w7achhpqvGruu5e3Ffp
+         mHEyO6nttCCeTO2U+rrn6HpKU2n7PK1ayBFWmhlkJ+OxFqN1CocRm5rHFakAjv1nxIzF
+         Af6kXOsNUGVdGBqlHXi5Iic8gqM6SocwiuYiACNBiFPgidLI/5y1G95d93yRwMbVdysF
+         MTgQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1767699076; x=1768303876;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=/VMdGXBoUMv4tiAoGbxdhRDIq3r8oLq9e7PJQPOZXxY=;
+        b=abPwCX64JbfnLVMQfqbl0/njVJiRpF89XtOSMJSJXFd5sSgQewLhJkN5TDqTKH1iir
+         wefVloC4kOTrKQ+Ib1sSNRA2f0zZrnnKdikch2eJa2ATgCxZepMgC7BzIuMu67IHCY0P
+         QncdsaujcCQGxPeZFP8+zbSLo44K0cqg9ttuGALHDBZihZ2vtubh3zUyz4uCd3cMmYIn
+         5QIxVjqeV0d22PvR4VhATJvUf6Bt/0MUsy++MHKuBzcR1f8An+UXhwnkZOYJXpIj6xwK
+         HynbqFkmUkyMKa0r+uXQ03ZRuPPrcJz0WbHluYnxNh5m/BIHtzqUz9ItT7xyxkfdHKpl
+         lWHw==
+X-Forwarded-Encrypted: i=1; AJvYcCWpTlflVIqnZydwJmEh+rc8fE2YF02dKqFDf5XObYu7h56F5bWj2BiM7vmtVmAwqEXwVoQwY/J4/YFnsg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyzGKEZXQXebbKt81owZciPZGA5ySxVLbX+M7myDzHoThmuaqZK
+	m32FC23UqsiPr+tCUuraiBIagz/BNqvTvna9LIFQufUhsDe75uKLKkis
+X-Gm-Gg: AY/fxX6i0t85Zb1ZcLkSHLihrkAnZSNFcHaNuTdFvnmQEU8dy00cB/8wWPzag/6YWvO
+	J1a8PC5XH/P/qmHd8kGSGbTJb1uB7pxYMztMlGgEGbRQs9UteoG+LjnuaF1Ll2CCNSaTrCXQROT
+	NndqJ+bisCqIABjIF+CIcL1eoQCmAS60NcKtooMrWbj8kXITbDxjZVRkQ9m9WSXSCtt1f7+fJgH
+	Nu8ibk90HmO25yuNZbpoiIu2lI82T5ScJsgvFUB9OWtGWRnHD6hRNRv+MmyPqpF11sNAboTfmmm
+	Fn9ESvKtcuZZGAa51D7X95qYbvvYMRs6eh+BphMmwPs39oHr4Zz8XSgTzqO1eFYbUQvzUo5VBvd
+	GdYHp2tffVVfBjx4cAg61QvuLmcYoPc5uQREPw5nNWR+iAN3u+hy9Z75vThvt9rdN6lWGM1l841
+	BP6lnLtDcF/WZoPiRcu3uxm2mOQ4M=
+X-Google-Smtp-Source: AGHT+IGkZ2hYbxyNtYQzCgXbNxMzUF9RoMX0pxZNWyZumEeNfVr1GE9y2to/afCSMZ5/UzIK3VNLMQ==
+X-Received: by 2002:a17:902:c946:b0:29e:e925:1aa0 with SMTP id d9443c01a7336-2a3e2e1353dmr26524895ad.45.1767699075681;
+        Tue, 06 Jan 2026 03:31:15 -0800 (PST)
+Received: from localhost.localdomain ([111.125.210.92])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2a3e3c4796asm20750675ad.34.2026.01.06.03.31.11
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 06 Jan 2026 03:31:15 -0800 (PST)
+From: Prithvi Tambewagh <activprithvi@gmail.com>
+To: syzbot+78359d5fbb04318c35e9@syzkaller.appspotmail.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	mark@fasheh.com
+Cc: heming.zhao@suse.com,
+	linux-kernel@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	syzkaller-bugs@googlegroups.com,
+	Prithvi Tambewagh <activprithvi@gmail.com>
+Subject: Syzbot test for ocfs2: Fix deadlock in ocfs2_del_inode_from_orphan
+Date: Tue,  6 Jan 2026 17:00:53 +0530
+Message-Id: <20260106113053.284336-1-activprithvi@gmail.com>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <66fdfef3.050a0220.9ec68.0031.GAE@google.com>
+References: <66fdfef3.050a0220.9ec68.0031.GAE@google.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH for 6.19-rc1] fs: preserve file type in make_bad_inode()
- unless invalid
-To: Jan Kara <jack@suse.cz>
-Cc: Mateusz Guzik <mjguzik@gmail.com>, Al Viro <viro@zeniv.linux.org.uk>,
-        syzbot <syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com>,
-        brauner@kernel.org, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
-        linkinjeon@kernel.org, linux-fsdevel@vger.kernel.org,
-        linux-kernel@vger.kernel.org, mark@fasheh.com,
-        ocfs2-devel@lists.linux.dev, sj1557.seo@samsung.com,
-        syzkaller-bugs@googlegroups.com, Chuck Lever <chuck.lever@oracle.com>
-References: <6w4u7ysv6yxdqu3c5ug7pjbbwxlmczwgewukqyrap3ltpazp4s@ozir7zbfyvfj>
- <6930e200.a70a0220.d98e3.01bd.GAE@google.com>
- <CAGudoHE0Q-Loi_rsbk5rnzgtGfbvY+Fpo9g=NPJHqLP5G_AaUg@mail.gmail.com>
- <20251204082156.GK1712166@ZenIV>
- <CAGudoHGLFBq2Fg5ksJeVkn=S2pv6XzxenjVFrQYScA7QV9kwJw@mail.gmail.com>
- <7e2bd36e-3347-4781-a6fd-96a41b6c538d@I-love.SAKURA.ne.jp>
- <wqkxevwtev5p77czk2com5zvbbwcpxxeucrt7zbgjciqxjyivx@c7624klburuh>
-Content-Language: en-US
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-In-Reply-To: <wqkxevwtev5p77czk2com5zvbbwcpxxeucrt7zbgjciqxjyivx@c7624klburuh>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-Anti-Virus-Server: fsav304.rs.sakura.ne.jp
-X-Virus-Status: clean
+Content-Transfer-Encoding: 8bit
 
-On 2025/12/10 19:09, Jan Kara wrote:
-> On Wed 10-12-25 18:45:26, Tetsuo Handa wrote:
->> syzbot is hitting VFS_BUG_ON_INODE(!S_ISDIR(inode->i_mode)) check
->> introduced by commit e631df89cd5d ("fs: speed up path lookup with cheaper
->> handling of MAY_EXEC"), for make_bad_inode() is blindly changing file type
->> to S_IFREG. Since make_bad_inode() might be called after an inode is fully
->> constructed, make_bad_inode() should not needlessly change file type.
->>
->> Reported-by: syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
->> Closes: https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
->> Signed-off-by: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-> 
-> No. make_bad_inode() must not be called once the inode is fully visible
-> because that can cause all sorts of fun. That function is really only good
-> for handling a situation when read of an inode from the disk failed or
-> similar early error paths.
-I'm surprised to hear that.
+#syz test upstream 765e56e41a5af2d456ddda6cbd617b9d3295ab4e
 
-But since commit 58b6fcd2ab34 ("ocfs2: mark inode bad upon validation failure
-during read") is a bug fix, we want to somehow prevent this bug from re-opening.
+Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+---
+ fs/ocfs2/aops.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
 
-Minimal change for this release cycle might look like
-
-----------
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index b5fcc2725a29..2c97c8b4013f 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1715,8 +1715,13 @@ int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
- 	rc = ocfs2_read_blocks(INODE_CACHE(inode), OCFS2_I(inode)->ip_blkno,
- 			       1, &tmp, flags, ocfs2_validate_inode_block);
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 76c86f1c2b1c..586e3b74d782 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -2295,8 +2295,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 		goto out;
+ 	}
  
--	if (rc < 0)
-+	if (rc < 0) {
-+		/* Preserve file type while making operations no-op. */
-+		umode_t	mode = inode->i_mode & S_IFMT;
+-	down_write(&oi->ip_alloc_sem);
+-
+ 	/* Delete orphan before acquire i_rwsem. */
+ 	if (dwc->dw_orphaned) {
+ 		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+@@ -2309,6 +2307,8 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 			mlog_errno(ret);
+ 	}
+ 
++	down_write(&oi->ip_alloc_sem);
 +
- 		make_bad_inode(inode);
-+		inode->i_mode = mode;
-+	}
- 	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
- 	if (!rc && !*bh)
- 		*bh = tmp;
-----------
+ 	di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
+ 	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
 
-but what approach do you prefer?
-
-Introduce a copy of bad_{inode,file}_ops for ocfs2 and replace
-a call to make_bad_inode() with updating only {inode,file}_ops ?
-
-Or, modify existing {inode,file}_ops for ocfs2 to check whether
-an I/O error has occurred in the past?
+base-commit: 765e56e41a5af2d456ddda6cbd617b9d3295ab4e
+-- 
+2.34.1
 
