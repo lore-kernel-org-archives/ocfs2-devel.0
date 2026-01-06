@@ -1,67 +1,115 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E03491A2389;
-	Tue,  6 Jan 2026 01:37:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AAD1728151C
+	for <ocfs2-devel@lists.linux.dev>; Tue,  6 Jan 2026 04:24:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767663433; cv=none; b=Spo5GhxE8jynQZ9UjvT12Ncply/T2aSLV1oQTnfeBw3unaHMw96cigvSSK9QVa0uw7wSmgDDKjmYv2WtNq3FdUG8BrNNIAxi2E4MiHs06/DhuAgRUlIz0PKLx5SAI80K0BSD8Oa0TZn5rJucz77UuTZ6uPgnwolGlHG/JvuIl6k=
+	t=1767673500; cv=none; b=Ti6TPtDrUXhobmlB9thuDIfQ6fJvfOaE7KooKTolGF/unp/WmvdzCgIc7CNYxse7BgZjs12qp1UqimRxtXe0GrTUN3uJOztUuFH0or12n7+2vwclYKZKVDnZHgHyTl+RaZe8yjKJ+Mjdz63zpThwRG76gBEDaUbAjmCPskr4bJ4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767663433; c=relaxed/simple;
-	bh=K9iUbgpslLLTx6D7Yx3lzQ7QC8CP/qj9zPebieS0lDI=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=MRNCiOg1cLBmcBZgIP39n40XSyGytDRvgYELmp7WDXnNKs4eOvM/4YKoviG4kPwyNwxKNqsdOnPgf7gzzrlYoP+Ymu3vn+epwy/V3HAIsDaq0T5Of1mq5Vxac9ehDuVh8mF5QscjfHh7rjL85fMIBQCb1TNpgg4M5COa+no3bKs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=qu86JsEs; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1767673500; c=relaxed/simple;
+	bh=Jpbps//cwARc1XquVrU1tc+JNu605lG0eh135KspRYU=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=RyJy3/STHE9WbwZ0VY6URHkzn3Dmn22ykN0eRLFdkiZy9EM/stdfu0DZgDZqFUBciEuAdI7bNEKF0nZK/SaafahZlir/oFNIhgqvDkkz60eG0AQTRpr8Hh0vEUjYCuHh1TwgJUZCH9Puunvzc1qRyCihis2+Y2FpnJF9P5HpJuo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Aszw2+Kr; arc=none smtp.client-ip=115.124.30.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="qu86JsEs"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 30D61C16AAE;
-	Tue,  6 Jan 2026 01:37:12 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1767663432;
-	bh=K9iUbgpslLLTx6D7Yx3lzQ7QC8CP/qj9zPebieS0lDI=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=qu86JsEsI00SXBkYje4I1f2QaMTk1BEb+fL8gomAvAAdz9ErtRNEntCfATJ/UCXwI
-	 wQm0mjIp/eUfFUg76Qt7qJpllH1Ekt7/Pina+0Czxjgwsi5Ue8D25Hb4hv/0bYvRzE
-	 RhCzA9qd8yl4g5Ic2nADeRtaH9BFYeAL3/mcMEyA=
-Date: Mon, 5 Jan 2026 17:37:11 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Szymon Wilczek <swilczek.lx@gmail.com>
-Cc: ocfs2-devel@lists.linux.dev, mark@fasheh.com, jlbec@evilplan.org,
- joseph.qi@linux.alibaba.com, linux-kernel@vger.kernel.org,
- syzkaller-bugs@googlegroups.com,
- syzbot+51244a05705883616c95@syzkaller.appspotmail.com
-Subject: Re: [PATCH] ocfs2: fix circular locking dependency in
- ocfs2_acquire_dquot
-Message-Id: <20260105173711.b33d85c7f72544876c8dcfd3@linux-foundation.org>
-In-Reply-To: <20251227174251.121668-1-swilczek.lx@gmail.com>
-References: <20251227174251.121668-1-swilczek.lx@gmail.com>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Aszw2+Kr"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1767673489; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=zYMEBifjXil6F91v7+0wlCFzZNGBJa98+MntA/4nORo=;
+	b=Aszw2+Kr8bQCixipbJbFgWXXdX3JJ+6VacpUATxkFQvYM8cnBqcR+Rmi91UKpphFZ2c9nhnjjb3HEoRt4LfdVcrBBYZPDoQK41lrHTVEWhAW7z19x1Ij3blulqaeJ8NhgxGyRynTbSZ1fP/R3jpmdpVukkzGOxtPeW2Dq5PoF2Q=
+Received: from 30.41.143.132(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WwUUiTy_1767673487 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 06 Jan 2026 12:24:48 +0800
+Message-ID: <891d26e3-8930-4fe8-847b-c3919934de0a@linux.alibaba.com>
+Date: Tue, 6 Jan 2026 12:24:47 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: add check for free bits before allocation in
+ ocfs2_move_extent()
+To: Deepanshu Kartikey <kartikey406@gmail.com>, mark@fasheh.com,
+ jlbec@evilplan.org, akpm <akpm@linux-foundation.org>,
+ Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ syzbot+7960178e777909060224@syzkaller.appspotmail.com
+References: <20260104133504.14810-1-kartikey406@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260104133504.14810-1-kartikey406@gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On Sat, 27 Dec 2025 18:42:51 +0100 Szymon Wilczek <swilczek.lx@gmail.com> wrote:
 
-> Move ocfs2_extend_no_holes() to execute before ocfs2_lock_global_qf() to
-> fix a circular locking dependency reported by syzbot.
-> 
-> The issue occurs because ocfs2_extend_no_holes() internally calls
-> ocfs2_extend_allocation() which starts a transaction (acquiring
-> sb_start_intwrite). When called while holding the global quota file
-> lock, this conflicts with mount-time operations that acquire
-> sb_internal first, creating the following circular dependency:
-> 
->   sb_internal -> ocfs2_sysfile_lock_key -> ocfs2_quota_ip_alloc_sem_key
-> 
-> By moving the quota file extension before acquiring the global quota
-> file lock, we ensure that any internal transactions complete before
-> quota locks are held, breaking the circular dependency.
 
-Thanks.  This might have escaped reviewer attention due to the holiday
-season.  I'll add it to mm.git's mm-nonmm-unstable branch for runtime
-testing while we await review (please!).
+On 2026/1/4 21:35, Deepanshu Kartikey wrote:
+> Add a check to verify the group descriptor has enough free bits before
+> attempting allocation in ocfs2_move_extent(). This prevents a kernel
+> BUG_ON crash in ocfs2_block_group_set_bits() when the move_extents ioctl
+> is called on a crafted or corrupted filesystem.
+> 
+> The existing validation in ocfs2_validate_gd_self() only checks static
+> metadata consistency (bg_free_bits_count <= bg_bits) when the descriptor
+> is first read from disk. However, during move_extents operations,
+> multiple allocations can exhaust the free bits count below the requested
+> allocation size, triggering BUG_ON(le16_to_cpu(bg->bg_free_bits_count)
+> < num_bits).
+> 
+> The debug trace shows the issue clearly:
+>   - Block group 32 validated with bg_free_bits_count=427
+>   - Repeated allocations decreased count: 427 -> 171 -> 43 -> ... -> 1
+>   - Final request for 2 bits with only 1 available triggers BUG_ON
+> 
+> By adding an early check in ocfs2_move_extent() right after
+> ocfs2_find_victim_alloc_group(), we return -ENOSPC gracefully instead of
+> crashing the kernel. This also avoids unnecessary work in
+> ocfs2_probe_alloc_group() and __ocfs2_move_extent() when the allocation
+> will fail.
+> 
+> Reported-by: syzbot+7960178e777909060224@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=7960178e777909060224
+> Link: https://lore.kernel.org/all/20251231115801.293726-1-kartikey406@gmail.com/T/ [v1]
+> Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+> v2:
+>   - Fixed missing '<' in commit message (Joseph)
+>   - Moved check right after ocfs2_find_victim_alloc_group() to fail
+>     early and avoid unnecessary work (Joseph)
+> ---
+>  fs/ocfs2/move_extents.c | 7 ++++++-
+>  1 file changed, 6 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index 99637e34d9da..c037fb34b1e3 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -662,6 +662,12 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  		goto out_commit;
+>  	}
+>  
+> +	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
+> +	if (le16_to_cpu(gd->bg_free_bits_count) < len) {
+> +		ret = -ENOSPC;
+> +		goto out_commit;
+> +	}
+> +
+>  	/*
+>  	 * probe the victim cluster group to find a proper
+>  	 * region to fit wanted movement, it even will perform
+> @@ -682,7 +688,6 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  		goto out_commit;
+>  	}
+>  
+> -	gd = (struct ocfs2_group_desc *)gd_bh->b_data;
+>  	ret = ocfs2_alloc_dinode_update_counts(gb_inode, handle, gb_bh, len,
+>  					       le16_to_cpu(gd->bg_chain));
+>  	if (ret) {
+
