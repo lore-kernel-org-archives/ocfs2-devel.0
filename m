@@ -1,253 +1,332 @@
-Received: from mail-pf1-f182.google.com (mail-pf1-f182.google.com [209.85.210.182])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B629931A55F
-	for <ocfs2-devel@lists.linux.dev>; Thu,  8 Jan 2026 18:37:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.182
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 87169288510;
+	Thu,  8 Jan 2026 18:57:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767897423; cv=none; b=fU4Em0ELDYh1foc/jXIROLClLbKWGg1R33M/5tJgqtq0tOJSZjoyDT/rGS1tEi9O6YowX3xskBCFq2bGN1A88KlLVPKk2saqOV/RLpuRW32hdUQIflbC1rIwnz7mWdrE9mVeSWLx0rYHUxc8CXcVu/f/YFOvB+BfmtpczwJQuFQ=
+	t=1767898626; cv=none; b=a2tp/vbvg5vOz/uU88Hka3SbaN5Ipr9wrhqQ42NjBIeHmxoWwt0pEJ2OCAW5kbzwnLitJQpWsGOp7EwWjS5ByyYIzQDpids0hDiLI/MreDCuZplv5784kj4jB16GtxBWOxwnf7Cmqo64fiYXuPJj20nHBYjppWaeFn57+lTJPDE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767897423; c=relaxed/simple;
-	bh=mHA1GF9bez1pCm0xV24EI1E7f5M9rBD/QlYB1DXCeQ8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=K1P+CZfOpdJDW1yKLvlD34C+hnNTXyHLMSVSBejfTMqJUYY6yoLkJbpwNIzTrVnDi3YPB4lTHSqWanoSfpGMoDavJSExOYB2/zAxlyKZcClDXGgzHQuNUAkUxczjDUf7iPNN4mh3ueLGjbKG+/M2ySe7JjhvAtnk+ltW70PlUSI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=UX9ADC9+; arc=none smtp.client-ip=209.85.210.182
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1767898626; c=relaxed/simple;
+	bh=5he/mWk942UgyMcVrvD6SAu+dsdYI4IY/ZKYEV0nd4I=;
+	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=lfgwzfcPBGm9NkfKTRiXLXlFHeiFLTFDpxUUFQU0ldDShD6KYbwCHyBuscfVrtQDdKXH/mRyWbdUDrKRCp9u0IPglibY6nVYaih+SUdCQ9OtWvVgpshRcX/eSC0EllZm6b8rJYgwje2Rw9JdogaSDth1P6AqboxNH0YDOfX1iUA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=IVcj/Up5; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="UX9ADC9+"
-Received: by mail-pf1-f182.google.com with SMTP id d2e1a72fcca58-7b8eff36e3bso3595432b3a.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 08 Jan 2026 10:37:00 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1767897420; x=1768502220; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=tOTrrp6DxwoMuhEXtlgHUxnCLn1aE8DvDhD9G7ICuig=;
-        b=UX9ADC9+bh3+ZbC8cyWtWc5HFdmMfGQblz5ix62wXVmXlzdnbBIzjQXKKpYonxR+l8
-         g08jh7+RLOHJK6enPJKwDCVaO8XXaF2wPP3nDjkiR5sN4kdCWDscLZ8AjZdSOauwTDmJ
-         Wteho7RSLSBEMDVfTuoT/OQnsLBiLnAwdzzH3xyseK5nIqeI4eTx3nFpqlCzM1hR7Q5T
-         pHMfMTuIqh9l/hOt4yKiGt+mVo0E/+pjiA3HSf2IBngJHQy4n9vOx+28AtxGiHZpji3/
-         wzM5VKES0LnKkXyQBZ4H3xTXLJVHt7BmfoKI6ed40o1tmymqgkO0eL8OAO8gBTsA9xZl
-         Z+8A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1767897420; x=1768502220;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=tOTrrp6DxwoMuhEXtlgHUxnCLn1aE8DvDhD9G7ICuig=;
-        b=mhmKSE5FEHnfIDI67ZwG/i0qoyxf+u1rtbqmFPmMNbfzbJpkd2aJIHWHllF8lc1czU
-         31LGXJP6GTK9o4Trzz+u0alYjTolowregF7pFG0L4/pLeHdL3itjlP/KXF4lr39aw0KF
-         RZQs8yBCfbMsARZ+h0toARcQeZLmhxF0qil+YTkpDCJWnJqui1m5PZ4zfodzHHoAuSHd
-         Oky01n6h2JRu4jbj7qNQtuMRTe3TAvLoqOUd2lVnegnd3vHpEjUHB1KnCE1XqS3vO1I4
-         15Mp1LRjkdE1uOhwGfH1h8MTZfa8sOjLqFnTyQX6k8m4ooETEUFjk3GlOiVgStMJjvNR
-         o8Lw==
-X-Forwarded-Encrypted: i=1; AJvYcCUah5EtryWswYb/4zYRA1tUUx/0Q/K0BNvZs1NSBUu8uxZF73JCHJ0FTmok6HbyG36BuqTncadGfCCgEg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw6K9/KgMvcQp4zAniQtSPBn8c6EpUpJByt1VBsNpjbMwco9ABX
-	8irfccaZWlnzU2+0RNx0zxwlIHutcYrBDXo0Hoon5jakUrw0BENmRkcB
-X-Gm-Gg: AY/fxX4db+fdThDlMVYyBfO33fV3qWU6NbjD7erjHakXNXDTrrwAfwKoRX9K9omr5sO
-	eBK4fJt1IlVse8Uu/ue2axaUfisL+1mnIEhrjidez+ICMYPThxCpZjvub5U+FkjmhZKS9JeDuWF
-	BUKQi2jagejjJwI1/Yc88SGNlcA1N+HgueMsNaICel/5pFcS7Gb+YKyW1sU3eEX/8LrrP28QA+b
-	uxNdlVMJgbK0o9LRsGx28sAK+0JgkoTbAH3YYg+6/VHRKtcujp5wG/YLtOaXAWMSiqTDq/wIAOy
-	ta+em24esro2ZXSmuS3dz4Lm1ex68R7gNq1BedH5iuaWNBsY0aJILbP/7at3CZ5K6OZBRjkxeam
-	YyNkrUt+8qvRKfyvLfo6mCWOSWHBUSecFfJUe3YnC+5FMY5HXHricvnU63UAPNlTtdGiYudZInd
-	HhVL5mUKH+MA==
-X-Google-Smtp-Source: AGHT+IH+6cVcawveoJkth6vp33hUD2WOmQtwWH3EaQ41noQOW/Spw8advCkQhytRvzH1tx1AdnNXWw==
-X-Received: by 2002:a05:6a20:9193:b0:35d:3523:c90d with SMTP id adf61e73a8af0-3898f757a29mr6873169637.0.1767897419908;
-        Thu, 08 Jan 2026 10:36:59 -0800 (PST)
-Received: from inspiron ([111.125.210.92])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-34f5fb7419csm8623327a91.13.2026.01.08.10.36.55
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 08 Jan 2026 10:36:59 -0800 (PST)
-Date: Fri, 9 Jan 2026 00:06:52 +0530
-From: Prithvi <activprithvi@gmail.com>
-To: joseph.qi@linux.alibaba.com
-Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
-	linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org,
-	david.hunter.linux@gmail.com, khalid@kernel.org
-Subject: Re: [PATCH] ocfs2: Fix circular locking dependency in
- ocfs2_del_inode_from_orphan()
-Message-ID: <20260108183652.ro4xueuj6itfaph3@inspiron>
-References: <20260106125100.327980-1-activprithvi@gmail.com>
- <94b4189d-dfb6-4443-a336-abbae89d36ad@linux.alibaba.com>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="IVcj/Up5"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 60A8BC116C6;
+	Thu,  8 Jan 2026 18:56:58 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1767898626;
+	bh=5he/mWk942UgyMcVrvD6SAu+dsdYI4IY/ZKYEV0nd4I=;
+	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
+	b=IVcj/Up5pUIL/21UD3vdFo7LG1nsqJG0y8MII2rX7fuh3iO8eqoctQChr69A/z58g
+	 5KgbF1X8xV00o46rmPIbcqIZEIF8erkf826KYZ1ZoGs2hcwFRvz9oiVBU92gbAhzyA
+	 0r+l6Mt1vxiLBuRQjFSLEctLEhTBADuTECQiBZ+9gqw+8u7gUFlUKFPJqHkbOoasko
+	 I2D7VrQn9/cdA7UghgaIjR2YaPHOE3ivbWn4hGdWJmaH9cka4Cx7gfyO6gbb1+SzsA
+	 TSEp5Wq9R6HWJ/Dy8pXZUMSYMMQX7UKyEKZOf6GGsWFZtBY90ZvwFFESq3Sx7W68cd
+	 7b0wtGXIJLNHQ==
+Message-ID: <8af369636c32b868f83669c49aea708ca3b894ac.camel@kernel.org>
+Subject: Re: [PATCH 00/24] vfs: require filesystems to explicitly opt-in to
+ lease support
+From: Jeff Layton <jlayton@kernel.org>
+To: Jan Kara <jack@suse.cz>
+Cc: Luis de Bethencourt <luisbg@kernel.org>, Salah Triki
+ <salah.triki@gmail.com>,  Nicolas Pitre <nico@fluxnic.net>, Christoph
+ Hellwig <hch@infradead.org>, Anders Larsen <al@alarsen.net>,  Alexander
+ Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>,
+ David Sterba <dsterba@suse.com>,  Chris Mason	 <clm@fb.com>, Gao Xiang
+ <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Yue Hu	
+ <zbestahu@gmail.com>, Jeffle Xu <jefflexu@linux.alibaba.com>, Sandeep
+ Dhavale	 <dhavale@google.com>, Hongbo Li <lihongbo22@huawei.com>, Chunhai
+ Guo	 <guochunhai@vivo.com>, Jan Kara <jack@suse.com>, Theodore Ts'o
+ <tytso@mit.edu>,  Andreas Dilger <adilger.kernel@dilger.ca>, Jaegeuk Kim
+ <jaegeuk@kernel.org>, OGAWA Hirofumi	 <hirofumi@mail.parknet.co.jp>, David
+ Woodhouse <dwmw2@infradead.org>,  Richard Weinberger	 <richard@nod.at>,
+ Dave Kleikamp <shaggy@kernel.org>, Ryusuke Konishi	
+ <konishi.ryusuke@gmail.com>, Viacheslav Dubeyko <slava@dubeyko.com>, 
+ Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, Mark Fasheh
+ <mark@fasheh.com>, Joel Becker	 <jlbec@evilplan.org>, Joseph Qi
+ <joseph.qi@linux.alibaba.com>, Mike Marshall	 <hubcap@omnibond.com>, Martin
+ Brandenburg <martin@omnibond.com>, Miklos Szeredi	 <miklos@szeredi.hu>,
+ Amir Goldstein <amir73il@gmail.com>, Phillip Lougher	
+ <phillip@squashfs.org.uk>, Carlos Maiolino <cem@kernel.org>, Hugh Dickins	
+ <hughd@google.com>, Baolin Wang <baolin.wang@linux.alibaba.com>, Andrew
+ Morton	 <akpm@linux-foundation.org>, Namjae Jeon <linkinjeon@kernel.org>,
+ Sungjong Seo	 <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>,
+ Chuck Lever	 <chuck.lever@oracle.com>, Alexander Aring
+ <alex.aring@gmail.com>, Andreas Gruenbacher <agruenba@redhat.com>, Jonathan
+ Corbet <corbet@lwn.net>, "Matthew Wilcox (Oracle)"	 <willy@infradead.org>,
+ Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov
+ <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>, Christian
+ Schoenebeck	 <linux_oss@crudebyte.com>, Xiubo Li <xiubli@redhat.com>, Ilya
+ Dryomov	 <idryomov@gmail.com>, Trond Myklebust <trondmy@kernel.org>, Anna
+ Schumaker	 <anna@kernel.org>, Steve French <sfrench@samba.org>, Paulo
+ Alcantara	 <pc@manguebit.org>, Ronnie Sahlberg <ronniesahlberg@gmail.com>,
+ Shyam Prasad N	 <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>,
+ Bharath SM	 <bharathsm@microsoft.com>, Hans de Goede <hansg@kernel.org>, 
+	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, 
+	linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, 
+	linux-mtd@lists.infradead.org, jfs-discussion@lists.sourceforge.net, 
+	linux-nilfs@vger.kernel.org, ntfs3@lists.linux.dev,
+ ocfs2-devel@lists.linux.dev, 	devel@lists.orangefs.org,
+ linux-unionfs@vger.kernel.org, 	linux-xfs@vger.kernel.org,
+ linux-mm@kvack.org, gfs2@lists.linux.dev, 	linux-doc@vger.kernel.org,
+ v9fs@lists.linux.dev, ceph-devel@vger.kernel.org, 
+	linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, 
+	samba-technical@lists.samba.org
+Date: Thu, 08 Jan 2026 13:56:57 -0500
+In-Reply-To: <m3mywef74xhcakianlrovrnaadnhzhfqjfusulkcnyioforfml@j2xnk7dzkmv4>
+References: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org>
+	 <m3mywef74xhcakianlrovrnaadnhzhfqjfusulkcnyioforfml@j2xnk7dzkmv4>
+Autocrypt: addr=jlayton@kernel.org; prefer-encrypt=mutual;
+ keydata=mQINBE6V0TwBEADXhJg7s8wFDwBMEvn0qyhAnzFLTOCHooMZyx7XO7dAiIhDSi7G1NPxw
+ n8jdFUQMCR/GlpozMFlSFiZXiObE7sef9rTtM68ukUyZM4pJ9l0KjQNgDJ6Fr342Htkjxu/kFV1Wv
+ egyjnSsFt7EGoDjdKqr1TS9syJYFjagYtvWk/UfHlW09X+jOh4vYtfX7iYSx/NfqV3W1D7EDi0PqV
+ T2h6v8i8YqsATFPwO4nuiTmL6I40ZofxVd+9wdRI4Db8yUNA4ZSP2nqLcLtFjClYRBoJvRWvsv4lm
+ 0OX6MYPtv76hka8lW4mnRmZqqx3UtfHX/hF/zH24Gj7A6sYKYLCU3YrI2Ogiu7/ksKcl7goQjpvtV
+ YrOOI5VGLHge0awt7bhMCTM9KAfPc+xL/ZxAMVWd3NCk5SamL2cE99UWgtvNOIYU8m6EjTLhsj8sn
+ VluJH0/RcxEeFbnSaswVChNSGa7mXJrTR22lRL6ZPjdMgS2Km90haWPRc8Wolcz07Y2se0xpGVLEQ
+ cDEsvv5IMmeMe1/qLZ6NaVkNuL3WOXvxaVT9USW1+/SGipO2IpKJjeDZfehlB/kpfF24+RrK+seQf
+ CBYyUE8QJpvTZyfUHNYldXlrjO6n5MdOempLqWpfOmcGkwnyNRBR46g/jf8KnPRwXs509yAqDB6sE
+ LZH+yWr9LQZEwARAQABtCVKZWZmIExheXRvbiA8amxheXRvbkBwb29jaGllcmVkcy5uZXQ+iQI7BB
+ MBAgAlAhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAUCTpXWPAIZAQAKCRAADmhBGVaCFc65D/4
+ gBLNMHopQYgG/9RIM3kgFCCQV0pLv0hcg1cjr+bPI5f1PzJoOVi9s0wBDHwp8+vtHgYhM54yt43uI
+ 7Htij0RHFL5eFqoVT4TSfAg2qlvNemJEOY0e4daljjmZM7UtmpGs9NN0r9r50W82eb5Kw5bc/r0km
+ R/arUS2st+ecRsCnwAOj6HiURwIgfDMHGPtSkoPpu3DDp/cjcYUg3HaOJuTjtGHFH963B+f+hyQ2B
+ rQZBBE76ErgTDJ2Db9Ey0kw7VEZ4I2nnVUY9B5dE2pJFVO5HJBMp30fUGKvwaKqYCU2iAKxdmJXRI
+ ONb7dSde8LqZahuunPDMZyMA5+mkQl7kpIpR6kVDIiqmxzRuPeiMP7O2FCUlS2DnJnRVrHmCljLkZ
+ Wf7ZUA22wJpepBligemtSRSbqCyZ3B48zJ8g5B8xLEntPo/NknSJaYRvfEQqGxgk5kkNWMIMDkfQO
+ lDSXZvoxqU9wFH/9jTv1/6p8dHeGM0BsbBLMqQaqnWiVt5mG92E1zkOW69LnoozE6Le+12DsNW7Rj
+ iR5K+27MObjXEYIW7FIvNN/TQ6U1EOsdxwB8o//Yfc3p2QqPr5uS93SDDan5ehH59BnHpguTc27Xi
+ QQZ9EGiieCUx6Zh2ze3X2UW9YNzE15uKwkkuEIj60NvQRmEDfweYfOfPVOueC+iFifbQgSmVmZiBM
+ YXl0b24gPGpsYXl0b25AcmVkaGF0LmNvbT6JAjgEEwECACIFAk6V0q0CGwMGCwkIBwMCBhUIAgkKC
+ wQWAgMBAh4BAheAAAoJEAAOaEEZVoIViKUQALpvsacTMWWOd7SlPFzIYy2/fjvKlfB/Xs4YdNcf9q
+ LqF+lk2RBUHdR/dGwZpvw/OLmnZ8TryDo2zXVJNWEEUFNc7wQpl3i78r6UU/GUY/RQmOgPhs3epQC
+ 3PMJj4xFx+VuVcf/MXgDDdBUHaCTT793hyBeDbQuciARDJAW24Q1RCmjcwWIV/pgrlFa4lAXsmhoa
+ c8UPc82Ijrs6ivlTweFf16VBc4nSLX5FB3ls7S5noRhm5/Zsd4PGPgIHgCZcPgkAnU1S/A/rSqf3F
+ LpU+CbVBDvlVAnOq9gfNF+QiTlOHdZVIe4gEYAU3CUjbleywQqV02BKxPVM0C5/oVjMVx3bri75n1
+ TkBYGmqAXy9usCkHIsG5CBHmphv9MHmqMZQVsxvCzfnI5IO1+7MoloeeW/lxuyd0pU88dZsV/riHw
+ 87i2GJUJtVlMl5IGBNFpqoNUoqmvRfEMeXhy/kUX4Xc03I1coZIgmwLmCSXwx9MaCPFzV/dOOrju2
+ xjO+2sYyB5BNtxRqUEyXglpujFZqJxxau7E0eXoYgoY9gtFGsspzFkVNntamVXEWVVgzJJr/EWW0y
+ +jNd54MfPRqH+eCGuqlnNLktSAVz1MvVRY1dxUltSlDZT7P2bUoMorIPu8p7ZCg9dyX1+9T6Muc5d
+ Hxf/BBP/ir+3e8JTFQBFOiLNdFtB9KZWZmIExheXRvbiA8amxheXRvbkBzYW1iYS5vcmc+iQI4BBM
+ BAgAiBQJOldK9AhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRAADmhBGVaCFWgWD/0ZRi4h
+ N9FK2BdQs9RwNnFZUr7JidAWfCrs37XrA/56olQl3ojn0fQtrP4DbTmCuh0SfMijB24psy1GnkPep
+ naQ6VRf7Dxg/Y8muZELSOtsv2CKt3/02J1BBitrkkqmHyni5fLLYYg6fub0T/8Kwo1qGPdu1hx2BQ
+ RERYtQ/S5d/T0cACdlzi6w8rs5f09hU9Tu4qV1JLKmBTgUWKN969HPRkxiojLQziHVyM/weR5Reu6
+ FZVNuVBGqBD+sfk/c98VJHjsQhYJijcsmgMb1NohAzwrBKcSGKOWJToGEO/1RkIN8tqGnYNp2G+aR
+ 685D0chgTl1WzPRM6mFG1+n2b2RR95DxumKVpwBwdLPoCkI24JkeDJ7lXSe3uFWISstFGt0HL8Eew
+ P8RuGC8s5h7Ct91HMNQTbjgA+Vi1foWUVXpEintAKgoywaIDlJfTZIl6Ew8ETN/7DLy8bXYgq0Xzh
+ aKg3CnOUuGQV5/nl4OAX/3jocT5Cz/OtAiNYj5mLPeL5z2ZszjoCAH6caqsF2oLyAnLqRgDgR+wTQ
+ T6gMhr2IRsl+cp8gPHBwQ4uZMb+X00c/Amm9VfviT+BI7B66cnC7Zv6Gvmtu2rEjWDGWPqUgccB7h
+ dMKnKDthkA227/82tYoFiFMb/NwtgGrn5n2vwJyKN6SEoygGrNt0SI84y6hEVbQlSmVmZiBMYXl0b
+ 24gPGpsYXl0b25AcHJpbWFyeWRhdGEuY29tPokCOQQTAQIAIwUCU4xmKQIbAwcLCQgHAwIBBhUIAg
+ kKCwQWAgMBAh4BAheAAAoJEAAOaEEZVoIV1H0P/j4OUTwFd7BBbpoSp695qb6HqCzWMuExsp8nZjr
+ uymMaeZbGr3OWMNEXRI1FWNHMtcMHWLP/RaDqCJil28proO+PQ/yPhsr2QqJcW4nr91tBrv/MqItu
+ AXLYlsgXqp4BxLP67bzRJ1Bd2x0bWXurpEXY//VBOLnODqThGEcL7jouwjmnRh9FTKZfBDpFRaEfD
+ FOXIfAkMKBa/c9TQwRpx2DPsl3eFWVCNuNGKeGsirLqCxUg5kWTxEorROppz9oU4HPicL6rRH22Ce
+ 6nOAON2vHvhkUuO3GbffhrcsPD4DaYup4ic+DxWm+DaSSRJ+e1yJvwi6NmQ9P9UAuLG93S2MdNNbo
+ sZ9P8k2mTOVKMc+GooI9Ve/vH8unwitwo7ORMVXhJeU6Q0X7zf3SjwDq2lBhn1DSuTsn2DbsNTiDv
+ qrAaCvbsTsw+SZRwF85eG67eAwouYk+dnKmp1q57LDKMyzysij2oDKbcBlwB/TeX16p8+LxECv51a
+ sjS9TInnipssssUDrHIvoTTXWcz7Y5wIngxDFwT8rPY3EggzLGfK5Zx2Q5S/N0FfmADmKknG/D8qG
+ IcJE574D956tiUDKN4I+/g125ORR1v7bP+OIaayAvq17RP+qcAqkxc0x8iCYVCYDouDyNvWPGRhbL
+ UO7mlBpjW9jK9e2fvZY9iw3QzIPGKtClKZWZmIExheXRvbiA8amVmZi5sYXl0b25AcHJpbWFyeWRh
+ dGEuY29tPokCOQQTAQIAIwUCU4xmUAIbAwcLCQgHAwIBBhUIAgkKCwQWAgMBAh4BAheAAAoJEAAOa
+ EEZVoIVzJoQALFCS6n/FHQS+hIzHIb56JbokhK0AFqoLVzLKzrnaeXhE5isWcVg0eoV2oTScIwUSU
+ apy94if69tnUo4Q7YNt8/6yFM6hwZAxFjOXR0ciGE3Q+Z1zi49Ox51yjGMQGxlakV9ep4sV/d5a50
+ M+LFTmYSAFp6HY23JN9PkjVJC4PUv5DYRbOZ6Y1+TfXKBAewMVqtwT1Y+LPlfmI8dbbbuUX/kKZ5d
+ dhV2736fgyfpslvJKYl0YifUOVy4D1G/oSycyHkJG78OvX4JKcf2kKzVvg7/Rnv+AueCfFQ6nGwPn
+ 0P91I7TEOC4XfZ6a1K3uTp4fPPs1Wn75X7K8lzJP/p8lme40uqwAyBjk+IA5VGd+CVRiyJTpGZwA0
+ jwSYLyXboX+Dqm9pSYzmC9+/AE7lIgpWj+3iNisp1SWtHc4pdtQ5EU2SEz8yKvDbD0lNDbv4ljI7e
+ flPsvN6vOrxz24mCliEco5DwhpaaSnzWnbAPXhQDWb/lUgs/JNk8dtwmvWnqCwRqElMLVisAbJmC0
+ BhZ/Ab4sph3EaiZfdXKhiQqSGdK4La3OTJOJYZphPdGgnkvDV9Pl1QZ0ijXQrVIy3zd6VCNaKYq7B
+ AKidn5g/2Q8oio9Tf4XfdZ9dtwcB+bwDJFgvvDYaZ5bI3ln4V3EyW5i2NfXazz/GA/I/ZtbsigCFc
+ 8ftCBKZWZmIExheXRvbiA8amxheXRvbkBrZXJuZWwub3JnPokCOAQTAQIAIgUCWe8u6AIbAwYLCQg
+ HAwIGFQgCCQoLBBYCAwECHgECF4AACgkQAA5oQRlWghUuCg/+Lb/xGxZD2Q1oJVAE37uW308UpVSD
+ 2tAMJUvFTdDbfe3zKlPDTuVsyNsALBGclPLagJ5ZTP+Vp2irAN9uwBuacBOTtmOdz4ZN2tdvNgozz
+ uxp4CHBDVzAslUi2idy+xpsp47DWPxYFIRP3M8QG/aNW052LaPc0cedYxp8+9eiVUNpxF4SiU4i9J
+ DfX/sn9XcfoVZIxMpCRE750zvJvcCUz9HojsrMQ1NFc7MFT1z3MOW2/RlzPcog7xvR5ENPH19ojRD
+ CHqumUHRry+RF0lH00clzX/W8OrQJZtoBPXv9ahka/Vp7kEulcBJr1cH5Wz/WprhsIM7U9pse1f1g
+ Yy9YbXtWctUz8uvDR7shsQxAhX3qO7DilMtuGo1v97I/Kx4gXQ52syh/w6EBny71CZrOgD6kJwPVV
+ AaM1LRC28muq91WCFhs/nzHozpbzcheyGtMUI2Ao4K6mnY+3zIuXPygZMFr9KXE6fF7HzKxKuZMJO
+ aEZCiDOq0anx6FmOzs5E6Jqdpo/mtI8beK+BE7Va6ni7YrQlnT0i3vaTVMTiCThbqsB20VrbMjlhp
+ f8lfK1XVNbRq/R7GZ9zHESlsa35ha60yd/j3pu5hT2xyy8krV8vGhHvnJ1XRMJBAB/UYb6FyC7S+m
+ QZIQXVeAA+smfTT0tDrisj1U5x6ZB9b3nBg65kc=
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.58.2 (3.58.2-1.fc43) 
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <94b4189d-dfb6-4443-a336-abbae89d36ad@linux.alibaba.com>
 
-On Thu, Jan 08, 2026 at 09:29:11AM +0800, Joseph Qi wrote:
-> 
-> 
-> On 2026/1/6 20:51, Prithvi Tambewagh wrote:
-> > A possible circular locking dependency in ocfs2_del_inode_from_orphan()
-> > is detected by syzbot, which occurs due to change in the sequence of
-> > acquiring locks. The existing chain is:
-> > 
-> > &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE] --> &dquot->dq_lock --> 
-> > &ocfs2_quota_ip_alloc_sem_key
-> > 
-> > In ocfs2_dio_end_io_write(), &ocfs2_quota_ip_alloc_sem_key is acquired,
-> > and then ocfs2_del_inode_from_orphan() is called, which acquires
-> > &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]. This opposes the
-> > existing dependency chain:
-> > 
-> 
-> IIUC, ocfs2_dio_end_io_write() only gets the &ocfs2_file_ip_alloc_sem_key.
-> So how it happens?
-> 
-> Thanks,
-> Joseph
-> 
+On Thu, 2026-01-08 at 18:40 +0100, Jan Kara wrote:
+> On Thu 08-01-26 12:12:55, Jeff Layton wrote:
+> > Yesterday, I sent patches to fix how directory delegation support is
+> > handled on filesystems where the should be disabled [1]. That set is
+> > appropriate for v6.19. For v7.0, I want to make lease support be more
+> > opt-in, rather than opt-out:
+> >=20
+> > For historical reasons, when ->setlease() file_operation is set to NULL=
+,
+> > the default is to use the kernel-internal lease implementation. This
+> > means that if you want to disable them, you need to explicitly set the
+> > ->setlease() file_operation to simple_nosetlease() or the equivalent.
+> >=20
+> > This has caused a number of problems over the years as some filesystems
+> > have inadvertantly allowed leases to be acquired simply by having left
+> > it set to NULL. It would be better if filesystems had to opt-in to leas=
+e
+> > support, particularly with the advent of directory delegations.
+> >=20
+> > This series has sets the ->setlease() operation in a pile of existing
+> > local filesystems to generic_setlease() and then changes
+> > kernel_setlease() to return -EINVAL when the setlease() operation is no=
+t
+> > set.
+> >=20
+> > With this change, new filesystems will need to explicitly set the
+> > ->setlease() operations in order to provide lease and delegation
+> > support.
+> >=20
+> > I mainly focused on filesystems that are NFS exportable, since NFS and
+> > SMB are the main users of file leases, and they tend to end up exportin=
+g
+> > the same filesystem types. Let me know if I've missed any.
+>=20
+> So, what about kernfs and fuse? They seem to be exportable and don't have
+> .setlease set...
+>=20
 
-IIUC that would be the case when ocfs2_dio_end_io_write() operates on normal
-files. However, according to the report of the bug, ocfs2_dio_end_io_write()
-is holding &ocfs2_quota_ip_alloc_sem_key so I think due to random fuzzing by 
-syzkaller, the function is curently operating on a quota file.
+Yes, FUSE needs this too. I'll add a patch for that.
 
-Then it calls ocfs2_del_inode_from_orphan() which tries to acquire
-&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]. According to the existing
-dependency chain, after acquiring it, &ocfs2_quota_ip_alloc_sem_key can be
-acquired. But the existing code in ocfs2_dio_end_io_write() first acquires
-&ocfs2_quota_ip_alloc_sem_key, thus triggering the circular dependency
-warning. 
+As far as kernfs goes: AIUI, that's basically what sysfs and resctrl
+are built on. Do we really expect people to set leases there?
 
-Thanks,
-Prithvi
+I guess it's technically a regression since you could set them on those
+sorts of files earlier, but people don't usually export kernfs based
+filesystems via NFS or SMB, and that seems like something that could be
+used to make mischief.
 
-> > -> #3 (&ocfs2_quota_ip_alloc_sem_key){++++}-{4:4}:
-> >        lock_acquire+0x120/0x360 kernel/locking/lockdep.c:5868
-> >        down_write+0x3a/0x50 kernel/locking/rwsem.c:1590
-> >        ocfs2_create_local_dquot+0x19d/0x1a40 fs/ocfs2/quota_local.c:1227
-> >        ocfs2_acquire_dquot+0x80f/0xb30 fs/ocfs2/quota_global.c:883
-> >        dqget+0x7c1/0xf20 fs/quota/dquot.c:980
-> >        __dquot_initialize+0x3b3/0xcb0 fs/quota/dquot.c:1508
-> >        ocfs2_get_init_inode+0x13b/0x1b0 fs/ocfs2/namei.c:205
-> >        ocfs2_mknod+0x863/0x2050 fs/ocfs2/namei.c:313
-> >        ocfs2_create+0x1a5/0x440 fs/ocfs2/namei.c:676
-> >        lookup_open fs/namei.c:3796 [inline]
-> >        open_last_lookups fs/namei.c:3895 [inline]
-> >        path_openat+0x1500/0x3840 fs/namei.c:4131
-> >        do_filp_open+0x1fa/0x410 fs/namei.c:4161
-> >        do_sys_openat2+0x121/0x1c0 fs/open.c:1437
-> >        do_sys_open fs/open.c:1452 [inline]
-> >        __do_sys_openat fs/open.c:1468 [inline]
-> >        __se_sys_openat fs/open.c:1463 [inline]
-> >        __x64_sys_openat+0x138/0x170 fs/open.c:1463
-> >        do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-> >        do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
-> >        entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> > 
-> > -> #2 (&dquot->dq_lock){+.+.}-{4:4}:
-> >        lock_acquire+0x120/0x360 kernel/locking/lockdep.c:5868
-> >        __mutex_lock_common kernel/locking/rtmutex_api.c:535 [inline]
-> >        mutex_lock_nested+0x5a/0x1d0 kernel/locking/rtmutex_api.c:547
-> >        wait_on_dquot fs/quota/dquot.c:357 [inline]
-> >        dqget+0x73a/0xf20 fs/quota/dquot.c:975
-> >        __dquot_initialize+0x3b3/0xcb0 fs/quota/dquot.c:1508
-> >        ocfs2_get_init_inode+0x13b/0x1b0 fs/ocfs2/namei.c:205
-> >        ocfs2_mknod+0x863/0x2050 fs/ocfs2/namei.c:313
-> >        ocfs2_create+0x1a5/0x440 fs/ocfs2/namei.c:676
-> >        lookup_open fs/namei.c:3796 [inline]
-> >        open_last_lookups fs/namei.c:3895 [inline]
-> >        path_openat+0x1500/0x3840 fs/namei.c:4131
-> >        do_filp_open+0x1fa/0x410 fs/namei.c:4161
-> >        do_sys_openat2+0x121/0x1c0 fs/open.c:1437
-> >        do_sys_open fs/open.c:1452 [inline]
-> >        __do_sys_openat fs/open.c:1468 [inline]
-> >        __se_sys_openat fs/open.c:1463 [inline]
-> >        __x64_sys_openat+0x138/0x170 fs/open.c:1463
-> >        do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-> >        do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
-> >        entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> > 
-> > -> #1 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
-> >        lock_acquire+0x120/0x360 kernel/locking/lockdep.c:5868
-> >        down_write+0x3a/0x50 kernel/locking/rwsem.c:1590
-> >        inode_lock include/linux/fs.h:980 [inline]
-> >        ocfs2_remove_inode fs/ocfs2/inode.c:731 [inline]
-> >        ocfs2_wipe_inode fs/ocfs2/inode.c:894 [inline]
-> >        ocfs2_delete_inode fs/ocfs2/inode.c:1155 [inline]
-> >        ocfs2_evict_inode+0x153d/0x40d0 fs/ocfs2/inode.c:1295
-> >        evict+0x504/0x9c0 fs/inode.c:810
-> >        do_unlinkat+0x39f/0x570 fs/namei.c:4744
-> >        __do_sys_unlinkat fs/namei.c:4778 [inline]
-> >        __se_sys_unlinkat fs/namei.c:4771 [inline]
-> >        __x64_sys_unlinkat+0xd3/0xf0 fs/namei.c:4771
-> >        do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-> >        do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
-> >        entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> > 
-> > -> #0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
-> >        check_prev_add kernel/locking/lockdep.c:3165 [inline]
-> >        check_prevs_add kernel/locking/lockdep.c:3284 [inline]
-> >        validate_chain+0xb9b/0x2140 kernel/locking/lockdep.c:3908
-> >        __lock_acquire+0xab9/0xd20 kernel/locking/lockdep.c:5237
-> >        lock_acquire+0x120/0x360 kernel/locking/lockdep.c:5868
-> >        down_write+0x3a/0x50 kernel/locking/rwsem.c:1590
-> >        inode_lock include/linux/fs.h:980 [inline]
-> >        ocfs2_del_inode_from_orphan+0x134/0x740 fs/ocfs2/namei.c:2730
-> >        ocfs2_dio_end_io_write fs/ocfs2/aops.c:2306 [inline]
-> >        ocfs2_dio_end_io+0x47b/0x1100 fs/ocfs2/aops.c:2404
-> >        dio_complete+0x25e/0x790 fs/direct-io.c:281
-> >        __blockdev_direct_IO+0x2bc0/0x31f0 fs/direct-io.c:1303
-> >        ocfs2_direct_IO+0x260/0x2d0 fs/ocfs2/aops.c:2441
-> >        generic_file_direct_write+0x1dc/0x3e0 mm/filemap.c:4189
-> >        __generic_file_write_iter+0x120/0x240 mm/filemap.c:4358
-> >        ocfs2_file_write_iter+0x157d/0x1d20 fs/ocfs2/file.c:2469
-> >        iter_file_splice_write+0x97a/0x10f0 fs/splice.c:738
-> >        do_splice_from fs/splice.c:938 [inline]
-> >        direct_splice_actor+0x104/0x160 fs/splice.c:1161
-> >        splice_direct_to_actor+0x5b3/0xcd0 fs/splice.c:1105
-> >        do_splice_direct_actor fs/splice.c:1204 [inline]
-> >        do_splice_direct+0x187/0x270 fs/splice.c:1230
-> >        do_sendfile+0x4ec/0x7f0 fs/read_write.c:1370
-> >        __do_sys_sendfile64 fs/read_write.c:1431 [inline]
-> >        __se_sys_sendfile64+0x13e/0x190 fs/read_write.c:1417
-> >        do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-> >        do_syscall_64+0xfa/0xfa0 arch/x86/entry/syscall_64.c:94
-> >        entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> > 
-> > Fix this by acquiring &ocfs2_quota_ip_alloc_sem_key after acquiring
-> > &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE], effectively calling
-> > down_write(&oi->ip_alloc_sem) after the call to
-> > ocfs2_del_inode_from_orphan().
-> > 
-> > Reported-by: syzbot+78359d5fbb04318c35e9@syzkaller.appspotmail.com
-> > Closes: https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
-> > Tested-by: syzbot+78359d5fbb04318c35e9@syzkaller.appspotmail.com
-> > Cc: stable@vger.kernel.org
-> > Signed-off-by: Prithvi Tambewagh <activprithvi@gmail.com>
+AFAICT, kernfs_export_ops is mostly to support open_by_handle_at(). See
+commit aa8188253474 ("kernfs: add exportfs operations").
+
+One idea: we could add a wrapper around generic_setlease() for
+filesystems like this that will do a WARN_ONCE() and then call
+generic_setlease(). That would keep leases working on them but we might
+get some reports that would tell us who's setting leases on these files
+and why.
+
+Thanks for the review!
+
+> >=20
+> > [1]: https://lore.kernel.org/linux-fsdevel/20260107-setlease-6-19-v1-0-=
+85f034abcc57@kernel.org/
+> >=20
+> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
 > > ---
-> >  fs/ocfs2/aops.c | 4 ++--
-> >  1 file changed, 2 insertions(+), 2 deletions(-)
-> > 
-> > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> > index 76c86f1c2b1c..586e3b74d782 100644
-> > --- a/fs/ocfs2/aops.c
-> > +++ b/fs/ocfs2/aops.c
-> > @@ -2295,8 +2295,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
-> >  		goto out;
-> >  	}
-> >  
-> > -	down_write(&oi->ip_alloc_sem);
-> > -
-> >  	/* Delete orphan before acquire i_rwsem. */
-> >  	if (dwc->dw_orphaned) {
-> >  		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
-> > @@ -2309,6 +2307,8 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
-> >  			mlog_errno(ret);
-> >  	}
-> >  
-> > +	down_write(&oi->ip_alloc_sem);
-> > +
-> >  	di = (struct ocfs2_dinode *)di_bh->b_data;
-> >  
-> >  	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
-> > 
-> > base-commit: 765e56e41a5af2d456ddda6cbd617b9d3295ab4e
-> 
+> > Jeff Layton (24):
+> >       fs: add setlease to generic_ro_fops and read-only filesystem dire=
+ctory operations
+> >       affs: add setlease file operation
+> >       btrfs: add setlease file operation
+> >       erofs: add setlease file operation
+> >       ext2: add setlease file operation
+> >       ext4: add setlease file operation
+> >       exfat: add setlease file operation
+> >       f2fs: add setlease file operation
+> >       fat: add setlease file operation
+> >       gfs2: add a setlease file operation
+> >       jffs2: add setlease file operation
+> >       jfs: add setlease file operation
+> >       nilfs2: add setlease file operation
+> >       ntfs3: add setlease file operation
+> >       ocfs2: add setlease file operation
+> >       orangefs: add setlease file operation
+> >       overlayfs: add setlease file operation
+> >       squashfs: add setlease file operation
+> >       tmpfs: add setlease file operation
+> >       udf: add setlease file operation
+> >       ufs: add setlease file operation
+> >       xfs: add setlease file operation
+> >       filelock: default to returning -EINVAL when ->setlease operation =
+is NULL
+> >       fs: remove simple_nosetlease()
+> >=20
+> >  Documentation/filesystems/porting.rst |  9 +++++++++
+> >  Documentation/filesystems/vfs.rst     |  9 ++++++---
+> >  fs/9p/vfs_dir.c                       |  2 --
+> >  fs/9p/vfs_file.c                      |  2 --
+> >  fs/affs/dir.c                         |  2 ++
+> >  fs/affs/file.c                        |  2 ++
+> >  fs/befs/linuxvfs.c                    |  2 ++
+> >  fs/btrfs/file.c                       |  2 ++
+> >  fs/btrfs/inode.c                      |  2 ++
+> >  fs/ceph/dir.c                         |  2 --
+> >  fs/ceph/file.c                        |  1 -
+> >  fs/cramfs/inode.c                     |  2 ++
+> >  fs/efs/dir.c                          |  2 ++
+> >  fs/erofs/data.c                       |  2 ++
+> >  fs/erofs/dir.c                        |  2 ++
+> >  fs/exfat/dir.c                        |  2 ++
+> >  fs/exfat/file.c                       |  2 ++
+> >  fs/ext2/dir.c                         |  2 ++
+> >  fs/ext2/file.c                        |  2 ++
+> >  fs/ext4/dir.c                         |  2 ++
+> >  fs/ext4/file.c                        |  2 ++
+> >  fs/f2fs/dir.c                         |  2 ++
+> >  fs/f2fs/file.c                        |  2 ++
+> >  fs/fat/dir.c                          |  2 ++
+> >  fs/fat/file.c                         |  2 ++
+> >  fs/freevxfs/vxfs_lookup.c             |  2 ++
+> >  fs/fuse/dir.c                         |  1 -
+> >  fs/gfs2/file.c                        |  3 +--
+> >  fs/isofs/dir.c                        |  2 ++
+> >  fs/jffs2/dir.c                        |  2 ++
+> >  fs/jffs2/file.c                       |  2 ++
+> >  fs/jfs/file.c                         |  2 ++
+> >  fs/jfs/namei.c                        |  2 ++
+> >  fs/libfs.c                            | 20 ++------------------
+> >  fs/locks.c                            |  3 +--
+> >  fs/nfs/dir.c                          |  1 -
+> >  fs/nfs/file.c                         |  1 -
+> >  fs/nilfs2/dir.c                       |  3 ++-
+> >  fs/nilfs2/file.c                      |  2 ++
+> >  fs/ntfs3/dir.c                        |  3 +++
+> >  fs/ntfs3/file.c                       |  3 +++
+> >  fs/ocfs2/file.c                       |  5 +++++
+> >  fs/orangefs/dir.c                     |  4 +++-
+> >  fs/orangefs/file.c                    |  1 +
+> >  fs/overlayfs/file.c                   |  2 ++
+> >  fs/overlayfs/readdir.c                |  2 ++
+> >  fs/qnx4/dir.c                         |  2 ++
+> >  fs/qnx6/dir.c                         |  2 ++
+> >  fs/read_write.c                       |  2 ++
+> >  fs/smb/client/cifsfs.c                |  1 -
+> >  fs/squashfs/dir.c                     |  2 ++
+> >  fs/squashfs/file.c                    |  4 +++-
+> >  fs/udf/dir.c                          |  2 ++
+> >  fs/udf/file.c                         |  2 ++
+> >  fs/ufs/dir.c                          |  2 ++
+> >  fs/ufs/file.c                         |  2 ++
+> >  fs/vboxsf/dir.c                       |  1 -
+> >  fs/vboxsf/file.c                      |  1 -
+> >  fs/xfs/xfs_file.c                     |  3 +++
+> >  include/linux/fs.h                    |  1 -
+> >  mm/shmem.c                            |  2 ++
+> >  61 files changed, 116 insertions(+), 42 deletions(-)
+> > ---
+> > base-commit: 731ce71a6c8adb8b8f873643beacaeedc1564500
+> > change-id: 20260107-setlease-6-20-299eb5695c5a
+> >=20
+> > Best regards,
+> > --=20
+> > Jeff Layton <jlayton@kernel.org>
+> >=20
+
+--=20
+Jeff Layton <jlayton@kernel.org>
