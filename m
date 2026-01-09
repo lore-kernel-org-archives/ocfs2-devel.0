@@ -1,105 +1,179 @@
-Received: from mail-ej1-f47.google.com (mail-ej1-f47.google.com [209.85.218.47])
+Received: from mail-lj1-f176.google.com (mail-lj1-f176.google.com [209.85.208.176])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9A32B220F2C
-	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Jan 2026 02:02:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0B93212FB9
+	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Jan 2026 05:26:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.176
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1767924162; cv=none; b=fySYBFL/XvlI5TjMO0fYKEnuZbTDgdHhrjmmFpUF5X/mGBPjsoLH9omOLUaRcn7L43hlN0fbHZQvg6XR8KfDZQ7LJ5wLt3QPbVp/gqkGpyARV8rk9ABbSQnriDo1O6yJTtrdIMA9p574Jq3md2piu3mSOaPy8/1+OLbVmOTQfjQ=
+	t=1767936384; cv=none; b=Ape+2MHjUEo+MQFpCiHuYhOSjK30TzdndkyKkAMLsk3FQHJ5WmixEXA1ITflEJEMUJsVwbtKdlA4ipGVZeeyBC83/GcP+d6CF1sbUOXbH5AUjK9x3BNywnyLxAaVb3FaDyWehoR9FKB885/VjqOW2a1UBgL0s7b5lTtzt0W2AX4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1767924162; c=relaxed/simple;
-	bh=F6WbtV5aGEif4ztPN8+qvNxvIh6Y0/dzbky+ItYgSkU=;
+	s=arc-20240116; t=1767936384; c=relaxed/simple;
+	bh=SMlm1Zj+VPtmhO+U2BlswVGk3VmIYNq8C/pi+eNGgFU=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=p5UgViPgs3p6EUYZsc0bHgk6eICLqm84e+ayBpXzB6TWQPc0zWZxRNbzWy9GDi2bBBlctHYst65/qXNG7SGfu/P1s/uJVwlRhrsBCwZ6u6pTQI2nazEpLgv365F0FZM+ytxcV+OD87HawkHkWlSt5jRBO3S5F1KB+NPxIMII0L8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=dsPlT0oL; arc=none smtp.client-ip=209.85.218.47
+	 To:Cc:Content-Type; b=ThgeWYBJTJzpqqEOA6khXIn2cbZDQng6vP6RFvP2MoCWM2cWAIeaR+7T6XinhJt5/Y/EffaD0gHHM3PtMgQxf790Wqpw56fTFqKtl/60Sk67LB561QDH9XcdvRdBLptQrtG2W6Bv8/n146m3qbt5W+Yu/WN86JlCw2WbAanrgZY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=LtHQgioF; arc=none smtp.client-ip=209.85.208.176
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="dsPlT0oL"
-Received: by mail-ej1-f47.google.com with SMTP id a640c23a62f3a-b72b495aa81so737744566b.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 08 Jan 2026 18:02:40 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="LtHQgioF"
+Received: by mail-lj1-f176.google.com with SMTP id 38308e7fff4ca-382fea4a160so23998011fa.2
+        for <ocfs2-devel@lists.linux.dev>; Thu, 08 Jan 2026 21:26:21 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1767924159; x=1768528959; darn=lists.linux.dev;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=5y8b5E8TnCNW42yhK8a4MYdBZcdGkXQ5zHXVk/PwTq0=;
-        b=dsPlT0oLgK1OrUrHLNEYI4Qz4XM+vY87TSlDSFvBS26Xirp6C/Cv71aEumRLbjwtz5
-         3s66Z1McQtRqiWirqWQCv0kFQ/cUVIjnPpvlbMxgCqh9ymhHnKJ6Sbau2FMHuCsYhF+n
-         eA+HFwiQgTXdKNUoeFu0f/A0v+pGp5X7F1hcvANWyL0RAtGW+ziEUa3PwgEwT/kDWijZ
-         /PQmTPUvdKHozaNzY6l0ZBqv7u0DXnwzXENXgSasZ5gaSJ2qualFl0W6hiUbuq4VC2Q7
-         t0T8AZhotQ6yPjL1LDBZnyZS6BuRz8K0DvLk1LtJmezY1IdYdsEcjJGuzdhY70iI6Zik
-         ejgA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1767924159; x=1768528959;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+        d=gmail.com; s=20230601; t=1767936380; x=1768541180; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=5y8b5E8TnCNW42yhK8a4MYdBZcdGkXQ5zHXVk/PwTq0=;
-        b=uJzwPJSJCilqgnlOJUGR4cn5DhSCYAul4sorKsbpMBu2AS0kM4pSnsD9k1I4adVsmF
-         6bRcP+IUaaBWzjgOEXY0ADqj+at0twCNro676Ub+wAIwNt8StLBACjf/9+y/asUMMBJS
-         5tLd42O3ceSCKW74htZRQuDUeZHJQT8ut9JyMNJhnEDl7p/zVY9v48IAJqeEr4+n6cOF
-         VU7ycGmkFEKneo3CwY30pAhvnQQt2Ei6mhAPIYyPq53du8XV9fUZqkASa2ZNR8dkLPQl
-         iAVX2eBG7zudYftcZb+ABl4Xu0+29hFEV/0oaZbZ/Sz6MLpKJtKsl2FKNv1ukZ6Nou8Z
-         PdQg==
-X-Gm-Message-State: AOJu0YxdO+Sni99VOQsq3BBCetJuXgEiYyMEY6y8EuNqomLaP3JZXry+
-	zz6lsX8Wj2y0KxVJcsiauP4keBsWgatokZ1pBWeOXYw5TwFbvNgYeUN7z3w68ObwMGf5JgF4+35
-	h0yM2jughmZoFg7+x87HqN2NTjCprNpU=
-X-Gm-Gg: AY/fxX5Wj5VF6rqIBMyYbD/aabo4B6iuFk/xNUFtpR9W5/2C7kOstGWOjUr8Dt3spom
-	vxLn9jGZYNw3yagNkGAEuweBktNSbe56fG2N1lRl9vysblPzrIshKKDbqrZolZ805mXza3qAAIP
-	1cJ0TSrIAo8UOBo+abK6fV1zOdkVyPTqrceQYgG20byrJEcN9scqmSZAa0MHwaCvcIhTPxs2nOo
-	0WzKqg/5SX4mGK1/N+qFyVWIrH8qz5rliMm4/tCxBVp4zhgNmA+LBn0xm9HTErEO7YTLsFbqw==
-X-Google-Smtp-Source: AGHT+IEkuF7UtNSH9GDnGwaII7yVujOEsUOS7pScE4+tJ+X88qXtnpiqILmp74VYchpgRs3Y1yNPrdD1yLAR1z5k8hg=
-X-Received: by 2002:a17:907:3f1a:b0:b7d:1a23:81a0 with SMTP id
- a640c23a62f3a-b8445460664mr749842766b.63.1767924158663; Thu, 08 Jan 2026
- 18:02:38 -0800 (PST)
+        bh=EEF8CAf2dAOD+neWtLdI+w7NxCIZ2WohswMXxqPrdck=;
+        b=LtHQgioFhnkioP10mRkdyRtZzSEdSS3H5WowxOyYx7Y3c9dCCRkpwxI1ehJzJ59tsz
+         m7Ic8PqRIcIHXYRf2+2uo7mLM25t/GVr5/tgOwiNUlyJKyqQVJJz+guqOvPryak/lxjU
+         tCO6q+J2FqId4snoHsLu4m7ccBAbZdOsyRTeeU1ySEHr11IuogM4NGyu5WN//RdTqYH9
+         vbNOfu1nXcrNeP/vxMTWI9+P9VknImnv5hZgKp8VWlUaTYQpAxFbxqSlx/xbFqozxbXC
+         cZeUVXIXcVOMJtKyLcCne0/XUekwOZIbjOwcnRnNxnhfVi0du3QRdWw5JlIlvVNCTKYM
+         W7EA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1767936380; x=1768541180;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=EEF8CAf2dAOD+neWtLdI+w7NxCIZ2WohswMXxqPrdck=;
+        b=L9g6P31W8DWGGy+Xvxsmho4Tcj7CuOuVEfnm2pD1CxPy76febI68qITDSnLpbXciws
+         tHYfKZPfkwOPGZm1roWsecNHMLpKZ6K00rSPIjzESNjWyD+zyNgEZj5BWhxUGU7CKynz
+         yUzpx4ja9dwxxbbDw7JJJvEb6w2s7B1jOOG2FE2qfQnDMy6AgdWoSY/Qbs9I2HLXnXtQ
+         C14LvaXwaqoJJGUaFc9VzXIF/K/m7A1fNDvPtceic1ai2wGGzYqj2/M9IQo47OsLMx8f
+         08xnUuNUCThvWHU9Ttgb2M4XVAu26cQr81AvxcJ8Y3b6ZLobn0sgLd+y1mN5jw5Qght8
+         5hVg==
+X-Forwarded-Encrypted: i=1; AJvYcCXSgPgQ/iiGfk59MtZ7Uaw5YY8FPxhOkf5tkQpfd8Mv7SMWk5ZZxnc8josZkr4ip0x8war7Pnx9S1dr2A==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzyNsG15lV/W7C7sMr+KZzkXAt9mJcXWEtPJ1g/3NJjIS0hsTMY
+	qolwu3xa+RIWpfFtZ4nMycDm2QPhMVm0zZwycFWjXAUmo/A4ldZTsoZMQmrfIsV7DTqY2KFH9z1
+	75TWrF+kuMAu4eah86FdmfgalKNKH3aY=
+X-Gm-Gg: AY/fxX43YWgvAHLR+D4UDY93NiS/srn9W0rSOmL7uCnazKSfkBzSIVShigxvegrD471
+	9CxqOY6grw6AI1Wxk1oONwn0lddxWrVIg3Vnou1TdJPWw0CucDcJgMepIEvXcWPGHNa8utG3d3O
+	nMq3/2u/pBKAHd0coywHivANLwn4G/mTTycYwQu7X5WsSYUSI62knbVgUqdqIBseI1SJv5lMhtQ
+	Mo+kz56+mycEwBXd2GSZZv0lYioBfY0fem9sF56C354PQXAc4pqborqDGfP/vLbQb8tpB/e
+X-Google-Smtp-Source: AGHT+IFacKbx/HloTRDyL3KNE+dISSFeSIeO5gnLVmi9ry+Gc3uB4ma+c7Q9oZoxnNZINjg1j054MzA1urN4ujLkRdE=
+X-Received: by 2002:a05:651c:419b:b0:378:e3f9:2d26 with SMTP id
+ 38308e7fff4ca-382ff823bdamr21702801fa.39.1767936379607; Thu, 08 Jan 2026
+ 21:26:19 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20251227174251.121668-1-swilczek.lx@gmail.com>
- <1e0dba77-e8a3-43e2-b20c-fbac6fdc928f@linux.alibaba.com> <CAJRoVwh8LUOaFb2OcNtE3Y=LU-tmSGrkOiN43C5SiEunr_coZQ@mail.gmail.com>
- <25d90176-743e-4638-9643-861bd5792eed@linux.alibaba.com>
-In-Reply-To: <25d90176-743e-4638-9643-861bd5792eed@linux.alibaba.com>
-From: Szymon Wilczek <swilczek.lx@gmail.com>
-Date: Fri, 9 Jan 2026 03:02:27 +0100
-X-Gm-Features: AQt7F2oNsVlTsqiUGa5waS7RS1x6ZGrhmYagEYb6CMXotxym8-aJT6uNeMbUMoI
-Message-ID: <CAJRoVwgxBKXcMSU-CMH8gC1TLnWFdMHiaFGOyFrkDZqzfpN8Ng@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: fix circular locking dependency in ocfs2_acquire_dquot
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, mark@fasheh.com, jlbec@evilplan.org, 
-	linux-kernel@vger.kernel.org, syzkaller-bugs@googlegroups.com, 
-	syzbot+51244a05705883616c95@syzkaller.appspotmail.com
+References: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org> <20260108-setlease-6-20-v1-13-ea4dec9b67fa@kernel.org>
+In-Reply-To: <20260108-setlease-6-20-v1-13-ea4dec9b67fa@kernel.org>
+From: Ryusuke Konishi <konishi.ryusuke@gmail.com>
+Date: Fri, 9 Jan 2026 14:26:03 +0900
+X-Gm-Features: AQt7F2pmUKGJKWpVwxhIrI-U32G4ALuqYGKPCGsBpfUc51GGTfk1sxJMQ_5a6zs
+Message-ID: <CAKFNMok9FG=hhzr8YrHYws5z3jTWOf2TXtFWvSfYbNy6+XLHxw@mail.gmail.com>
+Subject: Re: [PATCH 13/24] nilfs2: add setlease file operation
+To: Jeff Layton <jlayton@kernel.org>
+Cc: Luis de Bethencourt <luisbg@kernel.org>, Salah Triki <salah.triki@gmail.com>, 
+	Nicolas Pitre <nico@fluxnic.net>, Christoph Hellwig <hch@infradead.org>, Jan Kara <jack@suse.cz>, 
+	Anders Larsen <al@alarsen.net>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	Christian Brauner <brauner@kernel.org>, David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, 
+	Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Yue Hu <zbestahu@gmail.com>, 
+	Jeffle Xu <jefflexu@linux.alibaba.com>, Sandeep Dhavale <dhavale@google.com>, 
+	Hongbo Li <lihongbo22@huawei.com>, Chunhai Guo <guochunhai@vivo.com>, Jan Kara <jack@suse.com>, 
+	"Theodore Ts'o" <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, 
+	Jaegeuk Kim <jaegeuk@kernel.org>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
+	David Woodhouse <dwmw2@infradead.org>, Richard Weinberger <richard@nod.at>, Dave Kleikamp <shaggy@kernel.org>, 
+	Viacheslav Dubeyko <slava@dubeyko.com>, 
+	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Mike Marshall <hubcap@omnibond.com>, Martin Brandenburg <martin@omnibond.com>, 
+	Miklos Szeredi <miklos@szeredi.hu>, Amir Goldstein <amir73il@gmail.com>, 
+	Phillip Lougher <phillip@squashfs.org.uk>, Carlos Maiolino <cem@kernel.org>, 
+	Hugh Dickins <hughd@google.com>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
+	Chuck Lever <chuck.lever@oracle.com>, Alexander Aring <alex.aring@gmail.com>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, Jonathan Corbet <corbet@lwn.net>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Eric Van Hensbergen <ericvh@kernel.org>, 
+	Latchesar Ionkov <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>, 
+	Christian Schoenebeck <linux_oss@crudebyte.com>, Xiubo Li <xiubli@redhat.com>, 
+	Ilya Dryomov <idryomov@gmail.com>, Trond Myklebust <trondmy@kernel.org>, 
+	Anna Schumaker <anna@kernel.org>, Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.org>, 
+	Ronnie Sahlberg <ronniesahlberg@gmail.com>, Shyam Prasad N <sprasad@microsoft.com>, 
+	Tom Talpey <tom@talpey.com>, Bharath SM <bharathsm@microsoft.com>, 
+	Hans de Goede <hansg@kernel.org>, linux-kernel@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org, 
+	linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, 
+	linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, 
+	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org, 
+	ntfs3@lists.linux.dev, ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org, 
+	linux-unionfs@vger.kernel.org, linux-xfs@vger.kernel.org, linux-mm@kvack.org, 
+	gfs2@lists.linux.dev, linux-doc@vger.kernel.org, v9fs@lists.linux.dev, 
+	ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, 
+	linux-cifs@vger.kernel.org, samba-technical@lists.samba.org
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Hi Joseph,
+On Fri, Jan 9, 2026 at 2:15=E2=80=AFAM Jeff Layton wrote:
+>
+> Add the setlease file_operation to nilfs_file_operations and
+> nilfs_dir_operations, pointing to generic_setlease.  A future patch
+> will change the default behavior to reject lease attempts with -EINVAL
+> when there is no setlease file operation defined. Add generic_setlease
+> to retain the ability to set leases on this filesystem.
+>
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
 
-Thank you for pointing to the designed order in quota_global.c.
+Looks good, Thanks!
 
-I looked at the locking documentation. I see that
-"Acquire dquot for the first time" specifies:
-  ocfs2_lock_global_qf -> start_trans
+Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
 
-However, I believe the v2 patch is still necessary because lockdep
-detected a real circular dependency:
+Ryusuke Konishi
 
-sb_internal -> sysfile_lock_key -> ip_alloc_sem
-
-Since ocfs2_lock_global_qf takes ip_alloc_sem, and start_trans takes
-sb_internal (via sb_start_intwrite), the documented order inverts the
-chain above, creating an ABBA deadlock with freeze/dismount paths.
-
-The designed order may have been correct before sb_start_intwrite
-became part of ocfs2_start_trans, but now this sequence conflicts
-with the VFS freeze mechanism.
-
-My patch ensures sb_internal is acquired before ip_alloc_sem, which
-matches the expected freeze ordering. Perhaps the documentation in
-quota_global.c should be updated to reflect this change?
-
-If you see a problem with this approach, I'm happy to adjust.
-What would you suggest?
-
-Thanks,
-Szymon
+> ---
+>  fs/nilfs2/dir.c  | 3 ++-
+>  fs/nilfs2/file.c | 2 ++
+>  2 files changed, 4 insertions(+), 1 deletion(-)
+>
+> diff --git a/fs/nilfs2/dir.c b/fs/nilfs2/dir.c
+> index 6ca3d74be1e16d5bc577e2520f1e841287a2511f..b243199036dfa1ab2299efaaa=
+5bdf5da2d159ff2 100644
+> --- a/fs/nilfs2/dir.c
+> +++ b/fs/nilfs2/dir.c
+> @@ -30,6 +30,7 @@
+>   */
+>
+>  #include <linux/pagemap.h>
+> +#include <linux/filelock.h>
+>  #include "nilfs.h"
+>  #include "page.h"
+>
+> @@ -661,5 +662,5 @@ const struct file_operations nilfs_dir_operations =3D=
+ {
+>         .compat_ioctl   =3D nilfs_compat_ioctl,
+>  #endif /* CONFIG_COMPAT */
+>         .fsync          =3D nilfs_sync_file,
+> -
+> +       .setlease       =3D generic_setlease,
+>  };
+> diff --git a/fs/nilfs2/file.c b/fs/nilfs2/file.c
+> index 1b8d754db44d44d25dcd13f008d266ec83c74d3f..f93b68c4877c5ed369e90b723=
+517e117142335de 100644
+> --- a/fs/nilfs2/file.c
+> +++ b/fs/nilfs2/file.c
+> @@ -8,6 +8,7 @@
+>   */
+>
+>  #include <linux/fs.h>
+> +#include <linux/filelock.h>
+>  #include <linux/mm.h>
+>  #include <linux/writeback.h>
+>  #include "nilfs.h"
+> @@ -150,6 +151,7 @@ const struct file_operations nilfs_file_operations =
+=3D {
+>         .fsync          =3D nilfs_sync_file,
+>         .splice_read    =3D filemap_splice_read,
+>         .splice_write   =3D iter_file_splice_write,
+> +       .setlease       =3D generic_setlease,
+>  };
+>
+>  const struct inode_operations nilfs_file_inode_operations =3D {
+>
+> --
+> 2.52.0
+>
