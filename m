@@ -1,108 +1,102 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yx1-f52.google.com (mail-yx1-f52.google.com [74.125.224.52])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5FCA772631;
-	Sat, 10 Jan 2026 01:48:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7701430FC1E
+	for <ocfs2-devel@lists.linux.dev>; Sat, 10 Jan 2026 05:38:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768009682; cv=none; b=D9Ifb0c9YE66ew5iw22SH7pm+9s4ziw5G2zIxebtJTz+pF9P5L4fJhkPNTCqlTKKlU27R9v2Z0sU1AfkgsTMQvmXXiomFXRzS9bW9yvKIQj586tDhr9uqxLLqD2iQ6q4jwmo+LcgqbpSC0VRkb0EEziaeOLyxXb6g1UBZ20v1iY=
+	t=1768023511; cv=none; b=A+avk+BGBJ49cZOCI+yYGfouuPkBZGhOA/uIw+uNVrB1QMqFqju+enEddAV6bBujf+3iMn9+Kj6Jp2E3jmpoLNd2ugS9nXY2k8xx/ZyQx8LyTJcIjFhVVcjGP20GtBF9sANayB2qzm6b7leHUHHNzar8b8sogUZFedVK4xtUB4w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768009682; c=relaxed/simple;
-	bh=cdF01HTymcjwXfQS8AcBirvW01pDXmvEycM3L47DM38=;
-	h=Message-ID:Date:MIME-Version:Cc:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=bVuoIFYlMVuj6r0yi+KDK2lQZstzkeEN4R1VTTRmgoIZcZV68c9X5+pi34E5XhhECBI+fC274l6WI7GfjU1twL+DRR/Fk9MpoTxgw9A+gmuLwKw4WDoxm+q4QYfQl/udu/L9Fl7oE7bmbd2SF8jLnjWTnOGrkrGtNiYjbFy/z/M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Fu7FxrUR; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1768023511; c=relaxed/simple;
+	bh=lr91WETsQhvwGxA4YBFNGJu5pbkLgoMyM9mXGrzF/Ws=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=ey3HsEv6r0YHU1kQbJ+OtQqpGK2e39E98B6KH0tae4/U+5I59+g8BDwH57GStdvvuOG5EIt7xcn8Nxys1PbBBIR1NA+K15yCjcWozzJL5Ba6PMHcRJX6LTI0A9sa9BU4Y/KaoggzwcKdmKh3g4HTfqf8d5i+cWapAOsQo5iMWww=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=YKobfdUF; arc=none smtp.client-ip=74.125.224.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Fu7FxrUR"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 4AAB1C16AAE;
-	Sat, 10 Jan 2026 01:47:44 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1768009682;
-	bh=cdF01HTymcjwXfQS8AcBirvW01pDXmvEycM3L47DM38=;
-	h=Date:Cc:Subject:To:References:From:In-Reply-To:From;
-	b=Fu7FxrURqv63o/6rCcdW5OUCW4q5tJDwdMX16lkstwj96Y3ue96Q6p+PXYcAkBSTE
-	 UuBIQcMoCb8UBhZ3VgYGY9Hs+mposZy8O/TAd1t9B2FHXb83g+J13cZy/S+COvLI7A
-	 AVzdxtl+7sZ+ARe92YM2Pq5SJrqPzbyS3fbZcI0XyVKr6eLq08Q3Rx/Lu5Az1QejVf
-	 c5L1AD5mIN6/tM9/vPJ6O4DOb+2koTVlkEeccrf23n1J/Asfg2W7yZt4cZtExuiJ/F
-	 dREajCpoYlb46NKuspiGJYA2YFWhQ/LnSHS5B/M4V94u/4Hn/t/pnkaQiawh8m0Fnu
-	 nh/QGL+jmgSBA==
-Message-ID: <772e9b7d-6d83-4495-864d-f506211a9d62@kernel.org>
-Date: Sat, 10 Jan 2026 09:47:58 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="YKobfdUF"
+Received: by mail-yx1-f52.google.com with SMTP id 956f58d0204a3-6447743ce90so5101018d50.2
+        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Jan 2026 21:38:30 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1768023509; x=1768628309; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=lr91WETsQhvwGxA4YBFNGJu5pbkLgoMyM9mXGrzF/Ws=;
+        b=YKobfdUF3NEdJPygIJCACRbknhWeAvt3LSDK1pI4SjIA6QW8k5+SftBvTAHz9r2FY9
+         M1BvGpayJUCC84cXGZ02j/6F7LWtxEl8fQJrblFKtkHCMQQP0eCQr4tvHOWTUvsfsgXh
+         L8RzEeAK3BCnAUzsn6nCgwA+GgiLTOuSaC1K8WTmKSGmZ/RoifexuRHgGt07CnzjgczO
+         69p9G9ENAQaDSIF5cF887TLhsOl1rtUiknjCMu6EtOpLMZKCxBsw2YGD/v+TD1va9K95
+         OOLSQnEGvAlEZV4BaJfo/xctS5PLqW2FqwJv0pz7nxajTzZmXGIRzEWdSW7Z2zO2JzzK
+         OQFQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1768023509; x=1768628309;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=lr91WETsQhvwGxA4YBFNGJu5pbkLgoMyM9mXGrzF/Ws=;
+        b=FDLtP/glVuXEe6rWWhfnfuaEQP58RGLT/S20F7IQjJi8h0yE3eNrFujlkhow4o0Hf6
+         WfXmMMqDT1Vcd3jUkbAMMss9EoejFP6K/I6R8DO9m84pE4DjN3jwqGmkoYeItaLYZPeN
+         sY8zBe08bLn2r+uL6aYW0UTY9MjprNu6w7l8JHVu8/l4+OVww853xbMjq30Sd4YCXjfg
+         CwjgPBp+9oajm2hZzViLBjmIgNwO6afZFd9rB/RKRHxS+URlzZx/N4Cvj6B1ryHBqGFj
+         o5ZMZ8cVVQpz141cSr9Mk6rnGcvQjMp2WtPXXpmtsQ8rp10Aek9/zwdoExwU0sRfXzMR
+         WNEw==
+X-Gm-Message-State: AOJu0Yyc0AqZbQ/2beejUAZQuBvF1N+o/3crvEQKh5hladScvC39sjR2
+	g8/B9ARAjfMSlzuqJbX7qwtkv7sGW/K3GkTESOYtE+4WMMtD9W48zTvktMY+ewt7YwUOJpEStbF
+	Irw9XLngVsvBhu7WuAvPRf6tTnwVRWpo=
+X-Gm-Gg: AY/fxX6k7y5QDYt3R70BLBB6fINZ6hbzA90QqH/xsqv1kQMpt4ReiMT35Mx49Scdsqh
+	b1l/1WGWETowfdfWVPwAOsCHrj0wFUhhnket1z65iRzSsy1U7WJDLhpKMYHSdofr0pRKyaLeRVx
+	AWBUsPa2Dv1QyAYc7tHVkerFOLox62Gn9nsWhyqzYMhTsVqVS8EaQJ0TcMf81urxmOIVlxuKBqH
+	NUDzaKy/Lbl5oiTp9X396n9Ir4VOsoNsxdg4+QI0S9h/gMoja9U60NOMMFS/eHj5j+s7RpUCVnB
+	Om69NDbkByd6Iiq9Xo2suJIZOx7554lQLdOWiWzR5L7W0VSqpJpLewpm+Dvo
+X-Google-Smtp-Source: AGHT+IHcEJFlu5ntWFDQvpAsncsGw6xYMy7KPCrsGVaAPHQ6cqZR9Ymd+SbENZqTCdIDI6vdktHckN2so6H1+/2pu0g=
+X-Received: by 2002:a05:690e:134c:b0:647:116a:f67f with SMTP id
+ 956f58d0204a3-64716d089c4mr9096701d50.94.1768023509387; Fri, 09 Jan 2026
+ 21:38:29 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Cc: chao@kernel.org, linux-kernel@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, linux-btrfs@vger.kernel.org,
- linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org,
- jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org,
- ntfs3@lists.linux.dev, ocfs2-devel@lists.linux.dev,
- devel@lists.orangefs.org, linux-unionfs@vger.kernel.org,
- linux-xfs@vger.kernel.org, linux-mm@kvack.org, gfs2@lists.linux.dev,
- linux-doc@vger.kernel.org, v9fs@lists.linux.dev, ceph-devel@vger.kernel.org,
- linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org,
- samba-technical@lists.samba.org
-Subject: Re: [PATCH 08/24] f2fs: add setlease file operation
-To: Jeff Layton <jlayton@kernel.org>, Luis de Bethencourt
- <luisbg@kernel.org>, Salah Triki <salah.triki@gmail.com>,
- Nicolas Pitre <nico@fluxnic.net>, Christoph Hellwig <hch@infradead.org>,
- Jan Kara <jack@suse.cz>, Anders Larsen <al@alarsen.net>,
- Alexander Viro <viro@zeniv.linux.org.uk>,
- Christian Brauner <brauner@kernel.org>, David Sterba <dsterba@suse.com>,
- Chris Mason <clm@fb.com>, Gao Xiang <xiang@kernel.org>,
- Yue Hu <zbestahu@gmail.com>, Jeffle Xu <jefflexu@linux.alibaba.com>,
- Sandeep Dhavale <dhavale@google.com>, Hongbo Li <lihongbo22@huawei.com>,
- Chunhai Guo <guochunhai@vivo.com>, Jan Kara <jack@suse.com>,
- Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>,
- Jaegeuk Kim <jaegeuk@kernel.org>,
- OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
- David Woodhouse <dwmw2@infradead.org>, Richard Weinberger <richard@nod.at>,
- Dave Kleikamp <shaggy@kernel.org>,
- Ryusuke Konishi <konishi.ryusuke@gmail.com>,
- Viacheslav Dubeyko <slava@dubeyko.com>,
- Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Joseph Qi <joseph.qi@linux.alibaba.com>, Mike Marshall
- <hubcap@omnibond.com>, Martin Brandenburg <martin@omnibond.com>,
- Miklos Szeredi <miklos@szeredi.hu>, Amir Goldstein <amir73il@gmail.com>,
- Phillip Lougher <phillip@squashfs.org.uk>, Carlos Maiolino <cem@kernel.org>,
- Hugh Dickins <hughd@google.com>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, Andrew Morton <akpm@linux-foundation.org>,
- Namjae Jeon <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>,
- Yuezhang Mo <yuezhang.mo@sony.com>, Chuck Lever <chuck.lever@oracle.com>,
- Alexander Aring <alex.aring@gmail.com>,
- Andreas Gruenbacher <agruenba@redhat.com>, Jonathan Corbet <corbet@lwn.net>,
- "Matthew Wilcox (Oracle)" <willy@infradead.org>,
- Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov
- <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>,
- Christian Schoenebeck <linux_oss@crudebyte.com>, Xiubo Li
- <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>,
- Trond Myklebust <trondmy@kernel.org>, Anna Schumaker <anna@kernel.org>,
- Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.org>,
- Ronnie Sahlberg <ronniesahlberg@gmail.com>,
- Shyam Prasad N <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>,
- Bharath SM <bharathsm@microsoft.com>, Hans de Goede <hansg@kernel.org>
-References: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org>
- <20260108-setlease-6-20-v1-8-ea4dec9b67fa@kernel.org>
-Content-Language: en-US
-From: Chao Yu <chao@kernel.org>
-In-Reply-To: <20260108-setlease-6-20-v1-8-ea4dec9b67fa@kernel.org>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+References: <20260104014028.305029-1-kartikey406@gmail.com> <10be03f1-1ab1-44d0-b9c8-89cfc668c304@linux.alibaba.com>
+In-Reply-To: <10be03f1-1ab1-44d0-b9c8-89cfc668c304@linux.alibaba.com>
+From: Deepanshu Kartikey <kartikey406@gmail.com>
+Date: Sat, 10 Jan 2026 11:08:18 +0530
+X-Gm-Features: AZwV_Qh76SZCwg86nOqvD91QsNHER6F_nGxVEEJKAW2dbB5oaBlCVBA_NSMKfBs
+Message-ID: <CADhLXY5W32uoKPWrtZaKDruA9pdiZAADL-7O9a3Pnp8znh5t1Q@mail.gmail.com>
+Subject: Re: [PATCH] ocfs2: validate allocator type to prevent BUG_ON in ocfs2_block_group_search
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com, 
+	Joel Becker <jlbec@evilplan.org>, Mark Fasheh <mark@fasheh.com>, Heming Zhao <heming.zhao@suse.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On 1/9/2026 1:13 AM, Jeff Layton wrote:
-> Add the setlease file_operation to f2fs_file_operations and
-> f2fs_dir_operations, pointing to generic_setlease.  A future patch will
-> change the default behavior to reject lease attempts with -EINVAL when
-> there is no setlease file operation defined. Add generic_setlease to
-> retain the ability to set leases on this filesystem.
-> 
-> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+On Thu, Jan 8, 2026 at 1:55=E2=80=AFPM Joseph Qi <joseph.qi@linux.alibaba.c=
+om> wrote:
+>
+>
+>
+> On 2026/1/4 09:40, Deepanshu Kartikey wrote:
+> > A corrupted filesystem image can have an inode allocator with the
+> > OCFS2_BITMAP_FL flag incorrectly set, making ocfs2_is_cluster_bitmap()
+> > return true. When the code later calls ocfs2_block_group_search(),
+> > it triggers BUG_ON(ocfs2_is_cluster_bitmap(inode)) causing a kernel pan=
+ic.
+> >
+> But ocfs2_is_cluster_bitmap() checks ip_blkno.
+>
+> Thanks,
+> Joseph
+>
 
-Reviewed-by: Chao Yu <chao@kernel.org>
+Hi Joseph,
 
-Thanks,
+Thanks for the correction. You're right, ocfs2_is_cluster_bitmap()
+compares ip_blkno with osb->bitmap_blkno, not a flag.
+
+I will send a v2 with the corrected commit message.
+
+Thanks, Deepanshu
