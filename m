@@ -1,151 +1,160 @@
-Received: from mail-pj1-f49.google.com (mail-pj1-f49.google.com [209.85.216.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DC9724A0C
-	for <ocfs2-devel@lists.linux.dev>; Sat, 10 Jan 2026 05:44:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B05F274B59;
+	Mon, 12 Jan 2026 09:49:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768023894; cv=none; b=nJxhTqeS4nhMVNlAaHTsrz6zWWcXRPX+iGexxfNg1DUsJugnOwFUUn6EHFNXBDSvQ8lJowjpM2la+wDSzzLe86FHv5jRVhuT0GoFqehBxIT9GnxHoduRw7k8jmPSkdVt55X091M7y2HT/YgH/DOoQs+RG4Pq0bH/wiUhPkk2jag=
+	t=1768211376; cv=none; b=MOTvxBI1YuyjQ6gvfX+4HVhe72CbP4yt4MYLF43g1zK/WDZng64na/lIgWu0mFuymgPzvUt7S67Ml5M7UpkgZB5lKBpxX8yif40N176YBrF9ZzFdqzZhsq/1awhIvyuD++KttDb8aT+8fYob3fMHrHrEsVAmU/hqyub/+BI6xtA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768023894; c=relaxed/simple;
-	bh=qjXsV1fXF5mWIQD1Y6+NHCIHSXg93dSjO27lRy6uUHI=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=LWSu0weOFTIHnviafGiyCcpmaUryZ+MLU6eHETpaH0KP3jPtUQWVYg5kMfVATTAupLWSmJxBO0neo2l26oUcm1RTvkjDPqIWZIPDzicq8oZD+v8cNf0uLO6FGUTZ/XRrCimB3AQdmGePXaUWwlg5DxmK8Yil8MO4POWGo6uJl74=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=jqabXBDO; arc=none smtp.client-ip=209.85.216.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1768211376; c=relaxed/simple;
+	bh=m8zAICgnxs6xkW3AmfrwI3a0ispTdY6AQGss0vAXdME=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=q3NGPeSk7a6CvIe4nVvFvvSnbK5NVJaYkh+JHB1QwFtdQCPgilSDFlMkOl6W2KzB/eGVQH7f3OmakECiQ7Q618apQJurEN+dJAbZkhpCEvsrOZoErmuj5UE8GOKObjGF+OnoSvzUZOexu3kkKoaEBN3gxKdvi8+UtRLI9qsGb6s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=kovjAz4K; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="jqabXBDO"
-Received: by mail-pj1-f49.google.com with SMTP id 98e67ed59e1d1-34abc7da414so2833326a91.0
-        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Jan 2026 21:44:52 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1768023892; x=1768628692; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=Z68BN0cZI5QOdu/wL2wyS5FUbf7T2hnqvJbeV5WVky4=;
-        b=jqabXBDOgfTJbPLlulPrqmnaNO1DsslM0Q6Rl42HWk2mgswb114z2TnWyRessN5H8v
-         +Og2GKqZOynMuweB5TOYS8Ix4SM63//UPkPKT1EckJqsLtq+QdoetMuGXFBAhUAqYRbG
-         No7szPfIYFkxo4T01w+J78KhzqRwsVUnXbtXrNDLOS4ljfx2sn4uXuSMweEh/9BKg8ml
-         u760cV9XzPhwYP0xB3SnvPfj/ksogNE2RphLcme9sjtU+uX0OttSj5loYTZ7tf7bQT3N
-         1dSzQJlafvXt6OGG+4S+OiAdbw7agckjuQK6PYuGBDNPATAN2nLw6v+owjTWAmzBsjVM
-         Bmag==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1768023892; x=1768628692;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=Z68BN0cZI5QOdu/wL2wyS5FUbf7T2hnqvJbeV5WVky4=;
-        b=Eu70L1eh9dqZOWCJue9cgv8yjwzMleFvNIGsKinDX01keeXqRsWx7HU+U1AOscmBNH
-         +i1EZTBuew2VTr2Zjuky+K+uakJi2nqmHjyBm3MBkiIazDOzAJL7y1QHiqr10G0pAweK
-         J9QBmRHeWQdqbkCxn9wApsysWUqBZMYkWDBidm2E3OXVZ85S3sqhJGeajqmNbbdXIcTj
-         Mtg0fuhWKNRq2oUTQ/2QIur3yh73lo93k4rDtUEhPotPapxqrIePMvcjTPyz5ogmm4Ga
-         Uy+vvD4Ju2m7gNMVTMNGc8pNfSDT2nr3ZVAv7s8IAGbAbKRNhsevtQftyAIkx+QTo5oj
-         PWaQ==
-X-Gm-Message-State: AOJu0YzAIVM999s9jJku4INAxY1tW9a8DZAFZXe7Ej8NL0RyK6wuekr7
-	JIyE0346KnzZQ0G27arcBe7JwzPh8Vh2q0y72bWArTnZaz/NI393OLXJ0XP+YA==
-X-Gm-Gg: AY/fxX58PXgze7oNimuR1S1CMTNz+FfnPKT9oPlx/RnzHcb7gI87DCBPb7qKZ1kZFLw
-	7/blb6PlZag0u7it3dF9Roj+87Uq3A1+WHMqwRhDwp4unQrqwU5dW5u+H4R8yxl3nLWiL2/0HJL
-	24jrPTfUFCVjGDwFX7yxMaDDoBzKEEIOR8nenczTHi1JYgZVVLsltWoPfmgDKj20Ze7mwkvuPMp
-	wj67PNKGX/WIzABFeGFRJrY7B0F6/ULUP8VSNeU/pqzaHFxqaYwdvPwX67GYTJ5Cr4Ak368c1bA
-	JQjltrtF9kg/5wJ/Yq+6uWunTC8nEgA6RU6MkLnWGbW3SCLrCnZc5zPb63J5dqUqtj+pkUpQu49
-	MvcCIxjhGuEgn3K0FGIneZqsrd7XdjJxgF1F3IbA+ZOTrDPQQ1v4XdtXOSmz7P/6CzElk70z7Df
-	gDEkLGalUjcZ4PiGsy3YP2mSGKqiB52TYL83aXaIeOlMOTAqUi7O3A1LBaYU76Yy5shVQ=
-X-Google-Smtp-Source: AGHT+IHt4ahIAGUhI8Zd0S/hBWvFKtfcny7KZw1sYUfxMZ2BkCeyItEV4H34gSk1f1CpeVUJNiZdUg==
-X-Received: by 2002:a17:90b:2587:b0:340:c179:365a with SMTP id 98e67ed59e1d1-34f68a29d18mr10132869a91.0.1768023891988;
-        Fri, 09 Jan 2026 21:44:51 -0800 (PST)
-Received: from deepanshu-kernel-hacker.. ([2405:201:682f:389d:3fae:1049:5d45:ed6a])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-34f6b29e117sm4221799a91.2.2026.01.09.21.44.48
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 09 Jan 2026 21:44:51 -0800 (PST)
-From: Deepanshu Kartikey <kartikey406@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com
-Subject: [PATCH v2] ocfs2: validate allocator type to prevent BUG_ON in ocfs2_block_group_search
-Date: Sat, 10 Jan 2026 11:14:43 +0530
-Message-ID: <20260110054443.604944-1-kartikey406@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="kovjAz4K"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id ECD38C116D0;
+	Mon, 12 Jan 2026 09:49:18 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1768211375;
+	bh=m8zAICgnxs6xkW3AmfrwI3a0ispTdY6AQGss0vAXdME=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To:From;
+	b=kovjAz4KC5mAD7YrC6t2czYMjBWRcZIetUzNRdlwl4Z1rGgyp9glYOLbnOZypWAbx
+	 YcmUJCp6E8w+KmTy2i5WzHpX9fHwe2RpJgFtTNA95cnxyqlkjOQ7JUeU62APvVqkZH
+	 Y3/3WTlqh+tsw7Ls6NjRbDo/fUnqsYd/eTTthVLhPJ/V7Q9k3YIeMunOn+RktLYgES
+	 ul3EQIBMmxhQ+r6sMjogrCPwB0I4vKTgz3PxtAbmBEyff/p4uJORPrLFe5LDSB0Hni
+	 RZIrOX4UDngsOGqfziwhf24VBmArYe5xbo5TLnA7nB4zBdXfiNr6kFAgXt4Ej7biQ5
+	 RxoAJIZnapRSw==
+Date: Mon, 12 Jan 2026 10:49:16 +0100
+From: Christian Brauner <brauner@kernel.org>
+To: Amir Goldstein <amir73il@gmail.com>
+Cc: Jeff Layton <jlayton@kernel.org>, Jan Kara <jack@suse.cz>, 
+	Luis de Bethencourt <luisbg@kernel.org>, Salah Triki <salah.triki@gmail.com>, 
+	Nicolas Pitre <nico@fluxnic.net>, Christoph Hellwig <hch@infradead.org>, 
+	Anders Larsen <al@alarsen.net>, Alexander Viro <viro@zeniv.linux.org.uk>, 
+	David Sterba <dsterba@suse.com>, Chris Mason <clm@fb.com>, Gao Xiang <xiang@kernel.org>, 
+	Chao Yu <chao@kernel.org>, Yue Hu <zbestahu@gmail.com>, 
+	Jeffle Xu <jefflexu@linux.alibaba.com>, Sandeep Dhavale <dhavale@google.com>, 
+	Hongbo Li <lihongbo22@huawei.com>, Chunhai Guo <guochunhai@vivo.com>, Jan Kara <jack@suse.com>, 
+	Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, 
+	Jaegeuk Kim <jaegeuk@kernel.org>, OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
+	David Woodhouse <dwmw2@infradead.org>, Richard Weinberger <richard@nod.at>, 
+	Dave Kleikamp <shaggy@kernel.org>, Ryusuke Konishi <konishi.ryusuke@gmail.com>, 
+	Viacheslav Dubeyko <slava@dubeyko.com>, Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, Mike Marshall <hubcap@omnibond.com>, 
+	Martin Brandenburg <martin@omnibond.com>, Miklos Szeredi <miklos@szeredi.hu>, 
+	Phillip Lougher <phillip@squashfs.org.uk>, Carlos Maiolino <cem@kernel.org>, 
+	Hugh Dickins <hughd@google.com>, Baolin Wang <baolin.wang@linux.alibaba.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
+	Chuck Lever <chuck.lever@oracle.com>, Alexander Aring <alex.aring@gmail.com>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, Jonathan Corbet <corbet@lwn.net>, 
+	"Matthew Wilcox (Oracle)" <willy@infradead.org>, Eric Van Hensbergen <ericvh@kernel.org>, 
+	Latchesar Ionkov <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>, 
+	Christian Schoenebeck <linux_oss@crudebyte.com>, Xiubo Li <xiubli@redhat.com>, Ilya Dryomov <idryomov@gmail.com>, 
+	Trond Myklebust <trondmy@kernel.org>, Anna Schumaker <anna@kernel.org>, 
+	Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.org>, 
+	Ronnie Sahlberg <ronniesahlberg@gmail.com>, Shyam Prasad N <sprasad@microsoft.com>, 
+	Tom Talpey <tom@talpey.com>, Bharath SM <bharathsm@microsoft.com>, 
+	Hans de Goede <hansg@kernel.org>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
+	linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-ext4@vger.kernel.org, 
+	linux-f2fs-devel@lists.sourceforge.net, linux-mtd@lists.infradead.org, 
+	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org, ntfs3@lists.linux.dev, 
+	ocfs2-devel@lists.linux.dev, devel@lists.orangefs.org, linux-unionfs@vger.kernel.org, 
+	linux-xfs@vger.kernel.org, linux-mm@kvack.org, gfs2@lists.linux.dev, 
+	linux-doc@vger.kernel.org, v9fs@lists.linux.dev, ceph-devel@vger.kernel.org, 
+	linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, samba-technical@lists.samba.org
+Subject: Re: [PATCH 00/24] vfs: require filesystems to explicitly opt-in to
+ lease support
+Message-ID: <20260112-gemeldet-gelitten-7d48bae7ef3f@brauner>
+References: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org>
+ <m3mywef74xhcakianlrovrnaadnhzhfqjfusulkcnyioforfml@j2xnk7dzkmv4>
+ <8af369636c32b868f83669c49aea708ca3b894ac.camel@kernel.org>
+ <CAOQ4uxgD+Sgbbg9K2U0SF9TyUOBb==Z6auShUWc4FfPaDCQ=rg@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAOQ4uxgD+Sgbbg9K2U0SF9TyUOBb==Z6auShUWc4FfPaDCQ=rg@mail.gmail.com>
 
-ocfs2_is_cluster_bitmap() checks whether an inode is the global bitmap
-by comparing ip_blkno with osb->bitmap_blkno. A corrupted filesystem
-can have either the superblock's bitmap_blkno field corrupted to point
-to the inode allocator block, or the inode allocator's i_blkno field
-corrupted to match bitmap_blkno. In either case, ocfs2_is_cluster_bitmap()
-returns true for the inode allocator.
+On Fri, Jan 09, 2026 at 07:52:57PM +0100, Amir Goldstein wrote:
+> On Thu, Jan 8, 2026 at 7:57 PM Jeff Layton <jlayton@kernel.org> wrote:
+> >
+> > On Thu, 2026-01-08 at 18:40 +0100, Jan Kara wrote:
+> > > On Thu 08-01-26 12:12:55, Jeff Layton wrote:
+> > > > Yesterday, I sent patches to fix how directory delegation support is
+> > > > handled on filesystems where the should be disabled [1]. That set is
+> > > > appropriate for v6.19. For v7.0, I want to make lease support be more
+> > > > opt-in, rather than opt-out:
+> > > >
+> > > > For historical reasons, when ->setlease() file_operation is set to NULL,
+> > > > the default is to use the kernel-internal lease implementation. This
+> > > > means that if you want to disable them, you need to explicitly set the
+> > > > ->setlease() file_operation to simple_nosetlease() or the equivalent.
+> > > >
+> > > > This has caused a number of problems over the years as some filesystems
+> > > > have inadvertantly allowed leases to be acquired simply by having left
+> > > > it set to NULL. It would be better if filesystems had to opt-in to lease
+> > > > support, particularly with the advent of directory delegations.
+> > > >
+> > > > This series has sets the ->setlease() operation in a pile of existing
+> > > > local filesystems to generic_setlease() and then changes
+> > > > kernel_setlease() to return -EINVAL when the setlease() operation is not
+> > > > set.
+> > > >
+> > > > With this change, new filesystems will need to explicitly set the
+> > > > ->setlease() operations in order to provide lease and delegation
+> > > > support.
+> > > >
+> > > > I mainly focused on filesystems that are NFS exportable, since NFS and
+> > > > SMB are the main users of file leases, and they tend to end up exporting
+> > > > the same filesystem types. Let me know if I've missed any.
+> > >
+> > > So, what about kernfs and fuse? They seem to be exportable and don't have
+> > > .setlease set...
+> > >
+> >
+> > Yes, FUSE needs this too. I'll add a patch for that.
+> >
+> > As far as kernfs goes: AIUI, that's basically what sysfs and resctrl
+> > are built on. Do we really expect people to set leases there?
+> >
+> > I guess it's technically a regression since you could set them on those
+> > sorts of files earlier, but people don't usually export kernfs based
+> > filesystems via NFS or SMB, and that seems like something that could be
+> > used to make mischief.
+> >
+> > AFAICT, kernfs_export_ops is mostly to support open_by_handle_at(). See
+> > commit aa8188253474 ("kernfs: add exportfs operations").
+> >
+> > One idea: we could add a wrapper around generic_setlease() for
+> > filesystems like this that will do a WARN_ONCE() and then call
+> > generic_setlease(). That would keep leases working on them but we might
+> > get some reports that would tell us who's setting leases on these files
+> > and why.
+> 
+> IMO, you are being too cautious, but whatever.
+> 
+> It is not accurate that kernfs filesystems are NFS exportable in general.
+> Only cgroupfs has KERNFS_ROOT_SUPPORT_EXPORTOP.
+> 
+> If any application is using leases on cgroup files, it must be some
+> very advanced runtime (i.e. systemd), so we should know about the
+> regression sooner rather than later.
+> 
+> There are also the recently added nsfs and pidfs export_operations.
+> 
+> I have a recollection about wanting to be explicit about not allowing
+> those to be exportable to NFS (nsfs specifically), but I can't see where
+> and if that restriction was done.
+> 
+> Christian? Do you remember?
 
-When the code later calls ocfs2_block_group_search(), it triggers
-BUG_ON(ocfs2_is_cluster_bitmap(inode)) causing a kernel panic.
-
-Call trace:
-  ocfs2_block_group_search+0x1c7/0x2c0 fs/ocfs2/suballoc.c:1611
-  ocfs2_search_chain+0x38a/0x1010 fs/ocfs2/suballoc.c:1764
-  ocfs2_claim_suballoc_bits+0x3a4/0x650 fs/ocfs2/suballoc.c:1978
-  ocfs2_claim_new_inode+0x95/0x130 fs/ocfs2/suballoc.c:2137
-  ocfs2_mknod_locked+0x129/0x510 fs/ocfs2/namei.c:568
-  ocfs2_mknod+0x5c7/0x11d0 fs/ocfs2/namei.c:802
-  ocfs2_create+0x136/0x170 fs/ocfs2/namei.c:852
-
-Add validation in ocfs2_reserve_suballoc_bits() to check that the
-allocator inode type matches the expected type:
-- Global bitmap allocator must be the cluster bitmap
-- Other allocators (inode, extent) must NOT be the cluster bitmap
-
-This follows the existing pattern of validating OCFS2_CHAIN_FL in the
-same function and uses ocfs2_error() for graceful error handling.
-
-Reported-by: syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=44c564a3cb08605f34a1
-Tested-by: syzbot+44c564a3cb08605f34a1@syzkaller.appspotmail.com
-Link: https://lore.kernel.org/all/20260104014028.305029-1-kartikey406@gmail.com/T/ [v1]
-Signed-off-by: Deepanshu Kartikey <kartikey406@gmail.com>
----
-v2: Fix commit message - ocfs2_is_cluster_bitmap() checks ip_blkno
-    against bitmap_blkno, not a flag (Joseph Qi)
----
- fs/ocfs2/suballoc.c | 20 ++++++++++++++++++++
- 1 file changed, 20 insertions(+)
-
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 8e6e5235b30c..fb72c062a8d5 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -813,6 +813,26 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 		goto bail;
- 	}
- 
-+	/*
-+	 * Validate allocator type matches expected bitmap type.
-+	 * Global bitmap must have BITMAP flag, other allocators must not.
-+	 * This prevents a corrupted filesystem from triggering BUG_ON
-+	 * in ocfs2_block_group_search() or ocfs2_cluster_group_search().
-+	 */
-+	if (type == GLOBAL_BITMAP_SYSTEM_INODE) {
-+		if (!ocfs2_is_cluster_bitmap(alloc_inode)) {
-+			status = ocfs2_error(alloc_inode->i_sb,
-+					     "Global bitmap %llu missing bitmap flag\n",
-+					     (unsigned long long)le64_to_cpu(fe->i_blkno));
-+			goto bail;
-+		}
-+	} else if (ocfs2_is_cluster_bitmap(alloc_inode)) {
-+		status = ocfs2_error(alloc_inode->i_sb,
-+				     "Allocator %llu has invalid bitmap flag\n",
-+				     (unsigned long long)le64_to_cpu(fe->i_blkno));
-+		goto bail;
-+	}
-+
- 	free_bits = le32_to_cpu(fe->id1.bitmap1.i_total) -
- 		le32_to_cpu(fe->id1.bitmap1.i_used);
- 
--- 
-2.43.0
-
+I don't think it does.
