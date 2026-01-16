@@ -1,109 +1,78 @@
-Received: from outgoing.mit.edu (outgoing-auth-1.mit.edu [18.9.28.11])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oo1-f71.google.com (mail-oo1-f71.google.com [209.85.161.71])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0553E2D46B2
-	for <ocfs2-devel@lists.linux.dev>; Fri, 16 Jan 2026 02:24:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=18.9.28.11
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C22B91F92E
+	for <ocfs2-devel@lists.linux.dev>; Fri, 16 Jan 2026 06:01:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.71
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768530272; cv=none; b=XwKIf+8krQdMRLI9fHJKT1+Coba5FulK6QDMzYelRDvc2mLo8rBKW6D7pgoLM45w43Mkx7LVbFxCQe9u8qKmLAx1Q2BmPlYg2XeKH51179i632oNPAyGqyybTw6cHJ9SUSNe9h6LOrJZLqcdJBMHiPmaLF7fRZTj9Q3IKiYQGFc=
+	t=1768543265; cv=none; b=Tzj+sUd+AFHpEXaExwS1ckU1mbTCzHB1oEVRsYASJ5pasL+zEitX7FkEsrN4NvWGyi9LCsvnscUgVNjgxbF/mbx4pnjMC4Zk3AKpx9bhbSgEbJ+jcWjqhYQY1RMv1TktQK2uDRChWOFiK4+ex9IzOhrbBWuXUZ/aoWEFvKq5bRU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768530272; c=relaxed/simple;
-	bh=AU8ydwM+6bS6tN4tu5gRNYM3pm8mBvS0h3zIXbblp64=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=h4r3E+aMziX24ZEjdq7MyzO6ja/6A5m05V1DhqCcY8vE8VwqQIXg7XMwXaiD9l/L+vuDbbMOZ1pUa61M9eA9sxWtKPthBebl908tUSa2jwX4WPV8G3YifkeTxBuPW9SolznBkmEZBA4CVoQzd/smIJ6Y4QyXhlpwCP3McYSbxiY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=mit.edu; spf=pass smtp.mailfrom=mit.edu; dkim=pass (2048-bit key) header.d=mit.edu header.i=@mit.edu header.b=CKqH0dMh; arc=none smtp.client-ip=18.9.28.11
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=mit.edu
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mit.edu
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=mit.edu header.i=@mit.edu header.b="CKqH0dMh"
-Received: from macsyma.thunk.org ([37.140.223.154])
-	(authenticated bits=0)
-        (User authenticated as tytso@ATHENA.MIT.EDU)
-	by outgoing.mit.edu (8.14.7/8.12.4) with ESMTP id 60G2M4QF012987
-	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
-	Thu, 15 Jan 2026 21:22:06 -0500
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mit.edu; s=outgoing;
-	t=1768530137; bh=e7+ZkXTf+cEt8COK7ZiBm7FpEGCZkXwmsqQ2YKKQgYQ=;
-	h=Date:From:Subject:Message-ID:MIME-Version:Content-Type;
-	b=CKqH0dMhvlhBzX4Ihkt/n9SLGrWfxX4mn8QeWQB6i/JMAynZ/PpZnz2J7QzS+Bs5J
-	 LHYjeS4eVH/+ftuv6ryVG1XbTNkEBDxBvsdirBrG5SJDvA92Anx4u3N3DTR/EiIhC5
-	 D7kuOYWuR+wEG+aT+6digJ4U2JgVCouMwzPvCca8UfAIhFjTH/mNpBMF8a1mqTO4TR
-	 J3Ca6tRIWBeIDKXxVFNRB7jtbFt4susYUTGwXkPso02XWNw91PlkdVzLKiVnspunHr
-	 roxMctbg4I/pbwnOXw13om2WtDRQ1218LHXRi7gxhCYQcXc4EIsE/wDw9NxL3LC14F
-	 SKf5FnkqXpe0Q==
-Received: by macsyma.thunk.org (Postfix, from userid 15806)
-	id A12EE54D8E5B; Thu, 15 Jan 2026 17:22:03 -0900 (AKST)
-Date: Thu, 15 Jan 2026 17:22:03 -0900
-From: "Theodore Tso" <tytso@mit.edu>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: Christian Brauner <brauner@kernel.org>,
-        Alexander Viro <viro@zeniv.linux.org.uk>,
-        Chuck Lever <chuck.lever@oracle.com>, NeilBrown <neil@brown.name>,
-        Olga Kornievskaia <okorniev@redhat.com>, Dai Ngo <Dai.Ngo@oracle.com>,
-        Tom Talpey <tom@talpey.com>, Amir Goldstein <amir73il@gmail.com>,
-        Hugh Dickins <hughd@google.com>,
-        Baolin Wang <baolin.wang@linux.alibaba.com>,
-        Andrew Morton <akpm@linux-foundation.org>,
-        Andreas Dilger <adilger.kernel@dilger.ca>, Jan Kara <jack@suse.com>,
-        Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>,
-        Yue Hu <zbestahu@gmail.com>, Jeffle Xu <jefflexu@linux.alibaba.com>,
-        Sandeep Dhavale <dhavale@google.com>,
-        Hongbo Li <lihongbo22@huawei.com>, Chunhai Guo <guochunhai@vivo.com>,
-        Carlos Maiolino <cem@kernel.org>, Ilya Dryomov <idryomov@gmail.com>,
-        Alex Markuze <amarkuze@redhat.com>,
-        Viacheslav Dubeyko <slava@dubeyko.com>, Chris Mason <clm@fb.com>,
-        David Sterba <dsterba@suse.com>,
-        Luis de Bethencourt <luisbg@kernel.org>,
-        Salah Triki <salah.triki@gmail.com>,
-        Phillip Lougher <phillip@squashfs.org.uk>,
-        Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.org>,
-        Ronnie Sahlberg <ronniesahlberg@gmail.com>,
-        Shyam Prasad N <sprasad@microsoft.com>,
-        Bharath SM <bharathsm@microsoft.com>,
-        Miklos Szeredi <miklos@szeredi.hu>,
-        Mike Marshall <hubcap@omnibond.com>,
-        Martin Brandenburg <martin@omnibond.com>,
-        Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-        Joseph Qi <joseph.qi@linux.alibaba.com>,
-        Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
-        Ryusuke Konishi <konishi.ryusuke@gmail.com>,
-        Trond Myklebust <trondmy@kernel.org>, Anna Schumaker <anna@kernel.org>,
-        Dave Kleikamp <shaggy@kernel.org>,
-        David Woodhouse <dwmw2@infradead.org>,
-        Richard Weinberger <richard@nod.at>, Jan Kara <jack@suse.cz>,
-        Andreas Gruenbacher <agruenba@redhat.com>,
-        OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
-        Jaegeuk Kim <jaegeuk@kernel.org>,
-        Christoph Hellwig <hch@infradead.org>, linux-nfs@vger.kernel.org,
-        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-        linux-mm@kvack.org, linux-ext4@vger.kernel.org,
-        linux-erofs@lists.ozlabs.org, linux-xfs@vger.kernel.org,
-        ceph-devel@vger.kernel.org, linux-btrfs@vger.kernel.org,
-        linux-cifs@vger.kernel.org, samba-technical@lists.samba.org,
-        linux-unionfs@vger.kernel.org, devel@lists.orangefs.org,
-        ocfs2-devel@lists.linux.dev, ntfs3@lists.linux.dev,
-        linux-nilfs@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
-        linux-mtd@lists.infradead.org, gfs2@lists.linux.dev,
-        linux-f2fs-devel@lists.sourceforge.net
-Subject: Re: [PATCH 03/29] ext4: add EXPORT_OP_STABLE_HANDLES flag to export
- operations
-Message-ID: <20260116022203.GE19200@macsyma.local>
-References: <20260115-exportfs-nfsd-v1-0-8e80160e3c0c@kernel.org>
- <20260115-exportfs-nfsd-v1-3-8e80160e3c0c@kernel.org>
+	s=arc-20240116; t=1768543265; c=relaxed/simple;
+	bh=93I/oMEzhd/e3i+NwOuCZv4NZFaytmGEp7ozk/HGMh8=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=dS1mlnZLkQ5d6l28DdGg111ZpRFEoW18Q5fjGLVcUHbXzI0AC6nRiAb7o/L6QEIhQxnDtRrkldfb0MKrbVqofbDFWRiGeq4AzbtAMJtsihJ8nbz9Q1YMkKVFTlqzXbmsWrK1bHRWJpjFTyj8fQqQxnNF7CGQIVk8vSu/0XK3ImA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.71
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f71.google.com with SMTP id 006d021491bc7-65f6e15ad8aso4381508eaf.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 15 Jan 2026 22:01:03 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1768543263; x=1769148063;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=UqxeTpOTSPSaeYMkDqzGlSX59eRy8+Mpf+mJ9vwFUWQ=;
+        b=F4EAntw+Tmeblhz0xdSgV8S43bBIZEGJaSTbOz6h9hyXujyI15zG2nig7PpNZPQfX1
+         nYh7IOxCizkJeUQTP+CeT5CPNlPHx3UshyqNePLzMC1sPYCkigr/uzkgiYMRAVGYMcJO
+         8iF7sBO2aPAHZZovMnmbDJ6QszwIJzzD8slQ2ART6ntVrFWmcjIYbBibCi9shqpdpUKx
+         VrKAqRsXW1Ydcgeo1Szvftmo/ntyjuronEQBBqVNB7SItjjgmLXqzmwpGsFmT4R2/z+l
+         5EwrzH0ZoMydRfGnD3r7T6yLs68PXp12zuApjeyrR4bbSo+jOz053A5+0NDM8NMuXr37
+         z3yg==
+X-Forwarded-Encrypted: i=1; AJvYcCWP9WWFHcz7OhDjWnwWEdVf4ipQ7yPxlLOvPCrA8cDf6j42EoQr5b619+nOVyu4KY3TC3vVTjNbyHltOg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxWzrAuTeV55x0eDczPPwRoClsPWVVDh4i8epT2k7QGluFr84Dp
+	d42AGTs5Qlp9pVPtlC7sSdAS5IvF+sxiBd/fINF8npGDfAiMHkvBPzQWTBxvuI7icUDBkwZYF9T
+	X7H304n3/tMJZXf0YcDaRq/xqBKy442XiaYMuNP66Ok587Gm2QS2SbEzu7VY=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260115-exportfs-nfsd-v1-3-8e80160e3c0c@kernel.org>
+X-Received: by 2002:a4a:ca0a:0:b0:659:9a49:8e2e with SMTP id
+ 006d021491bc7-6610e65373cmr3170889eaf.32.1768543262921; Thu, 15 Jan 2026
+ 22:01:02 -0800 (PST)
+Date: Thu, 15 Jan 2026 22:01:02 -0800
+In-Reply-To: <67117fd9.050a0220.10f4f4.0004.GAE@google.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6969d41e.050a0220.58bed.003e.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] KASAN: slab-use-after-free Read in ocfs2_reserve_suballoc_bits
+From: syzbot <syzbot+af14efe17dfa46173239@syzkaller.appspotmail.com>
+To: activprithvi@gmail.com, akpm@linux-foundation.org, 
+	david.hunter.linux@gmail.com, dmantipov@yandex.ru, heming.zhao@suse.com, 
+	jlbec@evilplan.org, joseph.qi@linux.alibaba.com, khalid@kernel.org, 
+	linux-kernel-mentees@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	mark@fasheh.com, ocfs2-devel@lists.linux.dev, skhan@linuxfoundation.org, 
+	stable@vger.kernel.org, syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Thu, Jan 15, 2026 at 12:47:34PM -0500, Jeff Layton wrote:
-> Add the EXPORT_OP_STABLE_HANDLES flag to ext4 export operations to indicate
-> that this filesystem can be exported via NFS.
-> 
-> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+syzbot suspects this issue was fixed by commit:
 
-Acked-by: Theodore Ts'o <tytso@mit.edu>
+commit e1c70505ee8158c1108340d9cd67182ade93af4a
+Author: Dmitry Antipov <dmantipov@yandex.ru>
+Date:   Thu Oct 30 15:30:02 2025 +0000
+
+    ocfs2: add extra consistency checks for chain allocator dinodes
+
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=140a0852580000
+start commit:   36c254515dc6 Merge tag 'powerpc-6.12-4' of git://git.kerne..
+git tree:       upstream
+kernel config:  https://syzkaller.appspot.com/x/.config?x=7a3fccdd0bb995
+dashboard link: https://syzkaller.appspot.com/bug?extid=af14efe17dfa46173239
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=13444727980000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=11861440580000
+
+If the result looks correct, please mark the issue as fixed by replying with:
+
+#syz fix: ocfs2: add extra consistency checks for chain allocator dinodes
+
+For information about bisection process see: https://goo.gl/tpsmEJ#bisection
