@@ -1,123 +1,104 @@
-Received: from mail-oa1-f41.google.com (mail-oa1-f41.google.com [209.85.160.41])
+Received: from mail-pl1-f169.google.com (mail-pl1-f169.google.com [209.85.214.169])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 56DA31862A
-	for <ocfs2-devel@lists.linux.dev>; Sat, 17 Jan 2026 17:36:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EE4B221DB6
+	for <ocfs2-devel@lists.linux.dev>; Sat, 17 Jan 2026 17:42:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.169
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768671363; cv=none; b=YQgZWGqAhzs0QeoKC5WKyfMpTKTF59jcp2wJuQPn2vAuUXQSjYZFJHJ3PPFE23Kqokwv6NLH9XBNp+UKGsts7cHK7PPxZgN/WQ0FQZjpvIBndNLEejWjzkKdb19qdOTXQP980dGRrJ0XGcRMCcH24zvbjvdMgML696NFHq6DLRY=
+	t=1768671756; cv=none; b=B7cSM3b47H1NlbH5LXTJajMdQzLJ59Pzj61M0zk2h5Ec96upy7XYGHp18OPjDtqhQeXiRG+ECuuxliEjJHoVX+tr/EyObHUUxjSG9barBs719wJNWUUO56t9w4xx8C/tkCAluMIe188lapVhgDlLnnrlBXu8KNeG5NBGqeZ22d4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768671363; c=relaxed/simple;
-	bh=d/Xd8lbIJpxHEMR70GtdDaBnejP2zuAYSUDriC4pb9o=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=mIynbNISM7ylEnNPuabq3+sTPYs1avI5HmmZkK56MnyrPi6hPgRAiG/RyF75Z7m/h1qeMk617Dd7gTEateOYSlVdTfexvkdgUFSn0C0D6ZEliNq9zDye9W369eNoUaS6Z6YMIqrKwtAgFPn7pwEt7y9QWg80509Ll34WSKOAxZw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=iunZYAFn; arc=none smtp.client-ip=209.85.160.41
+	s=arc-20240116; t=1768671756; c=relaxed/simple;
+	bh=AYBzPkhdjgGJDi0kHW57cXrX2NxQBmdXVWZn8NiITpI=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=K8UvHDDMZUxyKL/mrysm2HMgmU0OCatyguoJz+nT4G1Qor4iU9sr+xGOPFtLDAEFQqirMpJS6bVUlrsek2VSKy3UnAJwdgCy91DIVgwOwF3we35E6AlmdZYTCjtr2O6sr7KWCcS9dh5X5YiCApny3RAU+RerOOVF52znmH3vDd0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=R0eyUO5b; arc=none smtp.client-ip=209.85.214.169
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="iunZYAFn"
-Received: by mail-oa1-f41.google.com with SMTP id 586e51a60fabf-4044854464fso1435810fac.3
-        for <ocfs2-devel@lists.linux.dev>; Sat, 17 Jan 2026 09:36:02 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="R0eyUO5b"
+Received: by mail-pl1-f169.google.com with SMTP id d9443c01a7336-2a0a95200e8so19942365ad.0
+        for <ocfs2-devel@lists.linux.dev>; Sat, 17 Jan 2026 09:42:35 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20230601; t=1768671361; x=1769276161; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=8aJZk2D2mGu5fro1JihtBVNptIdoq1xXV928GNF5024=;
-        b=iunZYAFn9kPs7z8FIPMdhv8Jur79BrOmo4ID2/Ek24OGWNS29iN74tjpb/5ZeChB7J
-         d7lEE5+6NXbjW23vOwHhM172SG4e29SfgW3z7B9S3r5l03/ilyks7JG6QgP+xANwoh2A
-         CizrfhJgnkOveD2/TmJS9inubjSQdtmhMvtEr1he71B/rRkwlq0DbAybloJM+TMvjj5Z
-         NGZ5F/UGDoMBZKcD4J2ZIe8x4fjTGIYJoUYme8XPKAEK/+Ss1XP9YC3HztW7LhEdDGtR
-         KOTdIBI7XAxBVDtQGDNRk49zezy4+b/5tMSKp3sSXrNUl5WhfQd8vt+aaYcns8IKi13f
-         kCng==
+        d=gmail.com; s=20230601; t=1768671754; x=1769276554; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=fa2C3CjBP0zf49hlsRlTlbBzJ9ToDABb44obJ64qh7o=;
+        b=R0eyUO5bhb9H3Aps8Bor0nJzBBJbmKEIN8yfUx78f/17vc042tx0cLIB4cAfoOAf2k
+         uF2anUHnZOay3uKOSlX4KmgJdODCgwCs6cK0oV1GEHPNlJUfnWRZqNC9cXLvyWHptU7p
+         1mWd8IOiovhMPHAKwggRejYGpk5uUmVE3oIRvvbH3NQBqW3KF7bEwvU/59Glcew7C570
+         VwlwZktv04PBzIJYjUulOMyH1Ct2yRxi6hiXX17y6neSAdE44m7w6DmQP8wl1aBkJiRU
+         u9yIiw3PasY3XF5e4ANOdUjyxD3fnKtGZtr6c3+uPKEFfSBTBnMKcLTz9qASZdLH57Y8
+         TxXw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1768671361; x=1769276161;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=8aJZk2D2mGu5fro1JihtBVNptIdoq1xXV928GNF5024=;
-        b=mdGq05IS6riTA8CnzGtq0+TAds7eeRBxNzr/xdG9B4GJmLSs9XJjLJ9kBYA1Zh1QZ8
-         xy/I5ekwMGxnuC/UvuAQSw1vC/bJKsmLZBbriFu+tWyV8BTEnCSzHC/OT3i4Yu6y/EsI
-         Bha+Vwl3aJ1DlA7Vq3a902/xpOFWxyjmh4VC49b8NpTOadDuJqTm2sFrM3fzO/H9XOF0
-         TU9Rw2/8M0P8jPzyHdH3k0gZ03fjmGUgBC5S96+f6mfhTjKxuDZm36XmCmmLwdBrCb4D
-         UMN4+vgksZILim0O6am5Sd0jnz/Q+GS6ojnTwRc5ypNHhk9tuD5HJrCt693JU53LCJG9
-         53lQ==
-X-Gm-Message-State: AOJu0YzXYZBNc8ACYHTLNmybLNFY2lK1JxojvXjYq7A5HkruIOHXU6yx
-	JhXB48eacPTQDJhAujYnKh8DxQugK9kjsXw9bKVJfbJvkd7731vRcfxO
-X-Gm-Gg: AY/fxX41Y69UaVtWI22EFALjr0dnMr8m0KLSuf/km3XyV7L99Z8tdQa6oBKcj0tLpkt
-	TBLaKJ9jn4GTxi2IhhefNiG+nG2VyJnvJMRqWi6+wUfbNyz0+h8oH38+mg8upLl4tTftmXdP0sO
-	iO61w5w1Ow5xyYKNsTj2ovKQPJlv1T+7GeN9G7Br4RknsJGGFgtCvRxlQcNfmbWGMD51TneJObn
-	Fww9FR9U1YaJHiV8qba+MW5yJlKQ0UoqgTvFJ2KirnAL4+nRubPaqK10SWXwnzMhVa8JYlx/zpE
-	pf8QELnZhgA04UziFmvNda3KbV6eALgwhNUgJ2qvOFgh4HOyNA93t5D9COIC+PGAr4iQCf4noQL
-	gCqYq62H1p1+GeWJ8agj8/peVrHE07mCxJ+MpnvKPtqJcEETmvytmYoqVcuWIJ/Fu1iLf34hGF1
-	3tazLvtLItVDYwMMycF3hCp2vLsmtwEBKd
-X-Received: by 2002:a05:6870:4785:b0:404:3569:59ef with SMTP id 586e51a60fabf-4044c4460ecmr3261476fac.36.1768671359836;
-        Sat, 17 Jan 2026 09:35:59 -0800 (PST)
-Received: from newman.cs.purdue.edu ([128.10.127.250])
-        by smtp.gmail.com with ESMTPSA id 586e51a60fabf-4044b5c11e4sm3863140fac.0.2026.01.17.09.35.58
+        d=1e100.net; s=20230601; t=1768671754; x=1769276554;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=fa2C3CjBP0zf49hlsRlTlbBzJ9ToDABb44obJ64qh7o=;
+        b=rLUa7TTIrcEwfbFLUzKmwbU4BpGrzLA35ThSg8FZ1Zo+4YMpjfBBh4y4xuUYox6nvi
+         6MvkysVeKow1rkAtnRyfS0B3UB1lS+a8FfQxfC5Vk+bmLKoD+e5koOR//zcdR4zYSNJ2
+         hZqRYzu8qjxjL2ACyhWN8UThI9R3CvGuw9an4b29nEg+03UXiYVOcPhe7ci3jUmGkkMo
+         Ta5FZbl32DPFp9xHqs3Vv3yxXUwsj+FVLqGY7n/wPIr47eK2ZFdTjoXW2CRK4a8qa2tn
+         G8vNsfa1olTf5MnwCV750L1W+KIfpYXoHUReyXJ4da89XkaT145tzo42Xj3YHGnq1f5R
+         /Ucw==
+X-Forwarded-Encrypted: i=1; AJvYcCWtaPHdGxskWOpeY+AgnL5/xR/OilM8uaq+W7SBxdl6X0q2LoEMqbPtACxizME9/yMGjDFrQuFtQOuBhg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YykDxBRdRPmtT7uYBtV/kbIiDlCzFRkqsdqArcjc09EXe9loK6J
+	L2tOVtyxALfR2f+zAReFXB00xayezU3/c/ovsK4NbDZ1aPrviLfSRLUP4NUMvg==
+X-Gm-Gg: AY/fxX5ZICxSYG/kLqB7XfAWxHh0vnU7PZfAoIqnRCz2slwT3BPj8VAgvcvdCZoyAHh
+	kwfQX+X8TJA91SL2TvGEmP4AORDNdEZNfQHFq4JQWglHGnh7bBa+FzCB7/Q5eWkDgrmO1TnZsPV
+	u7o1NPFx2L4bm8EsZRJHIA1RdDmUYOJSjso/yFoJYndy21/lB6v5SUUYenEIOeUTeJ/KAc7xTt1
+	NyxDIz4MVNyKc5z406epWaWN1UzT7oQJE/sSelTj+jcWplQcKnExorO0HL5egHuxznFmfub92e1
+	n50i/v/Tv5qvjkmcQ8Udu7zvOJmuaH8/dPXyMRP2cQ5yztopnak1TEerjGdpk9OvgtSDhMeSPj+
+	JO/06amzdbqJ+e97KXouJDyGJ3Yh6Pn+S+QFZw0ae4o2Jv5XsnZLtpQ35KQ359VJeexXWyDAeHm
+	LryIq1V5xuIso=
+X-Received: by 2002:a17:903:3508:b0:29f:cb81:8bd1 with SMTP id d9443c01a7336-2a7177ce73cmr67547695ad.55.1768671754499;
+        Sat, 17 Jan 2026 09:42:34 -0800 (PST)
+Received: from inspiron ([111.125.235.106])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2a7193dd523sm51942115ad.62.2026.01.17.09.42.29
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 17 Jan 2026 09:35:59 -0800 (PST)
-From: Jiasheng Jiang <jiashengjiangcool@gmail.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	linux-kernel@vger.kernel.org
-Cc: ocfs2-devel@lists.linux.dev,
-	Jiasheng Jiang <jiashengjiangcool@gmail.com>
-Subject: [PATCH] ocfs2: fix NULL pointer dereference in ocfs2_xattr_get_rec
-Date: Sat, 17 Jan 2026 17:35:56 +0000
-Message-Id: <20260117173556.36601-1-jiashengjiangcool@gmail.com>
-X-Mailer: git-send-email 2.25.1
+        Sat, 17 Jan 2026 09:42:34 -0800 (PST)
+Date: Sat, 17 Jan 2026 23:12:26 +0530
+From: Prithvi <activprithvi@gmail.com>
+To: Matthew Wilcox <willy@infradead.org>, joseph.qi@linux.alibaba.com
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org,
+	david.hunter.linux@gmail.com, khalid@kernel.org
+Subject: Re: [PATCH] ocfs2: Fix circular locking dependency in
+ ocfs2_del_inode_from_orphan()
+Message-ID: <20260117174226.qpmlqbbsnc6pjgxo@inspiron>
+References: <20260106125100.327980-1-activprithvi@gmail.com>
+ <94b4189d-dfb6-4443-a336-abbae89d36ad@linux.alibaba.com>
+ <20260108183652.ro4xueuj6itfaph3@inspiron>
+ <20260115031809.w7ksrj2ostwyxa54@inspiron>
+ <aWhxfLwUvHDswsIY@casper.infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aWhxfLwUvHDswsIY@casper.infradead.org>
 
-In ocfs2_xattr_get_rec, the variable 'rec' is initialized to NULL.
-If the extent list 'el' is empty (l_next_free_rec == 0), the loop
-iterating over the records is skipped, leaving 'rec' as NULL.
+On Thu, Jan 15, 2026 at 04:47:56AM +0000, Matthew Wilcox wrote:
+> On Thu, Jan 15, 2026 at 08:48:09AM +0530, Prithvi wrote:
+> > On Fri, Jan 09, 2026 at 12:07:00AM +0530, Prithvi wrote:
+> > > IIUC that would be the case when ocfs2_dio_end_io_write() operates on normal
+> > > files. However, according to the report of the bug, ocfs2_dio_end_io_write()
+> > > is holding &ocfs2_quota_ip_alloc_sem_key so I think due to random fuzzing by 
+> > > syzkaller, the function is curently operating on a quota file.
+> 
+> So the right fix is probably to disallow DIO to a quota file, wouldn't
+> you say?
 
-Since 'e_blkno' is initialized to 0, the function enters the error
-handling block 'if (!e_blkno)'. Inside this block, the function calls
-ocfs2_error() and attempts to dereference 'rec' via
-'le32_to_cpu(rec->e_cpos)' and 'ocfs2_rec_clusters(el, rec)'. This
-results in a NULL pointer dereference and a kernel panic.
+Hello Matthew,
 
-Fix this by ensuring 'rec' is not NULL before accessing its members
-within the error handling path, or by checking for an empty list
-explicitly.
+Thanks for the feedback! I agree that disallowing DIO on quota files can
+probably be the fix for this bug. I will work in this direction. I think
+Joseph was indicating earlier that DIO doesn't act on quota files, but I 
+misinterpreted his feedback...apologies for that.
 
-Signed-off-by: Jiasheng Jiang <jiashengjiangcool@gmail.com>
----
- fs/ocfs2/xattr.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 1b21fbc16d73..b018c84dbc05 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -3757,10 +3757,16 @@ static int ocfs2_xattr_get_rec(struct inode *inode,
- 	}
- 
- 	if (!e_blkno) {
--		ret = ocfs2_error(inode->i_sb, "Inode %lu has bad extent record (%u, %u, 0) in xattr\n",
--				  inode->i_ino,
--				  le32_to_cpu(rec->e_cpos),
--				  ocfs2_rec_clusters(el, rec));
-+		if (rec)
-+			ret = ocfs2_error(inode->i_sb,
-+					  "Inode %lu has bad extent record (%u, %u, 0) in xattr\n",
-+					  inode->i_ino,
-+					  le32_to_cpu(rec->e_cpos),
-+					  ocfs2_rec_clusters(el, rec));
-+		else
-+			ret = ocfs2_error(inode->i_sb,
-+					  "Inode %lu has bad extent record (NULL) in xattr\n",
-+					  inode->i_ino);
- 		goto out;
- 	}
- 
--- 
-2.25.1
-
+Thanks,
+Prithvi
