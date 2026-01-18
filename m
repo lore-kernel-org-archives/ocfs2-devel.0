@@ -1,143 +1,121 @@
-Received: from mout.web.de (mout.web.de [212.227.15.14])
+Received: from lithops.sigma-star.at (mailout.nod.at [116.203.167.152])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC3FB1FC7
-	for <ocfs2-devel@lists.linux.dev>; Sun, 18 Jan 2026 13:41:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.227.15.14
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 583062836E;
+	Sun, 18 Jan 2026 15:42:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=116.203.167.152
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768743668; cv=none; b=MV9CtXnk8vgPjw39KEi7AaG7r/1NWX2CiWKBOV/5alYNyUKUP1+spCwUoplv5fu5PQOKz3J0pLoYsWgR1kCugWKAn6IX269FN3PEBeoPrzzOeNrzRK3pa7fLUcUzW48cW+RZII62h9GkRYdumKx3IzC30HDtAW6dJuoeBmW5X54=
+	t=1768750972; cv=none; b=N6twlM4sdEiC3uFg//W8O4TNfVMEjiC90O2bzUI43YodnkYkU8TqYPl5AJ45bNN1lWMqyxE/wibvmWORAjsXYSqJYl4OrzGtccZfnGGyAGqp5eeYVTvcs5UnE8gfcm5pscpoqgl6fMb2F4fPvnZUf8jbCcITK2DKtEPL/VJsL5U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768743668; c=relaxed/simple;
-	bh=mHs9UhPFkj97fmjr2ht7/Zq5fPiefxd9I2CCXdMGkC8=;
-	h=Message-ID:Date:MIME-Version:To:Cc:References:Subject:From:
-	 In-Reply-To:Content-Type; b=qyqr5EUBvDpvcoPyVfvGToaHmkX6Zx/7ni6V3OLrwGbpDOfOQUBD4K3tXKaVNgi7TkMoNgp49lUKfT+uMVyaNyVFXFSpUOpzRsK8kvMNKiM2wSvdti0HxXSlYSB8aQZOztGGT6NMlh7g9YnHo8YuYEWofrycBIaznU/Ft6su+bI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de; spf=pass smtp.mailfrom=web.de; dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b=biwXFx1B; arc=none smtp.client-ip=212.227.15.14
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=web.de
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b="biwXFx1B"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=web.de;
-	s=s29768273; t=1768743664; x=1769348464; i=markus.elfring@web.de;
-	bh=mHs9UhPFkj97fmjr2ht7/Zq5fPiefxd9I2CCXdMGkC8=;
-	h=X-UI-Sender-Class:Message-ID:Date:MIME-Version:To:Cc:References:
-	 Subject:From:In-Reply-To:Content-Type:Content-Transfer-Encoding:
-	 cc:content-transfer-encoding:content-type:date:from:message-id:
-	 mime-version:reply-to:subject:to;
-	b=biwXFx1BFjFwp+Q+40q4vg0PdbwWLZtMhv4nxan6nvP7mupbrDPFVfv2ttyZL70V
-	 Hsq7T9/kBChsBVLIHG4p+Souort0dw6jfv9UJqAAGTceaGBAMlQbluVXlgFXVwFZk
-	 pe2zP3ejrkQ657l9VZuxcgk221loxLELWJiuMLA6Llf041CtfF74oCaukT+6oHpzW
-	 lKnEtT35MQrkWJlVEt5VR2ro6q9Xpb4kdOlvh+zJtH6QOLerSTMaO2lcHQExrQdpU
-	 NZ5lrY1hsCup3xgBs0T3jYe8e5aMSdi5YY3UmGaae54K+qtytV0qqN9BHODt67YDM
-	 zAAUCinrIDISuZbinA==
-X-UI-Sender-Class: 814a7b36-bfc1-4dae-8640-3722d8ec6cd6
-Received: from [192.168.178.29] ([94.31.93.1]) by smtp.web.de (mrweb006
- [213.165.67.108]) with ESMTPSA (Nemesis) id 1Md6tr-1wHLoB2HgZ-00dz0i; Sun, 18
- Jan 2026 14:41:04 +0100
-Message-ID: <cfd0e0eb-894e-48c7-948e-9300a19b9db7@web.de>
-Date: Sun, 18 Jan 2026 14:41:00 +0100
+	s=arc-20240116; t=1768750972; c=relaxed/simple;
+	bh=7o8IJfB7ac3jZiXayX/iEYSCvbbdHx+mVAVSDEiNdGc=;
+	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
+	 MIME-Version:Content-Type; b=NF8Wv//SqjtS+KWwtNPh8gxW/3OM3evMiHpg/ZPMrhk/D/Xwbn3SrCQRuFOPXVxLppZL7DZk0uKc5xXbVTDsEma0XtuWZQKcc4CDaYIWT0em/bDpqRt0BKKXtUR7gy8A/m/UmMxlIHPWIiwAFCksm3BOI3/WrEsZFFZvp0qC4Zc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=nod.at; spf=fail smtp.mailfrom=nod.at; arc=none smtp.client-ip=116.203.167.152
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=nod.at
+Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nod.at
+Received: from localhost (localhost [127.0.0.1])
+	by lithops.sigma-star.at (Postfix) with ESMTP id 5FD812918DC;
+	Sun, 18 Jan 2026 16:36:05 +0100 (CET)
+Received: from lithops.sigma-star.at ([127.0.0.1])
+	by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10032)
+	with ESMTP id 8m1VPN69EFg3; Sun, 18 Jan 2026 16:36:04 +0100 (CET)
+Received: from localhost (localhost [127.0.0.1])
+	by lithops.sigma-star.at (Postfix) with ESMTP id 9E0B129859E;
+	Sun, 18 Jan 2026 16:36:04 +0100 (CET)
+Received: from lithops.sigma-star.at ([127.0.0.1])
+	by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10026)
+	with ESMTP id Qm1VWoKnABQg; Sun, 18 Jan 2026 16:36:04 +0100 (CET)
+Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
+	by lithops.sigma-star.at (Postfix) with ESMTP id 04C202918DC;
+	Sun, 18 Jan 2026 16:36:04 +0100 (CET)
+Date: Sun, 18 Jan 2026 16:36:03 +0100 (CET)
+From: Richard Weinberger <richard@nod.at>
+To: Jeff Layton <jlayton@kernel.org>
+Cc: Christian Brauner <brauner@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, 
+	chuck lever <chuck.lever@oracle.com>, NeilBrown <neil@brown.name>, 
+	Olga Kornievskaia <okorniev@redhat.com>, 
+	Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>, 
+	Amir Goldstein <amir73il@gmail.com>, hughd <hughd@google.com>, 
+	Baolin Wang <baolin.wang@linux.alibaba.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, tytso <tytso@mit.edu>, 
+	Andreas Dilger <adilger.kernel@dilger.ca>, Jan Kara <jack@suse.com>, 
+	Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, 
+	Yue Hu <zbestahu@gmail.com>, Jeffle Xu <jefflexu@linux.alibaba.com>, 
+	Sandeep Dhavale <dhavale@google.com>, 
+	Hongbo Li <lihongbo22@huawei.com>, Chunhai Guo <guochunhai@vivo.com>, 
+	Carlos Maiolino <cem@kernel.org>, Ilya Dryomov <idryomov@gmail.com>, 
+	Alex Markuze <amarkuze@redhat.com>, 
+	Viacheslav Dubeyko <slava@dubeyko.com>, Chris Mason <clm@fb.com>, 
+	David Sterba <dsterba@suse.com>, 
+	Luis de Bethencourt <luisbg@kernel.org>, 
+	Salah Triki <salah.triki@gmail.com>, 
+	Phillip Lougher <phillip@squashfs.org.uk>, 
+	Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.org>, 
+	Ronnie Sahlberg <ronniesahlberg@gmail.com>, 
+	Shyam <sprasad@microsoft.com>, Bharath SM <bharathsm@microsoft.com>, 
+	Miklos Szeredi <miklos@szeredi.hu>, 
+	Mike Marshall <hubcap@omnibond.com>, 
+	Martin Brandenburg <martin@omnibond.com>, 
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
+	Ryusuke Konishi <konishi.ryusuke@gmail.com>, 
+	Trond Myklebust <trondmy@kernel.org>, anna <anna@kernel.org>, 
+	Dave Kleikamp <shaggy@kernel.org>, 
+	David Woodhouse <dwmw2@infradead.org>, Jan Kara <jack@suse.cz>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, 
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
+	Jaegeuk Kim <jaegeuk@kernel.org>, 
+	Christoph Hellwig <hch@infradead.org>, 
+	linux-nfs <linux-nfs@vger.kernel.org>, 
+	linux-kernel <linux-kernel@vger.kernel.org>, 
+	linux-fsdevel <linux-fsdevel@vger.kernel.org>, 
+	linux-mm <linux-mm@kvack.org>, 
+	linux-ext4 <linux-ext4@vger.kernel.org>, 
+	linux-erofs <linux-erofs@lists.ozlabs.org>, 
+	linux-xfs <linux-xfs@vger.kernel.org>, 
+	ceph-devel <ceph-devel@vger.kernel.org>, 
+	linux-btrfs <linux-btrfs@vger.kernel.org>, 
+	linux-cifs <linux-cifs@vger.kernel.org>, 
+	samba-technical <samba-technical@lists.samba.org>, 
+	linux-unionfs <linux-unionfs@vger.kernel.org>, 
+	devel <devel@lists.orangefs.org>, 
+	ocfs2-devel <ocfs2-devel@lists.linux.dev>, 
+	ntfs3 <ntfs3@lists.linux.dev>, 
+	linux-nilfs <linux-nilfs@vger.kernel.org>, 
+	jfs-discussion <jfs-discussion@lists.sourceforge.net>, 
+	linux-mtd <linux-mtd@lists.infradead.org>, 
+	gfs2 <gfs2@lists.linux.dev>, 
+	linux-f2fs-devel <linux-f2fs-devel@lists.sourceforge.net>
+Message-ID: <2119146172.135240.1768750563673.JavaMail.zimbra@nod.at>
+In-Reply-To: <20260115-exportfs-nfsd-v1-23-8e80160e3c0c@kernel.org>
+References: <20260115-exportfs-nfsd-v1-0-8e80160e3c0c@kernel.org> <20260115-exportfs-nfsd-v1-23-8e80160e3c0c@kernel.org>
+Subject: Re: [PATCH 23/29] jffs2: add EXPORT_OP_STABLE_HANDLES flag to
+ export operations
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-To: Jiasheng Jiang <jiashengjiangcool@gmail.com>, ocfs2-devel@lists.linux.dev
-Cc: LKML <linux-kernel@vger.kernel.org>, Joel Becker <jlbec@evilplan.org>,
- Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>
-References: <20260117161605.30291-1-jiashengjiangcool@gmail.com>
-Subject: Re: [PATCH] ocfs2: fix NULL pointer dereference in
- ocfs2_get_refcount_rec
-Content-Language: en-GB, de-DE
-From: Markus Elfring <Markus.Elfring@web.de>
-In-Reply-To: <20260117161605.30291-1-jiashengjiangcool@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=utf-8
 Content-Transfer-Encoding: quoted-printable
-X-Provags-ID: V03:K1:mNtvnl26nYRJQTQa6NGdY9uiF1FE0L+d8rMbDw5Kkbk3+6BtJ8v
- cIAbZtLywLjGinWJ2HAlt6turFRG1/waE3nkeLYKtrrOuRmmkk+yZ1mFOrNHYRgUdqDZZBK
- /GHeoj3mVasIKiU+SxlA5ckUPYliYp0qPfzKL0Vi4FXPk0KQoqFqBZje3HAZq1Zhb1urti6
- 69CTWyRDdFruy+0zUGppw==
-X-Spam-Flag: NO
-UI-OutboundReport: notjunk:1;M01:P0:0M4mu6cBQ68=;/rwAZlDwJYzMHTTi9c0RsPPr9JI
- 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
- rupNQtII0Gnxyl5hAxUu5V9GLMCNvKO+8MO5w2
+X-Mailer: Zimbra 8.8.12_GA_3807 (ZimbraWebClient - FF146 (Linux)/8.8.12_GA_3809)
+Thread-Topic: jffs2: add EXPORT_OP_STABLE_HANDLES flag to export operations
+Thread-Index: pUsbo+Kg1d9ytlyubsob1wi+Ql8B0A==
 
-=E2=80=A6
-> This patch adds an 'else' branch =E2=80=A6
+----- Urspr=C3=BCngliche Mail -----
+> Add the EXPORT_OP_STABLE_HANDLES flag to jffs2 export operations to indic=
+ate
+> that this filesystem can be exported via NFS.
+>=20
+> Signed-off-by: Jeff Layton <jlayton@kernel.org>
+> ---
+> fs/jffs2/super.c | 1 +
+> 1 file changed, 1 insertion(+)
 
-See also once more:
-https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Do=
-cumentation/process/submitting-patches.rst?h=3Dv6.19-rc5#n94
+Acked-by: Richard Weinberger <richard@nod.at>
 
-Regards,
-Markus
+Thanks,
+//richard
