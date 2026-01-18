@@ -1,121 +1,126 @@
-Received: from lithops.sigma-star.at (mailout.nod.at [116.203.167.152])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ot1-f48.google.com (mail-ot1-f48.google.com [209.85.210.48])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 583062836E;
-	Sun, 18 Jan 2026 15:42:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=116.203.167.152
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 46C7723C512
+	for <ocfs2-devel@lists.linux.dev>; Sun, 18 Jan 2026 19:05:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.48
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768750972; cv=none; b=N6twlM4sdEiC3uFg//W8O4TNfVMEjiC90O2bzUI43YodnkYkU8TqYPl5AJ45bNN1lWMqyxE/wibvmWORAjsXYSqJYl4OrzGtccZfnGGyAGqp5eeYVTvcs5UnE8gfcm5pscpoqgl6fMb2F4fPvnZUf8jbCcITK2DKtEPL/VJsL5U=
+	t=1768763128; cv=none; b=j5It494n28YN30pWhUnFNQSIPpNvWPWA+o9oBPJRJCnTMtqWDoozQRK6V7FlG8eIldsvDP4QTznCFo3gRYfuYvpnPpj4g5rQF5kfSwqdXDEle7TBmAowEUF7gTE0mMz7psEh8RC1fI6dZPC+YAAb8K60DmmT4j0ROnD08Te13wA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768750972; c=relaxed/simple;
-	bh=7o8IJfB7ac3jZiXayX/iEYSCvbbdHx+mVAVSDEiNdGc=;
-	h=Date:From:To:Cc:Message-ID:In-Reply-To:References:Subject:
-	 MIME-Version:Content-Type; b=NF8Wv//SqjtS+KWwtNPh8gxW/3OM3evMiHpg/ZPMrhk/D/Xwbn3SrCQRuFOPXVxLppZL7DZk0uKc5xXbVTDsEma0XtuWZQKcc4CDaYIWT0em/bDpqRt0BKKXtUR7gy8A/m/UmMxlIHPWIiwAFCksm3BOI3/WrEsZFFZvp0qC4Zc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=nod.at; spf=fail smtp.mailfrom=nod.at; arc=none smtp.client-ip=116.203.167.152
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=nod.at
-Authentication-Results: smtp.subspace.kernel.org; spf=fail smtp.mailfrom=nod.at
-Received: from localhost (localhost [127.0.0.1])
-	by lithops.sigma-star.at (Postfix) with ESMTP id 5FD812918DC;
-	Sun, 18 Jan 2026 16:36:05 +0100 (CET)
-Received: from lithops.sigma-star.at ([127.0.0.1])
-	by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10032)
-	with ESMTP id 8m1VPN69EFg3; Sun, 18 Jan 2026 16:36:04 +0100 (CET)
-Received: from localhost (localhost [127.0.0.1])
-	by lithops.sigma-star.at (Postfix) with ESMTP id 9E0B129859E;
-	Sun, 18 Jan 2026 16:36:04 +0100 (CET)
-Received: from lithops.sigma-star.at ([127.0.0.1])
-	by localhost (lithops.sigma-star.at [127.0.0.1]) (amavisd-new, port 10026)
-	with ESMTP id Qm1VWoKnABQg; Sun, 18 Jan 2026 16:36:04 +0100 (CET)
-Received: from lithops.sigma-star.at (lithops.sigma-star.at [195.201.40.130])
-	by lithops.sigma-star.at (Postfix) with ESMTP id 04C202918DC;
-	Sun, 18 Jan 2026 16:36:04 +0100 (CET)
-Date: Sun, 18 Jan 2026 16:36:03 +0100 (CET)
-From: Richard Weinberger <richard@nod.at>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: Christian Brauner <brauner@kernel.org>, Al Viro <viro@zeniv.linux.org.uk>, 
-	chuck lever <chuck.lever@oracle.com>, NeilBrown <neil@brown.name>, 
-	Olga Kornievskaia <okorniev@redhat.com>, 
-	Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>, 
-	Amir Goldstein <amir73il@gmail.com>, hughd <hughd@google.com>, 
-	Baolin Wang <baolin.wang@linux.alibaba.com>, 
-	Andrew Morton <akpm@linux-foundation.org>, tytso <tytso@mit.edu>, 
-	Andreas Dilger <adilger.kernel@dilger.ca>, Jan Kara <jack@suse.com>, 
-	Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, 
-	Yue Hu <zbestahu@gmail.com>, Jeffle Xu <jefflexu@linux.alibaba.com>, 
-	Sandeep Dhavale <dhavale@google.com>, 
-	Hongbo Li <lihongbo22@huawei.com>, Chunhai Guo <guochunhai@vivo.com>, 
-	Carlos Maiolino <cem@kernel.org>, Ilya Dryomov <idryomov@gmail.com>, 
-	Alex Markuze <amarkuze@redhat.com>, 
-	Viacheslav Dubeyko <slava@dubeyko.com>, Chris Mason <clm@fb.com>, 
-	David Sterba <dsterba@suse.com>, 
-	Luis de Bethencourt <luisbg@kernel.org>, 
-	Salah Triki <salah.triki@gmail.com>, 
-	Phillip Lougher <phillip@squashfs.org.uk>, 
-	Steve French <sfrench@samba.org>, Paulo Alcantara <pc@manguebit.org>, 
-	Ronnie Sahlberg <ronniesahlberg@gmail.com>, 
-	Shyam <sprasad@microsoft.com>, Bharath SM <bharathsm@microsoft.com>, 
-	Miklos Szeredi <miklos@szeredi.hu>, 
-	Mike Marshall <hubcap@omnibond.com>, 
-	Martin Brandenburg <martin@omnibond.com>, 
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, 
-	Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, 
-	Ryusuke Konishi <konishi.ryusuke@gmail.com>, 
-	Trond Myklebust <trondmy@kernel.org>, anna <anna@kernel.org>, 
-	Dave Kleikamp <shaggy@kernel.org>, 
-	David Woodhouse <dwmw2@infradead.org>, Jan Kara <jack@suse.cz>, 
-	Andreas Gruenbacher <agruenba@redhat.com>, 
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, 
-	Jaegeuk Kim <jaegeuk@kernel.org>, 
-	Christoph Hellwig <hch@infradead.org>, 
-	linux-nfs <linux-nfs@vger.kernel.org>, 
-	linux-kernel <linux-kernel@vger.kernel.org>, 
-	linux-fsdevel <linux-fsdevel@vger.kernel.org>, 
-	linux-mm <linux-mm@kvack.org>, 
-	linux-ext4 <linux-ext4@vger.kernel.org>, 
-	linux-erofs <linux-erofs@lists.ozlabs.org>, 
-	linux-xfs <linux-xfs@vger.kernel.org>, 
-	ceph-devel <ceph-devel@vger.kernel.org>, 
-	linux-btrfs <linux-btrfs@vger.kernel.org>, 
-	linux-cifs <linux-cifs@vger.kernel.org>, 
-	samba-technical <samba-technical@lists.samba.org>, 
-	linux-unionfs <linux-unionfs@vger.kernel.org>, 
-	devel <devel@lists.orangefs.org>, 
-	ocfs2-devel <ocfs2-devel@lists.linux.dev>, 
-	ntfs3 <ntfs3@lists.linux.dev>, 
-	linux-nilfs <linux-nilfs@vger.kernel.org>, 
-	jfs-discussion <jfs-discussion@lists.sourceforge.net>, 
-	linux-mtd <linux-mtd@lists.infradead.org>, 
-	gfs2 <gfs2@lists.linux.dev>, 
-	linux-f2fs-devel <linux-f2fs-devel@lists.sourceforge.net>
-Message-ID: <2119146172.135240.1768750563673.JavaMail.zimbra@nod.at>
-In-Reply-To: <20260115-exportfs-nfsd-v1-23-8e80160e3c0c@kernel.org>
-References: <20260115-exportfs-nfsd-v1-0-8e80160e3c0c@kernel.org> <20260115-exportfs-nfsd-v1-23-8e80160e3c0c@kernel.org>
-Subject: Re: [PATCH 23/29] jffs2: add EXPORT_OP_STABLE_HANDLES flag to
- export operations
+	s=arc-20240116; t=1768763128; c=relaxed/simple;
+	bh=S8kEIvQIwdZFXzIF8ztDvmPcfyBILoy9bD1nB3RaMDQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=UsWNRYSKHIvR0pmpojCwqFWkJDuaybPMt4lUQrTsZOoVS3eTmxw26Pu0voaROmXJgDK1GvR+OpOD8gNC9XqJmj6K03dQ8Wz4rGdS5AISe7uNNvZDgkD+pn1SylOrgA0jwxEzTckiN/BpH7SGi5jowjvvb91I4IMzrnevm6nB9F0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=I5Ihmy0I; arc=none smtp.client-ip=209.85.210.48
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="I5Ihmy0I"
+Received: by mail-ot1-f48.google.com with SMTP id 46e09a7af769-7cfd57f0bf7so2274438a34.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 18 Jan 2026 11:05:27 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1768763126; x=1769367926; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=G1v8LCOXMXHNC92zsw7ixC/eJfK8qg6Eg2mhXIIp5gk=;
+        b=I5Ihmy0IvXXjFBVsImvm5BlpQ/xyBG0dW6pw7xSf5znABE9fh7z8JHtQvENwe3vBa1
+         IuRYvmdnt3xZbfcsiCM4eccli3XosIWkSIMcCeoT9I205oCMweB4mWEijJ1qDRljmIth
+         6/BVLx/Zw3HArenawtlExWowLqpsuE3Zvg1Q5K6pYszbA0ej4H/i9NO6xh1WGSifXn0W
+         xPKvTx4ul4umaV9W/pyrgugwXjZn/5UE/HrP3zVcmlIuuUyaPLS9jMfVgWyV6PuHsLBm
+         C7rUUrtAVt99cHhcuvfL96qkIzivIJ9iFi2ZPG2pQv2GJu4sQj7P7+5mOj79DWCrvWVr
+         /37g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1768763126; x=1769367926;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=G1v8LCOXMXHNC92zsw7ixC/eJfK8qg6Eg2mhXIIp5gk=;
+        b=TYB1NoQf8LGpN9p31BxRuKqpLnFkAbZUT7B+jC36gExBj+LXnP+tVBe41sZh590Cam
+         ZbvgTtNd2nhNzkyuGUoYShtEnGdM8RK7Vbg0I+y/7/4ENCoSfnGSeD8mlQ+sjBMNUWxk
+         U1+HZpCSyero/LbeAAk1NYIdzXjgKMg8teCHT61Ph0DkVgu9lKG9640JIqPThDpMBctE
+         0aBi32zdSeGU9Bk0RRw2plgjMeDh1tFzw88AAomkQ9HS22UKeP5Q/y4rVn19/VgAVqiF
+         ja+hmcw8nNPcnUTz6yu7TGNjhpsEd45c6GhqSTtVh6fy3ARnYGOOIdQp1m2xdb4l1SxJ
+         np8w==
+X-Forwarded-Encrypted: i=1; AJvYcCWvVwHDb4M/YtOJWn8bXDWmvud4xldxkKr6Yn7ruGD9Q4HdnSNMTMX5vogQSgs26++HYSCQvtvbL+weJA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxRAHFqnziRQEQBDD8m73fhcS6Q5WbgvDI9oIss+nQ5Icr2vYBN
+	CWZAtw663t0jJN7DFNgqVwzoPYzEf74olKorkRvgftMHWiuuZCqWZoLq
+X-Gm-Gg: AY/fxX6WDoVjpXQq9OupY9HvYo7XFbGOd4NHwpJdjUl5Xsw12B8JeCQg6kBcWpyBOuJ
+	9bccnHsjznveV8ELFnz8bsBnJgkEtDv8C41g7PN0u65KGQZ3WxRK6DG5CbDs3xutlx/KP4Anj+x
+	ivkIp+IzeZMq/7FtvUjJJjtTqiPLAOOOLQF6xd7woMn7C+RDEDRfxrpXBCDM0Bk/Kjy8tdQZS2N
+	Ng/vVzT3G6k6sivUkQWeIB2uSMxGTUS/Dp9BOQfQaZQwZupzJjif3xwgWfTLEQ0vu3Q+AnRNWEx
+	dfEnrohs1pzSf3XqOQigg4Xko82V3oGBxZHlNd47/vFUva1iwuNXbH5zrkJ6YLZ+gLKfpIdZqqq
+	FkZLQg/Xlbm2P6Ns9Uc/wEGXWk/irwvfn1hO65PO3doeYJdJgXAHxObByz+R5GHolrdPBltyOqX
+	jJmd5LhOEYYBJFKaMbYFGcwHbKS/Qz2D0D
+X-Received: by 2002:a05:6830:2a91:b0:771:5ae2:fce0 with SMTP id 46e09a7af769-7cfdee132fcmr4813328a34.20.1768763126190;
+        Sun, 18 Jan 2026 11:05:26 -0800 (PST)
+Received: from newman.cs.purdue.edu ([128.10.127.250])
+        by smtp.gmail.com with ESMTPSA id 46e09a7af769-7cfdf0db2c1sm5540750a34.5.2026.01.18.11.05.25
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 18 Jan 2026 11:05:25 -0800 (PST)
+From: Jiasheng Jiang <jiashengjiangcool@gmail.com>
+To: markus.elfring@web.de
+Cc: jiashengjiangcool@gmail.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	linux-kernel@vger.kernel.org,
+	mark@fasheh.com,
+	ocfs2-devel@lists.linux.dev,
+	stable@vger.kernel.org
+Subject: [PATCH v2] ocfs2: fix NULL pointer dereference in ocfs2_get_refcount_rec
+Date: Sun, 18 Jan 2026 19:05:23 +0000
+Message-Id: <20260118190523.42581-1-jiashengjiangcool@gmail.com>
+X-Mailer: git-send-email 2.25.1
+In-Reply-To: <cfd0e0eb-894e-48c7-948e-9300a19b9db7@web.de>
+References: <cfd0e0eb-894e-48c7-948e-9300a19b9db7@web.de>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
-X-Mailer: Zimbra 8.8.12_GA_3807 (ZimbraWebClient - FF146 (Linux)/8.8.12_GA_3809)
-Thread-Topic: jffs2: add EXPORT_OP_STABLE_HANDLES flag to export operations
-Thread-Index: pUsbo+Kg1d9ytlyubsob1wi+Ql8B0A==
+Content-Transfer-Encoding: 8bit
 
------ Urspr=C3=BCngliche Mail -----
-> Add the EXPORT_OP_STABLE_HANDLES flag to jffs2 export operations to indic=
-ate
-> that this filesystem can be exported via NFS.
->=20
-> Signed-off-by: Jeff Layton <jlayton@kernel.org>
-> ---
-> fs/jffs2/super.c | 1 +
-> 1 file changed, 1 insertion(+)
+In ocfs2_get_refcount_rec(), the 'rec' pointer is initialized to NULL.
+If the extent list is empty (el->l_next_free_rec == 0), the loop skips
+assignment, leaving 'rec' as NULL and 'found' as 0.
 
-Acked-by: Richard Weinberger <richard@nod.at>
+Currently, the code skips the 'if (found)' block but proceeds directly to
+dereference 'rec' at line 767 (le64_to_cpu(rec->e_blkno)), causing a
+NULL pointer dereference panic.
 
-Thanks,
-//richard
+This patch adds an 'else' branch to the 'if (found)' check. If no valid
+record is found, it reports a filesystem error and exits, preventing
+the invalid memory access.
+
+Fixes: e73a819db9c2 ("ocfs2: Add support for incrementing refcount in the tree.")
+Signed-off-by: Jiasheng Jiang <jiashengjiangcool@gmail.com>
+---
+Changelog:
+
+v1 -> v2:
+
+1. Add a Fixes tag.
+---
+ fs/ocfs2/refcounttree.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index c92e0ea85bca..464bdd6e0a8e 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -1122,6 +1122,11 @@ static int ocfs2_get_refcount_rec(struct ocfs2_caching_info *ci,
+ 
+ 		if (cpos_end < low_cpos + len)
+ 			len = cpos_end - low_cpos;
++	} else {
++		ret = ocfs2_error(sb, "Refcount tree %llu has no extent record covering cpos %u\n",
++				  (unsigned long long)ocfs2_metadata_cache_owner(ci),
++				  low_cpos);
++		goto out;
+ 	}
+ 
+ 	ret = ocfs2_read_refcount_block(ci, le64_to_cpu(rec->e_blkno),
+-- 
+2.25.1
+
