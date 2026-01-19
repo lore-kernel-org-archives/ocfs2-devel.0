@@ -1,73 +1,71 @@
-Received: from mail-wm1-f53.google.com (mail-wm1-f53.google.com [209.85.128.53])
+Received: from mail-wm1-f50.google.com (mail-wm1-f50.google.com [209.85.128.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EC5E224B05
-	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Jan 2026 14:43:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.53
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B4F8E31ED66
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Jan 2026 14:49:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.50
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768833813; cv=none; b=dSX5uKouTRx4N5GlSZJgu1F6KQvWUrN5uzsroO3D2UShfkO9ZsdnZ/0sfkX2/EH6yiZUXusOzf7Q3+P30oZ558VXqd0ohWXpmQU28hn2wW92T6qn0ySmAdrNgBlBt4RdlDvWzkdXPQFRj2Uo/b/70drzIvrXa95kqBrzvTkGm3Y=
+	t=1768834163; cv=none; b=kEUmZCpJvv+Uuo/miV5yy8S8RAwHXb44bd205FhDoOQfAugbb/mo74QfYj2zqV/IV02xRW+POnhSBq5EsXzTXs6aNYIvcMIZxfJGtoAbclK/mqNXHU1zcwuPAnnBL9IpP8mdwKn7+xCPumsbMOrRjIJE5TZ/Ano4+uo8De4Oimg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768833813; c=relaxed/simple;
-	bh=r74QiyMl8GoaFf+6OYnD/LWemt+AkwY8ZRYKU002DU4=;
+	s=arc-20240116; t=1768834163; c=relaxed/simple;
+	bh=0u6sBpCxZnotqDcNs/tM/BY8PcTHp3EA8t7dw7tbf/c=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=GL4OnFM2I7zQrJn5MOVpO5TH3U6fMgmTKngy9rMlZU5esumHzzcxagAc0CV3+h+Ivk1i3dy+SSx0fnByyJvNmVEHt42mKgmeYl8DF8C9KtDEWsbVezWb+qvcWoLUN1lcrbAesreA87606lbvuXJAQNmz/bcMYvHYGiORutxr8LQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=AjEYnIMX; arc=none smtp.client-ip=209.85.128.53
+	 Content-Type:Content-Disposition:In-Reply-To; b=tB1d6famvG2xtTcWD2uuZK/zwqGC99l5VheFuEQlHe4wNoWaw2iDPrLVX4OvZSigy+Zk1uxiwEPS+B5g3CNnSLMF/pZ5OrqEvnC78e3F7ZyeJY3687ryoJHy3ZdCE42MUGncosCh5yprGVEsFG93S5+aJZ8Kj3mB3j02VIMJVBw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=bvJ7bGHJ; arc=none smtp.client-ip=209.85.128.50
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="AjEYnIMX"
-Received: by mail-wm1-f53.google.com with SMTP id 5b1f17b1804b1-47ee598d00fso2934495e9.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Jan 2026 06:43:31 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="bvJ7bGHJ"
+Received: by mail-wm1-f50.google.com with SMTP id 5b1f17b1804b1-4801c632109so1763595e9.2
+        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Jan 2026 06:49:21 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1768833810; x=1769438610; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1768834160; x=1769438960; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=RR1qVFyAeEiUAQEUT2CsZi2+KLdkWNNKKDhRLKnjZFk=;
-        b=AjEYnIMX9+eY/hh8igQz6rjZHhk2R/6KWdxxyg/NMTooo1iJ1lx19u1bL7YkQ/zPbi
-         8TNSXVjK8npFweTRybn6b6WHxAhJgipr7VGxvNjCI0Y8r2HrO1ARIF47pfMLtkyMpc8T
-         CveLqxuyMI5YUaWaAWTB5Sk6SCX2YaX5TcI04P6Q9YkQ8dsW8YVAHNNT68I1eiVfz0pb
-         mIA2utIUTubQjO/UzmDt1RnRf7wOah2qFVTrbNDVC7xQ4zB27aI/sbLb0MPhMCuSmAIl
-         XkulIX65+yehTnI0xXUs6xV0pVW8kgPmLC3KpFrOLh7gRVssPN4VhYLPg/4+8EDYoOa5
-         3UNA==
+        bh=JCcha9GOzlb5VHrdIzazKOTH6/pKsbFmBEXD01Wri8Y=;
+        b=bvJ7bGHJ2ClxxLFLC5PQzBf/sgYq8V66p4zjvV/nzquSM8V7Jefz71K34hUYulkObL
+         Y9lEwn9se9woVeIt/tj3q7zGJMyIZ4OYuRAwwdo87prqOliBCGl0GQHfRIssP72oZmsW
+         n8ByW2eSsBr9cWW159FnmeMi4EIGBiPMyND9bi5zal+vsRhvgOJwj2EC4A7XJ1/I74FT
+         bMfexB8m8jXyDffMLo9rq98x3NN1gNV1rfoTIm8W0QUuBD8lvDKfeJIzFnQ1e3BA0Fdl
+         nnPOrPwBPnd7CXAaK/NFxvspOnXa2hohHM07ETdi/K2m83VNdQid2Xbt/etWmfAL20nt
+         BCsg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1768833810; x=1769438610;
+        d=1e100.net; s=20230601; t=1768834160; x=1769438960;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=RR1qVFyAeEiUAQEUT2CsZi2+KLdkWNNKKDhRLKnjZFk=;
-        b=BZ9Lg5fR7+3FO26iO8SrYDVjjGLyqd1+rJ+H6uCFOykqF/O0DDmE3GBPuLutb4Ryc3
-         NglSQ++BsD4UvdnhztStGXddT8ZGbcDCsJ5QVl9Rv4Bz4BTXuaNFI6vDcdIZ+FFYQKtL
-         vyCbIbmWLPsbQAJIGMLP5H0RZMnXxmzkhGdHunCA54Ps+UeZIuwaKz600pxvdKyxRHQu
-         ZuQxLaafoNTejwzpf44pNteFWXtTIB4BoaIx0CUce0O+fwWsckFUL6SrDN5XH+vl7a1E
-         nrXWWLkrSWc7X4RlEMYCnraGwM5D+1Chxlg2rTGb9VK5Y/ZnB1dSO2z8lDw7bGbhc6nS
-         5TlA==
-X-Forwarded-Encrypted: i=1; AJvYcCVK4v3Ly8VSswTtuotPIJ+khc+12noEMOAvbBhK7IO/Pvmlj7dIKqKlVyCBwvse0PSz7HMQdrTzLzn3NQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzBUDLUpWGoA2v27VFukk4UV5z4fOYb+muZfMFns6kG80Zk5bqu
-	DT/ULwPJ+E76KgVuiFGiMp2vF5q7j1jMpB6fHkYjHaatRbRWNdoxjg//YhlEjvJveAU=
-X-Gm-Gg: AY/fxX6s65MwAXNgODdopTVcQ1fK9ZWyLoeFm5cnueZL7ywgPounOIJmDnVpEqzkzBi
-	Z5y+WvPqLF3IzYB5Y45CbVDhDWqupAPpMKWqp9pDoHk3Jw33lOReQdhdJls4jbgOSIbV2pTgE6/
-	B14ELrDysJMKZzmhW1UbcLnJo3U2FVlVaxRV+Pe3BRXcCXJBGffu0p7PdwlVu7p0K9OIE2faQOI
-	VqYl87utyROEyTpJiSRRBxqOQcy+ONRyoE3rZ+AVkrwvAIUTZqpDYMt/ZodqPdB1x2h0bILfn3B
-	uwYoO/3f/Ke7QChO9buVG8wBsOAvdl2ZwiGmzVVkkDzwMfQxjNNz5TOACGgA7h4xknN4SglwFN7
-	Mby+XJtWQootjbHlfqQSOXSfk2wlMrBVf6ECQVwhygxVfeA50GATHwVDjVj682IzOUdszWczJO2
-	LVA7LwVLdRjQ==
-X-Received: by 2002:a05:600c:4f4f:b0:475:d7b8:8505 with SMTP id 5b1f17b1804b1-4801e3743famr93063515e9.7.1768833810529;
-        Mon, 19 Jan 2026 06:43:30 -0800 (PST)
+        bh=JCcha9GOzlb5VHrdIzazKOTH6/pKsbFmBEXD01Wri8Y=;
+        b=BRFfRLjkrEAKErxUchvj8gshcJusdE56ecRR+7FYFbbE6WsJnOWmPT3MPu3WjdCB3p
+         v0zJC2dU/EJaCHgTdA31KK5yLibhyEST3c8Tk/tKm8d6y844lfzuKYS+xb3sb+XboEDW
+         7QfCrzEdEqIhMaQebi77cFjhKEUQNeZYyEIBphSF11xoSI/CgP5XaGAVhCeIg/hFXOpa
+         G2wmEYUxQh4oKCJ/Rq3fHWiy80L3PDV85EFkkkmeVY/uGRUx4J8fX7XTzAyUYHxf16Pu
+         +oka/I4CD3+Kb/7h9hhmAnjfcV/44sAMsZuX/Vujti4cbkMcjyoasbLNYYMp8ZuCy4T9
+         MQog==
+X-Forwarded-Encrypted: i=1; AJvYcCX72YxyYMfFgh+xUFYj3bALMdrk92oYyxGfnC1quqzfSQGuldbQ5Jgr7zj4U4VGhcRWDdK2V2LY498ikg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxwTOEGKGlhhv19PMT6/bpluRuwyL7csE9iQlppbL6jJDs11qdp
+	s2kziAOxxmpKzVdIwPbbdpQ/LljPNGN4y1ul3N6rkt/Qg3Mw+Zsm3KVn1+aFDHAyYzw=
+X-Gm-Gg: AY/fxX48hO7Chpnbnzx+Bw/qW7LwAuMgjswZDLAxrQzpz7rezSR5SdpKBBpGusEBKvl
+	dgEiLXEFzI7C64H5u9+97laPoHxyPbEtzDdPoHmKMPzKjop4VZlzkB19FenDv6sHbmtjF5n4ij9
+	r6XCTNPxTi1rXOPxUyJxnc2DRvjWq3v2aly34z/Af+L+Txg7Eauae8l73hid8f9yul07syomoxf
+	rwdEmPRAJCDBJNeLnagqhmr6PZlMkSTBzrntXpQW59bNHGAQRa66JR0etu3b0XA+Ik1HTxYsK6a
+	pIdm7IV0bVgh5vEbZ3QdR91Wm02ZC/jhBop76/mDZ0uZB2JGjqWhhrLDfMvtSZteNAyu0cPvrkG
+	8f//TZwwaTCIdcgGq4UJbX+TRrZqm1RVOYqw7GUDAIoM96+DtumC3WayAuLUwF89FTO4cMI3cNE
+	fyJqVE8/A1fA==
+X-Received: by 2002:a05:600c:6212:b0:47e:e20e:bbb6 with SMTP id 5b1f17b1804b1-4801e31e0f6mr78140845e9.1.1768834159826;
+        Mon, 19 Jan 2026 06:49:19 -0800 (PST)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2a7193dedacsm97891305ad.58.2026.01.19.06.43.29
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-81fa12b2bb2sm9550969b3a.59.2026.01.19.06.49.18
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 19 Jan 2026 06:43:29 -0800 (PST)
-Date: Mon, 19 Jan 2026 22:43:26 +0800
+        Mon, 19 Jan 2026 06:49:19 -0800 (PST)
+Date: Mon, 19 Jan 2026 22:49:16 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Jiasheng Jiang <jiashengjiangcool@gmail.com>
-Cc: markus.elfring@web.de, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	stable@vger.kernel.org
-Subject: Re: [PATCH v2] ocfs2: fix NULL pointer dereference in
- ocfs2_get_refcount_rec
-Message-ID: <5bflve5fog7jreyjzn4po47t2wzd6vomsmlkd6km44joogcybl@6vd2h5orgwge>
-References: <cfd0e0eb-894e-48c7-948e-9300a19b9db7@web.de>
- <20260118190523.42581-1-jiashengjiangcool@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, linux-kernel@vger.kernel.org, ocfs2-devel@lists.linux.dev
+Subject: Re: [PATCH] ocfs2: fix NULL pointer dereference in
+ ocfs2_xattr_get_rec
+Message-ID: <ywzkg5c3z5bwugddfhsqcybzj3mw2yys3al53pjfede4rjp7qk@gzfcpu4etohi>
+References: <20260117173556.36601-1-jiashengjiangcool@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -76,62 +74,57 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260118190523.42581-1-jiashengjiangcool@gmail.com>
+In-Reply-To: <20260117173556.36601-1-jiashengjiangcool@gmail.com>
 
-On Sun, Jan 18, 2026 at 07:05:23PM +0000, Jiasheng Jiang wrote:
-> In ocfs2_get_refcount_rec(), the 'rec' pointer is initialized to NULL.
-> If the extent list is empty (el->l_next_free_rec == 0), the loop skips
-> assignment, leaving 'rec' as NULL and 'found' as 0.
+On Sat, Jan 17, 2026 at 05:35:56PM +0000, Jiasheng Jiang wrote:
+> In ocfs2_xattr_get_rec, the variable 'rec' is initialized to NULL.
+> If the extent list 'el' is empty (l_next_free_rec == 0), the loop
+> iterating over the records is skipped, leaving 'rec' as NULL.
 > 
-> Currently, the code skips the 'if (found)' block but proceeds directly to
-> dereference 'rec' at line 767 (le64_to_cpu(rec->e_blkno)), causing a
-> NULL pointer dereference panic.
+> Since 'e_blkno' is initialized to 0, the function enters the error
+> handling block 'if (!e_blkno)'. Inside this block, the function calls
+> ocfs2_error() and attempts to dereference 'rec' via
+> 'le32_to_cpu(rec->e_cpos)' and 'ocfs2_rec_clusters(el, rec)'. This
+> results in a NULL pointer dereference and a kernel panic.
 
 Do you have reproduction steps to support your analysis?
 
-there are two types of 'rb': leaf or tree.
-the check 'if (!(le32_to_cpu(rb->rf_flags) & OCFS2_REFCOUNT_TREE_FL))'
-handles leaf case and returns to the caller.
-the subsequent code handles the 'tree' type, therefore, in theory,
-el->l_next_free_rec should be ">= 1", and the execution should enter the
-for-loop to assign the 'rec'.
-
-Thanks,
-Heming
-
+- Heming
 > 
-> This patch adds an 'else' branch to the 'if (found)' check. If no valid
-> record is found, it reports a filesystem error and exits, preventing
-> the invalid memory access.
+> Fix this by ensuring 'rec' is not NULL before accessing its members
+> within the error handling path, or by checking for an empty list
+> explicitly.
 > 
-> Fixes: e73a819db9c2 ("ocfs2: Add support for incrementing refcount in the tree.")
 > Signed-off-by: Jiasheng Jiang <jiashengjiangcool@gmail.com>
 > ---
-> Changelog:
+>  fs/ocfs2/xattr.c | 14 ++++++++++----
+>  1 file changed, 10 insertions(+), 4 deletions(-)
 > 
-> v1 -> v2:
-> 
-> 1. Add a Fixes tag.
-> ---
->  fs/ocfs2/refcounttree.c | 5 +++++
->  1 file changed, 5 insertions(+)
-> 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index c92e0ea85bca..464bdd6e0a8e 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -1122,6 +1122,11 @@ static int ocfs2_get_refcount_rec(struct ocfs2_caching_info *ci,
->  
->  		if (cpos_end < low_cpos + len)
->  			len = cpos_end - low_cpos;
-> +	} else {
-> +		ret = ocfs2_error(sb, "Refcount tree %llu has no extent record covering cpos %u\n",
-> +				  (unsigned long long)ocfs2_metadata_cache_owner(ci),
-> +				  low_cpos);
-> +		goto out;
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 1b21fbc16d73..b018c84dbc05 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -3757,10 +3757,16 @@ static int ocfs2_xattr_get_rec(struct inode *inode,
 >  	}
 >  
->  	ret = ocfs2_read_refcount_block(ci, le64_to_cpu(rec->e_blkno),
+>  	if (!e_blkno) {
+> -		ret = ocfs2_error(inode->i_sb, "Inode %lu has bad extent record (%u, %u, 0) in xattr\n",
+> -				  inode->i_ino,
+> -				  le32_to_cpu(rec->e_cpos),
+> -				  ocfs2_rec_clusters(el, rec));
+> +		if (rec)
+> +			ret = ocfs2_error(inode->i_sb,
+> +					  "Inode %lu has bad extent record (%u, %u, 0) in xattr\n",
+> +					  inode->i_ino,
+> +					  le32_to_cpu(rec->e_cpos),
+> +					  ocfs2_rec_clusters(el, rec));
+> +		else
+> +			ret = ocfs2_error(inode->i_sb,
+> +					  "Inode %lu has bad extent record (NULL) in xattr\n",
+> +					  inode->i_ino);
+>  		goto out;
+>  	}
+>  
 > -- 
 > 2.25.1
 > 
