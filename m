@@ -1,101 +1,97 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 598633BB57;
-	Mon, 19 Jan 2026 23:53:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 60D8D1D9A5F
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Jan 2026 01:42:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768866834; cv=none; b=Hjm+pAKr68je5wM01fHQw2pExwvM71E1j2cGIbvAlOg5Fm8uF1e7vht/kuTvidIiZKUwvRjF4Lgy0XRLQkW5kY/KSimxgJ4u5v489A9ZtfBFLH47zKQ2+hqeQz8BQlO3xE1Ar1iKtv7PgrIGNgfRbEsUlv/fFsEU8PuOjuO6sKU=
+	t=1768873361; cv=none; b=Ydd8tCpTuae1lfFt/c1LDGjga6wjKTeR5lLBMlpJe1w71I8vpD9MtpHMytPPORGID36ZZ5VvKXt3sf1CzfwhuLvkekC35CUdVobVxqgLZ0WxIZ/RItZePZHHV/Nrh4v1zoJKZWHXo2LNWxdU30ZJErL4fJQjowqkAwU8Ag1LVLk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768866834; c=relaxed/simple;
-	bh=4UqPqITs3WmBZEEZ4a6PlUWjgjQh/Dm21B520j9Wq4U=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=clNHTyF87xN8U5jrptH8NTnvShPMoxYyTs3M3fZmvGhjF5fDOSmcKpvgbr4bWAh+IjrnE4Ga+ba60zt8IZP27T94Zd9z8Pi/YGDWDDSjQ3wRgxPcxkz6/pi7zUq/We4v4paBCQl/8eZ4QKPxQ1TUTiA9UNkHIfhlCKJfOJgl1yU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=vkX2Juub; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1768873361; c=relaxed/simple;
+	bh=uMZae6jhobpNdRhasC4AlGF+B39G9a89jNBIiuh7WVk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=GIxHcoCbsLG2Gc+N6XAZQLvTc4pK3Sl5y8mU5vlxvcdB8MQ6uaY0jBPRvRyiECOyGZD9xd7YiSD1SwPbnwydPaB1OxDcGQP09m7tuuWFsciOQNATc13ITPGPXvXT7kT8q9HZjj4LdsSNQij2bv1+q4NT2sIZuXqmhNurDvXWhzQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=e2htccZx; arc=none smtp.client-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="vkX2Juub"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DD644C19424;
-	Mon, 19 Jan 2026 23:53:53 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=linux-foundation.org;
-	s=korg; t=1768866834;
-	bh=4UqPqITs3WmBZEEZ4a6PlUWjgjQh/Dm21B520j9Wq4U=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
-	b=vkX2Juub2Qk4N/xfcxouDhkji0D1uGoPtkZ3ouKcbaMXPZcHV2f5fr3WbhfGatMhr
-	 dvnrNgYujZGa/aNPlIxzldBp7HkyIWZqQTbiwipcMrV/3iCkF9dBqebZicnmmPyX9v
-	 iWi7cwcQG8HfYkGMy4iqrWxT4XtDe8FSAOiqMcL4=
-Date: Mon, 19 Jan 2026 15:53:53 -0800
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: joseph.qi@linux.alibaba.com, mark@fasheh.com, jlbec@evilplan.org,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH RESEND 0/1] ocfs2: fix reflink preserve cleanup issue
-Message-Id: <20260119155353.c52e9ad69538668001833f38@linux-foundation.org>
-In-Reply-To: <2ddspqqrnjaf4dsw46cx5h7wxnlmaqpbhhiolrfrn2c63v5txg@deaax4xovu64>
-References: <20251210015725.8409-1-heming.zhao@suse.com>
-	<2ddspqqrnjaf4dsw46cx5h7wxnlmaqpbhhiolrfrn2c63v5txg@deaax4xovu64>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="e2htccZx"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1768873357; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=ij6PeTL2GxSCqUEaiQKCiP8hhw53Aq8hRVNhTOS4LB0=;
+	b=e2htccZxpVnvT0QSN74YwW9GBGNyzskp890gSA93jx3zzs8PlAL8qzQquFpA1N7R3S6ku0ACWhl52NPsm98m6+ciRmnwvnaj1zd/HeKJkq1g662n1CNwT73wLvkbsR7ZoyUZPrhIyyUSd1cx4oL77+aEZivTzMguoKhQnzZub8k=
+Received: from 30.221.129.88(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WxSJW-l_1768873038 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 20 Jan 2026 09:37:18 +0800
+Message-ID: <0a2eab22-95ee-4172-9052-aefcbc5bf227@linux.alibaba.com>
+Date: Tue, 20 Jan 2026 09:37:17 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fix circular locking dependency in
+ ocfs2_acquire_dquot
+To: Szymon Wilczek <swilczek.lx@gmail.com>
+Cc: ocfs2-devel@lists.linux.dev, mark@fasheh.com, jlbec@evilplan.org,
+ linux-kernel@vger.kernel.org, syzkaller-bugs@googlegroups.com,
+ syzbot+51244a05705883616c95@syzkaller.appspotmail.com,
+ akpm <akpm@linux-foundation.org>
+References: <20251227174251.121668-1-swilczek.lx@gmail.com>
+ <1e0dba77-e8a3-43e2-b20c-fbac6fdc928f@linux.alibaba.com>
+ <CAJRoVwh8LUOaFb2OcNtE3Y=LU-tmSGrkOiN43C5SiEunr_coZQ@mail.gmail.com>
+ <25d90176-743e-4638-9643-861bd5792eed@linux.alibaba.com>
+ <CAJRoVwgxBKXcMSU-CMH8gC1TLnWFdMHiaFGOyFrkDZqzfpN8Ng@mail.gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <CAJRoVwgxBKXcMSU-CMH8gC1TLnWFdMHiaFGOyFrkDZqzfpN8Ng@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-On Thu, 18 Dec 2025 22:42:12 +0800 Heming Zhao <heming.zhao@suse.com> wrote:
 
-> ping...
+
+On 1/9/26 10:02 AM, Szymon Wilczek wrote:
+> Hi Joseph,
+> 
+> Thank you for pointing to the designed order in quota_global.c.
+> 
+> I looked at the locking documentation. I see that
+> "Acquire dquot for the first time" specifies:
+>   ocfs2_lock_global_qf -> start_trans
 > 
 
-yes please ;)  Some review input would be reassuring, thanks.
+Ummm... When sync and release also is
+  ocfs2_lock_global_qf -> start_trans
 
-btw, I forgot to ask: what are the worst-case userspace-visible runtime
-effects of this bug?
+> However, I believe the v2 patch is still necessary because lockdep
+> detected a real circular dependency:
+> 
+> sb_internal -> sysfile_lock_key -> ip_alloc_sem
+> 
+> Since ocfs2_lock_global_qf takes ip_alloc_sem, and start_trans takes
+> sb_internal (via sb_start_intwrite), the documented order inverts the
+> chain above, creating an ABBA deadlock with freeze/dismount paths.
+> 
+From the report link, start_trans is called during
+ocfs2_shutdown_local_alloc(), but ocfs2_disable_quotas() is fnished now.
+So how it happens?
 
-IOW, is a -stable backport desirable?
+Thanks,
+Joseph
 
-
-From: Heming Zhao <heming.zhao@suse.com>
-Subject: ocfs2: fix reflink preserve cleanup issue
-Date: Wed, 10 Dec 2025 09:57:24 +0800
-
-commit c06c303832ec ("ocfs2: fix xattr array entry __counted_by error")
-doesn't handle all cases and the cleanup job for preserved xattr entries
-still has bug:
-- the 'last' pointer should be shifted by one unit after cleanup
-  an array entry.
-- current code logic doesn't cleanup the first entry when xh_count is 1.
-
-Note, commit c06c303832ec is also a bug fix for 0fe9b66c65f3.
-
-Link: https://lkml.kernel.org/r/20251210015725.8409-2-heming.zhao@suse.com
-Fixes: 0fe9b66c65f3 ("ocfs2: Add preserve to reflink.")
-Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Joseph Qi <jiangqi903@gmail.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Jun Piao <piaojun@huawei.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
----
-
- fs/ocfs2/xattr.c |    4 ++++
- 1 file changed, 4 insertions(+)
-
---- a/fs/ocfs2/xattr.c~ocfs2-fix-reflink-preserve-cleanup-issue
-+++ a/fs/ocfs2/xattr.c
-@@ -6395,6 +6395,10 @@ static int ocfs2_reflink_xattr_header(ha
- 					(void *)last - (void *)xe);
- 				memset(last, 0,
- 				       sizeof(struct ocfs2_xattr_entry));
-+				last = &new_xh->xh_entries[le16_to_cpu(new_xh->xh_count)] - 1;
-+			} else {
-+				memset(xe, 0, sizeof(struct ocfs2_xattr_entry));
-+				last = NULL;
- 			}
- 
- 			/*
-_
+> The designed order may have been correct before sb_start_intwrite
+> became part of ocfs2_start_trans, but now this sequence conflicts
+> with the VFS freeze mechanism.
+> 
+> My patch ensures sb_internal is acquired before ip_alloc_sem, which
+> matches the expected freeze ordering. Perhaps the documentation in
+> quota_global.c should be updated to reflect this change?
+> 
+> If you see a problem with this approach, I'm happy to adjust.
+> What would you suggest?
+> 
+> Thanks,
+> Szymon
 
