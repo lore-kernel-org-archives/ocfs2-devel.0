@@ -1,160 +1,123 @@
-Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
+Received: from mail-dl1-f43.google.com (mail-dl1-f43.google.com [74.125.82.43])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D24EB4534A3
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Jan 2026 14:57:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1768921081; cv=none; b=pLpuhX43uvIHiyl6h/YO5Ovhgrf9w+bQWmu1cP7IB36LLo5krEHBIePydl619yCjazE9ABGOgN66Ge+hCBxh8WGmhzLRfteZr7XYd+mSGvK6BK3CujtyvsKaZDykg9Q+GNk8+V9Cnpbc7RBZnYwJoLyKXDTHQSyQvPBiMe9xX/w=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1768921081; c=relaxed/simple;
-	bh=DD7TYa/vrf7XCK4wVkxSy70j5MSA4nX3/0O/jE8u4o8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fbW4mWA/V5Zw7xHNUh9AxUWOuU6CdbKa3ENcObt9MYuHFbDGqEnHZ0rozIeJDGVq39LF8BTvvhFS8gz599EEB7tx43DAc8rkCeoEa9dgefySZ+BMi9xbeYl7WdDXzNEe1axQwD8lk3dQjuJhfl5bo48TuJMFt6wUcmOqQBAMrb0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=dWAI+On0; arc=none smtp.client-ip=209.85.128.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 53DB73D4119
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Jan 2026 23:16:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.82.43
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1768951017; cv=pass; b=NXZLkbc2+deoxJjRGo7SlqBlPpgba1bmoSbwWMYtLV0ZGXu4Pn+7437AJGCVnGOHj19/K/CVFgY2qMLt3YuEWoxDJIRlmOJj+wsXIWJEeBUm5UoYWDReTdwfu6KDT6CsQccCzoCeB5MLMUyVndQLgdCOCshvcfsYTAGBsncM3OI=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1768951017; c=relaxed/simple;
+	bh=RF/N8b8SRXZDWb+He6uR0DWSN8niCh0ZC3MjarpCknM=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=W7C4Hp9T+8duGmVrG8NyVp9ja7T6sLu0fNK5R56p5wmXwS9aGiq0EVUVbMiIoLXVNBJ9O7ueZmCknk4GJJItaI6Jg6Trq/M2DHzto2DsN4imALi4878nEtEcUvGnwLsCFqRNeWF8bK8Xdv38C2cn7Ns/we3xOMUDZ6yXB264OKY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Q0jF9BIN; arc=pass smtp.client-ip=74.125.82.43
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="dWAI+On0"
-Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-47eda5806d7so3201175e9.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 20 Jan 2026 06:57:58 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Q0jF9BIN"
+Received: by mail-dl1-f43.google.com with SMTP id a92af1059eb24-12336c0a8b6so12442086c88.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 20 Jan 2026 15:16:56 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1768951015; cv=none;
+        d=google.com; s=arc-20240605;
+        b=gKXjMoNmpt34FBPLXl/cdRilGOJYxZQ6d1xg4DAq5lT5Ar+uDD+9urHKpaklZ3q/Vt
+         0yLByoB/Udj21WWgTG9d3ML5bzDyu+OEEvSn9iBQEdK4wCNOhBOgRqcVEDdDZHbU1yio
+         idtztRfulyMvM2Cidry/T5G7BIfNE5NsUPEAEx4viJiB3Pe0Heb/VH0GYzCr3Tc6w5Cd
+         itBGklMfoaBhQnyA71f40kY+SO9LUAaqJleJ8sgnkKo8F9FyXm+KAflQJx7BP1mCdN07
+         fFpDycKYUxhtF2HOeiEZy9sU9yC+8kyVuS+dCsU6FFdrKSiGLNScM+fMO1q/7GziWavp
+         VFWA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:dkim-signature;
+        bh=B51LJK40lUQxErxvEoyk2USaJJ7Fw1jG/c/H4mfNiT0=;
+        fh=98ecAdnt9r482qLdUI7ZHi+k3k7bvBJYny76lQt6iMo=;
+        b=gywwTUQ7yRF3epCotaIqp0xL0gSJqy3py5PxpRGROnf/BLCbFGPvLJjVvydXTuuEog
+         4Fv7k2T/Blm24Qxww4zA+qxahOHXX1emd1agWP23Gyold5+OEAiu+APkFxT/4ffKUSCH
+         GUbSvnS4CQYXgVIssFDphKhw1SSX1OdO3RjUPMxnNeoxexuJ50kw42U6XGfY15NICO7d
+         /HH7eM6UXw3UlongxaCQZj7tR93sP8EJN1QEBmP27UsQReiE8cIj2Dv1H3eTQrJ0fIZ5
+         Aer5RId0QkZnuLN+sk9AY7bHVVPT5eCAo/fzNIuv2VhS9EWP8Er/YG4NO8Y1vYDYDRCL
+         Oa3A==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1768921077; x=1769525877; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=18x+c6+0fc04P7y2GlPAQVpKxeva8U8BVju4xXG9/dA=;
-        b=dWAI+On0dJAlaQe1cYHepIhOMq45zGv7X3aO5ColwNF8JcDM+/GMSgmNNreE68Smwx
-         vbsXJA9OotLtLJVB+OYkzvnMNo2uuXCrBDOq5nbLs58AbQ6mB6zVyJZ+t0eRXOHdpaaQ
-         8PnIDzMMbjGgBmThs8t/ZMyWRohZ9iq5Qf+KbGxyGkFc/COY7JKFd8AJqPa/IYpRDlmm
-         JD3btQykSzudY0+pKMo/Ihy5AHmTp4kXZvLcQvapxi2BEs3sAA4ebEuR8kV73A6mkFEf
-         c8+Z0OyFIWFaJ3fp5dpGS0Y8l89nVZTuhKbE0ESUQ3ZLVbMGQHDG2onncKad94o7cV4b
-         4yeA==
+        d=gmail.com; s=20230601; t=1768951015; x=1769555815; darn=lists.linux.dev;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:from:to:cc:subject:date:message-id:reply-to;
+        bh=B51LJK40lUQxErxvEoyk2USaJJ7Fw1jG/c/H4mfNiT0=;
+        b=Q0jF9BINt9Op7Hiw5KsvrbbqPjqNrycesGbt1vT6AxrdxNrbJZ/GxAXVwtxkZgx3+g
+         riRhPOXQH3wJW/wsEPLrvEzaV9FRmsgZPaXaS+xBbbvtX2PKvEFkRZGjA2YB+L/a7VPR
+         lZEQdZND7F5HQR7AwKQIUzo5178dc2BH1/TBWOzMnXs+wl+toH+xc/c0y+HDyrdqFPGP
+         cifq6HFyIm4l5J669Tau3GJDB2OKj6dMh1uBop+unHpBuFqCFOMyDfTLIQlDQnFR7JV7
+         0Gu2AwGSIm6rat5/xyCh1YxbLgjjrKjaXST2LZmTpO0QMKDpeUiJc1DgPKSOvjTSYZ04
+         IOjQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1768921077; x=1769525877;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=18x+c6+0fc04P7y2GlPAQVpKxeva8U8BVju4xXG9/dA=;
-        b=whtJEsqPW+6VjQAZpfK81MivN+/gvQkuAVrul90vL4r0OJf3afxgcS9tdBsgZC+jck
-         gmgsqyizikjYgVAW0Oiou1Lou0Ak4FRHqlJlOCpTxKpABCWf6vsr3lI4HG27CJHXrVcO
-         zqK+CaVkEWmhtv+f2ErH38ZWvTKJ/pWlDzFHPwTy2OftK9JAZKGo4rPr1NvgjTAekQnc
-         O9OcoXyk+vOm3qes1tp3G1EwdIReV6hZ/r7t/WH+kIGEtKpzkIR6Fi2AcICb9rnpwHic
-         nFCz6+Lhbh/HCsfciw7E773BWAo1SS+Um5EuCepcbU546gMrIESsQBfamMzAFrMbBeAl
-         sCOg==
-X-Forwarded-Encrypted: i=1; AJvYcCXSrREh4RM9xMWK4Xb0yFOb+gRBQbk7VHaRnqK7vpurHs6XY8BPVAe8KTo2HDKK7etiu3VC1zfoZTfmUg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yzm6oBCdYKv7KZWmEOHKkwcUHFcigNBQwxJA5rhq5hCFEbYLPiA
-	1Lvz7hZi166MRxvZt3vkgrQzAop2AaRL4KfINB7mSjrz40n5gwTENfYUgs93JxEveNChw9wXsKM
-	f6O1VjD0=
-X-Gm-Gg: AY/fxX4C5dcSmaKsfj8CzSx3bBt4j8bi8/UtJsxxMsMXM8DsySF9YzTcxEJ7HRAqvE0
-	NC9hlqewUNQPsaF9GgTWQUh3sHjq6dR3rYApSS6kvQqpe0ctVZx2H4qdGk5EWOyzrwdY1TCqUG7
-	tPWHgvhCF2nGGlo13SK74itKPZgf1/bTrhogoJhFXIwPkIroHX8h6q6meOxtMrK4NmtcwXH7Pv4
-	KVLqYKvZ5DeVWDxGUFDPOQ4zouoQacC5qqYjHbAmRv/ZPj5TbfAYUewXU3mZZdEf7pXTpcWT6SM
-	8pQ4Lpw7lyUcdVyj6tUSXWQunGg/agto3VZSSrx/1es+wW+saLu1H4msz91IEN0mTY5z5Yindac
-	fG4+zDpF/KvmCGxMXNjIT1QIyLr7mQGaoJrNbo89Ej5sIxisBtsIfljVFRh9TuE86wv6wD3rKTu
-	lJ58mhGlvMng==
-X-Received: by 2002:a05:600c:64cf:b0:477:a6f1:499d with SMTP id 5b1f17b1804b1-4801e33c5ecmr111690835e9.3.1768921076919;
-        Tue, 20 Jan 2026 06:57:56 -0800 (PST)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-81fa10bdafdsm12354584b3a.15.2026.01.20.06.57.55
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 20 Jan 2026 06:57:56 -0800 (PST)
-Date: Tue, 20 Jan 2026 22:57:52 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: joseph.qi@linux.alibaba.com, mark@fasheh.com, jlbec@evilplan.org, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH RESEND 0/1] ocfs2: fix reflink preserve cleanup issue
-Message-ID: <w6hmwb53opubufe77iqvwdcevkggyljujzzjltd3q5s4s4u6k5@ucowivn3qufh>
-References: <20251210015725.8409-1-heming.zhao@suse.com>
- <2ddspqqrnjaf4dsw46cx5h7wxnlmaqpbhhiolrfrn2c63v5txg@deaax4xovu64>
- <20260119155353.c52e9ad69538668001833f38@linux-foundation.org>
+        d=1e100.net; s=20230601; t=1768951015; x=1769555815;
+        h=cc:to:subject:message-id:date:from:in-reply-to:references
+         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=B51LJK40lUQxErxvEoyk2USaJJ7Fw1jG/c/H4mfNiT0=;
+        b=ZAYU3ue+oB+gGKicIaUD3kuyfhHGhbWLgcAaMqkIFRy6KJVkOkjhDXPsxkuLQKr9e8
+         h0FljK+LLfW9Nx0o/qDzKXjaq23/cB3mNjKDUxlw/jycCf+D7rBb9xNV381kAkzE3tbi
+         wZffpqKZJLkVZ+1AZ3uHt0vVVuKAaoFA2ETC1VRFRaVLyOwZNu52Y94E7FAi+aBdNNcC
+         GZI9qSwaT4QvByXVngeJd3Thppy36eTYbvLLQ4HVfm8sEICQCN/4jdg+9ZNXZpotAJnF
+         UrFWgmqSup5aplydlHzcYIi0VSKDIqpQV1q7x8YsUPeiClHQkovzOzS1o+zMojDowB+3
+         mV1A==
+X-Gm-Message-State: AOJu0YyeTff9iuzK91aY5XVAKxDO4Gqj20DSBJy2VEst8lYTZt9rTjLS
+	WB6YVJePciBDs1mIPVqLlZFMk6k1qQL2H/t/j8gCjxFjp5vTG/vJRehPOmJcVwkCFUV5IdzIq4E
+	4V3gOkwDoM8U1OgE38a+uvetvE6QbZLI=
+X-Gm-Gg: AY/fxX75xb1cH3iBmSWvjmTyVbvZTgmQfxJpNTMWVUIANZl31m+aShWO9ru5PZMU8WT
+	9OfkdE1Ikly/FZ4o2iFA1144aFt8t8YMus8FsD8NdjaFYDktfAO+jV0MYbePjEWrsXLlconXykS
+	w804lUT699HUC68QdjQAjgHrvT8Kbu64xuQ9+iY7fyKLDnZJk/CQ9CHqNbvkWwXT9g2pVYbICe8
+	w9O4xTgzAMqJgKBLl5+bZgUEykInYjpNFtUFF6mdfjwTd59EKyFJwvfkPEldklHHqxa4w==
+X-Received: by 2002:a05:7022:925:b0:119:e569:fba6 with SMTP id
+ a92af1059eb24-1244a7195b4mr17069482c88.21.1768951015096; Tue, 20 Jan 2026
+ 15:16:55 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260119155353.c52e9ad69538668001833f38@linux-foundation.org>
+References: <20251227174251.121668-1-swilczek.lx@gmail.com>
+ <1e0dba77-e8a3-43e2-b20c-fbac6fdc928f@linux.alibaba.com> <CAJRoVwh8LUOaFb2OcNtE3Y=LU-tmSGrkOiN43C5SiEunr_coZQ@mail.gmail.com>
+ <25d90176-743e-4638-9643-861bd5792eed@linux.alibaba.com> <CAJRoVwgxBKXcMSU-CMH8gC1TLnWFdMHiaFGOyFrkDZqzfpN8Ng@mail.gmail.com>
+ <0a2eab22-95ee-4172-9052-aefcbc5bf227@linux.alibaba.com>
+In-Reply-To: <0a2eab22-95ee-4172-9052-aefcbc5bf227@linux.alibaba.com>
+From: Szymon Wilczek <swilczek.lx@gmail.com>
+Date: Wed, 21 Jan 2026 00:16:21 +0100
+X-Gm-Features: AZwV_Qgl_ru0u2fj8HVfAwt_Ypr1_jhG5AtJVpzbdHxZbMJcU7DiRyWw3cTi1n4
+Message-ID: <CAJRoVwiBkZj1Xor7izsWkFyCK=kXjTmqP+PU4Znz+FORghcAzA@mail.gmail.com>
+Subject: Re: [PATCH] ocfs2: fix circular locking dependency in ocfs2_acquire_dquot
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev, mark@fasheh.com, jlbec@evilplan.org, 
+	linux-kernel@vger.kernel.org, syzkaller-bugs@googlegroups.com, 
+	syzbot+51244a05705883616c95@syzkaller.appspotmail.com, 
+	akpm <akpm@linux-foundation.org>
+Content-Type: text/plain; charset="UTF-8"
 
-On Mon, Jan 19, 2026 at 03:53:53PM -0800, Andrew Morton wrote:
-> On Thu, 18 Dec 2025 22:42:12 +0800 Heming Zhao <heming.zhao@suse.com> wrote:
-> 
-> > ping...
-> > 
-> 
-> yes please ;)  Some review input would be reassuring, thanks.
-> 
-> btw, I forgot to ask: what are the worst-case userspace-visible runtime
-> effects of this bug?
+Hi Joseph,
 
-The worst-case scenario was fixed in commit c06c303832ec ('ocfs2: fix xattr array
-entry __counted_by error'). It resolved an out-of-bounds (OOB) issue that could
-have caused the kernel to crash.
+You are absolutely correct. Since ocfs2_disable_quotas() completes before
+ocfs2_shutdown_local_alloc(), these two specific paths likely cannot race
+at runtime.
 
-In patch commit log, there are two issues:
-1> the 'last' pointer should be shifted by one unit after cleanup
-   an array entry.
-2> current code logic doesn't cleanup the first entry when xh_count is 1.
+However, the Lockdep report is based on lock classes, not just runtime
+concurrency.
 
-The following points should be noted:
+1. The shutdown path (ocfs2_shutdown_local_alloc) teaches Lockdep:
+   sb_internal -> ocfs2_sysfile_lock_key (on Local Alloc inode)
 
-Regarding <1>: after commit c06c303832ec, the last pointer doesn't shift. The
-code always clears the last array element.
+2. The acquire path (ocfs2_acquire_dquot) teaches Lockdep:
+   ocfs2_sysfile_lock_key (on Quota inode) -> sb_internal
 
-Regarding <2>: Since the existing code correctly updates new_xh->xh_count, the
-xattrs can still be displayed correctly (shown as empty) even if the first entry
-is not cleared, as the logic relies on the count.
+Because both inodes use the same lock class (ocfs2_sysfile_lock_key),
+Lockdep sees a contradiction:
+   sb_internal -> sysfile -> sb_internal
 
-> 
-> IOW, is a -stable backport desirable?
+Even if they don't race, this inconsistent ordering is a violation
+that Lockdep flags. Fixing the order in acquire_dquot resolves this
+contradiction and ensures sb_internal (freeze protection) is always
+taken outermost.
 
-Yes
-
-- Heming
-> 
-> 
-> From: Heming Zhao <heming.zhao@suse.com>
-> Subject: ocfs2: fix reflink preserve cleanup issue
-> Date: Wed, 10 Dec 2025 09:57:24 +0800
-> 
-> commit c06c303832ec ("ocfs2: fix xattr array entry __counted_by error")
-> doesn't handle all cases and the cleanup job for preserved xattr entries
-> still has bug:
-> - the 'last' pointer should be shifted by one unit after cleanup
->   an array entry.
-> - current code logic doesn't cleanup the first entry when xh_count is 1.
-> 
-> Note, commit c06c303832ec is also a bug fix for 0fe9b66c65f3.
-> 
-> Link: https://lkml.kernel.org/r/20251210015725.8409-2-heming.zhao@suse.com
-> Fixes: 0fe9b66c65f3 ("ocfs2: Add preserve to reflink.")
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> Cc: Mark Fasheh <mark@fasheh.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Junxiao Bi <junxiao.bi@oracle.com>
-> Cc: Joseph Qi <jiangqi903@gmail.com>
-> Cc: Changwei Ge <gechangwei@live.cn>
-> Cc: Jun Piao <piaojun@huawei.com>
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> ---
-> 
->  fs/ocfs2/xattr.c |    4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> --- a/fs/ocfs2/xattr.c~ocfs2-fix-reflink-preserve-cleanup-issue
-> +++ a/fs/ocfs2/xattr.c
-> @@ -6395,6 +6395,10 @@ static int ocfs2_reflink_xattr_header(ha
->  					(void *)last - (void *)xe);
->  				memset(last, 0,
->  				       sizeof(struct ocfs2_xattr_entry));
-> +				last = &new_xh->xh_entries[le16_to_cpu(new_xh->xh_count)] - 1;
-> +			} else {
-> +				memset(xe, 0, sizeof(struct ocfs2_xattr_entry));
-> +				last = NULL;
->  			}
->  
->  			/*
-> _
-> 
+Thanks,
+Szymon
