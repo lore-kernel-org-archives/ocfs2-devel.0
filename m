@@ -1,39 +1,39 @@
 Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AB6383164BB;
-	Sat, 31 Jan 2026 01:06:29 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DD3C01CAA65;
+	Sat, 31 Jan 2026 01:16:39 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769821591; cv=none; b=lUNRUQASnKSzlzmgN+ZhKr3+sLrpowUaKUy1HP09g3C7nm1ctiWdCdektEv7XMwvy/cSJhBsJaVMEd4+UhuKLRZhZNhwfpDD/vldQnF+NcDtHJ2/Ajvv5FVpJhVHqZqU7znKUkaGoqWaC4tquJZl1nc3Z8Dt3B8Tuko3naUx+9k=
+	t=1769822202; cv=none; b=AjMqjfqOc0VR9vme9MhFKQNQW9VQSVBcHRUTXy/OrjNcRsV8vr8NqBQBAYAnKTWipjHYyN3Y3PUJekAWbTB2pJXgSFtB350TtPS9bls5a5KL0m33RiZNDUfj/mj5A4Ekzl9+IfE5CwCjnHSteAF4F2YvBf4IYluVc8UbH1yl9Bk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769821591; c=relaxed/simple;
-	bh=MXV0TJpBaCDVcBvvP3MAXPF6TlMCxjpB/Xlnxl8VTNQ=;
+	s=arc-20240116; t=1769822202; c=relaxed/simple;
+	bh=s7cpkxammNxh6+d5d+3bqKdN3SPq8TpxVvWIZ8ZCcjI=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=s1wVJu4P9dY/7netSWgbaZdU2k7c34v875Ws07ns2xhoi0IZISgUCRxu9RoAFRKeTdwBZXBCgRvN4jmquipZejaavwNCCaZCid2q1GghGSSQtiLpJwwQrRNQwtbLuSjDycYPHCF2WIU3DV82cTQ6OYZYBXcWjZR7UUIJZv6B5n0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=bgRCHe/1; arc=none smtp.client-ip=62.89.141.173
+	 Content-Type:Content-Disposition:In-Reply-To; b=ZGYifQvBqHVSExSqbiLpMkqMM1bgPCOEC32hAVTVA8c6ossIh9ZtGVUY+VKFrJ3kZk1YeDOdh8oR1yhpUFulIsdYZHNz51qK1Ubbm9Yit6Q0cXD9Qpuz14lzJeUpNtwTlR1IJzcz59SNP6RVmVJdkLD2OBELHnWFUIvNZXdfzL4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b=XqfXg1dJ; arc=none smtp.client-ip=62.89.141.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=zeniv.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="bgRCHe/1"
+	dkim=pass (2048-bit key) header.d=linux.org.uk header.i=@linux.org.uk header.b="XqfXg1dJ"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=linux.org.uk; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
 	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
 	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=j6niAf9hGe4w9oPvmCTGyNtjBKea5D0eR+MRPWb1Frg=; b=bgRCHe/1HuJX1btyYG1KNZ3vno
-	TCqbEHHU6qGFN6p0raUIHroX/2Mch+Dje7lhnqFfAJqsXO6HOqA7hIbTc5Ox2EyVbbOISxAEFdnC6
-	W6r9RbXH0cnnhzNCiUhyza8AQbuIL4q3umghKXNiUTquST9A8JtmhoMfurM+zy30Rr9a+EJlhTbz4
-	mYdFlsgU/wLW6TW33NJuVF5q5MA2CVNgEEq5fEtx1mxQWuXErxAlK11j+2i67Fvpc3vfpacoulXyo
-	qXmAQ2zn5lax6oOz0fp9VhU1n6CsYyGOFMeanmsPrwfxDcQRKBhE1jubjYt0zbsFP4o9GMz2qqGl5
-	v717ALhA==;
+	bh=4hGbcJX/zGCic8102G9qCIKZXSgkfeWlTMil/4Iaml4=; b=XqfXg1dJojWAta23wVrVGw8AbM
+	T4YFUEpAGNRy8GVl2crq0/yviLHSn1RwjY7OLNXFUr7MBlJZLFlel+DfkeASAyFuazuY5gYbkZg3C
+	r1X86wcMyDCgxj5D/ys/gdAHSFU7r5iSYp0zd049hk3wpBrFCur24CjExKXdOvqJN9VuHv/iRjxzx
+	kX5RrybEcEtWMX2qA0ottyCV7wKy8E6VDoLBwHqezT7iyteAdLuRpPADA5DDr5S896BrFSnJfOEmd
+	6JvaRmn5kwFYAVnGs71LXmLojX97iH8OqHMoKkN+pTlZ5RhbqGi9BrBSkACYzFfu78y9HaeWVKLwd
+	KJWr0I9A==;
 Received: from viro by zeniv.linux.org.uk with local (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1vlzTJ-0000000D8c0-0LnE;
-	Sat, 31 Jan 2026 01:08:21 +0000
-Date: Sat, 31 Jan 2026 01:08:21 +0000
+	id 1vlzd9-0000000DGbm-14ID;
+	Sat, 31 Jan 2026 01:18:31 +0000
+Date: Sat, 31 Jan 2026 01:18:31 +0000
 From: Al Viro <viro@zeniv.linux.org.uk>
-To: Linus Torvalds <torvalds@linux-foundation.org>
-Cc: Samuel Wu <wusamuel@google.com>, Greg KH <gregkh@linuxfoundation.org>,
-	linux-fsdevel@vger.kernel.org, brauner@kernel.org, jack@suse.cz,
+To: Samuel Wu <wusamuel@google.com>
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-fsdevel@vger.kernel.org,
+	torvalds@linux-foundation.org, brauner@kernel.org, jack@suse.cz,
 	raven@themaw.net, miklos@szeredi.hu, neil@brown.name,
 	a.hindborg@kernel.org, linux-mm@kvack.org,
 	linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev,
@@ -44,7 +44,7 @@ Cc: Samuel Wu <wusamuel@google.com>, Greg KH <gregkh@linuxfoundation.org>,
 	bpf@vger.kernel.org, clm@meta.com,
 	android-kernel-team <android-kernel-team@google.com>
 Subject: Re: [PATCH v4 00/54] tree-in-dcache stuff
-Message-ID: <20260131010821.GY3183987@ZenIV>
+Message-ID: <20260131011831.GZ3183987@ZenIV>
 References: <CAG2Kctoo=xiVdhRZnLaoePuu2cuQXMCdj2q6L-iTnb8K1RMHkw@mail.gmail.com>
  <20260128045954.GS3183987@ZenIV>
  <CAG2KctqWy-gnB4o6FAv3kv6+P2YwqeWMBu7bmHZ=Acq+4vVZ3g@mail.gmail.com>
@@ -54,7 +54,7 @@ References: <CAG2Kctoo=xiVdhRZnLaoePuu2cuQXMCdj2q6L-iTnb8K1RMHkw@mail.gmail.com>
  <20260130070424.GV3183987@ZenIV>
  <CAG2Kctoqja9R1bBzdEAV15_yt=sBGkcub6C2nGE6VHMJh13=FQ@mail.gmail.com>
  <20260130235743.GW3183987@ZenIV>
- <CAHk-=wgk7MRBj4iwQLHocVCa94Jf0cMEz2HzUAS9+6rGtnp4JA@mail.gmail.com>
+ <CAG2KctotL+tpHQMWWAFOQEy=3NX-7fa9YroqsjnxKmTuunJ2AQ@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -63,49 +63,26 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <CAHk-=wgk7MRBj4iwQLHocVCa94Jf0cMEz2HzUAS9+6rGtnp4JA@mail.gmail.com>
+In-Reply-To: <CAG2KctotL+tpHQMWWAFOQEy=3NX-7fa9YroqsjnxKmTuunJ2AQ@mail.gmail.com>
 Sender: Al Viro <viro@ftp.linux.org.uk>
 
-On Fri, Jan 30, 2026 at 04:14:48PM -0800, Linus Torvalds wrote:
-> On Fri, 30 Jan 2026 at 15:55, Al Viro <viro@zeniv.linux.org.uk> wrote:
-> >
-> > So we have something that does O_NDELAY opens of ep0 *and* does not retry on
-> > EAGAIN?
-> >
-> > How lovely...
-> 
-> Actually, I think that is pretty normal behavior.
-> 
-> Generally, O_NDELAY and friends should *NOT* turn locks into trylocks
-> - because user space has no sane way to deal with kernel lock issues,
-> and user space simply shouldn't care.
-> 
-> So O_NDELAY should be about avoiding IO, not about avoiding perfectly
-> normal locks.
-> 
-> Of course, that horrendous driver locking is broken, since it holds
-> the lock over IO, so that driver basically conflates IO and locking,
-> and that's arguably the fundamental problem here.
-> 
-> But I suspect that for this case, we should just pass in zero to
-> ffs_mutex_lock() on open, and say that the O_NONBLOCK flag is purely
-> about the subsequent IO, not about the open() itself.
-> 
-> That is, after all, how the driver used to work.
+On Fri, Jan 30, 2026 at 05:05:34PM -0800, Samuel Wu wrote:
 
-I'd rather go for a spinlock there, protecting these FFS_DEACTIVATED
-transitions; let me try and put together something along those lines.
-Matter of fact, I would drop the atomics for ->opened completely
-and do all changes under the same spinlock - it's really just
-->open() and ->release().  Simpler that way...
+> > How lovely...  Could you slap
+> >         WARN_ON(ret == -EAGAIN);
+> > right before that
+> >         if (ret < 0)
+> >                 return ret;
+> 
+> Surprisingly ret == 0 every time, so no difference in dmesg logs with
+> this addition.
 
-The shitty part is that ->set_alt() thing and its callers seems to
-be written in assumption that it can come from an interrupt, so we'd
-need spin_lock_irq() in open/release and spin_lock_irqsave() in
-set_alt/disable...
+What the hell?  Other than that mutex_lock(), the only change in there
+is the order of store to file->private_data and call of ffs_data_opened();
+that struct file pointer is not visible to anyone at that point...
 
-Another fun part is that we need a barrier on transition from
-FFS_CLOSING in ffs_data_reset() - right now it's not even the last
-assignment in there.  Same spinlock would solve that - screw explicit
-barriers, it's _not_ a hot path and the locking is convoluted enough
-as it is.
+Wait, it also brings ffs_data_reset() on that transition under ffs->mutex...
+For a quick check: does
+git fetch git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git for-wsamuel2
+git switch --detach FETCH_HEAD
+demonstrate the same breakage?
