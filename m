@@ -1,67 +1,80 @@
-Received: from mail-lj1-f178.google.com (mail-lj1-f178.google.com [209.85.208.178])
+Received: from mail-ej1-f46.google.com (mail-ej1-f46.google.com [209.85.218.46])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7626E1CAA65
-	for <ocfs2-devel@lists.linux.dev>; Sat, 31 Jan 2026 01:17:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.178
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769822241; cv=none; b=DXaXrs52WIBxaYQ2C0nZpQVZxUXCllxLLL+SvPNK1mYCFWbl7s6Tg2/Y9EzYJId99lHSMOzqiY8rbvyeQm+8N1Uu4KguhchyvgkbKuCSJR47+FaeD7Pt4V4b9hxG01Nm1fWlWvsj0KDxKP+eGZb9aJMIwX1/YwqrHL5u+6U0qSM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769822241; c=relaxed/simple;
-	bh=P/AkJ7VMQl7xg3h+SCs73opP330uFlSO7pps2YFNAtA=;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B31C6326936
+	for <ocfs2-devel@lists.linux.dev>; Sat, 31 Jan 2026 02:09:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.218.46
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1769825355; cv=pass; b=rg8saEwEuy020kd7iMxj6+V7KzCx3vZ1vtl5oce3X3lOS86cnHeEcYoviJT5aHCPBc2GoEzePiUj3algGGgsosvnnN7KjpRsI0A4JU4yyR2FMPwXZAI/KfX3gpA2Rf8WeLiszu+X1xSldGjgiD9FDLUw3w7SqY7yYiE4yRPH614=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1769825355; c=relaxed/simple;
+	bh=q1+m69AC8OyppS+g1qL0airmm2fN+rGF7m5h75RejBg=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=ZrH5uoer1s2JMxq/KEyTB1VZqlu7IpYdNK2cCwSk7wXPP7/dY0cUw7zSjWURa4Y2rO2XrlVwRWfGqWpgUVlclwyuno7z+gJYcnMrS7T+U30j7pJsxYBtyDFNC0aT9GfuwcwA37wa3fAvGrtsaZ5JLl6/xZHBFVNRqPBmkP/28o8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org; spf=pass smtp.mailfrom=linuxfoundation.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=eJfAhEY5; arc=none smtp.client-ip=209.85.208.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux-foundation.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linuxfoundation.org
+	 To:Cc:Content-Type; b=P+BNFxKREAIksMawfrwwigPe+MVvdOInoTicJAwuGW86jXZQ1QyidN13r5mmyils9jrHsUyhaCbX9qNABf58+KzH3101FfdRSQEem61aeiGVKjeyphl1HgqVzC47NLL3sp3bqsCA2yGWYvz7WCWJ15ppfPsTbVk9lrQ36Y719m8=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=ex7rJR8H; arc=pass smtp.client-ip=209.85.218.46
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="eJfAhEY5"
-Received: by mail-lj1-f178.google.com with SMTP id 38308e7fff4ca-382fa663249so22572121fa.0
-        for <ocfs2-devel@lists.linux.dev>; Fri, 30 Jan 2026 17:17:19 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="ex7rJR8H"
+Received: by mail-ej1-f46.google.com with SMTP id a640c23a62f3a-b884ad1026cso433892466b.2
+        for <ocfs2-devel@lists.linux.dev>; Fri, 30 Jan 2026 18:09:13 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1769825352; cv=none;
+        d=google.com; s=arc-20240605;
+        b=NgEHqcdnIKIYptzIM3id0rLPxj5sHEtr3DFRtH4lNnQmGBzvksrsAgXaBdS9z7e736
+         2XzOByobIcVwwywVJ4ZXarh8QLYC0Eqo9+G5oV9XDGio29O7dcJ20Nms9VJ1ULuV6NZF
+         8yxPb9MsvZTWOVhuQuqY/8uKhJspBk134lQ3YevaaD4snqyPcqY5HbQoxz/Dt9Mt8+sY
+         dkT9PHYc3wWROm2HshsxIX8mnjwqQc416+4ryI8x6MGPGCGxww1AXid2eYKUz/7nAtnA
+         Q7D69IGQcsuENr1B3OBMBvr91BhwEe4v/uVxIZ8thW5uH5sWuxSlaOmNm22uK1zJU1jY
+         p4/w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=fXBSGIys3SzCpVetTGHBAjMTb+eZCN0LoIysZIFKUFQ=;
+        fh=P6h9ThI+jhrvKqPZG9dfT8/QMxSIlZiP8BSrWTZgPdA=;
+        b=FTpZVLnWvaxOouMRML9A0WYVztoJXCH+pUnaPiHDp+7F9Z4uiYHeSkhgr049Cqizq8
+         32GsQq9xeSIJjWM50bsoOWL7YblgH/q8hyY+MR0UVkSQdqqj5T0MXGhDutBHP6yeRFz7
+         sEB4Ji9u25G/jFIM3ZsRhGIbFFIE9WS3D8HCBKF8PwYklt3PMg6qT3y+iGik1m5MSzzk
+         22DIj/vpv53iPEBkh3vpSMYYSbwmJyTrWi3sw78lipHhBi14bijRVZFW/W6dFj60uXlp
+         rOtB40+VZSJW6Zbiq/63ikVsoHSQp5Fbx9ZV1wHvLbHvay35V3CbTrQ5/Qo/zOw6bfRX
+         LlNg==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=linux-foundation.org; s=google; t=1769822237; x=1770427037; darn=lists.linux.dev;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:from:to:cc:subject:date:message-id:reply-to;
-        bh=EPpl6A64UKlYlKR2j1fRkib4LdNnz2WqgktVIjm2uzU=;
-        b=eJfAhEY5COLNqiEl9kzNHyHNRdawVMW2wKc8MPxEdNYdYaDIT6eGezSFn5yiRVbLar
-         aVVxsMXO7INN0QTYOBqzpDEnS/wTTl/LgtSdDF4ksaW9rQMtpJyWJnEs4eUd2gQkDy9Y
-         xtPkub4d/eAXgzIZYJ+y8IAM44ezYyUjYEijw=
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1769822237; x=1770427037;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+        d=google.com; s=20230601; t=1769825352; x=1770430152; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=EPpl6A64UKlYlKR2j1fRkib4LdNnz2WqgktVIjm2uzU=;
-        b=wto9JjHeYUpV9g340+n2iyqwnme1EHhmgkVa94sF+CVwKG7yHRG4aZth4njSLzGr9n
-         M/Gt0T1PoJ7tsABBTmtV/jfe4ItgS6abyOKkkXO1NI2v7URytyl/Rl52vGJwRcwz4+1n
-         H7qXE1vH33if1bZVcEg0WsfV6ZDangOsg+81N+NXgvCT5PMM0le8AJzZcyMyCMOUz0CR
-         IUkaDgr+bNU88YQGCqAQ/LimSgU/+pCLlVld0fMSEQC2bP97J0kHpqjPrpfLmf98ExM4
-         4faiJBIhP1CZxiyGbUt9wIXGrGcJQYMJtJP9ywI/F3SPT9xBpHGcydLBCup0d2fjuW/+
-         n6xw==
-X-Forwarded-Encrypted: i=1; AJvYcCV+/N9a3TERRLbXTf8ypuUwS4O/WWaipWkBjDAP3DtuAn5FpWSdlOs9tfqGfQfrJFKhFcn8rIvHyD/Yuw==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yyvyiu7LTProgL5sB2kjkw4+DAJ1ZQ4kZraPsSvHUVL9iZiIt14
-	6pzzU16rQCCsnfuQ7GFX8wP3VL7qiUQXa+L/N9ME+zpua50IzcKNq1F41/X0rqZAtMQ0XZESQ+v
-	5y1ywwo9mgQ==
-X-Gm-Gg: AZuq6aJwpMTpjTiPc/FIGHI6fplAjLfMjrmiREZ78+s2O/SZnbokkszm32aPKeBFl5D
-	lncxXSn+VMXOwtYM2HCVb6VQiaQ/UxJ+7MkPwlVBGf4DBuO9lVzZWJom9Tn8E3dlYS+M6pM13JT
-	cMB3kAfjBG+N7EsfyF0nOiPRmyuEgGd5UJCTiD0rTyz5+gRoFWNZILSdl3wdqowy8+gN7Qmodc1
-	lmHcjiSXGTDsR2Jf1HZdKF+tA3hMFJcy0IE5aUc8y0GhpmLQImFswcfsAAVvMv291HTUr1HZlXj
-	8taQLqAGqMpoCmvAB5vfrAUC+StVOSkMhPZJzM90Vw1+YateK254rm5UTLlEG3z19ZGwh7I7tbS
-	csitnsgVKdQ4XoYFuFXVH8/schMpQedj1AjZ133m8Gav8FHcocBp9+KjyiaMeEdfk40BTVEEf9H
-	9FEwMH5qvXZtJCerT7n5d+uZI1PHMTulVdkwop1BJ5peM7+NtyUb4pFwJNNg6h
-X-Received: by 2002:a05:6512:3b90:b0:59d:fac0:3a11 with SMTP id 2adb3069b0e04-59e1643dd08mr1655993e87.45.1769822237408;
-        Fri, 30 Jan 2026 17:17:17 -0800 (PST)
-Received: from mail-lf1-f49.google.com (mail-lf1-f49.google.com. [209.85.167.49])
-        by smtp.gmail.com with ESMTPSA id 2adb3069b0e04-59e074814d6sm2027968e87.21.2026.01.30.17.17.17
-        for <ocfs2-devel@lists.linux.dev>
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Fri, 30 Jan 2026 17:17:17 -0800 (PST)
-Received: by mail-lf1-f49.google.com with SMTP id 2adb3069b0e04-59dd490be5fso3473737e87.2
-        for <ocfs2-devel@lists.linux.dev>; Fri, 30 Jan 2026 17:17:17 -0800 (PST)
-X-Forwarded-Encrypted: i=1; AJvYcCXO/2vm3OmgEn64gZmKAVhXKePVcmXXhr9ejjKBfyaYPQl+sI5Kop7Pb95tJkmOE/VJo1fkUkd7lB3f2A==@lists.linux.dev
-X-Received: by 2002:a05:6402:35c7:b0:658:ba49:96c2 with SMTP id
- 4fb4d7f45d1cf-658de54e61dmr2863591a12.6.1769821915767; Fri, 30 Jan 2026
- 17:11:55 -0800 (PST)
+        bh=fXBSGIys3SzCpVetTGHBAjMTb+eZCN0LoIysZIFKUFQ=;
+        b=ex7rJR8HgodfIkcKo9UnccsUjb+U6qyqgh4FOghU59IGHMsNrVLRpYQ+ER4OPWfWK4
+         9/l8ak0VxmJkt2SV+CVXnPGQnE1I/qj8kqm2PKRR36GGF29XP3NC73UpcRrue2/KCa+R
+         Q4qJye0ZAp1AGI0DRV3AxUxItBhWpzBKVrz5RBDzNfhE7TZ088wmGGqGUwXTBylF8IJp
+         5eppS6G6V/AWRPSAqQXqmF46H5GxjWBu/MULP1KN+7XXf+GyeLOwjIyRTCo2o0Z4J44H
+         usXIKOhrVoFr8zW3uJje1P77FKRCsujfVNjEvVwYFNXzfRvrY9evcLZVaEr5aNMU+/dj
+         w8mQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1769825352; x=1770430152;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=fXBSGIys3SzCpVetTGHBAjMTb+eZCN0LoIysZIFKUFQ=;
+        b=Y2LdeyJZcp0NGE1ckMSk/LfIVvmfizUQfGOf7S9sYDkmruBUeObO/7Tt5a54pECybs
+         VyFoj4bjy0DdCkHsbIb7erZ6NJajl6ukfcihtn33MXPKy3BBL0+SJrofpnCS6IjM0dDP
+         tFjRtXEEz7SSGFUt73xamnxFrIIxuN4F2dkIp53MxKJQ6oVYdgSa9r9GT9NEsdQyg79/
+         rj3WvZ0UFY6clFdaeOMz956x0X3xw3j5TtR4MHax4MwgQyXtRmkkKdkhcKOJzIjrOAQL
+         sEi+KV2rJ3vthKiTdCN+Yi2+9DC2dhBSJy9cz/SQtS2UWqQ+R7gjuDFF69cRw43Vs65y
+         ykTw==
+X-Forwarded-Encrypted: i=1; AJvYcCXf2oa/I8gRUdG+sywysn5V7D4jAEJiSg6ggRqR+xO4zmvsFvvFSwkTPUz3B7N493HSRtUJ3VAJ9iCCdA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzWZmjStrASGewtEjcUUaxL5XTCMRhfd5c4C5w8PBKN2rC2uOpD
+	b0mJdUe0MqXndyRGbwVtpnVfYgOg/Cc7J6dj6RhBSURBJFMDSjJusWmVDIse+sIluXCYubI/F4H
+	7tF0U4l5/Jz0x1YkApzzdbaXW5vtWfmap2YUmDnV1
+X-Gm-Gg: AZuq6aLJft5Fj0uNrJ46LHC5YdAG+Twvm4fNX9Bd5B031aMSLoV1xaH1ZDAOkdMlyFj
+	LD8eynAHD/RVVR40e6AteGt2klIO4ZO3Psw5+Mky5g3NyPdEmWe0u7GGrsSmGQVCUlKpsgmfbLw
+	b/pXXKlagNncFoW+PGziO4NbOis7x+Fu3mQp9dLFQefGHwtmOz7s51uZL/NXODoUlFe+d3xFNMT
+	u9HzK3uuSBjSITG38dy29SscYg88nRAzRzoHe5yNrvCQ78EhBPqEgCMrszvgF42SYl2ZxrQIlz8
+	1WQ=
+X-Received: by 2002:a17:906:f5a8:b0:b74:984c:a3de with SMTP id
+ a640c23a62f3a-b8dff5d84a1mr304116566b.28.1769825351931; Fri, 30 Jan 2026
+ 18:09:11 -0800 (PST)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -73,18 +86,17 @@ References: <CAG2Kctoo=xiVdhRZnLaoePuu2cuQXMCdj2q6L-iTnb8K1RMHkw@mail.gmail.com>
  <20260129032335.GT3183987@ZenIV> <20260129225433.GU3183987@ZenIV>
  <CAG2KctoNjktJTQqBb7nGeazXe=ncpwjsc+Lm+JotcpaO3Sf9gw@mail.gmail.com>
  <20260130070424.GV3183987@ZenIV> <CAG2Kctoqja9R1bBzdEAV15_yt=sBGkcub6C2nGE6VHMJh13=FQ@mail.gmail.com>
- <20260130235743.GW3183987@ZenIV> <CAHk-=wgk7MRBj4iwQLHocVCa94Jf0cMEz2HzUAS9+6rGtnp4JA@mail.gmail.com>
- <20260131010821.GY3183987@ZenIV>
-In-Reply-To: <20260131010821.GY3183987@ZenIV>
-From: Linus Torvalds <torvalds@linux-foundation.org>
-Date: Fri, 30 Jan 2026 17:11:39 -0800
-X-Gmail-Original-Message-ID: <CAHk-=wiXq-bPyKywNOw7z6ehrVReyS-hSPuQkJvuhJWfXGFm=A@mail.gmail.com>
-X-Gm-Features: AZwV_QiG_nByRrd83VYAdhaCU5_carsYUlImGLyJR9w-28CTqo3phlyWLRwFL8I
-Message-ID: <CAHk-=wiXq-bPyKywNOw7z6ehrVReyS-hSPuQkJvuhJWfXGFm=A@mail.gmail.com>
+ <20260130235743.GW3183987@ZenIV> <CAG2KctotL+tpHQMWWAFOQEy=3NX-7fa9YroqsjnxKmTuunJ2AQ@mail.gmail.com>
+ <20260131011831.GZ3183987@ZenIV>
+In-Reply-To: <20260131011831.GZ3183987@ZenIV>
+From: Samuel Wu <wusamuel@google.com>
+Date: Fri, 30 Jan 2026 18:09:00 -0800
+X-Gm-Features: AZwV_QgpcNm32QTyYTJNZ2e8MpZD_azq4tiS_evKebHi_xWHPJAAyFUDpR04HdE
+Message-ID: <CAG2KctoKDsfbyopQYq3-nJBg3fG+7Nrer17S6HqQ+nCWEcHeWQ@mail.gmail.com>
 Subject: Re: [PATCH v4 00/54] tree-in-dcache stuff
 To: Al Viro <viro@zeniv.linux.org.uk>
-Cc: Samuel Wu <wusamuel@google.com>, Greg KH <gregkh@linuxfoundation.org>, 
-	linux-fsdevel@vger.kernel.org, brauner@kernel.org, jack@suse.cz, 
+Cc: Greg KH <gregkh@linuxfoundation.org>, linux-fsdevel@vger.kernel.org, 
+	torvalds@linux-foundation.org, brauner@kernel.org, jack@suse.cz, 
 	raven@themaw.net, miklos@szeredi.hu, neil@brown.name, a.hindborg@kernel.org, 
 	linux-mm@kvack.org, linux-efi@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
 	kees@kernel.org, rostedt@goodmis.org, linux-usb@vger.kernel.org, 
@@ -93,15 +105,40 @@ Cc: Samuel Wu <wusamuel@google.com>, Greg KH <gregkh@linuxfoundation.org>,
 	borntraeger@linux.ibm.com, bpf@vger.kernel.org, clm@meta.com, 
 	android-kernel-team <android-kernel-team@google.com>
 Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Fri, 30 Jan 2026 at 17:06, Al Viro <viro@zeniv.linux.org.uk> wrote:
+On Fri, Jan 30, 2026 at 5:16=E2=80=AFPM Al Viro <viro@zeniv.linux.org.uk> w=
+rote:
 >
-> I'd rather go for a spinlock there, protecting these FFS_DEACTIVATED
-> transitions;
+> On Fri, Jan 30, 2026 at 05:05:34PM -0800, Samuel Wu wrote:
+>
+> > > How lovely...  Could you slap
+> > >         WARN_ON(ret =3D=3D -EAGAIN);
+> > > right before that
+> > >         if (ret < 0)
+> > >                 return ret;
+> >
+> > Surprisingly ret =3D=3D 0 every time, so no difference in dmesg logs wi=
+th
+> > this addition.
+>
+> What the hell?  Other than that mutex_lock(), the only change in there
+> is the order of store to file->private_data and call of ffs_data_opened()=
+;
+> that struct file pointer is not visible to anyone at that point...
 
-Yes, that's the much better solution.  The locking in this thing is horrendous.
+Agree, 09e88dc22ea2 (serialize ffs_ep0_open() on ffs->mutex) in itself
+is quite straightforward. Not familiar with this code path so just
+speculating, but is there any interaction with previous patches (e.g.
+refcounting)?
 
-But judging by Samuel's recent email, there's something else than the
-open locking thing going on.
+> Wait, it also brings ffs_data_reset() on that transition under ffs->mutex=
+...
+> For a quick check: does
+> git fetch git://git.kernel.org/pub/scm/linux/kernel/git/viro/vfs.git for-=
+wsamuel2
+> git switch --detach FETCH_HEAD
+> demonstrate the same breakage?
 
-          Linus
+Had to adjust forward declaration of ffs_data_reset() to build, but
+unfortunately same breakage.
