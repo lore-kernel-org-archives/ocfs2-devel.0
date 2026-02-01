@@ -1,52 +1,192 @@
-Received: from www262.sakura.ne.jp (www262.sakura.ne.jp [202.181.97.72])
+Received: from sender4-op-o12.zoho.com (sender4-op-o12.zoho.com [136.143.188.12])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EF98D1E9B3A
-	for <ocfs2-devel@lists.linux.dev>; Sun,  1 Feb 2026 04:21:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.181.97.72
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1769919712; cv=none; b=AnNxthtOPSmoEtRCKN2dEi+P0yPlgAbphZd5CMZonQK9V0bG0f7wLs6lHv1AGVsDI+ECFd/7/mjm6VfmX9Tv0CwC9/+FcdAgwiy34NeaOSrE7/reKLqlIHxL3U4iHzYjfCuzKt9QsiuVYosmoxfm0KAViXWOoHjOdXnTutsUnUg=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1769919712; c=relaxed/simple;
-	bh=StceI9wLmKNYr/wUsEuG9SF/+XMl2AxlyKQXIXh03ME=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:
-	 In-Reply-To:Content-Type; b=h6OMlBvgF7n4NO5bXD0dGKt3Bl7hM09tYqSBX/5PT1yPRtVZzhfJwbEHKu6HHpfWsZRvm2CDhkbUkCtXgwutxcalgaeDeOQG6Aq48RP6sqiEXWSkoph+LmexYBanws4ljS0pfu6U7URYYhYDphQYCFG2KF4i+Q0QI/OZ1TIcsfE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=I-love.SAKURA.ne.jp; spf=pass smtp.mailfrom=I-love.SAKURA.ne.jp; arc=none smtp.client-ip=202.181.97.72
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=I-love.SAKURA.ne.jp
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=I-love.SAKURA.ne.jp
-Received: from www262.sakura.ne.jp (localhost [127.0.0.1])
-	by www262.sakura.ne.jp (8.15.2/8.15.2) with ESMTP id 6114Lnwb018596;
-	Sun, 1 Feb 2026 13:21:49 +0900 (JST)
-	(envelope-from penguin-kernel@I-love.SAKURA.ne.jp)
-Received: from [192.168.1.10] (M106072142033.v4.enabler.ne.jp [106.72.142.33])
-	(authenticated bits=0)
-	by www262.sakura.ne.jp (8.15.2/8.15.2) with ESMTPSA id 6114LnJD018593
-	(version=TLSv1.2 cipher=AES256-GCM-SHA384 bits=256 verify=NO);
-	Sun, 1 Feb 2026 13:21:49 +0900 (JST)
-	(envelope-from penguin-kernel@I-love.SAKURA.ne.jp)
-Message-ID: <f1ab7a8d-e878-4c62-8722-631cbb4b3462@I-love.SAKURA.ne.jp>
-Date: Sun, 1 Feb 2026 13:21:49 +0900
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B369121257F
+	for <ocfs2-devel@lists.linux.dev>; Sun,  1 Feb 2026 04:37:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.12
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1769920681; cv=pass; b=g+3EXKbhnSiyaDy7hoUlBytmT3/JDkk7aIQnFvN0J8wGFwEx2zY8Nmioi3jBXjw30MufFg6GZTVcgQ2h2xOMP8lkmGYxNH4IuA2+vdv8PvdIbQPP0nYQ9v7hfXd3B/+kToOoE/SduKZBu7wEI/gk+fvl8YdSsokEkpklGPkZDpU=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1769920681; c=relaxed/simple;
+	bh=3uM/IoV+kWhx0MA2bMJkjETxvtqfhNmiJEDbYSTHY+4=;
+	h=Date:Message-ID:From:To:Cc:Subject:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=SpjuRKiB+j4jZJuCdYftUx9QQ3t8Cmy1u5c3ajeHeTb9VEw2uBS2qV8JQuVAK8JviMyM6b1f1pRuJAZyQcAJtZFalp/DVuobL3poWJF+bi8a0Mda2bwxHJ5q4sAMrgXZHrOIuum2F+4c9RkA35uFl5u1kXazZDokSTsaNTXB8vg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=G9DjFFV4; arc=pass smtp.client-ip=136.143.188.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=linux.beauty
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="G9DjFFV4"
+ARC-Seal: i=1; a=rsa-sha256; t=1769920672; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=R3Gf0hUkXlTDhhmJqSZkhFTSJou2HN15whGvmlzTvoXGQ7On6NOmX/gHfmQhaGYI34oK4D8L03vYFuZ4sSAU6VfrvakIzEg357MULjCyJ+GUKfGmRbLdXOEaVAnPMZv8kxLIQ4jlXVJb1AwC4Lzy40i/bUbI5Ou5ROrte9rwlqo=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1769920672; h=Content-Type:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=iDc1fs0KSQXhIw9liIu96vuZGLLY5LuSWTg5rYDoZ18=; 
+	b=bW/4iKlDPpoVus/lFExMj6t0EZIBaGxgMEK5/qsGgUE5kADaVCkEBAd2e/Ao7F85DcYN+gcOKyVNKXtgLLq1/qi9/v31GWy5parOz2Rq++Cv0mn4OxmGHYRsh81d12rTBWFbfQFfuu8dK6E4SplldqLx4g3tkGW6XxYYm8rEzsY=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=linux.beauty;
+	spf=pass  smtp.mailfrom=me@linux.beauty;
+	dmarc=pass header.from=<me@linux.beauty>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1769920672;
+	s=zmail; d=linux.beauty; i=me@linux.beauty;
+	h=Date:Date:Message-ID:From:From:To:To:Cc:Cc:Subject:Subject:In-Reply-To:References:MIME-Version:Content-Type:Message-Id:Reply-To;
+	bh=iDc1fs0KSQXhIw9liIu96vuZGLLY5LuSWTg5rYDoZ18=;
+	b=G9DjFFV4FCLccd6X4o/nvYyYNzSa5kgS8jkUasc5PviXG7N3SEtp2D5cFyLLTTzp
+	aZa0C2hEHxv9qa87avoCCCwD4oMkyfygkt2im+l8CuiBd7N5mH2q4FP71hKo6ViHVfC
+	jwL+JlW4IrcqgIbehnf08tlMwNGs+uHZ+S0H7YxU=
+Received: by mx.zohomail.com with SMTPS id 1769920670779516.4956288034215;
+	Sat, 31 Jan 2026 20:37:50 -0800 (PST)
+Date: Sun, 01 Feb 2026 12:37:36 +0800
+Message-ID: <878qddoz8v.wl-me@linux.beauty>
+From: Li Chen <me@linux.beauty>
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	ocfs2-devel <ocfs2-devel@lists.linux.dev>,
+	linux-kernel <linux-kernel@vger.kernel.org>,
+	Jan Kara <jack@suse.com>
+Subject: Re: [PATCH 3/3] ocfs2: use READ_ONCE for lockless jinode reads
+In-Reply-To: <aXzeDE5P_lxiXfPB@casper.infradead.org>
+References: <20260130031232.60780-1-me@linux.beauty>
+	<20260130031232.60780-4-me@linux.beauty>
+	<aXxBX2Ul-S6nJzG5@casper.infradead.org>
+	<19c0edeadad.6adfc20c802629.8728440093470268039@linux.beauty>
+	<aXzeDE5P_lxiXfPB@casper.infradead.org>
+User-Agent: Wanderlust/2.15.9 (Almost Unreal) SEMI-EPG/1.14.7 (Harue)
+ FLIM-LB/1.14.9 (=?ISO-8859-4?Q?Goj=F2?=) APEL-LB/10.8 EasyPG/1.0.0
+ Emacs/30.2 (x86_64-pc-linux-gnu) MULE/6.0 (HANACHIRUSATO)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [syzbot] [fs?] possible deadlock in dqget (2)
-To: syzbot <syzbot+e7e874621d086b64b4ca@syzkaller.appspotmail.com>,
-        ocfs2-devel@lists.linux.dev, LKML <linux-kernel@vger.kernel.org>
-References: <6974180a.050a0220.1a75db.0327.GAE@google.com>
-Content-Language: en-US
-From: Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
-In-Reply-To: <6974180a.050a0220.1a75db.0327.GAE@google.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
-X-Virus-Status: clean
-X-Anti-Virus-Server: fsav204.rs.sakura.ne.jp
+MIME-Version: 1.0 (generated by SEMI-EPG 1.14.7 - "Harue")
+Content-Type: text/plain; charset=ISO-2022-JP
+X-ZohoMailClient: External
 
-ocfs2 developers, I'm waiting for your response on
-https://lkml.kernel.org/r/dee1a0fe-7846-466a-a08b-4967929b5f6e@I-love.SAKURA.ne.jp .
 
-#syz set subsystems: ocfs2
+Hi Matthew,
 
+Thank you very much for the detailed explanation and for your patience.
+
+On Sat, 31 Jan 2026 00:36:28 +0800,
+Matthew Wilcox wrote:
+> 
+> On Fri, Jan 30, 2026 at 08:26:40PM +0800, Li Chen wrote:
+> > Hi Matthew,
+> > 
+> >  > On Fri, Jan 30, 2026 at 11:12:32AM +0800, Li Chen wrote:
+> >  > > ocfs2 journal commit callback reads jbd2_inode dirty range fields without
+> >  > > holding journal->j_list_lock.
+> >  > > 
+> >  > > Use READ_ONCE() for these reads to correct the concurrency assumptions.
+> >  > 
+> >  > I don't think this is the right solution to the problem.  If it is,
+> >  > there needs to be much better argumentation in the commit message.
+> >  > 
+> >  > As I understand it, jbd2_journal_file_inode() initialises jinode,
+> >  > then adds it to the t_inode_list, then drops the j_list_lock.  So the
+> >  > actual problem we need to address is that there's no memory barrier
+> >  > between the store to i_dirty_start and the list_add().  Once that's
+> >  > added, there's no need for a READ_ONCE here.
+> >  > 
+> >  > Or have I misunderstood the problem?
+> > 
+> > Thanks for the review.
+> > 
+> > My understanding of your point is that you're worried about a missing
+> > "publish" ordering in jbd2_journal_file_inode(): we store
+> > jinode->i_dirty_start/end and then list_add() the jinode to
+> > t_inode_list, and a core which observes the list entry might miss the prior
+> > i_dirty_* stores. Is that the issue you had in mind?
+> 
+> I think that's the only issue that exists ...
+
+Understood.
+
+> 
+> > If so, for the normal commit path where the list is walked under
+> > journal->j_list_lock (e.g. journal_submit_data_buffers() in
+> > fs/jbd2/commit.c), spin_lock()/spin_unlock() should already provide the
+> > necessary ordering, since both the i_dirty_* updates and the list_add()
+> > happen inside the same critical section.
+> 
+> I don't think that's true.  I think what you're asserting is that:
+> 
+> 	int *pi;
+> 	int **ppi;
+> 
+> 	spin_lock(&lock);
+> 	*pi = 1;
+> 	*ppi = pi;
+> 	spin_unlock(&lock);
+> 
+> that the store to *pi must be observed before the store to *ppi, and
+> that's not true for a reader which doesn't read the value of lock.
+> The store to *ppi needs a store barrier before it.
+
+Yes, agreed ― thank you. I was implicitly assuming the reader had taken the same lock
+at some point, which is not a valid assumption for a lockless reader. 
+
+> > The ocfs2 case I was aiming at is different: the filesystem callback is
+> > invoked after unlocking journal->j_list_lock and may sleep, so it can't hold
+> > j_list_lock but it still reads jinode->i_dirty_start/end while other
+> > threads update these fields under the lock. Adding a barrier between the
+> > stores and list_add() would not address that concurrent update window.
+> 
+> I don't think that race exists.  If it does exist, the READ_ONCE will
+> not help (on 32 bit platforms) because it's a 64-bit quantity and 32-bit
+> platforms do not, in general, have a way to do an atomic 64-bit load
+> (look at the implementation of i_size_read() for the gyrations we go
+> through to assure a non-torn read of that value).
+> 
+> > "ocfs2 reads jinode->i_dirty_start/end without journal->j_list_lock
+> > (callback may sleep); these fields are updated under j_list_lock in jbd2.
+> > Use READ_ONCE() so the callback takes a single snapshot via actual loads
+> > from the variable (i.e. don't let the compiler reuse a value kept in a register
+> > or fold multiple reads)."
+> 
+> I think the prevention of this race occurs at a higher level than
+> "it's updated under a lock".  That is, jbd2_journal_file_inode()
+> is never called for a jinode which is currently being operated on by
+> j_submit_inode_data_buffers().  Now, I'm not an expert on the jbd code,
+> so I may be wrong here.
+
+Thanks. I tried to sanity-check whether that “never called” invariant holds
+in practice.
+
+I added a small local-only tracepoint (not for upstream) which fires from
+jbd2_journal_file_inode() when it observes JI_COMMIT_RUNNING already set
+on the same jinode:
+
+/* fs/jbd2/transaction.c */
+if (unlikely(jinode->i_flags & JI_COMMIT_RUNNING))
+      trace_jbd2_file_inode_commit_running(...);
+
+The trace event prints dev, ino, current tid, jinode flags, and the
+i_transaction / i_next_transaction tids.
+
+With an ext4 test (ordered mode) I do see repeated hits. Trace output:
+
+... jbd2_submit_inode_data: dev 7,0 ino 20
+... jbd2_file_inode_commit_running: dev 7,0 ino 20 tid 3 op 0x6 i_flags 0x7
+    j_tid 2 j_next 3 ... comm python3
+
+So it looks like jbd2_journal_file_inode() can run while JI_COMMIT_RUNNING
+is set for that inode, i.e. during the window where the commit thread drops
+j_list_lock around ->j_submit_inode_data_buffers() / ->j_finish_inode_data_buffers().
+
+Given this, would you prefer the series to move towards something like:
+
+1. taking a snapshot of i_dirty_start/end under j_list_lock in the commit path and passing the snapshot
+   to the filesystem callback (so callbacks never read jinode->i_dirty_* locklessly), or
+2. introducing a real synchronization mechanism for the dirty range itself (seqcount/atomic64/etc)?
+3. something else.
+
+I’d be very grateful for guidance on what you consider the most appropriate direction or point out something I'm wrong.
+
+Thanks again.
+
+Regards,
+Li
