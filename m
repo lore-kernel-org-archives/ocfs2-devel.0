@@ -1,97 +1,86 @@
-Received: from mail-oo1-f71.google.com (mail-oo1-f71.google.com [209.85.161.71])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from devnull.danielhodges.dev (vps-2f6e086e.vps.ovh.us [135.148.138.8])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A0C553A7F67
-	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Feb 2026 12:34:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.71
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5D4D3815D5
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Feb 2026 16:13:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=135.148.138.8
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770294864; cv=none; b=tnqZYk17Em3wnI77q1BA3TpsSCuPwEpyNKHAOEQEjfUEnuaoWyhgdJyzcvQjsMkGJLlLMHPVuNFEt1cDUQTs8Iyg90cvuRKLARzryisr3RwoKxCerwUksphkBtcgtmR+OhOeOGAYErMERtm6Drca9+dkBZCivyU+qmO5Wjkna1U=
+	t=1770653635; cv=none; b=E8BXkSFKWFvSzGkEKQFE5LAyzFOyphYrk8gasdIkUymwRAXgE2M1EU0uroWsEPVtI91kD3oTpk95PxMrtoVHI5Nzp2IzSOomr84v9KIK1qIraTwClrfAGTlIN12ezNcvA0Hk/4fv+ZKHJbMxFcJBi/ketLya6FXeRXsBYO5OPME=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770294864; c=relaxed/simple;
-	bh=rwAx3jlhLfP89/FtIztSDCFlFWYKdsoojhN9EUyH4CI=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=lLy/0/2qM/+qnaBSkYv5HogStyPydVh4wgMByglnBwkt0acBVpxzX8WPR9VuCTa/dtF2AGCkF4+/xZbrBCuWMbkW1sXWR1wM/sYAx/imwQiE3KnLxVH676QHjQEXJ1iuO2E24Z/XmvAO5FrpfDu6pyHU2ZUig1JsFJyj66ROnz8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.71
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f71.google.com with SMTP id 006d021491bc7-66308f16ea0so3630393eaf.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 05 Feb 2026 04:34:24 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1770294863; x=1770899663;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=AQ/xUhWD101JxY/NkO10vqwZ2MxnRVjLVTPmLR1kR9s=;
-        b=Ox4sksKyBqrrIZHuHvGUWeAATeYw6OhvR9fp19xSopLicBJsknQXAmLPG4M+a5I/Xx
-         kMiqucKxa1m3wCH/OELHB9QA5yyGb8Z2Ophv3laGbxazWC9EINXT9+VTBm0HZlsIhlaM
-         jy3l+/BcWwLxCRB/k0TCZgJzaU5MI/qtUfVJ1tWu78zWBN+2GslPG75Q3o5dfKepgi3d
-         trgcKkd0CbUvCj2GJJKZW3+CjZwxmHdDkTUtNUJ3jjpDBZvma63m1bAi/lAwmmYNWfZS
-         aU3diUYluD9EUYoD3PH2Gv3dlqOX5PSRwbSGZPoa5AgACfDzogcbzSMFfjb7XK/ffiQz
-         VWMQ==
-X-Forwarded-Encrypted: i=1; AJvYcCXOpvwAdFqJEWIaSLXbRbTSgG8+Zp9Dxe11yFWfu8b2MXarGx6W29xPY3tr2hz5FiKHGu691Ha0tyG8eA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzyuW1YrPIsnQDdwrY+Z+Arr0snL0X/WLX2VWde5lXD1xu0cc5V
-	98H2IeMagmk84XLqPAXphcaDKSWtXAxRzWqw1BIIA8ot7b5itR3NDLEc2nl4kjhfbJOABR5nFXg
-	uKAqvPQsNlvCz7Xbqi+RS15X9YWukVIQb7vgLT7cuGGQmvGNdCsV0aFFkf8U=
+	s=arc-20240116; t=1770653635; c=relaxed/simple;
+	bh=BbAHzEmDq6quWXuJVOzwlsWcfxdjzBv1mmQ60zpegig=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=aZ4DIIGDJoW3wca28Z3PXKIGzfGrS63OuApTvVNUQkHT/OpIsGgUdan/iCQ5RzSzDxG+xmctlWX9AeQTSjeSudhbQ45DjBG7f09lQbpJ1QelUfvowWVekQxBrr61dTkF3pHmJe6OZIlOdwneubjroTRhiMwpaf2iK4eaL+/V7d4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=danielhodges.dev; spf=pass smtp.mailfrom=danielhodges.dev; dkim=pass (2048-bit key) header.d=danielhodges.dev header.i=@danielhodges.dev header.b=hsWqOIqb; dkim=permerror (0-bit key) header.d=danielhodges.dev header.i=@danielhodges.dev header.b=KxLc+Bwo; arc=none smtp.client-ip=135.148.138.8
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=danielhodges.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=danielhodges.dev
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=danielhodges.dev header.i=@danielhodges.dev header.b="hsWqOIqb";
+	dkim=permerror (0-bit key) header.d=danielhodges.dev header.i=@danielhodges.dev header.b="KxLc+Bwo"
+DKIM-Signature: v=1; a=rsa-sha256; s=202510r; d=danielhodges.dev; c=relaxed/relaxed;
+	h=Message-ID:Date:Subject:To:From; t=1770653628; bh=TIzg/21WYc6roqYOqE2C6xR
+	chOosyzbnkc8iUinXj6o=; b=hsWqOIqbOtG78PHJyLh4rOYkaq5gKpOInudF0yRmW2F8hF6Tm2
+	p/HpAeDLEiiXfoWw5ebsAz4rriI06RK0XdxtrEWfD91CKVKGoErscG4S5Lc7V4tMONCNF5uMZlg
+	yXe4nZUZNad5tzswNcsoTB6zWAPWCiDBwu9K9BHRoocxvbooaNaefcIXxA8mVWkQFlMVYLfqzc0
+	IPkcgRRdRCkRdJ8mi3wryBQ2TZUjK1/gSEzzW9N1M9g12LCleE8QqnZiw7QsKGmbVvy98ep+H5L
+	GQ8hJHSVe0pa4HV1MdRN0mpvSNjfP3cIv0f+LarWX/9YXHwWCnpdFBahNjk98q0F53w==;
+DKIM-Signature: v=1; a=ed25519-sha256; s=202510e; d=danielhodges.dev; c=relaxed/relaxed;
+	h=Message-ID:Date:Subject:To:From; t=1770653628; bh=TIzg/21WYc6roqYOqE2C6xR
+	chOosyzbnkc8iUinXj6o=; b=KxLc+BwosL8FCsZiMixI5znDkBJJ+UeI8qWO9S12iC5i+ZfDQ3
+	ZocCY/NzffJgSVi510VeKHRtnsGK8Mso1fAw==;
+From: Daniel Hodges <git@danielhodges.dev>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Jan Kara <jack@suse.cz>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Daniel Hodges <git@danielhodges.dev>,
+	syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com,
+	stable@vger.kernel.org
+Subject: [PATCH] ocfs2: zero-initialize recovery bitmap to prevent uninit-value in find_next_bit
+Date: Mon,  9 Feb 2026 11:13:47 -0500
+Message-ID: <20260209161347.30400-1-git@danielhodges.dev>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:201a:b0:663:1239:9ec8 with SMTP id
- 006d021491bc7-66a20789feemr2660206eaf.29.1770294863655; Thu, 05 Feb 2026
- 04:34:23 -0800 (PST)
-Date: Thu, 05 Feb 2026 04:34:23 -0800
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <69848e4f.050a0220.3b3015.0021.GAE@google.com>
-Subject: [syzbot] Monthly ocfs2 report (Feb 2026)
-From: syzbot <syzbot+listf657cb067844747ceb9f@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
 
-Hello ocfs2 maintainers/developers,
+ocfs2_add_recovery_chunk() allocates a bitmap buffer of sb->s_blocksize
+bytes using kmalloc() but only copies (ol_chunk_entries(sb) + 7) >> 3
+bytes into it from the on-disk quota chunk. When the number of chunk
+entries is not aligned to a long boundary (64 bits on 64-bit systems),
+find_next_bit() reads uninitialized memory from the trailing bytes of
+the last word in the bitmap.
 
-This is a 31-day syzbot report for the ocfs2 subsystem.
-All related reports/information can be found at:
-https://syzkaller.appspot.com/upstream/s/ocfs2
+Fix this by using kzalloc() to zero-initialize the entire bitmap
+allocation, ensuring that any bits beyond the copied region are
+clean zeros.
 
-During the period, 5 new issues were detected and 0 were fixed.
-In total, 55 issues are still open and 39 have already been fixed.
-
-Some of the still happening issues:
-
-Ref  Crashes Repro Title
-<1>  374586  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
-                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
-<2>  43639   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
-                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
-<3>  26344   Yes   possible deadlock in ocfs2_init_acl
-                   https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
-<4>  24410   Yes   possible deadlock in ocfs2_reserve_local_alloc_bits
-                   https://syzkaller.appspot.com/bug?extid=843fa26882088a9ee7e3
-<5>  16760   Yes   possible deadlock in ocfs2_setattr
-                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
-<6>  7697    No    possible deadlock in ocfs2_xattr_set
-                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
-<7>  6698    Yes   kernel BUG in link_path_walk
-                   https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
-<8>  6210    Yes   kernel BUG in ocfs2_write_cluster_by_desc
-                   https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
-<9>  5333    Yes   possible deadlock in ocfs2_del_inode_from_orphan
-                   https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
-<10> 4033    Yes   possible deadlock in ocfs2_lock_global_qf
-                   https://syzkaller.appspot.com/bug?extid=b53d753ae8fb473e2397
-
+Reported-by: syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com
+Fixes: 2205363dce74 ("ocfs2: Implement quota recovery")
+Cc: stable@vger.kernel.org
+Signed-off-by: Daniel Hodges <git@danielhodges.dev>
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
+ fs/ocfs2/quota_local.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-To disable reminders for individual bugs, reply with the following command:
-#syz set <Ref> no-reminders
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index de7f12858729..bd3eb098097f 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -302,7 +302,7 @@ static int ocfs2_add_recovery_chunk(struct super_block *sb,
+ 	if (!rc)
+ 		return -ENOMEM;
+ 	rc->rc_chunk = chunk;
+-	rc->rc_bitmap = kmalloc(sb->s_blocksize, GFP_NOFS);
++	rc->rc_bitmap = kzalloc(sb->s_blocksize, GFP_NOFS);
+ 	if (!rc->rc_bitmap) {
+ 		kfree(rc);
+ 		return -ENOMEM;
+-- 
+2.52.0
 
-To change bug's subsystems, reply with:
-#syz set <Ref> subsystems: new-subsystem
-
-You may send multiple commands in a single email message.
