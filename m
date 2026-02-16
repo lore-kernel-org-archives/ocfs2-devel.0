@@ -1,87 +1,77 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
+Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 507C138A733
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Feb 2026 18:02:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 382F21F2B88
+	for <ocfs2-devel@lists.linux.dev>; Mon, 16 Feb 2026 04:17:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1770660129; cv=none; b=l+SqOZ58oxqvcDQX30novzPW2QhGWETIybP0CuLpWlPx7rpA3QyAnMBtwYzp7Ly8SYRpP9ayoDtZ3XU4Qq+nH4TiU8/orQJdh4O1w373Qp6urKYhuvhNwQ1IZanq21WhmpaeU/BSDDT/VffYJLDrM+ajHwdu9BAXMf4IhdhAmpw=
+	t=1771215429; cv=none; b=J8afdS1WMNd3R4gKXRybt3ctkpKpLL0bN8PGP1Txa7PEOkSezly5imgLvkMMZFLLhavv1EqmkFqwNmB5quKhpTkHErrA1+UZBBKrduyRHijwt0KdbkX6jV94sZpl3n2npQzeVYtI6Pe0xOBX4yBi/dkmLMRO6fMTgfqTE7YzOyg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1770660129; c=relaxed/simple;
-	bh=n/wWW938KHzpfNbMHC4SH/9Dbi3KsElvYM65yXm/6cs=;
+	s=arc-20240116; t=1771215429; c=relaxed/simple;
+	bh=MyTl4PFX3mRfdVM6cxgi5l2WTjlSXSbGDQbx09kyBSw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=KcZ/TgTfQ6686+NSw6oVuJHe8roBrjYA/8Md7i+3jNdt2aVbGV0KIP/s+r3cgbTUc1PJdSUvwaf0uuNSc5gmp1Eo8CzkSBlbE2dYmSjfUWnGixWBMxUdSnQBg9Kq4nKVa/IEbFCqlGd1VBdB8JF419+8LvTONOy9R2G7UHIZaIc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=vDjT4V0g; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=nevxq9n4; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=vDjT4V0g; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=nevxq9n4; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	 Content-Type:Content-Disposition:In-Reply-To; b=tsdoWYP7Z71bwc94UeZBNQZA24a/GfTwvmgV2aezKgtopAkzROzJp6yvfYM1jMuVxgaz5XjPgpYCT4qjcX8OOGvlFyKXZ+rZd2+H0fldx3rVjcDBlSozxFigIygXivhQbiJgNxJsIRnXLq+wzTjIoKQCOUUOzpuOT3zA5lGJ1cc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ngoReh0x; arc=none smtp.client-ip=209.85.214.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="vDjT4V0g";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="nevxq9n4";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="vDjT4V0g";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="nevxq9n4"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id 4ED3C5BD2C;
-	Mon,  9 Feb 2026 18:02:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1770660122; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=p1XOYzFi2oeOLG6Rv3RZi4yWoHUwYPdFepolmSJABjw=;
-	b=vDjT4V0gkKiS1oySt1ljlot2utoh/hXmNs3rdCQvy9J0pGc0lQFwYUSBWa8SJGMkwg9ojY
-	Rh5gI5Tg7GzKFZC1z5RAd/f4PS79CAdwBw3t+3LOZz+NZ5OErWWky+ryFkUfBvwOmKwUVz
-	tuVKFFvZxKfnEAbWTowQFKwkaTERLUE=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1770660122;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=p1XOYzFi2oeOLG6Rv3RZi4yWoHUwYPdFepolmSJABjw=;
-	b=nevxq9n49PNWMJu5oOUxHWpCamtYxdelRYFi+YQ+5mQ/OobKkVb3XngX2w6V2UPMeO5+Gx
-	poqOUkPQlayk+SBg==
-Authentication-Results: smtp-out2.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1770660122; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=p1XOYzFi2oeOLG6Rv3RZi4yWoHUwYPdFepolmSJABjw=;
-	b=vDjT4V0gkKiS1oySt1ljlot2utoh/hXmNs3rdCQvy9J0pGc0lQFwYUSBWa8SJGMkwg9ojY
-	Rh5gI5Tg7GzKFZC1z5RAd/f4PS79CAdwBw3t+3LOZz+NZ5OErWWky+ryFkUfBvwOmKwUVz
-	tuVKFFvZxKfnEAbWTowQFKwkaTERLUE=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1770660122;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=p1XOYzFi2oeOLG6Rv3RZi4yWoHUwYPdFepolmSJABjw=;
-	b=nevxq9n49PNWMJu5oOUxHWpCamtYxdelRYFi+YQ+5mQ/OobKkVb3XngX2w6V2UPMeO5+Gx
-	poqOUkPQlayk+SBg==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 38B5C3EA63;
-	Mon,  9 Feb 2026 18:02:02 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id L/bUDRohimkgfAAAD6G6ig
-	(envelope-from <jack@suse.cz>); Mon, 09 Feb 2026 18:02:02 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 626EEA0A27; Mon,  9 Feb 2026 19:01:57 +0100 (CET)
-Date: Mon, 9 Feb 2026 19:01:57 +0100
-From: Jan Kara <jack@suse.cz>
-To: Daniel Hodges <git@danielhodges.dev>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Jan Kara <jack@suse.cz>, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com, 
-	stable@vger.kernel.org
-Subject: Re: [PATCH] ocfs2: zero-initialize recovery bitmap to prevent
- uninit-value in find_next_bit
-Message-ID: <dvgcsdqeqhryxx7gy4mq65m44wti3ruqdqe4h43npofm4wrryl@edfz4nrai3yl>
-References: <20260209161347.30400-1-git@danielhodges.dev>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ngoReh0x"
+Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-2ad21f437eeso9907475ad.0
+        for <ocfs2-devel@lists.linux.dev>; Sun, 15 Feb 2026 20:17:08 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1771215427; x=1771820227; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=87a60IrPsZEkv8dm8fdH6Kik8z1oUurYwvGZt/o8UEs=;
+        b=ngoReh0x7kSgOVvoxSff0A40zsayjtadb7ql0DEBMdtNSqBFYk2ArekVXJiCL1gN9s
+         tfrBxmrguX5J8exeX48DRDvRZ+EzTvKOU+ZBriGmM46t+aOLLbE9HeDZEFWye+27MMTu
+         luVsuQANwQGKRRP3MfnDFjTd0Ct/KBlYSa4SlyYeJmAx2UGNv96XwgAt/Fi/6b363ZZM
+         0ukcNJ+GSqAjGw8EDFCJ3zD59aoN4e7WP8rmeENJjYlwsd3wW8IkkIjf6hfNrgvrRUtM
+         sISsAXDvBTuyZRhz+IMSvndjgyWko6Rf4NBdaChtkPZ25r3S/paimgoMJfWOA2w4rZKr
+         A5kQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1771215427; x=1771820227;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=87a60IrPsZEkv8dm8fdH6Kik8z1oUurYwvGZt/o8UEs=;
+        b=Bcws+ZXosEwa2l+SWUSUIVTuGz237poYtT/2Xe8mOO60ov5/G1GwpDKcaNJXsGgHYh
+         R7NnCxHv+Dwo9adwKPdnkLfJCrsi+EVrG0OjSPFFQvNLaFqD7xkCXg2GoHJiO1THNL/g
+         b0FaxS9bSahHY1Ebr1an8iqvCv4goX5h/R9f06Tu2vqXeBHnDIIXT4MT49bxTIqsNrSj
+         c4H7K6HUfVOdMDhJBNwteJp+/zsfJpzA6i8QI0WMptZGLx4JNM7V0JC6LtFHsY4BU3UW
+         hlPZIQPlIb7Q4dU8YCifJIFmrxLRP7XfYcVEIoqmHHBi4FoXEnJcx6zNlGmARcIHCoXn
+         o9eA==
+X-Forwarded-Encrypted: i=1; AJvYcCWlGVWjEg1EVC8+8pmDMLKq7AsVxdl3FhIIkLTRNKIUOrm6sFRh9Gw/oxSTYcTWw+DnHvh4FvxgmoF7lQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwpFZtxwMcUstmKZ5iM3i8p50ss1IDLs+7NkUTfbKofGfUrs0Q1
+	4/EJZMTYWUGd0bDQi6MKuFUInW9+pMJDAQCpNEPn1P25TtKwS0JwwpQ2aK8YSJVF
+X-Gm-Gg: AZuq6aLnh/+ZmPRk6hr2MiwEettylD2D6ey60nxq+dPKz/WAIdG/OERAH4W4+WhrpGP
+	OCGZw8Mcj3I3O3PPHbYZkuLip19/L3amgvHNt39Xo/3BO57ckoruZGapZiGzA4Gidy3GEhtEeYX
+	C3IWVb7wGZ8xNWGQlbJejLBbORFpStcIQxy/FeNtTBvvxAcPQc8heDayPzDZqkhGn0ZkCTRn3Mg
+	DVB1Feu3T8qikB7ZbQqcv7Yyl5qqlB5QHqvsHQMcwRDC5vju8ALiR247OctZgBZEQPwaod9czTy
+	aE9iaoOM0WzhT65Iocl5sYr6FagpT0PENz2FLMrR5L1lqGz3PVmWA9UZlKsxmtsWIqGD78TmryS
+	fqm8xtEfvPJmjRB2fCrIRA2zask39gbwYrrnsdLIqzL955iqliycZy/IMeh11t9ITZGDe2yGln7
+	2P/NGV9FsVbZeZhK4+d1IeuFcVqM6+vZQ=
+X-Received: by 2002:a17:902:ef44:b0:2aa:e47d:e3b with SMTP id d9443c01a7336-2ac93edf6b2mr83476105ad.0.1771215427466;
+        Sun, 15 Feb 2026 20:17:07 -0800 (PST)
+Received: from inspiron ([114.79.136.20])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ad1a6f9df1sm50515445ad.10.2026.02.15.20.17.02
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 15 Feb 2026 20:17:07 -0800 (PST)
+Date: Mon, 16 Feb 2026 09:46:59 +0530
+From: Prithvi <activprithvi@gmail.com>
+To: willy@infradead.org, joseph.qi@linux.alibaba.com
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org,
+	david.hunter.linux@gmail.com, khalid@kernel.org
+Subject: Re: [PATCH] ocfs2: Fix circular locking dependency in
+ ocfs2_del_inode_from_orphan()
+Message-ID: <20260216041659.plgrj5tiseeqwbkl@inspiron>
+References: <20260106125100.327980-1-activprithvi@gmail.com>
+ <94b4189d-dfb6-4443-a336-abbae89d36ad@linux.alibaba.com>
+ <20260108183652.ro4xueuj6itfaph3@inspiron>
+ <20260115031809.w7ksrj2ostwyxa54@inspiron>
+ <aWhxfLwUvHDswsIY@casper.infradead.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -90,83 +80,93 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260209161347.30400-1-git@danielhodges.dev>
-X-Spamd-Result: default: False [-2.30 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	FUZZY_RATELIMITED(0.00)[rspamd.com];
-	ARC_NA(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	MIME_TRACE(0.00)[0:+];
-	RCVD_TLS_LAST(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	TO_DN_SOME(0.00)[];
-	RCPT_COUNT_SEVEN(0.00)[9];
-	FROM_EQ_ENVFROM(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	TAGGED_RCPT(0.00)[7ea0b96c4ddb49fd1a70];
-	MISSING_XM_UA(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,appspotmail.com:email,imap1.dmz-prg2.suse.org:helo,suse.cz:email]
-X-Spam-Flag: NO
-X-Spam-Score: -2.30
-X-Spam-Level: 
+In-Reply-To: <aWhxfLwUvHDswsIY@casper.infradead.org>
 
-On Mon 09-02-26 11:13:47, Daniel Hodges wrote:
-> ocfs2_add_recovery_chunk() allocates a bitmap buffer of sb->s_blocksize
-> bytes using kmalloc() but only copies (ol_chunk_entries(sb) + 7) >> 3
-> bytes into it from the on-disk quota chunk. When the number of chunk
-> entries is not aligned to a long boundary (64 bits on 64-bit systems),
-> find_next_bit() reads uninitialized memory from the trailing bytes of
-> the last word in the bitmap.
-
-OK, but AFAICS it does not impact the functionality in any way because we
-properly use:
-
-for_each_set_bit(bit, rchunk->rc_bitmap, ol_chunk_entries(sb))
-
-so the uninitialized bits are actually never used. This would be good to
-stress in the changelog. Since this isn't really a performance sensitive
-code I agree with the fix to make the checker happy anyway but I wanted to
-make sure... So feel free to add:
-
-Reviewed-by: Jan Kara <jack@suse.cz>
-
-								Honza
-
+On Thu, Jan 15, 2026 at 04:47:56AM +0000, Matthew Wilcox wrote:
+> On Thu, Jan 15, 2026 at 08:48:09AM +0530, Prithvi wrote:
+> > On Fri, Jan 09, 2026 at 12:07:00AM +0530, Prithvi wrote:
+> > > IIUC that would be the case when ocfs2_dio_end_io_write() operates on normal
+> > > files. However, according to the report of the bug, ocfs2_dio_end_io_write()
+> > > is holding &ocfs2_quota_ip_alloc_sem_key so I think due to random fuzzing by 
+> > > syzkaller, the function is curently operating on a quota file.
 > 
-> Fix this by using kzalloc() to zero-initialize the entire bitmap
-> allocation, ensuring that any bits beyond the copied region are
-> clean zeros.
-> 
-> Reported-by: syzbot+7ea0b96c4ddb49fd1a70@syzkaller.appspotmail.com
-> Fixes: 2205363dce74 ("ocfs2: Implement quota recovery")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Daniel Hodges <git@danielhodges.dev>
-> ---
->  fs/ocfs2/quota_local.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-> index de7f12858729..bd3eb098097f 100644
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -302,7 +302,7 @@ static int ocfs2_add_recovery_chunk(struct super_block *sb,
->  	if (!rc)
->  		return -ENOMEM;
->  	rc->rc_chunk = chunk;
-> -	rc->rc_bitmap = kmalloc(sb->s_blocksize, GFP_NOFS);
-> +	rc->rc_bitmap = kzalloc(sb->s_blocksize, GFP_NOFS);
->  	if (!rc->rc_bitmap) {
->  		kfree(rc);
->  		return -ENOMEM;
-> -- 
-> 2.52.0
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+> So the right fix is probably to disallow DIO to a quota file, wouldn't
+> you say?
+
+Hello all,
+
+Firstly I apologize for the delay...I was trying to understand the bug in
+detail and few strange things I noticed. I have now confirmed the bug is
+due to uninitialized locks during slab reuse. Here are the deatils:
+
+According to earlier observations, we knew that a file with a quota lock
+was trying to enter DIO path which is not permitted. I observed that
+that in spite of adding checks like IS_NOQUOTA(inode) since I observed:
+
+else if (fe->i_flags & cpu_to_le32(OCFS2_QUOTA_FL)) {
+        inode->i_flags |= S_NOQUOTA;
+}
+
+in ocfs2_populate_inode(). However with this change also the issue didn't
+seem to get resolved.
+
+I found that it was some inode numbered 16979 which was entering DIO.
+However, upon investigation I noticed that inode 16979 passed through
+ocfs2_populate_inode() only when create_ino = 1. Upon adding a few printk
+statements in __ocfs2_mknod_locked() I found that the inode 16979 strangely
+held ocfs2_quota_ip_allc_sem lock at the mknod stage. I suspected it to be
+a lock cleanup issue in the slab object when inodes are returned to the slab.
+
+I found that in one mount session, an inode was mounted as a quota file,
+with a very small number (mostly <50) then later on in another mount session
+that same slab object is reused for the inode with number 16979 which
+immediately causes the lockdep warning to occur since it still holds the
+quota_ip_alloc_sem lock.
+
+IIUC, I did not find any way the semaphore is cleaned when an inode is
+evicted. Hence I think to add init_rwsem() to the ocfs2_clear_inode() to
+stop the warning, since now that inode held ip_alloc_sem lock only, thus
+no quota lock acquired during DIO and the issue never occurs, even if same
+slab object is used which retains the lock identity. In addition, a check
+can be added to block DIO on quota files.
+
+Thus, I think the following change should work:
+
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 76c86f1c2b1c..372c198afa25 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -2420,7 +2420,13 @@ static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
+        struct inode *inode = file->f_mapping->host;
+        struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+        get_block_t *get_block;
+-
++
++       if(IS_NOQUOTA(inode)) {
++               mlog(ML_ERROR, "Direct IO is not allowed for Quota inode %lu\n",
++                    inode->i_ino);
++               return -ENOTSUP;
++       }
++
+        /*
+         * Fallback to buffered I/O if we see an inode without
+         * extents.
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index b5fcc2725a29..3e36da2ca5d0 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1268,7 +1268,8 @@ static void ocfs2_clear_inode(struct inode *inode)
+                        "Clear inode of %llu, alloc_sem is locked\n",
+                        (unsigned long long)oi->ip_blkno);
+        up_write(&oi->ip_alloc_sem);
+-
++       init_rwsem(&oi->ip_alloc_sem);
++
+        mlog_bug_on_msg(oi->ip_open_count,
+                        "Clear inode of %llu has open count %d\n",
+                        (unsigned long long)oi->ip_blkno, oi->ip_open_count);
+
+What do you think?
+
+Thank you and best regards,
+Prithvi
