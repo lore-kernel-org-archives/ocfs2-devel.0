@@ -1,35 +1,55 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
+Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5DF08377556;
-	Tue, 17 Feb 2026 21:14:38 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771362878; cv=none; b=I1cE0czN/JqrzwCyYagf5KFZu2o2M3/tomV5KpJ3m76vgxobOJgTM0cEsY8zprq11QsGUJNYWVld+2V7PuI2Ho0eHbUunAz6fN6oTrIsrYwPc/Ses21IHJztjbV7AbtH/IUbJpTrIQkT7PrrYtAnLgPVv52tTi8pTqUqiDuJvQk=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771362878; c=relaxed/simple;
-	bh=SWr3Pg6zIeu2S3Z6UDsk8BzZU6tf527GPJ41POMlghM=;
-	h=Content-Type:MIME-Version:Subject:From:Message-Id:Date:References:
-	 In-Reply-To:To:Cc; b=qf73RQTBW78Pcv6J9dBKvzNX/FNGJgXVTmVVoigvinF0CjnwPfK0iR0uj8VK38XoiI6cVmH64K4TLto6Y3pEc02dtB225HrR8fIR/RV3h6mqzIvUGnbdLlsk8MLaVaquaRd2p/sYT+3a1y5N6U27AF7NGxXcL3SWTYAmHp7+jO4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=qME5lVPC; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DF7D623BD06
+	for <ocfs2-devel@lists.linux.dev>; Thu, 19 Feb 2026 11:47:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1771501632; cv=pass; b=MWb7G7kZ5Z3S7ifj0g7eK4s7ZvzKWt7p4lzuwAdieWAnL3uhobOa4KFtQoKouMIRK+yU1/cRdMmevw9dvXZjQf62TdlbpOtTk9oQQ43SemqU/F1r99HoRDLD9OfpFzBehk09S7LiQ/gAp7jSkO9wDATSg1MnVgIcVIs5LPbRKgc=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1771501632; c=relaxed/simple;
+	bh=LY7suJAysGTntkxgUtbRaJMuffDJfTOv0iUwfPbOn+M=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=UGcrxYkMhiPcxSWcOk7lv8YW4mFs2UdCaTV+eURd3Iw4SNf+WDPTtAZwvSynj0z9fljKDiALy94TTrhvKHe/XXv0zJe2/6lp+ttKp/apGDIwKQjWvJ5RGM8DfZ/H8JBaAAbLHi2X4yKKs+dsh8h0tLtfnNnYIPxvrLcokjX6hxA=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=ggG1Tq4C; arc=pass smtp.client-ip=136.143.188.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="qME5lVPC"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 05413C19421;
-	Tue, 17 Feb 2026 21:14:38 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1771362878;
-	bh=SWr3Pg6zIeu2S3Z6UDsk8BzZU6tf527GPJ41POMlghM=;
-	h=Subject:From:Date:References:In-Reply-To:To:Cc:From;
-	b=qME5lVPCgbs75GtVkYDVSedStUuy5Pu7iKCY4IKu3xqN3EcQE+Oh5yA77hoZy7VyU
-	 +0wZZYMpZQVXM9oVuFBmRCNz9ULENuT2B5em0ouDg88Yb0OXaPujVB/GBPkgNNMpHr
-	 EhgPO+uLpu1WI515RTCnoSYcSuoUoWHPdRcl280BUTS4HjHiimnSyoFiD+9+NmEu7s
-	 4m0WVXB/a1C6i48qotqtPrvf49sFdMixg5MNCldkNycO7JhTW+IJtnP0WEfZw+8dYi
-	 1uYBY6iDz7huxRyc2w6LATusfRgMkVW0RAKYcp9Uufer3E7jADONKO2Apo8cM0wFiU
-	 pB1OIFY+N5Jzg==
-Received: from [10.30.226.235] (localhost [IPv6:::1])
-	by aws-us-west-2-korg-oddjob-rhel9-1.codeaurora.org (Postfix) with ESMTP id 0B1123806667;
-	Tue, 17 Feb 2026 21:14:31 +0000 (UTC)
-Content-Type: text/plain; charset="utf-8"
+	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="ggG1Tq4C"
+ARC-Seal: i=1; a=rsa-sha256; t=1771501623; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=Pc/iD7skyiRo03M19Ku5zL/oAHeYr+Xn0FXj4PFiElhL/YpuI3JbqU3rMajSa+ZR+XqQ8BXPFHU8Raq10bP5enTZKXmvVHVTS1SjGOlgDXT/S4r+xWhW2ulEzYEkBV0IYvkLIqYxvw+QxxsLRvoSkajmIwNMgbTRiTE/56EW2Pw=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1771501623; h=Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=BrTDphID1FazTUyK9mU2nbhmtXa8HS/YY+v6FPHpCxk=; 
+	b=cCYNQcf4Vfxz0k2YPvkR583NjLXo0muoW7HLsaj18C5tiRcWkQJmtDvg7XA5S5KVVLfG+tHE/2DVoqVuIG3sIEL56aVny2ze7d0NK4ci2uFFh+fZAUDcYfO/joCWE970ahQ1X4Y++7b57/PbRwWTuMdR/x090Zs8Bc5SFsDMpKQ=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=linux.beauty;
+	spf=pass  smtp.mailfrom=me@linux.beauty;
+	dmarc=pass header.from=<me@linux.beauty>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1771501623;
+	s=zmail; d=linux.beauty; i=me@linux.beauty;
+	h=From:From:To:To:Cc:Cc:Subject:Subject:Date:Date:Message-ID:MIME-Version:Content-Transfer-Encoding:Message-Id:Reply-To;
+	bh=BrTDphID1FazTUyK9mU2nbhmtXa8HS/YY+v6FPHpCxk=;
+	b=ggG1Tq4Cx7v7ouHiuzta89uOdcLqzyQYNZ+ICm8tfQJbkb12/9MYpz6mMVraQr1Q
+	+ZvuXGiHFck8PbOKjYH+iK+1NVN0t1gyWa4sZrU4o75vBnJjtyZwTbZMdm5i3rHyipz
+	CpVL8uAGSZL8iyI+7I6qsTsbuLR0eXUgg7vNyDec=
+Received: by mx.zohomail.com with SMTPS id 1771501620323406.1365783165696;
+	Thu, 19 Feb 2026 03:47:00 -0800 (PST)
+From: Li Chen <me@linux.beauty>
+To: Theodore Ts'o <tytso@mit.edu>,
+	Jan Kara <jack@suse.cz>,
+	Mark Fasheh <mark@fasheh.com>,
+	linux-ext4@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	Matthew Wilcox <willy@infradead.org>
+Cc: Andreas Dilger <adilger.kernel@dilger.ca>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH v2 0/3] jbd2/ext4/ocfs2: lockless jinode dirty range
+Date: Thu, 19 Feb 2026 19:46:41 +0800
+Message-ID: <20260219114645.778338-1-me@linux.beauty>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -37,117 +57,48 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-Subject: Re: [f2fs-dev] [PATCH 00/24] vfs: require filesystems to explicitly
- opt-in to lease support
-From: patchwork-bot+f2fs@kernel.org
-Message-Id: 
- <177136286957.643511.1991968143318289235.git-patchwork-notify@kernel.org>
-Date: Tue, 17 Feb 2026 21:14:29 +0000
-References: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org>
-In-Reply-To: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org>
-To: Jeff Layton <jlayton@kernel.org>
-Cc: luisbg@kernel.org, salah.triki@gmail.com, nico@fluxnic.net,
- hch@infradead.org, jack@suse.cz, al@alarsen.net, viro@zeniv.linux.org.uk,
- brauner@kernel.org, dsterba@suse.com, clm@fb.com, xiang@kernel.org,
- chao@kernel.org, zbestahu@gmail.com, jefflexu@linux.alibaba.com,
- dhavale@google.com, lihongbo22@huawei.com, guochunhai@vivo.com,
- jack@suse.com, tytso@mit.edu, adilger.kernel@dilger.ca, jaegeuk@kernel.org,
- hirofumi@mail.parknet.co.jp, dwmw2@infradead.org, richard@nod.at,
- shaggy@kernel.org, konishi.ryusuke@gmail.com, slava@dubeyko.com,
- almaz.alexandrovich@paragon-software.com, mark@fasheh.com,
- jlbec@evilplan.org, joseph.qi@linux.alibaba.com, hubcap@omnibond.com,
- martin@omnibond.com, miklos@szeredi.hu, amir73il@gmail.com,
- phillip@squashfs.org.uk, cem@kernel.org, hughd@google.com,
- baolin.wang@linux.alibaba.com, akpm@linux-foundation.org,
- linkinjeon@kernel.org, sj1557.seo@samsung.com, yuezhang.mo@sony.com,
- chuck.lever@oracle.com, alex.aring@gmail.com, agruenba@redhat.com,
- corbet@lwn.net, willy@infradead.org, ericvh@kernel.org, lucho@ionkov.net,
- asmadeus@codewreck.org, linux_oss@crudebyte.com, xiubli@redhat.com,
- idryomov@gmail.com, trondmy@kernel.org, anna@kernel.org, sfrench@samba.org,
- pc@manguebit.org, ronniesahlberg@gmail.com, sprasad@microsoft.com,
- tom@talpey.com, bharathsm@microsoft.com, hansg@kernel.org,
- jfs-discussion@lists.sourceforge.net, linux-doc@vger.kernel.org,
- linux-kernel@vger.kernel.org, gfs2@lists.linux.dev, linux-mm@kvack.org,
- linux-mtd@lists.infradead.org, linux-cifs@vger.kernel.org,
- linux-nilfs@vger.kernel.org, linux-ext4@vger.kernel.org,
- devel@lists.orangefs.org, ocfs2-devel@lists.linux.dev,
- ceph-devel@vger.kernel.org, linux-nfs@vger.kernel.org, v9fs@lists.linux.dev,
- samba-technical@lists.samba.org, linux-unionfs@vger.kernel.org,
- linux-f2fs-devel@lists.sourceforge.net, linux-xfs@vger.kernel.org,
- linux-fsdevel@vger.kernel.org, ntfs3@lists.linux.dev,
- linux-erofs@lists.ozlabs.org, linux-btrfs@vger.kernel.org
+X-ZohoMailClient: External
 
-Hello:
+This series makes the jbd2_inode dirty range tracking safe for lockless
+reads in jbd2 and filesystem callbacks used by ext4 and ocfs2.
 
-This series was applied to jaegeuk/f2fs.git (dev)
-by Christian Brauner <brauner@kernel.org>:
+Some paths access jinode fields without holding journal->j_list_lock
+(e.g. fast commit helpers and ordered truncate helpers). v1 used READ_ONCE()
+on i_dirty_start/end, but Matthew pointed out that loff_t can be torn on
+32-bit platforms, and Jan suggested storing the dirty range in PAGE_SIZE
+units as pgoff_t.
 
-On Thu, 08 Jan 2026 12:12:55 -0500 you wrote:
-> Yesterday, I sent patches to fix how directory delegation support is
-> handled on filesystems where the should be disabled [1]. That set is
-> appropriate for v6.19. For v7.0, I want to make lease support be more
-> opt-in, rather than opt-out:
-> 
-> For historical reasons, when ->setlease() file_operation is set to NULL,
-> the default is to use the kernel-internal lease implementation. This
-> means that if you want to disable them, you need to explicitly set the
-> ->setlease() file_operation to simple_nosetlease() or the equivalent.
-> 
-> [...]
+With this series, jbd2 stores i_dirty_start/end as pgoff_t and uses
+READ_ONCE()/WRITE_ONCE() for lockless access. ext4 and ocfs2 convert the
+page-based dirty range back to byte offsets for writeback.
 
-Here is the summary with links:
-  - [f2fs-dev,01/24] fs: add setlease to generic_ro_fops and read-only filesystem directory operations
-    https://git.kernel.org/jaegeuk/f2fs/c/ca4388bf1d9e
-  - [f2fs-dev,02/24] affs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/663cdef61a27
-  - [f2fs-dev,03/24] btrfs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/f9688474e413
-  - [f2fs-dev,04/24] erofs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/f8902d3df893
-  - [f2fs-dev,05/24] ext2: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/ccdc2e0569f5
-  - [f2fs-dev,06/24] ext4: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/20747a2a29c6
-  - [f2fs-dev,07/24] exfat: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/b8ca02667552
-  - [f2fs-dev,08/24] f2fs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/9e2ac6ddb397
-  - [f2fs-dev,09/24] fat: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/a9acc8422ffb
-  - [f2fs-dev,10/24] gfs2: add a setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/3b514c333390
-  - [f2fs-dev,11/24] jffs2: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/c275e6e7c085
-  - [f2fs-dev,12/24] jfs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/7dd596bb35e5
-  - [f2fs-dev,13/24] nilfs2: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/f46bb13dc5d9
-  - [f2fs-dev,14/24] ntfs3: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/6aaa1d6337b5
-  - [f2fs-dev,15/24] ocfs2: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/f15d3150279d
-  - [f2fs-dev,16/24] orangefs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/136b43aa4b16
-  - [f2fs-dev,17/24] overlayfs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/94a3f60af5dc
-  - [f2fs-dev,18/24] squashfs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/dfd8676efe43
-  - [f2fs-dev,19/24] tmpfs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/f5a3446be277
-  - [f2fs-dev,20/24] udf: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/dbe8d57d1483
-  - [f2fs-dev,21/24] ufs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/545b4144d804
-  - [f2fs-dev,22/24] xfs: add setlease file operation
-    https://git.kernel.org/jaegeuk/f2fs/c/6163b5da2f5e
-  - [f2fs-dev,23/24] filelock: default to returning -EINVAL when ->setlease operation is NULL
-    https://git.kernel.org/jaegeuk/f2fs/c/2b10994be716
-  - [f2fs-dev,24/24] fs: remove simple_nosetlease()
-    https://git.kernel.org/jaegeuk/f2fs/c/51e49111c00b
+This is based on Jan's suggestion in the review of the ext4 jinode
+publication race fix. [1]
 
-You are awesome, thank you!
+Changes since v1:
+- Store i_dirty_start/end in PAGE_SIZE units (pgoff_t) to avoid torn loads on
+  32-bit (pointed out by Matthew, suggested by Jan).
+- Use WRITE_ONCE() for i_dirty_* / i_flags updates in jbd2 (per Jan).
+- Drop pointless READ_ONCE() on i_vfs_inode in jbd2_wait_inode_data (per Jan).
+- Convert ext4/ocfs2 callbacks to translate page range to byte offsets.
+
+[1]: https://lore.kernel.org/all/4jxwogttddiaoqbstlgou5ox6zs27ngjjz5ukrxafm2z5ijxod@so4eqnykiegj/
+
+v1: https://lore.kernel.org/all/20260130031232.60780-1-me@linux.beauty/
+
+Li Chen (3):
+  jbd2: store jinode dirty range in PAGE_SIZE units
+  ext4: use READ_ONCE for lockless jinode reads
+  ocfs2: use READ_ONCE for lockless jinode reads
+
+ fs/ext4/inode.c       | 12 ++++++--
+ fs/ext4/super.c       | 19 +++++++++----
+ fs/jbd2/commit.c      | 65 ++++++++++++++++++++++++++++++++++---------
+ fs/jbd2/journal.c     |  3 +-
+ fs/jbd2/transaction.c | 20 ++++++++-----
+ fs/ocfs2/journal.c    | 13 +++++++--
+ include/linux/jbd2.h  | 17 +++++++----
+ 7 files changed, 113 insertions(+), 36 deletions(-)
+
 -- 
-Deet-doot-dot, I am a bot.
-https://korg.docs.kernel.org/patchwork/pwbot.html
-
-
+2.52.0
