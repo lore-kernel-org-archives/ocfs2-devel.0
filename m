@@ -1,205 +1,112 @@
-Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EDFD36922F
-	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Feb 2026 08:54:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1771923249; cv=none; b=ikb7nT2ZaEpRMWv5CkJJIUUyHonwVGs8X45f8iLDxM3cR+Uq/QWDu8cL5Y3N6wsx8Z3ZOKXU4pFqmmHYsuSjiv6s5vBhbmExNMrESBit+oHZIB8vWIHFNx1UeluL7wxn+D0xtCvDO2Uz3pP2n1w5DtpDisxmEI1JhZlwdosYDkc=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1771923249; c=relaxed/simple;
-	bh=6uMfxk+ewtlHqXkuBaLLWgULDjBQPejtTz45PCOy7GA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=cZM8iyO6E49x2U7UMdeXvfaqDkNPQF5spAxkKWh2I1PrUt0oM3IWTTzt5D50vIeIw9abT3s9xFWHvfpMKhmCUr4wwfLQciyZNTLEx/epyyYcHmzQc+asSwepvTMXDO2B/4RNy/YZzDQnp2a3BftlDW1DPjERYG48Lb6638EhX2I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=ViXhY0g/; arc=none smtp.client-ip=209.85.128.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D391B274B43
+	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Feb 2026 09:24:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1771925100; cv=pass; b=ga4PUvQszSmu8yNAZDscgfo2Y4/YGhp1VtPgH8B1OeRuqdafb9yjtKw7PfU3JKrxi+kGEmuPPCXYZaDwhtMGCL5NuOkquf02RWzNL+8KuZzU+QCGlLVWxKeQvZJRJap10qXuFlLqvGGaDHSmosVXJMUUFzhvY7vcFxMOIdslTG4=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1771925100; c=relaxed/simple;
+	bh=l/+8xNhBJiAqz5eluZVYjjv0RTENPns16lQDGSJeU4g=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=RRd5rJWFoha2LVAlA/uClQb7U41Kp/ey1fBNXr2SQRgMhR7tzkbtyQBwR0OJVc382MI7e43z2MHedDqfwZx+gA6PfD4k5fXJ3NGkoFeq5w8A3Y7nyk9xzkEVqRx2ciUI/qduFUhhzmhao+2QZMpNdJgepbj8nQ5B8nAGeztvcLQ=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=NAXkf/BR; arc=pass smtp.client-ip=136.143.188.15
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="ViXhY0g/"
-Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-4832c8f9d87so6077905e9.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 24 Feb 2026 00:54:07 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1771923246; x=1772528046; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=rQ3ekI9RD+XtB0oTIG5Ul0FD5UjseqCdlIUae0rfNTc=;
-        b=ViXhY0g/vbO3EdPLwK/66YR+sAp4QqT8A2Ns7bVEJ1XSpGc8QltV4QUkAmCQxj2NYK
-         Maf68GhP9kCA5s8okoLD/SajA4oeFoz15+kvDr0bBARVti1+moBbATwLSq4nlsEXcj9G
-         wdqF5kHeg21qpseaD8RvSbrrHVMFTCh1/HPj6a6nhxcepODpdlyf7+b84fldieB4CGJS
-         ehyMVOhP2VBamzlDskh4Z9K8kLSZVzsBHbT5A8WtkPFF+WxHSIQMe3SiH1pr/cqhu2Uw
-         EwdCpjuKCrmIYHav2E7ozt09SHB44vpd0lJMht3xMs6CiKp/7ObT54xqSEWpDuLC84XB
-         oOLw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20230601; t=1771923246; x=1772528046;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=rQ3ekI9RD+XtB0oTIG5Ul0FD5UjseqCdlIUae0rfNTc=;
-        b=b+KMnZa56pCiTiIU++CwI7+VrOrgBkrHkWjzdiX6pBMa3O3V+Ja/pFh6UVAR/Ggjiu
-         z3tnLhUZYftiZ2kGc6abQwyEKWpvSX+SytFTKVvjp2yVhmda/ahr4zpKaykUeWAiIbqe
-         T2iGuayBhdCmuUNty+GUdtDRHBLMyMMraN3eP6OGSvfOZszD81qoxZECKrL6aO8NC2CC
-         gZqgH5sLXgu00hegpHwQ66ZWEY3Lr0jRHat0KduO0WSHNyu5GJ2TB4rB7/hB13l/qf+y
-         1bIlK2jsmLLT8lAlu0PtdeOvaOoIi2HlbW9TrRGgZ80zA23OsGGRzhHs4plQ/IPw9Fcw
-         ctEA==
-X-Forwarded-Encrypted: i=1; AJvYcCV+xLy7Em4GsHkJW9DrLwtt+6rLwUQG41dhdwqKWNE5Mjpev60EkBe1apQsopkiIzCJRNaIOC9IcgforQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyeItTWvtvYD2/MJZkVmP/xPq5DPviR6Aw1pg0MgS7pK1OoV4oV
-	T8Y9pP8aVtPy8hvO9nj/HXFTp3tbRHjxIdK9vhi1Y5G4Gm3P7DanRwy80iBUPpw8wLo=
-X-Gm-Gg: AZuq6aJ+YjMhyhfoYm+0A/B9dZxkM012wZlovMlmo/8ybP0MlwmqGQw1D5tCrXwAqUZ
-	y0X22NfypkHa/b+lE5GmQkEO2r0N8wdngziUjet6WNQjfmL35YVHkX1qNOBsrzCJOp3Uzk4ZaSG
-	6BGaWgQt/OjEO3eNRB2XGUNYGerklt4Bfy1ijVaFUWGNVw51Lfe33wM+e2z3S/4AL1vM1sfDr2a
-	oTjsRkqRF7jW2mA+CINef4ItXq85VIN0r0F0B0bQdF+wIfzOjcVvePGKZZq5/+Ai46Gf0NNCDy8
-	A63tuAei/fnMR5Z+PRw4qBDhZZe1pBMZb8o6JwyFM95pm+iMQgB3WkaR1AKmBJoJz1ExBj0386t
-	n4JqijIUYu8DAySEdyu+R5qbAkERCHzcuUMJiqpBAdqagEf9kE8Fnrl5KKpvy5v0TcLtwTiOBV2
-	sKs8+pkgIx40TJIu82pzMkE+Y0OJSxgRsm
-X-Received: by 2002:a05:600c:c171:b0:483:a26d:127f with SMTP id 5b1f17b1804b1-483a962f8e1mr108231225e9.3.1771923245898;
-        Tue, 24 Feb 2026 00:54:05 -0800 (PST)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ad74f5dcb4sm100341885ad.27.2026.02.24.00.54.04
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 24 Feb 2026 00:54:05 -0800 (PST)
-Date: Tue, 24 Feb 2026 16:54:02 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Prithvi <activprithvi@gmail.com>
-Cc: willy@infradead.org, joseph.qi@linux.alibaba.com, mark@fasheh.com, 
-	jlbec@evilplan.org, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	linux-kernel-mentees@lists.linux.dev, skhan@linuxfoundation.org, david.hunter.linux@gmail.com, 
-	khalid@kernel.org
-Subject: Re: [PATCH] ocfs2: Fix circular locking dependency in
- ocfs2_del_inode_from_orphan()
-Message-ID: <y2vzekvugtr22z4ndnjtktecwcjhtutztwyz6mrjpmrvteqljh@2esklij5l5mx>
-References: <20260106125100.327980-1-activprithvi@gmail.com>
- <94b4189d-dfb6-4443-a336-abbae89d36ad@linux.alibaba.com>
- <20260108183652.ro4xueuj6itfaph3@inspiron>
- <20260115031809.w7ksrj2ostwyxa54@inspiron>
- <aWhxfLwUvHDswsIY@casper.infradead.org>
- <20260216041659.plgrj5tiseeqwbkl@inspiron>
- <20260223050540.2g44esrm32kpcega@inspiron>
+	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="NAXkf/BR"
+ARC-Seal: i=1; a=rsa-sha256; t=1771925091; cv=none; 
+	d=zohomail.com; s=zohoarc; 
+	b=BHqbqezsLZHhDpdi0idNEqEAIP+uVVfFKL25A5UqX74xrWs+O5yv0jdmIG4G+NCp6jUnVsJ0BwOytPHk1jMbaX8oEmovwPZLlbu0cJsCCIMMkUUmGxF51ERz+idTNSuY2cEJhIVxhMzRpqrmlYcQH9aJ0i79NSM97cAGGNci/d0=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
+	t=1771925091; h=Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=lq/az62VqJL5U3p1nsUAG3qRG0JWKPWWQXM+kQO5te8=; 
+	b=he03inaAXvfYbUFBdZQVNXtTVT28bmgI74cYnMfM30OywsqccjtTwyszdLMUELsRKqLlb4qtGtJlgb8b9zhLU1lH0huppc3idpDkEzOB/U2g38e0YfVvLVNoxG7pGncNzkcenZJWzhAvrGV30BIHEd/YBrpxdPLYBnS/CWJIYjs=
+ARC-Authentication-Results: i=1; mx.zohomail.com;
+	dkim=pass  header.i=linux.beauty;
+	spf=pass  smtp.mailfrom=me@linux.beauty;
+	dmarc=pass header.from=<me@linux.beauty>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1771925091;
+	s=zmail; d=linux.beauty; i=me@linux.beauty;
+	h=From:From:To:To:Cc:Cc:Subject:Subject:Date:Date:Message-ID:MIME-Version:Content-Transfer-Encoding:Message-Id:Reply-To;
+	bh=lq/az62VqJL5U3p1nsUAG3qRG0JWKPWWQXM+kQO5te8=;
+	b=NAXkf/BRQ+RdIVOsE3SNsiHFygplCBLitAFxyM4354wK80Hq4uJ1STGF4eN9Q4Z2
+	XCbDGzovEzd+DfEseS6EISVNVBkRVLWA6Fpr9sIbiWiFlhsczzv82gE9czP3+Mm6RZr
+	rdBAXPZxm9r2y4Bi9Q7IohOWFVUAqAUH+pKzjLBQ=
+Received: by mx.zohomail.com with SMTPS id 1771925089111389.9681096666558;
+	Tue, 24 Feb 2026 01:24:49 -0800 (PST)
+From: Li Chen <me@linux.beauty>
+To: Theodore Ts'o <tytso@mit.edu>,
+	Jan Kara <jack@suse.cz>,
+	Mark Fasheh <mark@fasheh.com>,
+	linux-ext4@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev
+Cc: Andreas Dilger <adilger@dilger.ca>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH v3 0/4] jbd2/ext4/ocfs2: lockless jinode dirty range
+Date: Tue, 24 Feb 2026 17:24:29 +0800
+Message-ID: <20260224092434.202122-1-me@linux.beauty>
+X-Mailer: git-send-email 2.52.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260223050540.2g44esrm32kpcega@inspiron>
+Content-Transfer-Encoding: 8bit
+X-ZohoMailClient: External
 
-On Mon, Feb 23, 2026 at 10:35:40AM +0530, Prithvi wrote:
-> On Mon, Feb 16, 2026 at 09:47:08AM +0530, Prithvi wrote:
-> > On Thu, Jan 15, 2026 at 04:47:56AM +0000, Matthew Wilcox wrote:
-> > > On Thu, Jan 15, 2026 at 08:48:09AM +0530, Prithvi wrote:
-> > > > On Fri, Jan 09, 2026 at 12:07:00AM +0530, Prithvi wrote:
-> > > > > IIUC that would be the case when ocfs2_dio_end_io_write() operates on normal
-> > > > > files. However, according to the report of the bug, ocfs2_dio_end_io_write()
-> > > > > is holding &ocfs2_quota_ip_alloc_sem_key so I think due to random fuzzing by 
-> > > > > syzkaller, the function is curently operating on a quota file.
-> > > 
-> > > So the right fix is probably to disallow DIO to a quota file, wouldn't
-> > > you say?
-> > 
-> > Hello all,
-> > 
-> > Firstly I apologize for the delay...I was trying to understand the bug in
-> > detail and few strange things I noticed. I have now confirmed the bug is
-> > due to uninitialized locks during slab reuse. Here are the deatils:
-> > 
-> > According to earlier observations, we knew that a file with a quota lock
-> > was trying to enter DIO path which is not permitted. I observed that
-> > that in spite of adding checks like IS_NOQUOTA(inode) since I observed:
-> > 
-> > else if (fe->i_flags & cpu_to_le32(OCFS2_QUOTA_FL)) {
-> >         inode->i_flags |= S_NOQUOTA;
-> > }
-> > 
-> > in ocfs2_populate_inode(). However with this change also the issue didn't
-> > seem to get resolved.
-> > 
-> > I found that it was some inode numbered 16979 which was entering DIO.
-> > However, upon investigation I noticed that inode 16979 passed through
-> > ocfs2_populate_inode() only when create_ino = 1. Upon adding a few printk
-> > statements in __ocfs2_mknod_locked() I found that the inode 16979 strangely
-> > held ocfs2_quota_ip_allc_sem lock at the mknod stage. I suspected it to be
-> > a lock cleanup issue in the slab object when inodes are returned to the slab.
-> > 
-> > I found that in one mount session, an inode was mounted as a quota file,
-> > with a very small number (mostly <50) then later on in another mount session
-> > that same slab object is reused for the inode with number 16979 which
-> > immediately causes the lockdep warning to occur since it still holds the
-> > quota_ip_alloc_sem lock.
-> > 
-> > IIUC, I did not find any way the semaphore is cleaned when an inode is
-> > evicted. Hence I think to add init_rwsem() to the ocfs2_clear_inode() to
-> > stop the warning, since now that inode held ip_alloc_sem lock only, thus
-> > no quota lock acquired during DIO and the issue never occurs, even if same
-> > slab object is used which retains the lock identity. In addition, a check
-> > can be added to block DIO on quota files.
-> > 
-> > Thus, I think the following change should work:
-> > 
-> > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> > index 76c86f1c2b1c..372c198afa25 100644
-> > --- a/fs/ocfs2/aops.c
-> > +++ b/fs/ocfs2/aops.c
-> > @@ -2420,7 +2420,13 @@ static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
-> >         struct inode *inode = file->f_mapping->host;
-> >         struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> >         get_block_t *get_block;
-> > -
-> > +
-> > +       if(IS_NOQUOTA(inode)) {
-> > +               mlog(ML_ERROR, "Direct IO is not allowed for Quota inode %lu\n",
-> > +                    inode->i_ino);
-> > +               return -ENOTSUP;
-> > +       }
-> > +
-> >         /*
-> >          * Fallback to buffered I/O if we see an inode without
-> >          * extents.
-> > diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> > index b5fcc2725a29..3e36da2ca5d0 100644
-> > --- a/fs/ocfs2/inode.c
-> > +++ b/fs/ocfs2/inode.c
-> > @@ -1268,7 +1268,8 @@ static void ocfs2_clear_inode(struct inode *inode)
-> >                         "Clear inode of %llu, alloc_sem is locked\n",
-> >                         (unsigned long long)oi->ip_blkno);
-> >         up_write(&oi->ip_alloc_sem);
-> > -
-> > +       init_rwsem(&oi->ip_alloc_sem);
-> > +
-> >         mlog_bug_on_msg(oi->ip_open_count,
-> >                         "Clear inode of %llu has open count %d\n",
-> >                         (unsigned long long)oi->ip_blkno, oi->ip_open_count);
-> > 
-> > What do you think?
-> > 
-> > Thank you and best regards,
-> > Prithvi
-> 
-> Hello everyone,
-> 
-> Just a gentle ping on this thread...I wanted to seek feedback regarding the
-> analysis of uninitialized locks during slab reuse. If the proposed fix is 
-> correct, I can go ahead and send a v2 patch for the same.
-> 
-> In addition, I also realised using -EPERM in the if condition in 
-> ocfs2_direct_IO() might be more relevant so I tested a patch with that change 
-> and it doesn't trigger any issue with the testing with reproducer program as 
-> tested here :
-> https://lore.kernel.org/all/66fdfef3.050a0220.9ec68.0031.GAE@google.com/T/#m00f39888c9cfdb78b2c5eff8d1e2cba82e4fd9cc
-> 
-> Thanks,
-> Prithvi
+This series makes the jbd2_inode dirty range tracking safe for lockless
+reads in jbd2 and filesystem callbacks used by ext4 and ocfs2.
 
-Hi Prithvi,
+Some paths access jinode fields without holding journal->j_list_lock
+(e.g. fast commit helpers and ordered truncate helpers). v1 used READ_ONCE()
+on i_dirty_start/end, but Matthew pointed out that loff_t can be torn on
+32-bit platforms, and Jan suggested storing the dirty range in PAGE_SIZE
+units as pgoff_t.
 
-This patch disables DIO on quota files, which will lead to a performance
-regression. Other filesystems (such as ext4 and gfs2) do not forbid DIO on quota
-files. Therefore, I NAK this patch.
+With this series, jbd2 stores the dirty range as page indexes and uses
+READ_ONCE()/WRITE_ONCE() for lockless access. ext4 and ocfs2 use the new
+jbd2_jinode_get_dirty_range() accessor which converts the page-based range
+back to byte offsets for writeback.
 
-I have sent an alternative patch[1] to address this issue. Please take a look.
+This is based on Jan's suggestion in the review of the ext4 jinode
+publication race fix. [1]
 
-[1]:
-https://lore.kernel.org/ocfs2-devel/20260224084909.28361-1-heming.zhao@suse.com/T/#u
+Changes since v2:
+- Add jbd2_jinode_get_dirty_range() accessor and convert ext4/ocfs2 to use it
+  before switching the underlying representation (per Andreas).
+- Rename the dirty range fields to i_dirty_start_page/end_page to make the
+  PAGE_SIZE units explicit and avoid silent unit mismatches when bisecting.
 
-Thanks,
-Heming
+Changes since v1:
+- Store i_dirty_start/end in PAGE_SIZE units (pgoff_t) to avoid torn loads on
+  32-bit (pointed out by Matthew, suggested by Jan).
+- Use WRITE_ONCE() for i_dirty_* / i_flags updates in jbd2 (per Jan).
+- Drop pointless READ_ONCE() on i_vfs_inode in jbd2_wait_inode_data (per Jan).
+- Convert ext4/ocfs2 callbacks to translate page range to byte offsets.
+
+[1]: https://lore.kernel.org/all/4jxwogttddiaoqbstlgou5ox6zs27ngjjz5ukrxafm2z5ijxod@so4eqnykiegj/
+
+v2: https://lore.kernel.org/all/20260219114645.778338-1-me@linux.beauty/
+v1: https://lore.kernel.org/all/20260130031232.60780-1-me@linux.beauty/
+
+Li Chen (4):
+  jbd2: add jinode dirty range accessors
+  ext4: use jbd2 jinode dirty range accessor
+  ocfs2: use jbd2 jinode dirty range accessor
+  jbd2: store jinode dirty range in PAGE_SIZE units
+
+ fs/ext4/inode.c       | 10 ++++++--
+ fs/ext4/super.c       | 16 +++++++++----
+ fs/jbd2/commit.c      | 56 +++++++++++++++++++++++++++++++++----------
+ fs/jbd2/journal.c     |  5 ++--
+ fs/jbd2/transaction.c | 20 ++++++++++------
+ fs/ocfs2/journal.c    |  9 +++++--
+ include/linux/jbd2.h  | 35 +++++++++++++++++++++------
+ 7 files changed, 112 insertions(+), 39 deletions(-)
+
+-- 
+2.52.0
