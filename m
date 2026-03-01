@@ -1,30 +1,30 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C7BB42E62A2;
-	Sun,  1 Mar 2026 01:53:06 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 760D313D53C;
+	Sun,  1 Mar 2026 02:02:58 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772329986; cv=none; b=lr9sj3vFAKF/1UDchAL9NReYCguES247Sp/mK/mcCaeAGeOE18sXTVIshLYFIpb/VchwFVJOeQUKwUmG/I0KbVeJfhxqBP09NzFfF6xmPu/shYEBGpTu0G3XqsisWjY+Ul9H1HyhEvf20vMlS9/A6tchwGpFtlSve/CYPvhnDlQ=
+	t=1772330578; cv=none; b=bPYDHzJohtDyj/PLy6W+FKdxVtO+1MuYYmjbM8XnBC9nZ4kPnfhkp0afzRU6b7NtiWhuSs8jqUha8kyca/GNTzPmmzJtdRXapL+SLeR8PzIoQBiW7tBZ9356Zwh2JN+kJZX0FPfuVGggLOKJwH8xpadI8X+Y2gMpHdKS+tyMmck=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772329986; c=relaxed/simple;
-	bh=+w8Rq6Gyk0LT4U9vWhHddWEA/x6NsNEHT3+t4BLvqO0=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=utJPnxpXxa7Ii1cipZGgjuYXsnjeZoSwhQCFpoezj/wzmzUDVMEzPoGhwNBj1dfuq1XMoFUBEa6opSqsBwXqZqqwN46J1kZ+w6py2O+Pw8iil/eufDBPlfg6hFBB9/SwsoaBsCFVBa3wb1XbP4PnEtw4Cj9W59wKXp7HUFSO9Zs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=gnfyOl7N; arc=none smtp.client-ip=10.30.226.201
+	s=arc-20240116; t=1772330578; c=relaxed/simple;
+	bh=qaosfLo4AHWp+gGW+BnVKv6cOTQ+cuQJjo83LZp2dvA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=hg0MY6TlAyKK5/i5l91ew37EORThmjQevt0WjH6BIvMP9FfEaF3aX0Pf1fAkO6gg7g/2Iv05EVosn00FtGdOXbZnM+7mQgSSY+Gj1Q+zOAoEa8ZaCkeHptT0kYjAA22kjkPHPuE+o56ZAAKq7MZ36vex11GXPHxFQJexbORGYtI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=WNuF/uFS; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="gnfyOl7N"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 552A6C19425;
-	Sun,  1 Mar 2026 01:53:05 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="WNuF/uFS"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 30DDFC19421;
+	Sun,  1 Mar 2026 02:02:57 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772329986;
-	bh=+w8Rq6Gyk0LT4U9vWhHddWEA/x6NsNEHT3+t4BLvqO0=;
+	s=k20201202; t=1772330578;
+	bh=qaosfLo4AHWp+gGW+BnVKv6cOTQ+cuQJjo83LZp2dvA=;
 	h=From:To:Cc:Subject:Date:From;
-	b=gnfyOl7ND8Gjp03nxAdBcs5q2XdC6aSx/42fCn0L0Agxn8eXST2uZHOiHyzf15dRi
-	 8APs1jugEllnjHPmuN9zpqPPHQYzDQy57bLf6/nbzKnU/sRFCuVGuF/sQVhVREoLdc
-	 9t1PPcrHS3T2iw54/GnsdfF9NBH5sm6ybpHDIBpBt8F8cIDCahzUAygZZsIgiy1Td/
-	 Ety26jvNbH8Tg2VDdZpx0SjXjRMuohObBqvO3vxW9UNsSVdV5XOJ8Q6TCUJG5ebZC+
-	 28d88e61wQXAURPlwld4SD9w6v72tl1LH6DXGMEOEY9Ggsod/vZzWsH+/gzJ2+e7na
-	 2Dh2qcF7FOkMw==
+	b=WNuF/uFSe1caoQol4SuvX2kfdf9hIoNxzfMSHMF6DPQWCUibgZJGxTrsja147eCBz
+	 bQNovDyFsdyXNly3lo3MBZnL06mFP4snGGoAeEZArfF0Eo2U5zgs3Al+85JwlIRhw/
+	 zJtW39LPmB1aTmrXOJFr8ALR5sVCfdHx77j3PvZe6GMLtAl+0KFunaZFYQA6CVP1xc
+	 VmxJ/2CFjFelm5T1CALpZ9jixq7dSLjb+2I+/el2y9EF3q07iZbmD4pDE6wNK+prGk
+	 L8wyRwOUZDlvAQLjsgM/K8cmO3wVkgIetro1jVfZFpjyyHixDAVxqYnS5geGqy6OWp
+	 c6e3bFh00prnw==
 From: Sasha Levin <sashal@kernel.org>
 To: stable@vger.kernel.org,
 	heming.zhao@suse.com
@@ -37,9 +37,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	Andrew Morton <akpm@linux-foundation.org>,
 	ocfs2-devel@lists.linux.dev,
 	linux-hardening@vger.kernel.org
-Subject: FAILED: Patch "ocfs2: fix reflink preserve cleanup issue" failed to apply to 5.15-stable tree
-Date: Sat, 28 Feb 2026 20:53:03 -0500
-Message-ID: <20260301015304.1719729-1-sashal@kernel.org>
+Subject: FAILED: Patch "ocfs2: fix reflink preserve cleanup issue" failed to apply to 5.10-stable tree
+Date: Sat, 28 Feb 2026 21:02:55 -0500
+Message-ID: <20260301020256.1730870-1-sashal@kernel.org>
 X-Mailer: git-send-email 2.51.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -51,7 +51,7 @@ X-Patchwork-Hint: ignore
 X-stable: review
 Content-Transfer-Encoding: 8bit
 
-The patch below does not apply to the 5.15-stable tree.
+The patch below does not apply to the 5.10-stable tree.
 If someone wants it applied there, or to any other stable or longterm
 tree, then please email the backport, including the original git commit
 id to <stable@vger.kernel.org>.
