@@ -1,173 +1,113 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1047410D37
-	for <ocfs2-devel@lists.linux.dev>; Sat, 28 Feb 2026 10:53:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 91EE72727EB;
+	Sun,  1 Mar 2026 01:25:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772276020; cv=none; b=ONK6wN/NGvxzuKcH2p3QRWA9LrQJc8tWyU4vPn11u7Ns6MOC6a2jnt9ZktcZu6h7meb9h1cYxqWOjGfq7CFY18m631E2gjbhvJ2lSjLkHjnSkCDeRPIX/QmaaLTajpIvuLhCsCp0MHoi/C3Bees1SzjMK2XNQFQZ2X+we4IMrvM=
+	t=1772328315; cv=none; b=UT9jL/K5R6TEDR/1OainLttpwFWPW2ywNb1aNsu1sJDrnicA8JqfGcXT3Jq0lkXmOnO89zn3NUQBq65eHgFygjSElYnMqw0vktYijW52W+T4LV0xdcDfgypxZt9euRsyPsMth2PLDr5jlSmqkH+D1VISgG+snUAOVv+Ojuhjo4Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772276020; c=relaxed/simple;
-	bh=mp37iUT9CBPceUfxJWxzhIYhKDxI0SY/LttS6rzHmzk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=dWLgInoIzzS7sTcL8kjWAa+gB+IMM/Dvc1twfLS87enMzzRj2Tj/D2yv4gfnLCvJdahO/8/etsk/jF3DuySOQsQtpTmUGSX5a/OT11Q7O7ancimnIs/wWRpd4W0mHAdu56/ii6cuhGLmQXmy32tu31qOdVSc1aX2gVwCUuRlkkM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=q9vflkws; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1772328315; c=relaxed/simple;
+	bh=y1tSg0gpsbVlAC5WHtPZe5wAvSJVAH/Yx+1WLN87+Ek=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=ZFnfN5ndSfwxxjZFJgOIq9uPKvF0tt84AAZeqQK9mmCM4T224jKspCZBEPntOJOEp5vYYqbkHG5gUUiY+xGMnUpJ+x8kktwPlqIAqGzraQd4Wt7TIJF6BQHkkC6dHKK+VR2hm9ANO6UR6jWwEQmdoPSjQXSraHFMMw3mEZS0tko=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=lpTgvBzp; arc=none smtp.client-ip=10.30.226.201
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="q9vflkws"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1772276015; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=5sQ0nJne69u+q4bxwmF15TeZNOilP2wv9CFAAd6QcTc=;
-	b=q9vflkwsN3FzZHjy3jURTSPIAlku5XC5HLXuWtEjUaAS1xPHyGozRktcjkxGwpCTxFH+dV9aHRjzWz/zmQmn/Cuo0VAZIk8b2xGQPq0sjhwh75H5WYY+SfSbRSnYuPreRQhOJGjZAvJSX1jFLCIEv44th65+sFB0jcUWGUZ6VIc=
-Received: from 30.221.129.112(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0WzxHtKL_1772276014 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Sat, 28 Feb 2026 18:53:34 +0800
-Message-ID: <d5b1842e-ba46-4bb3-b4e6-c0d45cf900a6@linux.alibaba.com>
-Date: Sat, 28 Feb 2026 18:53:34 +0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="lpTgvBzp"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5D6F3C19421;
+	Sun,  1 Mar 2026 01:25:14 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
+	s=k20201202; t=1772328315;
+	bh=y1tSg0gpsbVlAC5WHtPZe5wAvSJVAH/Yx+1WLN87+Ek=;
+	h=From:To:Cc:Subject:Date:From;
+	b=lpTgvBzpCQc2/atIhvylNwEs6K3UD6vLkhcrrELmAlir4PAfC/nG1NCuG4+Nu04uT
+	 7rZcmkBwOns2bQU655yeZX6kCweHZDpCXPGGwaWPYVnRp3/M0N8QX+P6pc/sSrdqnh
+	 GYbl7gqjufN2OJaHlIugwgU8YtpoupNnyhJZ+KvWX+fQtORQnQDJvHdpjuODdYYouK
+	 l0SCy1lCWC62H3wmeNpjFX9JuPo7lQORauOd2y1TGRHb1De2NUuTuSv0Bs6Omm5NCc
+	 UsaQe0KQA+Eoox8Cduj0doQHOdVJufY9f1d3wjHF7jnIOdEQZYstyhdPXCQABPwn7U
+	 xQT2xf+p5SMBw==
+From: Sasha Levin <sashal@kernel.org>
+To: stable@vger.kernel.org,
+	heming.zhao@suse.com
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Junxiao Bi <junxiao.bi@oracle.com>,
+	Joseph Qi <jiangqi903@gmail.com>,
+	Changwei Ge <gechangwei@live.cn>,
+	Jun Piao <piaojun@huawei.com>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	ocfs2-devel@lists.linux.dev,
+	linux-hardening@vger.kernel.org
+Subject: FAILED: Patch "ocfs2: fix reflink preserve cleanup issue" failed to apply to 6.12-stable tree
+Date: Sat, 28 Feb 2026 20:25:12 -0500
+Message-ID: <20260301012513.1682267-1-sashal@kernel.org>
+X-Mailer: git-send-email 2.51.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix deadlock when creating quota file
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- activprithvi@gmail.com, syzbot+78359d5fbb04318c35e9@syzkaller.appspotmail.com
-References: <20260224084909.28361-1-heming.zhao@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260224084909.28361-1-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Patchwork-Hint: ignore
+X-stable: review
+Content-Transfer-Encoding: 8bit
+
+The patch below does not apply to the 6.12-stable tree.
+If someone wants it applied there, or to any other stable or longterm
+tree, then please email the backport, including the original git commit
+id to <stable@vger.kernel.org>.
+
+Thanks,
+Sasha
+
+------------------ original commit in Linus's tree ------------------
+
+From 5138c936c2c82c9be8883921854bc6f7e1177d8c Mon Sep 17 00:00:00 2001
+From: Heming Zhao <heming.zhao@suse.com>
+Date: Wed, 10 Dec 2025 09:57:24 +0800
+Subject: [PATCH] ocfs2: fix reflink preserve cleanup issue
+
+commit c06c303832ec ("ocfs2: fix xattr array entry __counted_by error")
+doesn't handle all cases and the cleanup job for preserved xattr entries
+still has bug:
+- the 'last' pointer should be shifted by one unit after cleanup
+  an array entry.
+- current code logic doesn't cleanup the first entry when xh_count is 1.
+
+Note, commit c06c303832ec is also a bug fix for 0fe9b66c65f3.
+
+Link: https://lkml.kernel.org/r/20251210015725.8409-2-heming.zhao@suse.com
+Fixes: 0fe9b66c65f3 ("ocfs2: Add preserve to reflink.")
+Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Joseph Qi <jiangqi903@gmail.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Jun Piao <piaojun@huawei.com>
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+---
+ fs/ocfs2/xattr.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 5fd85f5178689..e434a62dd69f9 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -6395,6 +6395,10 @@ static int ocfs2_reflink_xattr_header(handle_t *handle,
+ 					(void *)last - (void *)xe);
+ 				memset(last, 0,
+ 				       sizeof(struct ocfs2_xattr_entry));
++				last = &new_xh->xh_entries[le16_to_cpu(new_xh->xh_count)] - 1;
++			} else {
++				memset(xe, 0, sizeof(struct ocfs2_xattr_entry));
++				last = NULL;
+ 			}
+ 
+ 			/*
+-- 
+2.51.0
 
 
 
-On 2/24/26 4:48 PM, Heming Zhao wrote:
-> syzbot detected a circular locking dependency. the scenarios:
-> 
->         CPU0                    CPU1
->         ----                    ----
->    lock(&ocfs2_quota_ip_alloc_sem_key);
->                                 lock(&ocfs2_sysfile_lock_key[USER_QUOTA_SYSTEM_INODE]);
->                                 lock(&ocfs2_quota_ip_alloc_sem_key);
->    lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
-> 
-> or:
->        CPU0                    CPU1
->        ----                    ----
->   lock(&ocfs2_quota_ip_alloc_sem_key);
->                                lock(&dquot->dq_lock);
->                                lock(&ocfs2_quota_ip_alloc_sem_key);
->   lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
-> 
-> Following are the code paths for above scenarios:
-> 
-> path_openat
->  ocfs2_create
->   ocfs2_mknod
->   + ocfs2_reserve_new_inode
->   |  ocfs2_reserve_suballoc_bits
->   |   inode_lock(alloc_inode) //C0: hold INODE_ALLOC_SYSTEM_INODE
->   |    //at end of this func, ocfs2_free_alloc_context(inode_ac) calls inode_unlock
->   |
->   + ocfs2_get_init_inode
->      __dquot_initialize
->       dqget
->        ocfs2_acquire_dquot
->        + ocfs2_lock_global_qf
->        |  down_write(&OCFS2_I(oinfo->dqi_gqinode)->ip_alloc_sem)//A2:grabbing
->        + ocfs2_create_local_dquot
->           down_write(&OCFS2_I(lqinode)->ip_alloc_sem)//A3:grabbing
-> 
-> evict
->  ocfs2_evict_inode
->   ocfs2_delete_inode
->    ocfs2_wipe_inode
->     + inode_lock(orphan_dir_inode) //B0:hold
->     + ...
->     + ocfs2_remove_inode
->        inode_lock(inode_alloc_inode) //INODE_ALLOC_SYSTEM_INODE
->         down_write(&inode->i_rwsem) //C1:grabbing
-> 
-> generic_file_direct_write
->  ocfs2_direct_IO
->   __blockdev_direct_IO
->    dio_complete
->     ocfs2_dio_end_io
->      ocfs2_dio_end_io_write
->      + down_write(&oi->ip_alloc_sem) //A0:hold
->      + ocfs2_del_inode_from_orphan
->         inode_lock(orphan_dir_inode) //B1:grabbing
-> 
-> Root cause for the circular locking:
-> 
-> DIO completion path:
->  holds oi->ip_alloc_sem and is trying to acquire the orphan_dir_inode lock.
-> 
-> evict path:
->  holds the orphan_dir_inode lock and is trying to acquire the
->  inode_alloc_inode lock.
-> 
-> ocfs2_mknod path:
->  Holds the inode_alloc_inode lock (to allocate a new quota file) and is
->  blocked waiting for oi->ip_alloc_sem in ocfs2_acquire_dquot().
-> 
-> How to fix:
-> 
-> Replace down_write() with down_write_trylock() in ocfs2_acquire_dquot().
-> If acquiring oi->ip_alloc_sem fails, return -EBUSY to abort the file creation
-> routine and break the deadlock.
-> 
-> Reported-by: syzbot+78359d5fbb04318c35e9@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=78359d5fbb04318c35e9
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->  fs/ocfs2/quota_global.c | 5 ++++-
->  fs/ocfs2/quota_local.c  | 5 ++++-
->  2 files changed, 8 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/quota_global.c b/fs/ocfs2/quota_global.c
-> index e85b1ccf81be..4321d8f59402 100644
-> --- a/fs/ocfs2/quota_global.c
-> +++ b/fs/ocfs2/quota_global.c
-> @@ -311,7 +311,10 @@ int ocfs2_lock_global_qf(struct ocfs2_mem_dqinfo *oinfo, int ex)
->  	spin_unlock(&dq_data_lock);
->  	if (ex) {
->  		inode_lock(oinfo->dqi_gqinode);
-> -		down_write(&OCFS2_I(oinfo->dqi_gqinode)->ip_alloc_sem);
-> +		if (!down_write_trylock(&OCFS2_I(oinfo->dqi_gqinode)->ip_alloc_sem)) {
-> +			inode_unlock(oinfo->dqi_gqinode);
-
-You've missed the oinfo->dqi_gqinode cleanup.
-
-> +			return -EBUSY;
-> +		}
->  	} else {
->  		down_read(&OCFS2_I(oinfo->dqi_gqinode)->ip_alloc_sem);
->  	}
-> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-> index c4e0117d8977..e451f3d96037 100644
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -1224,7 +1224,10 @@ int ocfs2_create_local_dquot(struct dquot *dquot)
->  	int status;
->  	u64 pcount;
->  
-> -	down_write(&OCFS2_I(lqinode)->ip_alloc_sem);
-> +	if (!down_write_trylock(&OCFS2_I(lqinode)->ip_alloc_sem)) {
-> +		status = -EBUSY;
-> +		goto out;
-
-We cannot goto out here since it does up_write.
-It seems we can return EBUSY directly.
-
-Joseph
-
-> +	}
->  	chunk = ocfs2_find_free_entry(sb, type, &offset);
->  	if (!chunk) {
->  		chunk = ocfs2_extend_local_quota_file(sb, type, &offset);
 
