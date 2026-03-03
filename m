@@ -1,128 +1,209 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from us-smtp-delivery-124.mimecast.com (us-smtp-delivery-124.mimecast.com [170.10.129.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C4E2E39B97D
-	for <ocfs2-devel@lists.linux.dev>; Tue,  3 Mar 2026 10:34:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D1E4A382384
+	for <ocfs2-devel@lists.linux.dev>; Tue,  3 Mar 2026 10:49:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=170.10.129.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772534093; cv=none; b=sXCMquzrGf3ln2xNzP+mDThBobURE87ld95PV0uEa81l7JlCxohp7Aq2qoU0ncDl9Y7sfv0f2jTtO86HPTxsUZf+7t3dW5Nk/WzzvfAXP46Jo8ZJesKuBNR1cThIziCfsciN+MiXBhYAS8XJhfovGoNOfMhkRNqCzPm8CiayRw0=
+	t=1772534955; cv=none; b=aQuNjGW03dcZFFUvlycsbUGt81Cj5xcg0ox++K1p+7p58KoVjXv2+dIrHYMxVk9OfZHcPyVStVCbodlk54qMcDUovNqOWpPLJiwXRTzGoWMttA3P9AFe/JG6gZF/FgwDy5XqljkK4JBD2PWcACSL+b05vpxY/YJyp7zdfuNcGiI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772534093; c=relaxed/simple;
-	bh=ud/28G3xYrWf6hhDA8l9j5Yn2n0f8oX/rNwQdYapQHM=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=TZySfgVh9z92Pvd83sU7znTMtDaW2hrptn2rMTXyTV9rGXSrgjSJmkJ9ZLcHth+yNFgIYxEoknv3YsEyM5XZFl82s6ZtHXhX7Q15ZDV3hfEzRDo84eVbHgS9NkvzfQnQk7wcPbd71LA1UoGAu+rDIRH7lc+MKvbqkkWpwTz1dUk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	s=arc-20240116; t=1772534955; c=relaxed/simple;
+	bh=ZJFR9/2OtrcnrgSTa4EHnH5JX9DBPEZCrlsYG5puECk=;
+	h=From:In-Reply-To:References:To:To:Cc:Subject:MIME-Version:Date:
+	 Message-ID:Content-Type; b=KzblccFs3kPH56crKRKuWS9XQZuxVlJAH17g8r2lIzabukxslpDgyP3aj/7NNISlbJgXaSgYlXVZI1XAg+xKXAYgdWqu7BJCDYs3UvRQCieZwTkMNlgL+G98Xgll+fPqM0OaJfRarZk/1859lpSBkHAeRwGAmHZroQ7Wzf686QI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com; spf=pass smtp.mailfrom=redhat.com; dkim=fail (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b=XwiHSHLO reason="signature verification failed"; arc=none smtp.client-ip=170.10.129.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=redhat.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=redhat.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=fail reason="signature verification failed" (1024-bit key) header.d=redhat.com header.i=@redhat.com header.b="XwiHSHLO"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=redhat.com;
+	s=mimecast20190719; t=1772534951;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:to:cc:cc:mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=lQfcYf0nTgw81P/IsIDOOQjFjTNPUrLYna+XMlLw958=;
+	b=XwiHSHLOyxEcicQujQ3NCwOO2RoLoEdMXRy3n2L/Nn9xuIveg9I4lZ5fEbSq+h0/8tvNXV
+	euVPY/ESLZHTpsru+C12xnBrql+hylHKUfXb1NY/jO/sBgs0i/0vUpZJczo1y03/UGtALx
+	/rFCri7GpUn/2A8ESHoEZIRJ7rl9v6Y=
+Received: from mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com
+ (ec2-54-186-198-63.us-west-2.compute.amazonaws.com [54.186.198.63]) by
+ relay.mimecast.com with ESMTP with STARTTLS (version=TLSv1.3,
+ cipher=TLS_AES_256_GCM_SHA384) id us-mta-711-uSGAZGHOPR6NZ3KYbowoaw-1; Tue,
+ 03 Mar 2026 05:49:09 -0500
+X-MC-Unique: uSGAZGHOPR6NZ3KYbowoaw-1
+X-Mimecast-MFC-AGG-ID: uSGAZGHOPR6NZ3KYbowoaw_1772534944
+Received: from mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com [10.30.177.12])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	 key-exchange X25519 server-signature RSA-PSS (2048 bits) server-digest SHA256)
 	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 447483F93A;
-	Tue,  3 Mar 2026 10:34:45 +0000 (UTC)
-Authentication-Results: smtp-out1.suse.de;
-	none
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 3639C3EA6E;
-	Tue,  3 Mar 2026 10:34:45 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id WXk3DUW5pmmHFQAAD6G6ig
-	(envelope-from <jack@suse.cz>); Tue, 03 Mar 2026 10:34:45 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id E8EEFA0B6D; Tue,  3 Mar 2026 11:34:40 +0100 (CET)
-From: Jan Kara <jack@suse.cz>
-To: <linux-fsdevel@vger.kernel.org>
-Cc: Christian Brauner <brauner@kernel.org>,
-	Al Viro <viro@ZenIV.linux.org.uk>,
-	<linux-ext4@vger.kernel.org>,
-	Ted Tso <tytso@mit.edu>,
-	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
-	David Sterba <dsterba@suse.com>,
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
-	Muchun Song <muchun.song@linux.dev>,
-	Oscar Salvador <osalvador@suse.de>,
-	David Hildenbrand <david@kernel.org>,
-	linux-mm@kvack.org,
-	linux-aio@kvack.org,
-	Benjamin LaHaise <bcrl@kvack.org>,
-	Jan Kara <jack@suse.cz>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev
-Subject: [PATCH 20/32] ocfs2: Drop pointless sync_mapping_buffers() calls
-Date: Tue,  3 Mar 2026 11:34:09 +0100
-Message-ID: <20260303103406.4355-52-jack@suse.cz>
-X-Mailer: git-send-email 2.51.0
-In-Reply-To: <20260303101717.27224-1-jack@suse.cz>
-References: <20260303101717.27224-1-jack@suse.cz>
+	by mx-prod-mc-01.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTPS id 3C13A1956089;
+	Tue,  3 Mar 2026 10:49:02 +0000 (UTC)
+Received: from warthog.procyon.org.uk (unknown [10.44.33.249])
+	by mx-prod-int-03.mail-002.prod.us-west-2.aws.redhat.com (Postfix) with ESMTP id 1F8F319560A7;
+	Tue,  3 Mar 2026 10:48:06 +0000 (UTC)
+Organization: Red Hat UK Ltd. Registered Address: Red Hat UK Ltd, Amberley
+	Place, 107-111 Peascod Street, Windsor, Berkshire, SI4 1TE, United
+	Kingdom.
+	Registered in England and Wales under Company Registration No. 3798903
+From: David Howells <dhowells@redhat.com>
+In-Reply-To: <20260302-iino-u64-v2-0-e5388800dae0@kernel.org>
+References: <20260302-iino-u64-v2-0-e5388800dae0@kernel.org>
+To: Jeff Layton <jlayton@kernel.org>
+To: Alexander Viro <viro@zeniv.linux.org.uk>,
+    Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
+    Steven Rostedt <rostedt@goodmis.org>,
+    Masami Hiramatsu <mhiramat@kernel.org>,
+    Mathieu Desnoyers <mathieu.desnoyers@efficios.com>,
+    Dan Williams <dan.j.williams@intel.com>,
+    Matthew Wilcox <willy@infradead.org>,
+    Eric Biggers <ebiggers@kernel.org>,
+    "Theodore Y. Ts'o" <tytso@mit.edu>,
+    Muchun Song <muchun.song@linux.dev>,
+    Oscar Salvador <osalvador@suse.de>,
+    David Hildenbrand <david@kernel.org>,
+    David Howells <dhowells@redhat.com>,
+    Paulo Alcantara <pc@manguebit.org>,
+    Andreas Dilger <adilger.kernel@dilger.ca>, Jan Kara <jack@suse.com>,
+    Jaegeuk Kim <jaegeuk@kernel.org>, Chao Yu <chao@kernel.org>,
+    Trond Myklebust <trondmy@kernel.org>,
+    Anna Schumaker <anna@kernel.org>,
+    Chuck Lever <chuck.lever@oracle.com>, NeilBrown <neil@brown.name>,
+    Olga Kornievskaia <okorniev@redhat.com>,
+    Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>,
+    Steve French <sfrench@samba.org>,
+    Ronnie Sahlberg <ronniesahlberg@gmail.com>,
+    Shyam Prasad N <sprasad@microsoft.com>,
+    Bharath SM <bharathsm@microsoft.com>,
+    Alexander Aring <alex.aring@gmail.com>,
+    Ryusuke Konishi <konishi.ryusuke@gmail.com>,
+    Viacheslav Dubeyko <slava@dubeyko.com>,
+    Eric Van Hensbergen <ericvh@kernel.org>,
+    Latchesar Ionkov <lucho@ionkov.net>,
+    Dominique Martinet <asmadeus@codewreck.org>,
+    Christian Schoenebeck <linux_oss@crudebyte.com>,
+    David Sterba <dsterba@suse.com>,
+    Marc Dionne <marc.dionne@auristor.com>, Ian Kent <raven@themaw.net>,
+    Luis de Bethencourt <luisbg@kernel.org>,
+    Salah Triki <salah.triki@gmail.com>,
+    "Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
+    Ilya Dryomov <idryomov@gmail.com>,
+    Alex Markuze <amarkuze@redhat.com>, Jan Harkes <jaharkes@cs.cmu.edu>,
+    coda@cs.cmu.edu, Nicolas Pitre <nico@fluxnic.net>,
+    Tyler Hicks <code@tyhicks.com>, Amir Goldstein <amir73il@gmail.com>,
+    Christoph Hellwig <hch@infradead.org>,
+    John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+    Yangtao Li <frank.li@vivo.com>,
+    Mikulas Patocka <mikulas@artax.karlin.mff.cuni.cz>,
+    David Woodhouse <dwmw2@infradead.org>,
+    Richard Weinberger <richard@nod.at>,
+    Dave Kleikamp <shaggy@kernel.org>,
+    Konstantin Komarov <almaz.alexandrovich@paragon-software.com>,
+    Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+    Joseph Qi <joseph.qi@linux.alibaba.com>,
+    Mike Marshall <hubcap@omnibond.com>,
+    Martin Brandenburg <martin@omnibond.com>,
+    Miklos Szeredi <miklos@szeredi.hu>, Anders Larsen <al@alarsen.net>,
+    Zhihao Cheng <chengzhihao1@huawei.com>,
+    Damien Le Moal <dlemoal@kernel.org>,
+    Naohiro Aota <naohiro.aota@wdc.com>,
+    Johannes Thumshirn <jth@kernel.org>,
+    John Johansen <john.johansen@canonical.com>,
+    Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>,
+    "Serge E. Hallyn" <serge@hallyn.com>,
+    Mimi Zohar <zohar@linux.ibm.com>,
+    Roberto Sassu <roberto.sassu@huawei.com>,
+    Dmitry Kasatkin <dmitry.kasatkin@gmail.com>,
+    Eric Snowberg <eric.snowberg@oracle.com>, Fan Wu <wufan@kernel.org>,
+    Stephen Smalley <stephen.smalley.work@gmail.com>,
+    Ondrej Mosnacek <omosnace@redhat.com>,
+    Casey Schaufler <casey@schaufler-ca.com>,
+    Alex Deucher <alexander.deucher@amd.com>,
+    Christian =?utf-8?Q?K=C3=B6nig?= <christian.koenig@amd.com>,
+    David Airlie <airlied@gmail.com>, Simona Vetter <simona@ffwll.ch>,
+    Sumit Semwal <sumit.semwal@linaro.org>,
+    Eric Dumazet <edumazet@google.com>,
+    Kuniyuki Iwashima <kuniyu@google.com>,
+    Paolo Abeni <pabeni@redhat.com>,
+    Willem de Bruijn <willemb@google.com>,
+    "David S.
+ Miller" <davem@davemloft.net>,
+    Jakub Kicinski <kuba@kernel.org>, Simon Horman <horms@kernel.org>,
+    Oleg Nesterov <oleg@redhat.com>,
+    Peter Zijlstra <peterz@infradead.org>,
+    Ingo Molnar <mingo@redhat.com>,
+    Arnaldo Carvalho de Melo <acme@kernel.org>,
+    Namhyung Kim <namhyung@kernel.org>,
+    Mark Rutland <mark.rutland@arm.com>,
+    Alexander Shishkin <alexander.shishkin@linux.intel.com>,
+    Jiri Olsa <jolsa@kernel.org>, Ian Rogers <irogers@google.com>,
+    Adrian Hunter <adrian.hunter@intel.com>,
+    James Clark <james.clark@linaro.org>,
+    "Darrick J. Wong" <djwong@kernel.org>,
+    Martin Schiller <ms@dev.tdt.de>, Eric Paris <eparis@redhat.com>,
+    Joerg Reuter <jreuter@yaina.de>,
+    Marcel Holtmann <marcel@holtmann.org>,
+    Johan Hedberg <johan.hedberg@gmail.com>,
+    Luiz Augusto von Dentz <luiz.dentz@gmail.com>,
+    Oliver Hartkopp <socketcan@hartkopp.net>,
+    Marc Kleine-Budde <mkl@pengutronix.de>,
+    David Ahern <dsahern@kernel.org>,
+    Neal Cardwell <ncardwell@google.com>,
+    Steffen Klassert <steffen.klassert@secunet.com>,
+    Herbert Xu <herbert@gondor.apana.org.au>,
+    Remi Denis-Courmont <courmisch@gmail.com>,
+    Marcelo Ricardo Leitner <marcelo.leitner@gmail.com>,
+    Xin Long <lucien.xin@gmail.com>,
+    Magnus Karlsson <magnus.karlsson@intel.com>,
+    Maciej Fijalkowski <maciej.fijalkowski@intel.com>,
+    Stanislav Fomichev <sdf@fomichev.me>,
+    Alexei Starovoitov <ast@kernel.org>,
+    Daniel Borkmann <daniel@iogearbox.net>,
+    Jesper Dangaard Brouer <hawk@kernel.org>,
+    John Fastabend <john.fastabend@gmail.com>
+Cc: linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
+    linux-trace-kernel@vger.kernel.org, nvdimm@lists.linux.dev,
+    fsverity@lists.linux.dev, linux-mm@kvack.org, netfs@lists.linux.dev,
+    linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net,
+    linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org,
+    samba-technical@lists.samba.org, linux-nilfs@vger.kernel.org,
+    v9fs@lists.linux.dev, linux-afs@lists.infradead.org,
+    autofs@vger.kernel.org, ceph-devel@vger.kernel.org,
+    codalist@coda.cs.cmu.edu, ecryptfs@vger.kernel.org,
+    linux-mtd@lists.infradead.org, jfs-discussion@lists.sourceforge.net,
+    ntfs3@lists.linux.dev, ocfs2-devel@lists.linux.dev,
+    devel@lists.orangefs.org, linux-unionfs@vger.kernel.org,
+    apparmor@lists.ubuntu.com, linux-security-module@vger.kernel.org,
+    linux-integrity@vger.kernel.org, selinux@vger.kernel.org,
+    amd-gfx@lists.freedesktop.org, dri-devel@lists.freedesktop.org,
+    linux-media@vger.kernel.org, linaro-mm-sig@lists.linaro.org,
+    netdev@vger.kernel.org, linux-perf-users@vger.kernel.org,
+    linux-fscrypt@vger.kernel.org, linux-xfs@vger.kernel.org,
+    linux-hams@vger.kernel.org, linux-x25@vger.kernel.org,
+    audit@vger.kernel.org, linux-bluetooth@vger.kernel.org,
+    linux-can@vger.kernel.org, linux-sctp@vger.kernel.org,
+    bpf@vger.kernel.org
+Subject: Re: [PATCH v2 000/110] vfs: change inode->i_ino from unsigned long to u64
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1308; i=jack@suse.cz; h=from:subject; bh=ud/28G3xYrWf6hhDA8l9j5Yn2n0f8oX/rNwQdYapQHM=; b=owEBbQGS/pANAwAIAZydqgc/ZEDZAcsmYgBpprkvRii9H+t97Y2LO0i9U30mEMXFAbwMkKJma eYyaJh30hyJATMEAAEIAB0WIQSrWdEr1p4yirVVKBycnaoHP2RA2QUCaaa5LwAKCRCcnaoHP2RA 2UAuCACl44+oSXoKVpLMMjiOlzsSYJhi83OocmKg+n6aNdrCBaLaW5GL4UJkAqg3vGC4NxBSbVI dN+/zOKfB6jEEZavQOjXSs8gm3yTIzY/LUR2vkI3wARuyz6LfXqRMAOyfpEsPatajFUP3/GJvPg 9WohJCCNRhEOI5OhIJNpNBD+A9T7KF7yv/pGurqHjAasCRN7RpqBbyjc+5HjgLrHFxZll7hf36I pJY5vGfgxZ+de5q3Sy9Atdq7p8jGPM6/TvVmtqdyR1M+Dwsc4hMMlIkeCu79+XMSCWy6wD7P8j7 yHolzEvmVH4b0K1tZQ3OEumtFv/IfIvFx2yGiie9QmONH6Xd
-X-Developer-Key: i=jack@suse.cz; a=openpgp; fpr=93C6099A142276A28BBE35D815BC833443038D8C
-Content-Transfer-Encoding: 8bit
-X-Rspamd-Pre-Result: action=no action;
-	module=replies;
-	Message is reply to one we originated
-X-Rspamd-Queue-Id: 447483F93A
-X-Rspamd-Pre-Result: action=no action;
-	module=replies;
-	Message is reply to one we originated
-X-Rspamd-Action: no action
-X-Spam-Score: -4.00
-X-Spam-Level: 
-X-Spam-Flag: NO
-X-Spamd-Result: default: False [-4.00 / 50.00];
-	REPLY(-4.00)[];
-	TAGGED_RCPT(0.00)[]
-X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
+Date: Tue, 03 Mar 2026 10:48:05 +0000
+Message-ID: <1773080.1772534885@warthog.procyon.org.uk>
+X-Scanned-By: MIMEDefang 3.0 on 10.30.177.12
+X-Mimecast-MFC-PROC-ID: SvBOM_PF4lKjjFXr4UGrMZeOSgQNmgZWPIh-TnZedoI_1772534944
+X-Mimecast-Originator: redhat.com
+Content-Type: text/plain
 
-ocfs2 never calls mark_buffer_dirty_inode() and thus its metadata
-buffers list is always empty. Drop the pointless sync_mapping_buffers()
-calls.
+Jeff Layton <jlayton@kernel.org> wrote:
 
-CC: Joel Becker <jlbec@evilplan.org>
-CC: Joseph Qi <joseph.qi@linux.alibaba.com>
-CC: ocfs2-devel@lists.linux.dev
-Signed-off-by: Jan Kara <jack@suse.cz>
----
- fs/ocfs2/dlmglue.c | 1 -
- fs/ocfs2/namei.c   | 3 ---
- 2 files changed, 4 deletions(-)
+> This version splits the change up to be more bisectable. It first adds a
+> new kino_t typedef and a new "PRIino" macro to hold the width specifier
+> for format strings. The conversion is done, and then everything is
+> changed to remove the new macro and typedef.
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index bd2ddb7d841d..7283bb2c5a31 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3971,7 +3971,6 @@ static int ocfs2_data_convert_worker(struct ocfs2_lock_res *lockres,
- 		mlog(ML_ERROR, "Could not sync inode %llu for downconvert!",
- 		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
- 	}
--	sync_mapping_buffers(mapping);
- 	if (blocking == DLM_LOCK_EX) {
- 		truncate_inode_pages(mapping, 0);
- 	} else {
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 268b79339a51..1277666c77cd 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -1683,9 +1683,6 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
- 	if (rename_lock)
- 		ocfs2_rename_unlock(osb);
- 
--	if (new_inode)
--		sync_mapping_buffers(old_inode->i_mapping);
--
- 	iput(new_inode);
- 
- 	ocfs2_free_dir_lookup_result(&target_lookup_res);
--- 
-2.51.0
+Why remove the typedef?  It might be better to keep it.
+
+David
 
