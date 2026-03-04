@@ -1,304 +1,219 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-1.web.codeaurora.org [10.30.226.201])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oo1-f72.google.com (mail-oo1-f72.google.com [209.85.161.72])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7378F373C0B;
-	Wed,  4 Mar 2026 16:59:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=10.30.226.201
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 31547384230
+	for <ocfs2-devel@lists.linux.dev>; Wed,  4 Mar 2026 20:58:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.72
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1772643582; cv=none; b=OuvtUVEsc5xfevolAorypMvoi86DzEVsg4UDWgjqBtaavTYbdqPAD41NNqf4TksOd9xmpMcvonMQum58rLlqXCH1QpSXZPe29YeZi0QXFxAUihEeHzeif36tRGbA0sQmCvc+HPEvil9SD8c4ZUrz3FAZDoFrf/KM6VBEbi9cEZU=
+	t=1772657920; cv=none; b=a15Lue7OOmPF+JibL4c/pNZMvBeVpeqiNmBMXKdN3cjJZS2eS6SUD2Yvz280BHlnv+iysH2HJt+/NVXfjjy1dWN/2pTA7SNvv2/wRE06vkJhdQs/2TlxKx0Jzm8oq6FeUXDHLnsvrI15D60fgOS56E6GXlsYaiSXAZk3C6kwFvs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1772643582; c=relaxed/simple;
-	bh=Vco3uqMM+GGwamDaSgMVwORJh+OF+HTrP0JVrfOVsPw=;
-	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=p3lvhq1uqQiiwFuAOncMEEBXM7YxCKbK2/oeWscxEqJkYJGwmXaH+f7IOv4YAZJYulXb7ytAMfkuIg3+Csgk72ippOsm54RwLJkGnRSoNNMWjwUGU+e/6zO8yCEpTZrNa0S4Yxc55/RQh4plKnSA3jqQiqf4t0XPczAHIXQhOLQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=CXD9BpWg; arc=none smtp.client-ip=10.30.226.201
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="CXD9BpWg"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B9FBAC2BCB0;
-	Wed,  4 Mar 2026 16:59:34 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=kernel.org;
-	s=k20201202; t=1772643582;
-	bh=Vco3uqMM+GGwamDaSgMVwORJh+OF+HTrP0JVrfOVsPw=;
-	h=Subject:From:To:Cc:Date:In-Reply-To:References:From;
-	b=CXD9BpWgkkINK6gZqwyX5n7YT6eyFHASQ0Cf19QSMh58zX8rxOu5w8xcN+ALcpoiN
-	 zbse2DEyA7vWamOUkFLS5cEPnwTisG+hpK4j3y8lhaSnEuoTtnggjrzLnvkaqpuG4Q
-	 /pLrkelh2wFBDJe2W+0q8sB/i9CBZKq+1QKdbV2czTHnDvJNKeh8dlDWRQIN1f4Oly
-	 wkxfWt/ojpUzF7aYV96/GCDXWlUslEu8HeL4mAwxYbk0tPCb3+ItQ1ysWx6N4nShGq
-	 zvEPbwgzgHkxslhDUcJzRX0BNjNVvspwFLrzcRh1590XHX+B39SAGRYWotYwfZVTOL
-	 Sc+WO/HYq9qBg==
-Message-ID: <e07e9b893ca04ce6ead4790e72c7f285a7159070.camel@kernel.org>
-Subject: Re: [PATCH 24/24] fs: remove simple_nosetlease()
-From: Jeff Layton <jlayton@kernel.org>
-To: Mike Snitzer <snitzer@kernel.org>
-Cc: Luis de Bethencourt <luisbg@kernel.org>, Salah Triki
- <salah.triki@gmail.com>,  Nicolas Pitre <nico@fluxnic.net>, Christoph
- Hellwig <hch@infradead.org>, Jan Kara <jack@suse.cz>, Anders Larsen	
- <al@alarsen.net>, Alexander Viro <viro@zeniv.linux.org.uk>, Christian
- Brauner	 <brauner@kernel.org>, David Sterba <dsterba@suse.com>, Chris Mason
- <clm@fb.com>,  Gao Xiang <xiang@kernel.org>, Chao Yu <chao@kernel.org>, Yue
- Hu <zbestahu@gmail.com>, Jeffle Xu	 <jefflexu@linux.alibaba.com>, Sandeep
- Dhavale <dhavale@google.com>, Hongbo Li	 <lihongbo22@huawei.com>, Chunhai
- Guo <guochunhai@vivo.com>, Jan Kara	 <jack@suse.com>, Theodore Ts'o
- <tytso@mit.edu>, Andreas Dilger	 <adilger.kernel@dilger.ca>, Jaegeuk Kim
- <jaegeuk@kernel.org>, OGAWA Hirofumi	 <hirofumi@mail.parknet.co.jp>, David
- Woodhouse <dwmw2@infradead.org>,  Richard Weinberger	 <richard@nod.at>,
- Dave Kleikamp <shaggy@kernel.org>, Ryusuke Konishi	
- <konishi.ryusuke@gmail.com>, Viacheslav Dubeyko <slava@dubeyko.com>, 
- Konstantin Komarov <almaz.alexandrovich@paragon-software.com>, Mark Fasheh
- <mark@fasheh.com>, Joel Becker	 <jlbec@evilplan.org>, Joseph Qi
- <joseph.qi@linux.alibaba.com>, Mike Marshall	 <hubcap@omnibond.com>, Martin
- Brandenburg <martin@omnibond.com>, Miklos Szeredi	 <miklos@szeredi.hu>,
- Amir Goldstein <amir73il@gmail.com>, Phillip Lougher	
- <phillip@squashfs.org.uk>, Carlos Maiolino <cem@kernel.org>, Hugh Dickins	
- <hughd@google.com>, Baolin Wang <baolin.wang@linux.alibaba.com>, Andrew
- Morton	 <akpm@linux-foundation.org>, Namjae Jeon <linkinjeon@kernel.org>,
- Sungjong Seo	 <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>,
- Chuck Lever	 <chuck.lever@oracle.com>, Alexander Aring
- <alex.aring@gmail.com>, Andreas Gruenbacher <agruenba@redhat.com>, Jonathan
- Corbet <corbet@lwn.net>, "Matthew Wilcox (Oracle)"	 <willy@infradead.org>,
- Eric Van Hensbergen <ericvh@kernel.org>, Latchesar Ionkov
- <lucho@ionkov.net>, Dominique Martinet <asmadeus@codewreck.org>, Christian
- Schoenebeck	 <linux_oss@crudebyte.com>, Xiubo Li <xiubli@redhat.com>, Ilya
- Dryomov	 <idryomov@gmail.com>, Trond Myklebust <trondmy@kernel.org>, Anna
- Schumaker	 <anna@kernel.org>, Steve French <sfrench@samba.org>, Paulo
- Alcantara	 <pc@manguebit.org>, Ronnie Sahlberg <ronniesahlberg@gmail.com>,
- Shyam Prasad N	 <sprasad@microsoft.com>, Tom Talpey <tom@talpey.com>,
- Bharath SM	 <bharathsm@microsoft.com>, Hans de Goede <hansg@kernel.org>, 
-	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	linux-btrfs@vger.kernel.org, linux-erofs@lists.ozlabs.org, 
-	linux-ext4@vger.kernel.org, linux-f2fs-devel@lists.sourceforge.net, 
-	linux-mtd@lists.infradead.org, jfs-discussion@lists.sourceforge.net, 
-	linux-nilfs@vger.kernel.org, ntfs3@lists.linux.dev,
- ocfs2-devel@lists.linux.dev, 	devel@lists.orangefs.org,
- linux-unionfs@vger.kernel.org, 	linux-xfs@vger.kernel.org,
- linux-mm@kvack.org, gfs2@lists.linux.dev, 	linux-doc@vger.kernel.org,
- v9fs@lists.linux.dev, ceph-devel@vger.kernel.org, 
-	linux-nfs@vger.kernel.org, linux-cifs@vger.kernel.org, 
-	samba-technical@lists.samba.org
-Date: Wed, 04 Mar 2026 11:59:32 -0500
-In-Reply-To: <aZ84VRrRVyGEzSJn@kernel.org>
-References: <20260108-setlease-6-20-v1-0-ea4dec9b67fa@kernel.org>
-	 <20260108-setlease-6-20-v1-24-ea4dec9b67fa@kernel.org>
-	 <aZ84VRrRVyGEzSJn@kernel.org>
-Autocrypt: addr=jlayton@kernel.org; prefer-encrypt=mutual;
- keydata=mQINBE6V0TwBEADXhJg7s8wFDwBMEvn0qyhAnzFLTOCHooMZyx7XO7dAiIhDSi7G1NPxw
- n8jdFUQMCR/GlpozMFlSFiZXiObE7sef9rTtM68ukUyZM4pJ9l0KjQNgDJ6Fr342Htkjxu/kFV1Wv
- egyjnSsFt7EGoDjdKqr1TS9syJYFjagYtvWk/UfHlW09X+jOh4vYtfX7iYSx/NfqV3W1D7EDi0PqV
- T2h6v8i8YqsATFPwO4nuiTmL6I40ZofxVd+9wdRI4Db8yUNA4ZSP2nqLcLtFjClYRBoJvRWvsv4lm
- 0OX6MYPtv76hka8lW4mnRmZqqx3UtfHX/hF/zH24Gj7A6sYKYLCU3YrI2Ogiu7/ksKcl7goQjpvtV
- YrOOI5VGLHge0awt7bhMCTM9KAfPc+xL/ZxAMVWd3NCk5SamL2cE99UWgtvNOIYU8m6EjTLhsj8sn
- VluJH0/RcxEeFbnSaswVChNSGa7mXJrTR22lRL6ZPjdMgS2Km90haWPRc8Wolcz07Y2se0xpGVLEQ
- cDEsvv5IMmeMe1/qLZ6NaVkNuL3WOXvxaVT9USW1+/SGipO2IpKJjeDZfehlB/kpfF24+RrK+seQf
- CBYyUE8QJpvTZyfUHNYldXlrjO6n5MdOempLqWpfOmcGkwnyNRBR46g/jf8KnPRwXs509yAqDB6sE
- LZH+yWr9LQZEwARAQABtCVKZWZmIExheXRvbiA8amxheXRvbkBwb29jaGllcmVkcy5uZXQ+iQI7BB
- MBAgAlAhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAUCTpXWPAIZAQAKCRAADmhBGVaCFc65D/4
- gBLNMHopQYgG/9RIM3kgFCCQV0pLv0hcg1cjr+bPI5f1PzJoOVi9s0wBDHwp8+vtHgYhM54yt43uI
- 7Htij0RHFL5eFqoVT4TSfAg2qlvNemJEOY0e4daljjmZM7UtmpGs9NN0r9r50W82eb5Kw5bc/r0km
- R/arUS2st+ecRsCnwAOj6HiURwIgfDMHGPtSkoPpu3DDp/cjcYUg3HaOJuTjtGHFH963B+f+hyQ2B
- rQZBBE76ErgTDJ2Db9Ey0kw7VEZ4I2nnVUY9B5dE2pJFVO5HJBMp30fUGKvwaKqYCU2iAKxdmJXRI
- ONb7dSde8LqZahuunPDMZyMA5+mkQl7kpIpR6kVDIiqmxzRuPeiMP7O2FCUlS2DnJnRVrHmCljLkZ
- Wf7ZUA22wJpepBligemtSRSbqCyZ3B48zJ8g5B8xLEntPo/NknSJaYRvfEQqGxgk5kkNWMIMDkfQO
- lDSXZvoxqU9wFH/9jTv1/6p8dHeGM0BsbBLMqQaqnWiVt5mG92E1zkOW69LnoozE6Le+12DsNW7Rj
- iR5K+27MObjXEYIW7FIvNN/TQ6U1EOsdxwB8o//Yfc3p2QqPr5uS93SDDan5ehH59BnHpguTc27Xi
- QQZ9EGiieCUx6Zh2ze3X2UW9YNzE15uKwkkuEIj60NvQRmEDfweYfOfPVOueC+iFifbQgSmVmZiBM
- YXl0b24gPGpsYXl0b25AcmVkaGF0LmNvbT6JAjgEEwECACIFAk6V0q0CGwMGCwkIBwMCBhUIAgkKC
- wQWAgMBAh4BAheAAAoJEAAOaEEZVoIViKUQALpvsacTMWWOd7SlPFzIYy2/fjvKlfB/Xs4YdNcf9q
- LqF+lk2RBUHdR/dGwZpvw/OLmnZ8TryDo2zXVJNWEEUFNc7wQpl3i78r6UU/GUY/RQmOgPhs3epQC
- 3PMJj4xFx+VuVcf/MXgDDdBUHaCTT793hyBeDbQuciARDJAW24Q1RCmjcwWIV/pgrlFa4lAXsmhoa
- c8UPc82Ijrs6ivlTweFf16VBc4nSLX5FB3ls7S5noRhm5/Zsd4PGPgIHgCZcPgkAnU1S/A/rSqf3F
- LpU+CbVBDvlVAnOq9gfNF+QiTlOHdZVIe4gEYAU3CUjbleywQqV02BKxPVM0C5/oVjMVx3bri75n1
- TkBYGmqAXy9usCkHIsG5CBHmphv9MHmqMZQVsxvCzfnI5IO1+7MoloeeW/lxuyd0pU88dZsV/riHw
- 87i2GJUJtVlMl5IGBNFpqoNUoqmvRfEMeXhy/kUX4Xc03I1coZIgmwLmCSXwx9MaCPFzV/dOOrju2
- xjO+2sYyB5BNtxRqUEyXglpujFZqJxxau7E0eXoYgoY9gtFGsspzFkVNntamVXEWVVgzJJr/EWW0y
- +jNd54MfPRqH+eCGuqlnNLktSAVz1MvVRY1dxUltSlDZT7P2bUoMorIPu8p7ZCg9dyX1+9T6Muc5d
- Hxf/BBP/ir+3e8JTFQBFOiLNdFtB9KZWZmIExheXRvbiA8amxheXRvbkBzYW1iYS5vcmc+iQI4BBM
- BAgAiBQJOldK9AhsDBgsJCAcDAgYVCAIJCgsEFgIDAQIeAQIXgAAKCRAADmhBGVaCFWgWD/0ZRi4h
- N9FK2BdQs9RwNnFZUr7JidAWfCrs37XrA/56olQl3ojn0fQtrP4DbTmCuh0SfMijB24psy1GnkPep
- naQ6VRf7Dxg/Y8muZELSOtsv2CKt3/02J1BBitrkkqmHyni5fLLYYg6fub0T/8Kwo1qGPdu1hx2BQ
- RERYtQ/S5d/T0cACdlzi6w8rs5f09hU9Tu4qV1JLKmBTgUWKN969HPRkxiojLQziHVyM/weR5Reu6
- FZVNuVBGqBD+sfk/c98VJHjsQhYJijcsmgMb1NohAzwrBKcSGKOWJToGEO/1RkIN8tqGnYNp2G+aR
- 685D0chgTl1WzPRM6mFG1+n2b2RR95DxumKVpwBwdLPoCkI24JkeDJ7lXSe3uFWISstFGt0HL8Eew
- P8RuGC8s5h7Ct91HMNQTbjgA+Vi1foWUVXpEintAKgoywaIDlJfTZIl6Ew8ETN/7DLy8bXYgq0Xzh
- aKg3CnOUuGQV5/nl4OAX/3jocT5Cz/OtAiNYj5mLPeL5z2ZszjoCAH6caqsF2oLyAnLqRgDgR+wTQ
- T6gMhr2IRsl+cp8gPHBwQ4uZMb+X00c/Amm9VfviT+BI7B66cnC7Zv6Gvmtu2rEjWDGWPqUgccB7h
- dMKnKDthkA227/82tYoFiFMb/NwtgGrn5n2vwJyKN6SEoygGrNt0SI84y6hEVbQlSmVmZiBMYXl0b
- 24gPGpsYXl0b25AcHJpbWFyeWRhdGEuY29tPokCOQQTAQIAIwUCU4xmKQIbAwcLCQgHAwIBBhUIAg
- kKCwQWAgMBAh4BAheAAAoJEAAOaEEZVoIV1H0P/j4OUTwFd7BBbpoSp695qb6HqCzWMuExsp8nZjr
- uymMaeZbGr3OWMNEXRI1FWNHMtcMHWLP/RaDqCJil28proO+PQ/yPhsr2QqJcW4nr91tBrv/MqItu
- AXLYlsgXqp4BxLP67bzRJ1Bd2x0bWXurpEXY//VBOLnODqThGEcL7jouwjmnRh9FTKZfBDpFRaEfD
- FOXIfAkMKBa/c9TQwRpx2DPsl3eFWVCNuNGKeGsirLqCxUg5kWTxEorROppz9oU4HPicL6rRH22Ce
- 6nOAON2vHvhkUuO3GbffhrcsPD4DaYup4ic+DxWm+DaSSRJ+e1yJvwi6NmQ9P9UAuLG93S2MdNNbo
- sZ9P8k2mTOVKMc+GooI9Ve/vH8unwitwo7ORMVXhJeU6Q0X7zf3SjwDq2lBhn1DSuTsn2DbsNTiDv
- qrAaCvbsTsw+SZRwF85eG67eAwouYk+dnKmp1q57LDKMyzysij2oDKbcBlwB/TeX16p8+LxECv51a
- sjS9TInnipssssUDrHIvoTTXWcz7Y5wIngxDFwT8rPY3EggzLGfK5Zx2Q5S/N0FfmADmKknG/D8qG
- IcJE574D956tiUDKN4I+/g125ORR1v7bP+OIaayAvq17RP+qcAqkxc0x8iCYVCYDouDyNvWPGRhbL
- UO7mlBpjW9jK9e2fvZY9iw3QzIPGKtClKZWZmIExheXRvbiA8amVmZi5sYXl0b25AcHJpbWFyeWRh
- dGEuY29tPokCOQQTAQIAIwUCU4xmUAIbAwcLCQgHAwIBBhUIAgkKCwQWAgMBAh4BAheAAAoJEAAOa
- EEZVoIVzJoQALFCS6n/FHQS+hIzHIb56JbokhK0AFqoLVzLKzrnaeXhE5isWcVg0eoV2oTScIwUSU
- apy94if69tnUo4Q7YNt8/6yFM6hwZAxFjOXR0ciGE3Q+Z1zi49Ox51yjGMQGxlakV9ep4sV/d5a50
- M+LFTmYSAFp6HY23JN9PkjVJC4PUv5DYRbOZ6Y1+TfXKBAewMVqtwT1Y+LPlfmI8dbbbuUX/kKZ5d
- dhV2736fgyfpslvJKYl0YifUOVy4D1G/oSycyHkJG78OvX4JKcf2kKzVvg7/Rnv+AueCfFQ6nGwPn
- 0P91I7TEOC4XfZ6a1K3uTp4fPPs1Wn75X7K8lzJP/p8lme40uqwAyBjk+IA5VGd+CVRiyJTpGZwA0
- jwSYLyXboX+Dqm9pSYzmC9+/AE7lIgpWj+3iNisp1SWtHc4pdtQ5EU2SEz8yKvDbD0lNDbv4ljI7e
- flPsvN6vOrxz24mCliEco5DwhpaaSnzWnbAPXhQDWb/lUgs/JNk8dtwmvWnqCwRqElMLVisAbJmC0
- BhZ/Ab4sph3EaiZfdXKhiQqSGdK4La3OTJOJYZphPdGgnkvDV9Pl1QZ0ijXQrVIy3zd6VCNaKYq7B
- AKidn5g/2Q8oio9Tf4XfdZ9dtwcB+bwDJFgvvDYaZ5bI3ln4V3EyW5i2NfXazz/GA/I/ZtbsigCFc
- 8ftCBKZWZmIExheXRvbiA8amxheXRvbkBrZXJuZWwub3JnPokCOAQTAQIAIgUCWe8u6AIbAwYLCQg
- HAwIGFQgCCQoLBBYCAwECHgECF4AACgkQAA5oQRlWghUuCg/+Lb/xGxZD2Q1oJVAE37uW308UpVSD
- 2tAMJUvFTdDbfe3zKlPDTuVsyNsALBGclPLagJ5ZTP+Vp2irAN9uwBuacBOTtmOdz4ZN2tdvNgozz
- uxp4CHBDVzAslUi2idy+xpsp47DWPxYFIRP3M8QG/aNW052LaPc0cedYxp8+9eiVUNpxF4SiU4i9J
- DfX/sn9XcfoVZIxMpCRE750zvJvcCUz9HojsrMQ1NFc7MFT1z3MOW2/RlzPcog7xvR5ENPH19ojRD
- CHqumUHRry+RF0lH00clzX/W8OrQJZtoBPXv9ahka/Vp7kEulcBJr1cH5Wz/WprhsIM7U9pse1f1g
- Yy9YbXtWctUz8uvDR7shsQxAhX3qO7DilMtuGo1v97I/Kx4gXQ52syh/w6EBny71CZrOgD6kJwPVV
- AaM1LRC28muq91WCFhs/nzHozpbzcheyGtMUI2Ao4K6mnY+3zIuXPygZMFr9KXE6fF7HzKxKuZMJO
- aEZCiDOq0anx6FmOzs5E6Jqdpo/mtI8beK+BE7Va6ni7YrQlnT0i3vaTVMTiCThbqsB20VrbMjlhp
- f8lfK1XVNbRq/R7GZ9zHESlsa35ha60yd/j3pu5hT2xyy8krV8vGhHvnJ1XRMJBAB/UYb6FyC7S+m
- QZIQXVeAA+smfTT0tDrisj1U5x6ZB9b3nBg65kc=
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.58.3 (3.58.3-1.fc43) 
+	s=arc-20240116; t=1772657920; c=relaxed/simple;
+	bh=0utRhRmleW6SQkEzMjQyFcMc8Ew/geM3492MRgidt4k=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=ay0MB41jWlUbBO6X68zwEkNBr/AyJwTEjLt+rZHpbJTr3nejIfGd6I4iQF3Thtzs75gQGyxnVMi3X4ypHO8/n0S4zYIxte82bGm13YgQ7SPC2WVXHTc133v3oxGKZQVU1RlW+K2SQ2Zvq+7Q78Wzkqc89gI/i8d07YV1qD544QI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.72
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f72.google.com with SMTP id 006d021491bc7-679deba5e9fso100424117eaf.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 04 Mar 2026 12:58:38 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20230601; t=1772657918; x=1773262718;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=cA8/vyGSKpOPFaKzlotHOcV2J/W3EVIT8QaAApRLICc=;
+        b=Ig2USKW63ezFvQPr+zPVI8UIKwF2Jl+a1AfRY9J8YLTHbM2SOwhn8DCLdDzgzRl7C2
+         GttOHnrMnzyUaHvnEUUBEYuCUF1Y3SRrnbBofAOvZ8BW4rYP+uoBUcXUI9fMsCL2xpM3
+         mAwkRcl3EIaG3t/e6AJFywMnQ+9u36pYHROIOUepripWy3InO+5G5UGfnE7gXfOhGmsd
+         1BtqQ/lLdNTqyiwVcgySdNCyKwYMCTOQ0/aFQg80sc1M558fPw272RlEsQb3nRU6Qf8F
+         dDs5KdgL2Wx1FFSazpPTAQ5eE6MzNb7Sz2BwM4YpJbsTG3Ku3HHPM1GOS2LDgtULyKkg
+         9jTQ==
+X-Forwarded-Encrypted: i=1; AJvYcCWmL8YLWwLczOIC5XwDphpdqXaIL4LI8ktH3x4oO65m3TAp8YY6qlit1HZWsOjLRIYIjp+wX/nXWU9AAw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxFiTHxqoEjw+sIfBubw12SjpoTwZyW+sutFGGVIS/uCDzn6S+2
+	Ff8+tPPuVJB80+K5GeWUjDM3hL+zt90uvl9iFnjFgmDWXMaqgOL93mqekhcuU5+6Ksl3yW+LBJN
+	PLEkvVnSNfOS9ea1UjYa2bl+RIXo03lqfQywJuDMQbnd15hbzXk73e2K09KE=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+X-Received: by 2002:a05:6820:627:b0:679:ef25:3369 with SMTP id
+ 006d021491bc7-67b17744d3bmr2136729eaf.36.1772657918179; Wed, 04 Mar 2026
+ 12:58:38 -0800 (PST)
+Date: Wed, 04 Mar 2026 12:58:38 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <69a89cfe.a70a0220.b118c.0026.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_extend_dir
+From: syzbot <syzbot+67b90111784a3eac8c04@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Wed, 2026-02-25 at 12:58 -0500, Mike Snitzer wrote:
-> On Thu, Jan 08, 2026 at 12:13:19PM -0500, Jeff Layton wrote:
-> > Setting ->setlease() to a NULL pointer now has the same effect as
-> > setting it to simple_nosetlease(). Remove all of the setlease
-> > file_operations that are set to simple_nosetlease, and the function
-> > itself.
-> >=20
-> > Signed-off-by: Jeff Layton <jlayton@kernel.org>
-> > ---
-> >  fs/9p/vfs_dir.c        |  2 --
-> >  fs/9p/vfs_file.c       |  2 --
-> >  fs/ceph/dir.c          |  2 --
-> >  fs/ceph/file.c         |  1 -
-> >  fs/fuse/dir.c          |  1 -
-> >  fs/gfs2/file.c         |  2 --
-> >  fs/libfs.c             | 18 ------------------
-> >  fs/nfs/dir.c           |  1 -
-> >  fs/nfs/file.c          |  1 -
-> >  fs/smb/client/cifsfs.c |  1 -
-> >  fs/vboxsf/dir.c        |  1 -
-> >  fs/vboxsf/file.c       |  1 -
-> >  include/linux/fs.h     |  1 -
-> >  13 files changed, 34 deletions(-)
-> >=20
->=20
-> <snip>
->=20
-> > diff --git a/fs/libfs.c b/fs/libfs.c
-> > index 697c6d5fc12786c036f0086886297fb5cd52ae00..f1860dff86f2703266beecf=
-31e9d2667af7a9684 100644
-> > --- a/fs/libfs.c
-> > +++ b/fs/libfs.c
-> > @@ -1699,24 +1699,6 @@ struct inode *alloc_anon_inode(struct super_bloc=
-k *s)
-> >  }
-> >  EXPORT_SYMBOL(alloc_anon_inode);
-> > =20
-> > -/**
-> > - * simple_nosetlease - generic helper for prohibiting leases
-> > - * @filp: file pointer
-> > - * @arg: type of lease to obtain
-> > - * @flp: new lease supplied for insertion
-> > - * @priv: private data for lm_setup operation
-> > - *
-> > - * Generic helper for filesystems that do not wish to allow leases to =
-be set.
-> > - * All arguments are ignored and it just returns -EINVAL.
-> > - */
-> > -int
-> > -simple_nosetlease(struct file *filp, int arg, struct file_lease **flp,
-> > -		  void **priv)
-> > -{
-> > -	return -EINVAL;
-> > -}
-> > -EXPORT_SYMBOL(simple_nosetlease);
-> > -
-> >  /**
-> >   * simple_get_link - generic helper to get the target of "fast" symlin=
-ks
-> >   * @dentry: not used here
-> > diff --git a/fs/nfs/dir.c b/fs/nfs/dir.c
-> > index 71df279febf797880ded19e45528c3df4cea2dde..23a78a742b619dea8b76ddf=
-28f4f59a1c8a015e2 100644
-> > --- a/fs/nfs/dir.c
-> > +++ b/fs/nfs/dir.c
-> > @@ -66,7 +66,6 @@ const struct file_operations nfs_dir_operations =3D {
-> >  	.open		=3D nfs_opendir,
-> >  	.release	=3D nfs_closedir,
-> >  	.fsync		=3D nfs_fsync_dir,
-> > -	.setlease	=3D simple_nosetlease,
-> >  };
-> > =20
-> >  const struct address_space_operations nfs_dir_aops =3D {
-> > diff --git a/fs/nfs/file.c b/fs/nfs/file.c
-> > index d020aab40c64ebda30d130b6acee1b9194621457..9d269561961825f88529551=
-b0f0287920960ac62 100644
-> > --- a/fs/nfs/file.c
-> > +++ b/fs/nfs/file.c
-> > @@ -962,7 +962,6 @@ const struct file_operations nfs_file_operations =
-=3D {
-> >  	.splice_read	=3D nfs_file_splice_read,
-> >  	.splice_write	=3D iter_file_splice_write,
-> >  	.check_flags	=3D nfs_check_flags,
-> > -	.setlease	=3D simple_nosetlease,
-> >  	.fop_flags	=3D FOP_DONTCACHE,
-> >  };
-> >  EXPORT_SYMBOL_GPL(nfs_file_operations);
->=20
-> Hey Jeff,
->=20
-> I've noticed an NFS reexport regression in v6.19 and now v7.0-rc1
-> (similar but different due to your series that requires opt-in via
-> .setlease).
->=20
-> Bisect first pointed out this commit:
-> 10dcd5110678 nfs: properly disallow delegation requests on directories
->=20
-> And now with v7.0-rc1 its the fact that NFS doesn't provide .setlease
-> so lstat() on parent dir (of file that I touch) gets -EINVAL.
->=20
-> So its a confluence of NFS's dir delegations and your setlease changes.
->=20
-> If I reexport NFSv4.2 filesystem in terms of NFSv4.1, the regression
-> is seen by doing (lstat reproducer that gemini spit out for me is
-> attached):
->=20
-> $ touch /mnt/share41/test
-> $ strace ./lstat /mnt/share41
-> ...
-> lstat("/mnt/share41", 0x7ffec0d79920)   =3D -1 EINVAL (Invalid argument)
->=20
-> If I immediately re-run it works:
-> ...
-> lstat("/mnt/share41", {st_mode=3DS_IFDIR|0777, st_size=3D4096, ...}) =3D =
-0
->=20
-> I'm not sure what the proper fix is yet, but I feel like you've missed
-> that NFS itself can be (re)exported?
->=20
->=20
+Hello,
 
-My apologies. I missed seeing this last week.
+syzbot found the following issue on:
 
-That's a very simple reproducer! That's very strange behavior,
-especially since NFS4 does provide a setlease operation:
+HEAD commit:    4d349ee5c778 Merge tag 'arm64-fixes' of git://git.kernel.o..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=12e42d5a580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=93740e6c6567fcec
+dashboard link: https://syzkaller.appspot.com/bug?extid=67b90111784a3eac8c04
+compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
 
-const struct file_operations nfs4_file_operations =3D {
-	[...]
-	.setlease       =3D nfs4_setlease,
-	[...]
-};
+Unfortunately, I don't have any reproducer for this issue yet.
 
-I'm not sure why this would cause lstat() to return -EINVAL. What's
-happening on the wire when this occurs?
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/07750ef5994f/disk-4d349ee5.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/1dcac8a91bbe/vmlinux-4d349ee5.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/9818acdf7c39/bzImage-4d349ee5.xz
 
-I'll plan to take a look here soon either way.
---=20
-Jeff Layton <jlayton@kernel.org>
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+67b90111784a3eac8c04@syzkaller.appspotmail.com
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Tainted: G             L     
+------------------------------------------------------
+syz-executor/22669 is trying to acquire lock:
+ffff88807a2dea20 (&ocfs2_file_ip_alloc_sem_key){++++}-{4:4}, at: ocfs2_expand_inline_dir fs/ocfs2/dir.c:2846 [inline]
+ffff88807a2dea20 (&ocfs2_file_ip_alloc_sem_key){++++}-{4:4}, at: ocfs2_extend_dir+0x69a/0x4a60 fs/ocfs2/dir.c:3227
+
+but task is already holding lock:
+ffff88807a2ded80 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1028 [inline]
+ffff88807a2ded80 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_lookup_lock_orphan_dir+0xec/0x2e0 fs/ocfs2/namei.c:2132
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #1 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
+       down_write+0x96/0x200 kernel/locking/rwsem.c:1590
+       inode_lock include/linux/fs.h:1028 [inline]
+       ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2731
+       ocfs2_dio_end_io_write fs/ocfs2/aops.c:2305 [inline]
+       ocfs2_dio_end_io+0x543/0x1210 fs/ocfs2/aops.c:2403
+       dio_complete+0x25b/0x790 fs/direct-io.c:281
+       __blockdev_direct_IO+0x2cb0/0x32f0 fs/direct-io.c:1303
+       ocfs2_direct_IO+0x251/0x2c0 fs/ocfs2/aops.c:2440
+       generic_file_direct_write+0x1db/0x3e0 mm/filemap.c:4248
+       __generic_file_write_iter+0x11d/0x230 mm/filemap.c:4417
+       ocfs2_file_write_iter+0x1663/0x1ed0 fs/ocfs2/file.c:2476
+       iter_file_splice_write+0x9a1/0x10f0 fs/splice.c:736
+       do_splice_from fs/splice.c:936 [inline]
+       direct_splice_actor+0x101/0x160 fs/splice.c:1159
+       splice_direct_to_actor+0x53a/0xc70 fs/splice.c:1103
+       do_splice_direct_actor fs/splice.c:1202 [inline]
+       do_splice_direct+0x195/0x290 fs/splice.c:1228
+       do_sendfile+0x535/0x7d0 fs/read_write.c:1372
+       __do_sys_sendfile64 fs/read_write.c:1433 [inline]
+       __se_sys_sendfile64+0x144/0x1a0 fs/read_write.c:1419
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x14d/0xf80 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&ocfs2_file_ip_alloc_sem_key){++++}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3165 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+       validate_chain kernel/locking/lockdep.c:3908 [inline]
+       __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
+       lock_acquire+0xf0/0x2e0 kernel/locking/lockdep.c:5868
+       down_write+0x96/0x200 kernel/locking/rwsem.c:1590
+       ocfs2_expand_inline_dir fs/ocfs2/dir.c:2846 [inline]
+       ocfs2_extend_dir+0x69a/0x4a60 fs/ocfs2/dir.c:3227
+       ocfs2_prepare_dir_for_insert+0x34b0/0x5360 fs/ocfs2/dir.c:4345
+       __ocfs2_prepare_orphan_dir+0x144/0x310 fs/ocfs2/namei.c:2180
+       ocfs2_prepare_orphan_dir+0xf0/0x420 fs/ocfs2/namei.c:2225
+       ocfs2_unlink+0xba5/0x1bf0 fs/ocfs2/namei.c:963
+       vfs_unlink+0x272/0x6c0 fs/namei.c:5470
+       filename_unlinkat+0x3cd/0x610 fs/namei.c:5540
+       __do_sys_unlink fs/namei.c:5575 [inline]
+       __se_sys_unlink+0x2e/0x140 fs/namei.c:5572
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x14d/0xf80 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+                               lock(&ocfs2_file_ip_alloc_sem_key);
+                               lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+  lock(&ocfs2_file_ip_alloc_sem_key);
+
+ *** DEADLOCK ***
+
+4 locks held by syz-executor/22669:
+ #0: ffff8880434d4420 (sb_writers#34){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:493
+ #1: ffff88807a2ad100 (&type->i_mutex_dir_key#22/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1073 [inline]
+ #1: ffff88807a2ad100 (&type->i_mutex_dir_key#22/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2923 [inline]
+ #1: ffff88807a2ad100 (&type->i_mutex_dir_key#22/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2934 [inline]
+ #1: ffff88807a2ad100 (&type->i_mutex_dir_key#22/1){+.+.}-{4:4}, at: filename_unlinkat+0x2a7/0x610 fs/namei.c:5521
+ #2: ffff888079e23480 (&sb->s_type->i_mutex_key#43){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1028 [inline]
+ #2: ffff888079e23480 (&sb->s_type->i_mutex_key#43){+.+.}-{4:4}, at: vfs_unlink+0xed/0x6c0 fs/namei.c:5456
+ #3: ffff88807a2ded80 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1028 [inline]
+ #3: ffff88807a2ded80 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_lookup_lock_orphan_dir+0xec/0x2e0 fs/ocfs2/namei.c:2132
+
+stack backtrace:
+CPU: 1 UID: 0 PID: 22669 Comm: syz-executor Tainted: G             L      syzkaller #0 PREEMPT(full) 
+Tainted: [L]=SOFTLOCKUP
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 02/12/2026
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ print_circular_bug+0x2e1/0x300 kernel/locking/lockdep.c:2043
+ check_noncircular+0x12e/0x150 kernel/locking/lockdep.c:2175
+ check_prev_add kernel/locking/lockdep.c:3165 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+ validate_chain kernel/locking/lockdep.c:3908 [inline]
+ __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
+ lock_acquire+0xf0/0x2e0 kernel/locking/lockdep.c:5868
+ down_write+0x96/0x200 kernel/locking/rwsem.c:1590
+ ocfs2_expand_inline_dir fs/ocfs2/dir.c:2846 [inline]
+ ocfs2_extend_dir+0x69a/0x4a60 fs/ocfs2/dir.c:3227
+ ocfs2_prepare_dir_for_insert+0x34b0/0x5360 fs/ocfs2/dir.c:4345
+ __ocfs2_prepare_orphan_dir+0x144/0x310 fs/ocfs2/namei.c:2180
+ ocfs2_prepare_orphan_dir+0xf0/0x420 fs/ocfs2/namei.c:2225
+ ocfs2_unlink+0xba5/0x1bf0 fs/ocfs2/namei.c:963
+ vfs_unlink+0x272/0x6c0 fs/namei.c:5470
+ filename_unlinkat+0x3cd/0x610 fs/namei.c:5540
+ __do_sys_unlink fs/namei.c:5575 [inline]
+ __se_sys_unlink+0x2e/0x140 fs/namei.c:5572
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x14d/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fea5b19b887
+Code: 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48 83 c8 ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 b8 57 00 00 00 0f 05 <48> 3d 00 f0 ff ff 77 01 c3 48 c7 c2 e8 ff ff ff f7 d8 64 89 02 b8
+RSP: 002b:00007ffcb7171a28 EFLAGS: 00000206 ORIG_RAX: 0000000000000057
+RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007fea5b19b887
+RDX: 00007ffcb7171a50 RSI: 00007ffcb7171ae0 RDI: 00007ffcb7171ae0
+RBP: 00007ffcb7171ae0 R08: 00007ffcb7172ae0 R09: 00000000ffffffff
+R10: 0000000000000100 R11: 0000000000000206 R12: 00007ffcb7172bd0
+R13: 00007fea5b231f90 R14: 00000000001589a0 R15: 00007ffcb7173ca0
+ </TASK>
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
