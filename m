@@ -1,31 +1,31 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 032042264A9
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Mar 2026 01:10:11 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CDA1020E030
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Mar 2026 01:26:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773018614; cv=none; b=jl3l7u5gRXKtBvOa2q5CnRsyGHlMtxPWjE9L5ApmOnzxD6NPrAHNCHZR5IMmlxV8PSP/C74n6Bj7ZuAGYiEksfFSuPcM8OgwZopESTLpGe0sJPC5mtrWKYkWgVPZQeI2jKCw2EbjaUgIN6aM7F4vbNowMGgzdYC7K03IGD23gv0=
+	t=1773019617; cv=none; b=tsmbES8JxFNCCFb6nAgFZdhn27ZJAbQkqePWIJvadtPdnzoyZ1NIzgmyHyguuGqdRtUeXYt/sOLiY/lEslx5PNlFq2h3aHkYXexCv9wIEAQrxCuMwH4T93PJF2ctSlXuVYt0s9UQa+L2UkShw3GGw1hHamSU00viETCxpfhR84k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773018614; c=relaxed/simple;
-	bh=K/iIE95fpNlUGcb0cxSVFMk6L5akr42yuCq+7DENjQ8=;
+	s=arc-20240116; t=1773019617; c=relaxed/simple;
+	bh=SqxOem8BOmCwJuP836tnU+boZen0ttxD0rkyKGUyCjk=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=pK2Aq7Ff3WFzMiUSlgfN9xjLLcuSl9AFaa5wyI+vns7fx543uO6j+/MusUcslJPPuz4ihZtUu9I5G9gHjO/WE7ZSxHR2VZxpo/091Leq2v7PHLnl6tnAlATUVbmwb8kFk5rbuttDsLC8tt0D999UnLSLbPjfFqQ9h9V2MsSfKc0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=IuSjSVHw; arc=none smtp.client-ip=115.124.30.119
+	 In-Reply-To:Content-Type; b=PVRewG0XJ8lRJdSoMMkUQhDHEDPKeFE08JhHwbyveyhKE2sXZD5jCWAA9EJrJ4ewm0kfNq9WYtIMu/Wcgzl8sq5E+H78++D5bHauBTP2ePQTZ9nbgKgvgQHW83/iV0yTAg7UJVLfQ6CVkzGpcFrv0+AGEIY0rDUp6dbOaH9jrZs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=WAsANKat; arc=none smtp.client-ip=115.124.30.110
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="IuSjSVHw"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="WAsANKat"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1773018604; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=KzQuyG0MeSrqLktH4U8rGQDLdHUxmaAcRefS3jN8FPA=;
-	b=IuSjSVHwFysbzh2fnjy3Snm/EbRoKKnzOxx+hoCRdZWTiSQXesFjobh2Gx+xCQ0Zq98TD3FEoexZZcdqA8acVDbPvt4D/IARWVtJ+irwGCcJ5oju84jUPKz8pZSOqYQ2kG7EiXP0iHo4T5lfTiP9v90LhpI1Qsr6PnukaasBQ88=
-Received: from 30.221.129.90(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-Swn.7_1773018602 cluster:ay36)
+	t=1773019606; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=NOKId5WJiN7XNuQrTuohRqdblcfNtk8BfBVY0tUGN8E=;
+	b=WAsANKatdBtzel3dvn6PbCC+/jAdoMI6+8ypRzNlEL5AM8bUj0snpqJlwnqqtN3XJJYHpAT0JzGdc+mTWtn30EeNNKXDShN1JPC2nKbyVin0oBnDQMWxkO1BatxJMbmSHpkRXFUsu5udkIImEyTztTgy71RePCh9S+Mrs2TKdEI=
+Received: from 30.221.129.90(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-T4B7d_1773019604 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 09 Mar 2026 09:10:03 +0800
-Message-ID: <e622f6e5-baa4-4f7b-b35b-c5ad03db903b@linux.alibaba.com>
-Date: Mon, 9 Mar 2026 09:10:02 +0800
+          Mon, 09 Mar 2026 09:26:46 +0800
+Message-ID: <0ea3f3f9-8d3c-4ef4-b54b-c5594531f573@linux.alibaba.com>
+Date: Mon, 9 Mar 2026 09:26:44 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -33,43 +33,64 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: remove redundant error code assignment
-To: Alexey Velichayshiy <a.velichayshiy@ispras.ru>,
- akpm <akpm@linux-foundation.org>
-Cc: Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, lvc-project@linuxtesting.org,
- Mark Fasheh <mark@fasheh.com>
-References: <20260307234809.88421-1-a.velichayshiy@ispras.ru>
+Subject: Re: [PATCH 0/2] ocfs2/dlm: fix two bugs in dlm_match_regions()
+To: Wengang Wang <wen.gang.wang@oracle.com>,
+ Junrui Luo <moonafterrain@outlook.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Sunil Mushran <sunil.mushran@oracle.com>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ Yuhao Jiang <danisjiang@gmail.com>
+References: <SYBPR01MB7881A334D02ACEE5E0645801AF7BA@SYBPR01MB7881.ausprd01.prod.outlook.com>
+ <00EF98C8-5E0C-4778-9506-E6C2F54FB93B@oracle.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260307234809.88421-1-a.velichayshiy@ispras.ru>
+In-Reply-To: <00EF98C8-5E0C-4778-9506-E6C2F54FB93B@oracle.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
 
 
-On 3/8/26 7:47 AM, Alexey Velichayshiy wrote:
-> Removed the error assignment for variable 'ret' during correct code
-> execution. In subsequent execution, variable 'ret' is overwritten.
+On 3/8/26 12:06 AM, Wengang Wang wrote:
+> The two patches looks good to me.
 > 
-> Found by Linux Verification Center (linuxtesting.org) with SVACE.
+> Reviewed-by: Wengang Wang <wen.gang.wang@oracle.com <mailto:wen.gang.wang@oracle.com>>
 > 
-> Signed-off-by: Alexey Velichayshiy <a.velichayshiy@ispras.ru>
+> Just unrelated to these patches, looking at function o2hb_get_all_regions,
+> 
+> 2519 int o2hb_get_all_regions(char *region_uuids, u8 max_regions)
+> 2520 {
+> 2521         struct o2hb_region *reg;
+> 2522         int numregs = 0;
+> 2523         char *p;
+> 2524
+> 2525         spin_lock(&o2hb_live_lock);
+> 2526
+> 2527         p = region_uuids;
+> 2528         list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
+> 2529                 if (reg->hr_item_dropped)
+> 2530                         continue;
+> 2531
+> 2532                 mlog(0, "Region: %s\n", config_item_name(&reg->hr_item));
+> 2533                 if (numregs < max_regions) {
+> 2534                         memcpy(p, config_item_name(&reg->hr_item),
+> 2535                                O2HB_MAX_REGION_NAME_LEN);
+> 2536                         p += O2HB_MAX_REGION_NAME_LEN;
+> 2537                 }
+> 2538                 numregs++;
+> 2539         }
+> 2540
+> 2541         spin_unlock(&o2hb_live_lock);
+> 2542
+> 2543         return numregs;
+> 2544 }
+> 
+> It seems that ‘numregs’ can mismatch with ‘region_uuids' (line 2538 VS line 2534) due to the limitation of ‘max_regions’
+> though calling o2hb_get_all_regions() with max_regions being O2NM_MAX_REGIONS looks good.
+> 
 
-Acked-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/dlm/dlmmaster.c | 1 -
->  1 file changed, 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-> index eb62724bbe9b..93eff38fdadd 100644
-> --- a/fs/ocfs2/dlm/dlmmaster.c
-> +++ b/fs/ocfs2/dlm/dlmmaster.c
-> @@ -930,7 +930,6 @@ struct dlm_lock_resource * dlm_get_lock_resource(struct dlm_ctxt *dlm,
->  	if (blocked)
->  		goto wait;
->  
-> -	ret = -EINVAL;
->  	dlm_node_iter_init(mle->vote_map, &iter);
->  	while ((nodenum = dlm_node_iter_next(&iter)) >= 0) {
->  		ret = dlm_do_master_request(res, mle, nodenum);
+Yes, it looks wried here.
+So why not fix it by moving 'numregs++' into if clause?
+
+Thanks,
+Joseph
 
