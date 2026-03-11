@@ -1,201 +1,170 @@
-Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
+Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5905E3B27F2
-	for <ocfs2-devel@lists.linux.dev>; Wed, 11 Mar 2026 07:44:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.111
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 59DD740DFCB
+	for <ocfs2-devel@lists.linux.dev>; Wed, 11 Mar 2026 07:52:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.5
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773215052; cv=none; b=qkyz4NVeKqjt08L7rGFEDW1YX7zZ36mHEZ2D8ONqKlTMYj3JWr8M7vc8c5FUOJwtQFvsrxZI1iCQDEPMdLxRjBrHuHg9UFAQwEuwfqtqGFyjcinNJSRI8SBJOhajrEo2ZDm9SYjDKO0Ykkdu7hC+13CLHSZ9NDvQHGKwj5Y8tpA=
+	t=1773215546; cv=none; b=TaRHRAFovOwITyp/IxNUCZBwNwUN06YtTEnS5YXiEbemCunSdvbYG7e5K+NaumkB+ROpOfpHJnYyEJ0jebvlNmwaN6m0RIH43MkGg1/HmpRmbheX7CDrw/HHtt/RnMQ0V9zPXe6Y8StFso6QRx7GLrGX9S9+Iffn1ku582PGjvs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773215052; c=relaxed/simple;
-	bh=NIMb2Ha9z4OBZNZssGotnt54k13FZQC/Vh0imq6oW04=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=JanihBV//QYOGgmdhY7wwKJAc/9vbAfDerJPitfOiTWoFhywv6u89Jgl0cX8l7OZYpnJ07jJKZHscYE9caCwtCH0DC10WTYm9Ob3xQVM64A9h05pK7/M+y7+w8+iJr3Im4Ia+53so+kGeiOnXlJPlUSlj1Qeka5d6H17ZKCTexQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Qkm4oEST; arc=none smtp.client-ip=115.124.30.111
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1773215546; c=relaxed/simple;
+	bh=gb5EWYjWhjalqlv+0aCnFuFY4MyyW6XdhH8rsxJQCfE=;
+	h=Date:From:To:Subject:Content-Type:MIME-Version:Message-ID; b=sHWCJzS2iVFqIlTJaNsGXbpvPh2UPD+66bOpgnHBj1o2Kumwzba9X7yb7PQ5LZFSvZMHO+sqVdgno98pRAU5Iu5JZoDczseTfQxaduV7ZbOCeOwsQZbtl/DCUOU431rS/W+YbgVgNH6FqLOCl3p0AebCA6XurzJlFykEkVBEkh0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=NvVCSfYi; arc=none smtp.client-ip=220.197.31.5
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Qkm4oEST"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1773215039; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=BHOuC1JBU7KnsI8dweOO0l0v+lOMWW+qGPhK43Wv/WM=;
-	b=Qkm4oESTDnyeKP2P+pQ+84Jqte1PS01AAoiIv7AMoFp13wEBiYC3Iw4p30uneZqbzm/eXmcw8L4H9z1HP3eedzRlmzhksHX2X5IpcgDibatmVKXHkhe/lvVeqw5CvlDn9McJMZudt8VIpheepbScWaAfSgXPzjuksuL0Z1trt6Q=
-Received: from 30.221.129.71(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-j4Nn3_1773215037 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 11 Mar 2026 15:43:58 +0800
-Message-ID: <6a0a893b-10c4-4613-829d-c6ea00cc64a1@linux.alibaba.com>
-Date: Wed, 11 Mar 2026 15:43:57 +0800
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="NvVCSfYi"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
+	Message-ID; bh=gb5EWYjWhjalqlv+0aCnFuFY4MyyW6XdhH8rsxJQCfE=; b=N
+	vVCSfYi6LL2CV0Y3/kmJJZOGoOKqzIUJ5I8i18mA+KlcQywV32uxT3xmVN8M+6mf
+	LF6NHkGPtbs30GGBs5islxS6ROGnnknRfkSgTPX6WI8kuFnReqgaSqUkPphCd/4Q
+	6hf3LR9iJgi8NvmUPfTJgTPWnIljBPGwVP3u1GV2Tw=
+Received: from luckd0g$163.com ( [183.205.138.18] ) by
+ ajax-webmail-wmsvr-40-127 (Coremail) ; Wed, 11 Mar 2026 15:51:38 +0800
+ (CST)
+Date: Wed, 11 Mar 2026 15:51:38 +0800 (CST)
+From: "Jianzhou Zhao" <luckd0g@163.com>
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: possible deadlock in ocfs2_wipe_inode
+X-Priority: 3
+X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
+ 20251222(83accb85) Copyright (c) 2002-2026 www.mailtech.cn 163com
+X-NTES-SC: AL_Qu2cAf6aukwi7imaZ+kfmU4Rhug7UMO3uf8n24JfPJ9wjA/p2yseUUF9NmPf88CwFTuXvxiGfTNO1/ZAU5Bifrwx9tURzJMRXSpwxeJsKK6NHQ==
+Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=GBK
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/1] ocfs2: split transactions in dio completion to avoid
- credit exhaustion
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: jack@suse.cz, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <20260310102413.12501-1-heming.zhao@suse.com>
- <20260310102413.12501-2-heming.zhao@suse.com>
- <5be5a109-477c-4c42-919b-1de0707e7af6@linux.alibaba.com>
- <2jftdgkyazhvzekghumby7ml72qsczwdqmvedb73i2rrprwvxd@rofsjquqnxqh>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <2jftdgkyazhvzekghumby7ml72qsczwdqmvedb73i2rrprwvxd@rofsjquqnxqh>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Message-ID: <3d199d9e.68fb.19cdbe142b2.Coremail.luckd0g@163.com>
+X-Coremail-Locale: zh_CN
+X-CM-TRANSID:fygvCgD319ELH7FpKr52AA--.38837W
+X-CM-SenderInfo: poxfyvkqj6il2tof0z/xtbC9gqQG2mxHwq5+gAA35
+X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
 
-
-
-On 3/11/26 1:43 PM, Heming Zhao wrote:
-> On Wed, Mar 11, 2026 at 09:48:12AM +0800, Joseph Qi wrote:
->>
->>
->> On 3/10/26 6:24 PM, Heming Zhao wrote:
->>> During ocfs2 dio operations, JBD2 may report warnings via following call trace:
->>> ocfs2_dio_end_io_write
->>>  ocfs2_mark_extent_written
->>>   ocfs2_change_extent_flag
->>>    ocfs2_split_extent
->>>     ocfs2_try_to_merge_extent
->>>      ocfs2_extend_rotate_transaction
->>>       ocfs2_extend_trans
->>>        jbd2__journal_restart
->>>         start_this_handle
->>>          output: JBD2: kworker/6:2 wants too many credits credits:5450 rsv_credits:0 max:5449
->>>
->>> To prevent exceeding the credits limit, modify ocfs2_dio_end_io_write() to
->>> handle each extent in a separate transaction.
->>>
->>> Additionally, relocate ocfs2_del_inode_from_orphan(). The orphan inode should
->>> only be removed from the orphan list after the extent tree update is complete.
->>> this ensures that if a crash occurs in the middle of extent tree updates, we
->>> won't leave stale blocks beyond EOF.
->>>
->>> This patch also removes the only call to ocfs2_assure_trans_credits(), which
->>> was introduced by commit be346c1a6eeb ("ocfs2: fix DIO failure due to
->>> insufficient transaction credits").
->>>
->>> Finally, thanks to Jans for providing the bug fix prototype and suggestions.
->>>
->>> Suggested-by: Jan Kara <jack@suse.cz>
->>> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
->>> ---
->>>  fs/ocfs2/aops.c | 56 ++++++++++++++++++++-----------------------------
->>>  1 file changed, 23 insertions(+), 33 deletions(-)
->>>
->>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->>> index 09146b43d1f0..50b4d474b88c 100644
->>> --- a/fs/ocfs2/aops.c
->>> +++ b/fs/ocfs2/aops.c
->>> @@ -2294,18 +2294,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>  		goto out;
->>>  	}
->>>  
->>> -	/* Delete orphan before acquire i_rwsem. */
->>> -	if (dwc->dw_orphaned) {
->>> -		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
->>> -
->>> -		end = end > i_size_read(inode) ? end : 0;
->>> -
->>> -		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
->>> -				!!end, end);
->>> -		if (ret < 0)
->>> -			mlog_errno(ret);
->>> -	}
->>> -
->>>  	down_write(&oi->ip_alloc_sem);
->>>  	di = (struct ocfs2_dinode *)di_bh->b_data;
->>>  
->>> @@ -2326,23 +2314,18 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>  
->>>  	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
->>>  
->>> -	handle = ocfs2_start_trans(osb, credits);
->>> -	if (IS_ERR(handle)) {
->>> -		ret = PTR_ERR(handle);
->>> -		mlog_errno(ret);
->>> -		goto unlock;
->>> -	}
->>> -	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
->>> -				      OCFS2_JOURNAL_ACCESS_WRITE);
->>> -	if (ret) {
->>> -		mlog_errno(ret);
->>> -		goto commit;
->>> -	}
->>> -
->>>  	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
->>> -		ret = ocfs2_assure_trans_credits(handle, credits);
->>> -		if (ret < 0) {
->>> +		handle = ocfs2_start_trans(osb, credits);
->>> +		if (IS_ERR(handle)) {
->>> +			ret = PTR_ERR(handle);
->>> +			mlog_errno(ret);
->>> +			break;
->>> +		}
->>> +		ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
->>> +					      OCFS2_JOURNAL_ACCESS_WRITE);
->>> +		if (ret) {
->>>  			mlog_errno(ret);
->>> +			ocfs2_commit_trans(osb, handle);
->>>  			break;
->>>  		}
->>>  		ret = ocfs2_mark_extent_written(inode, &et, handle,
->>> @@ -2351,19 +2334,26 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>  						meta_ac, &dealloc);
->>>  		if (ret < 0) {
->>>  			mlog_errno(ret);
->>> +			ocfs2_commit_trans(osb, handle);
->>>  			break;
->>>  		}
->>> +		ocfs2_commit_trans(osb, handle);
->>>  	}
->>>  
->>> -	if (end > i_size_read(inode)) {
->>> -		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
->>
->> dw_orphaned is only set if it allocates new clusters, see
->> ocfs2_dio_get_block():
->>
->> 	if (ocfs2_clusters_for_bytes(inode->i_sb, pos + total_len) >
->> 	    ocfs2_clusters_for_bytes(inode->i_sb, i_size_read(inode)) &&
->> 	    !dwc->dw_orphaned) {
->> 		...
->> 		dwc->dw_orphaned = 1;
->> 	}
->>
->> So in case extending a file within an existing cluster, it leaves
->> dwc->dw_orphaned = 0. Then i_size won't be updated here and the written
->> data is lost.
->>
->> Thanks,
->> Joseph
-> 
-> The cases corresponding to the logic above are:
-> - 'if' (dw_orphaned:1): an extending write where (end > "inode old size")
-> - 'else' (dw_orphaned:0): this should cover: overwrite, sparse/hole file write.
->   where the i_size doesn't need to be changed. 
-> 
-> Furthermore, code at the beginning of ocfs2_dio_end_io_write() checks
-> if (end <= i_size).  if the condition is met, the code jumps directly to the
-> 'out' label, no opportunity to update i_size.
-> 
-> ```ocfs2_dio_end_io_write()
-> 
->         if (list_empty(&dwc->dw_zero_list) &&
->             end <= i_size_read(inode) &&
->             !dwc->dw_orphaned)
->                 goto out;
-> ```
-
-No, I am saying the case
-end > i_size_read(inode) && !dwc->dw_orphaned
-
-For example, cluster_size = 1M and i_size = 4k, then a DIO write at
-offset 4k with len 4k, so end is 8k.
-In this case ocfs2_clusters_for_bytes() is always 1 before and after.
-
-Thanks,
-Joseph
-
+CgpTdWJqZWN0OiBbQlVHXSBvY2ZzMjogV0FSTklORzogcG9zc2libGUgY2lyY3VsYXIgbG9ja2lu
+ZyBkZXBlbmRlbmN5IGluIG9jZnMyX2V2aWN0X2lub2RlCgpEZWFyIE1haW50YWluZXJzLAoKV2Ug
+YXJlIHdyaXRpbmcgdG8gcmVwb3J0IGEgcG9zc2libGUgY2lyY3VsYXIgbG9ja2luZyBkZXBlbmRl
+bmN5IHZ1bG5lcmFiaWxpdHkgaW4gdGhlIGBvY2ZzMmAgc3Vic3lzdGVtLCBkZXRlY3RlZCBieSB0
+aGUgTG9ja2RlcCB2YWxpZGF0aW9uIG1lY2hhbmlzbSBhcyB3ZWxsIGFzIG91ciBjdXN0b20gZnV6
+emluZyB0b29sLCBSYWNlUGlsb3QuIFRoZSBidWcgaW52b2x2ZXMgYW4gQUJCQSBkZWFkbG9jayBj
+b25jZXJuaW5nIHRoZSBzeXN0ZW0gaW5vZGUgYWxsb2NhdGlvbnMsIGBmc19yZWNsYWltYCwgYW5k
+IGBvc2ItPm5mc19zeW5jX3J3bG9ja2AuIFdlIG9ic2VydmVkIHRoaXMgb24gdGhlIExpbnV4IGtl
+cm5lbCB2ZXJzaW9uIDYuMTguMC0wODY5MS1nMjA2MWYxOGFkNzZlLWRpcnR5LgoKQ2FsbCBUcmFj
+ZSAmIENvbnRleHQKPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT09PT09PT09PT09PT09CldBUk5JTkc6IHBvc3NpYmxlIGNpcmN1bGFyIGxvY2tpbmcg
+ZGVwZW5kZW5jeSBkZXRlY3RlZAprc3dhcGQxLzk1IGlzIHRyeWluZyB0byBhY3F1aXJlIGxvY2s6
+CmZmZmY4ODgwMDA1ODg5YzAgKCZvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5W09SUEhBTl9ESVJfU1lT
+VEVNX0lOT0RFXSl7Ky4rLn0tezQ6NH0sIGF0OiBpbm9kZV9sb2NrIGluY2x1ZGUvbGludXgvZnMu
+aDoxMDI3IFtpbmxpbmVdCmZmZmY4ODgwMDA1ODg5YzAgKCZvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5
+W09SUEhBTl9ESVJfU1lTVEVNX0lOT0RFXSl7Ky4rLn0tezQ6NH0sIGF0OiBvY2ZzMl93aXBlX2lu
+b2RlKzB4MmRmLzB4MTM4MCBmcy9vY2ZzMi9pbm9kZS5jOjg1MgoKYnV0IHRhc2sgaXMgYWxyZWFk
+eSBob2xkaW5nIGxvY2s6CmZmZmY4ODgwNTMzYWNiZDAgKCZvc2ItPm5mc19zeW5jX3J3bG9jayl7
+LisuK30tezQ6NH0sIGF0OiBvY2ZzMl9uZnNfc3luY19sb2NrKzB4ZTkvMHgyZjAgZnMvb2NmczIv
+ZGxtZ2x1ZS5jOjI4NzUKCndoaWNoIGxvY2sgYWxyZWFkeSBkZXBlbmRzIG9uIHRoZSBuZXcgbG9j
+ay4KCnRoZSBleGlzdGluZyBkZXBlbmRlbmN5IGNoYWluIChpbiByZXZlcnNlIG9yZGVyKSBpczoK
+Ci0+ICMzICgmb3NiLT5uZnNfc3luY19yd2xvY2spey4rLit9LXs0OjR9OgogICAgICAgZG93bl9y
+ZWFkKzB4OWIvMHg0NjAga2VybmVsL2xvY2tpbmcvcndzZW0uYzoxNTM3CiAgICAgICBvY2ZzMl9u
+ZnNfc3luY19sb2NrKzB4ZTkvMHgyZjAgZnMvb2NmczIvZGxtZ2x1ZS5jOjI4NzUKICAgICAgIG9j
+ZnMyX2RlbGV0ZV9pbm9kZSBmcy9vY2ZzMi9pbm9kZS5jOjExMDYgW2lubGluZV0KICAgICAgIG9j
+ZnMyX2V2aWN0X2lub2RlKzB4MmM3LzB4MTQzMCBmcy9vY2ZzMi9pbm9kZS5jOjEyOTcKICAgICAg
+IGV2aWN0KzB4M2IzLzB4YWEwIGZzL2lub2RlLmM6ODUwCiAgICAgICAuLi4KICAgICAgIGJhbGFu
+Y2VfcGdkYXQrMHhiNzUvMHgxYTIwIG1tL3Ztc2Nhbi5jOjcyNzAKICAgICAgIGtzd2FwZCsweDU3
+Ni8weGFjMCBtbS92bXNjYW4uYzo3NTM3CgotPiAjMiAoZnNfcmVjbGFpbSl7Ky4rLn0tezA6MH06
+CiAgICAgICBfX2ZzX3JlY2xhaW1fYWNxdWlyZSBtbS9wYWdlX2FsbG9jLmM6NDI2NCBbaW5saW5l
+XQogICAgICAgZnNfcmVjbGFpbV9hY3F1aXJlKzB4MTAyLzB4MTUwIG1tL3BhZ2VfYWxsb2MuYzo0
+Mjc4CiAgICAgICAuLi4KICAgICAgIHNsYWJfYWxsb2Nfbm9kZSBtbS9zbHViLmM6NTIzNCBbaW5s
+aW5lXQogICAgICAga21hbGxvY19ub3Byb2YgaW5jbHVkZS9saW51eC9zbGFiLmg6OTU3IFtpbmxp
+bmVdCiAgICAgICBvY2ZzMl9yZXNlcnZlX25ld19tZXRhZGF0YV9ibG9ja3MrMHhlZC8weGI1MCBm
+cy9vY2ZzMi9zdWJhbGxvYy5jOjk2OAogICAgICAgb2NmczJfbWtub2QrMHhhNjUvMHgyNGUwIGZz
+L29jZnMyL25hbWVpLmM6MzUwCiAgICAgICBvY2ZzMl9jcmVhdGUrMHgxODAvMHg0MzAgZnMvb2Nm
+czIvbmFtZWkuYzo2NzYKICAgICAgIC4uLgogICAgICAgZG9fc3lzX29wZW4gZnMvb3Blbi5jOjE0
+MzYgW2lubGluZV0KICAgICAgIF9feDY0X3N5c19vcGVuYXQrMHgxM2YvMHgxZjAgZnMvb3Blbi5j
+OjE0NDcKCi0+ICMxICgmb2NmczJfc3lzZmlsZV9sb2NrX2tleVtJTk9ERV9BTExPQ19TWVNURU1f
+SU5PREVdKXsrLisufS17NDo0fToKICAgICAgIGRvd25fd3JpdGUrMHg5MS8weDIwMCBrZXJuZWwv
+bG9ja2luZy9yd3NlbS5jOjE1OTAKICAgICAgIGlub2RlX2xvY2sgaW5jbHVkZS9saW51eC9mcy5o
+OjEwMjcgW2lubGluZV0KICAgICAgIG9jZnMyX3JlbW92ZV9pbm9kZSsweDE1ZS8weDhlMCBmcy9v
+Y2ZzMi9pbm9kZS5jOjczMQogICAgICAgb2NmczJfd2lwZV9pbm9kZSsweDY1Mi8weDEzODAgZnMv
+b2NmczIvaW5vZGUuYzo4OTQKICAgICAgIG9jZnMyX2RlbGV0ZV9pbm9kZSBmcy9vY2ZzMi9pbm9k
+ZS5jOjExNTUgW2lubGluZV0KICAgICAgIG9jZnMyX2V2aWN0X2lub2RlKzB4NjllLzB4MTQzMCBm
+cy9vY2ZzMi9pbm9kZS5jOjEyOTcKICAgICAgIC4uLgoKLT4gIzAgKCZvY2ZzMl9zeXNmaWxlX2xv
+Y2tfa2V5W09SUEhBTl9ESVJfU1lTVEVNX0lOT0RFXSl7Ky4rLn0tezQ6NH06CiAgICAgICBsb2Nr
+X2FjcXVpcmUrMHgxN2IvMHgzMzAga2VybmVsL2xvY2tpbmcvbG9ja2RlcC5jOjU4MjUKICAgICAg
+IGRvd25fd3JpdGUrMHg5MS8weDIwMCBrZXJuZWwvbG9ja2luZy9yd3NlbS5jOjE1OTAKICAgICAg
+IGlub2RlX2xvY2sgaW5jbHVkZS9saW51eC9mcy5oOjEwMjcgW2lubGluZV0KICAgICAgIG9jZnMy
+X3dpcGVfaW5vZGUrMHgyZGYvMHgxMzgwIGZzL29jZnMyL2lub2RlLmM6ODUyCiAgICAgICBvY2Zz
+Ml9kZWxldGVfaW5vZGUgZnMvb2NmczIvaW5vZGUuYzoxMTU1IFtpbmxpbmVdCiAgICAgICBvY2Zz
+Ml9ldmljdF9pbm9kZSsweDY5ZS8weDE0MzAgZnMvb2NmczIvaW5vZGUuYzoxMjk3CiAgICAgICAu
+Li4KICAgICAgIGtzd2FwZCsweDU3Ni8weGFjMCBtbS92bXNjYW4uYzo3NTM3CgpvdGhlciBpbmZv
+IHRoYXQgbWlnaHQgaGVscCB1cyBkZWJ1ZyB0aGlzOgoKQ2hhaW4gZXhpc3RzIG9mOgogICZvY2Zz
+Ml9zeXNmaWxlX2xvY2tfa2V5W09SUEhBTl9ESVJfU1lTVEVNX0lOT0RFXSAtLT4gZnNfcmVjbGFp
+bSAtLT4gJm9zYi0+bmZzX3N5bmNfcndsb2NrCgogUG9zc2libGUgdW5zYWZlIGxvY2tpbmcgc2Nl
+bmFyaW86CgogICAgICAgQ1BVMCAgICAgICAgICAgICAgICAgICAgQ1BVMQogICAgICAgLS0tLSAg
+ICAgICAgICAgICAgICAgICAgLS0tLQogIHJsb2NrKCZvc2ItPm5mc19zeW5jX3J3bG9jayk7CiAg
+ICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsb2NrKGZzX3JlY2xhaW0pOwogICAgICAgICAg
+ICAgICAgICAgICAgICAgICAgICAgbG9jaygmb3NiLT5uZnNfc3luY19yd2xvY2spOwogIGxvY2so
+Jm9jZnMyX3N5c2ZpbGVfbG9ja19rZXlbT1JQSEFOX0RJUl9TWVNURU1fSU5PREVdKTsKCiAqKiog
+REVBRExPQ0sgKioqCj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
+PT09PT09PT09PT09PT09PT09PT09PQoKRXhlY3V0aW9uIEZsb3cgJiBDb2RlIENvbnRleHQKVGhl
+IGBrc3dhcGRgIHRocmVhZCBwcm9jZXNzZXMgZXZpY3Rpb24gbG9naWMgZm9yIHVudXNlZCBpbm9k
+ZXMgaW4gdGhlIGRjYWNoZSBxdWV1ZSBob2xkaW5nIHRoZSBgZnNfcmVjbGFpbWAgbG9jayBjb250
+ZXh0cy4gV2hlbiBhIHVubGlua2VkIGlub2RlIGVudGVycyBgb2NmczJfZXZpY3RfaW5vZGUoKWAs
+IGl0IGNhbGxzIGludG8gYG9jZnMyX2RlbGV0ZV9pbm9kZSgpYC4gVGhlIGRlbGV0aW9uIHBhdGh3
+YXkgYXR0ZW1wdHMgdG8gc2VjdXJlbHkgY2xlYXIgdHJhY2VzIG9mIHRoZSBpbm9kZSBnbG9iYWxs
+eSBieSBsb2NraW5nIGludGVybmFsIHN0cnVjdHVyZSBtdXRleGVzIGluY2x1ZGluZyB0aGUgYG5m
+c19zeW5jX3J3bG9ja2AgYW5kIGBPUlBIQU5fRElSX1NZU1RFTV9JTk9ERWAgbG9jazoKYGBgYwov
+LyBmcy9vY2ZzMi9pbm9kZS5jCnN0YXRpYyB2b2lkIG9jZnMyX2RlbGV0ZV9pbm9kZShzdHJ1Y3Qg
+aW5vZGUgKmlub2RlKQp7CgkuLi4KCXN0YXR1cyA9IG9jZnMyX25mc19zeW5jX2xvY2soT0NGUzJf
+U0IoaW5vZGUtPmlfc2IpLCAwKTsgLy8gPC0tIFRha2VzIG5mc19zeW5jX3J3bG9jawoJLi4uCglz
+dGF0dXMgPSBvY2ZzMl93aXBlX2lub2RlKGlub2RlLCBkaV9iaCk7CgkuLi4KfQoKc3RhdGljIGlu
+dCBvY2ZzMl93aXBlX2lub2RlKHN0cnVjdCBpbm9kZSAqaW5vZGUsIHN0cnVjdCBidWZmZXJfaGVh
+ZCAqZGlfYmgpCnsKCS4uLgoJCWlub2RlX2xvY2sob3JwaGFuX2Rpcl9pbm9kZSk7IC8vIDwtLSBU
+YWtlcyBvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5W09SUEhBTl9ESVJdCgkJc3RhdHVzID0gb2NmczJf
+aW5vZGVfbG9jayhvcnBoYW5fZGlyX2lub2RlLCAmb3JwaGFuX2Rpcl9iaCwgMSk7CgkuLi4KfQpg
+YGAKQ29uY3VycmVudGx5LCBhbm90aGVyIHRocmVhZCBjb3VsZCBpbnZva2UgZmlsZSBjcmVhdGlv
+biAoYG9jZnMyX2NyZWF0ZWAgLi4uIGBvY2ZzMl9yZXNlcnZlX25ld19tZXRhZGF0YV9ibG9ja3Ng
+KSwgcmVxdWlyaW5nIG1lbW9yeS4gSW4gdGhpcyBwYXRoLCBpZiBpdCBwYXVzZXMgYWxsb2NhdGlv
+biwgaXQgY2FsbHMgYGttYWxsb2NgIGludm9raW5nIGBmc19yZWNsYWltX2FjcXVpcmVgLCBtYWtp
+bmcgYCZvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5YCAtPiBgZnNfcmVjbGFpbWAgZGVwZW5kZW50IGxv
+b3BzIHNpbmNlIHNvbWUgbWV0YWRhdGEgbW9kaWZpY2F0aW9ucyBuYXR1cmFsbHkgZ3Jhc3Agc3lz
+dGVtIGZpbGUgY2x1c3RlciBsb2NrcyB0byBwcm90ZWN0IGFsbG9jIHN0cnVjdHVyZXMuCgpSb290
+IENhdXNlIEFuYWx5c2lzCkEgY2lyY3VsYXIgbG9ja2luZyBkZWFkbG9jayBleGlzdHMgYmVjYXVz
+ZSBgb2NmczJfZXZpY3RfaW5vZGVgIGlzIHRyaWdnZXJlZCBkaXJlY3RseSB1bmRlciBtZW1vcnkg
+YGZzX3JlY2xhaW1gIHNocmlua2VyIHBhdGh3YXlzIChlLmcuLCBmcm9tIGBrc3dhcGRgKS4gV2hl
+biBga3N3YXBkYCBmcmVlcyB0aGUgZGVudHJ5IHN0cnVjdHVyZXMsIGBldmljdGAgaXMgcHJvY2Vz
+c2VkIHN5bmNocm9ub3VzbHkgaW4gdGhlIHJlY2xhaW0gY29udGV4dCwgd2hpY2ggaW4gT0NGUzIg
+dGFrZXMgY29tcGxleCBzdWJzeXN0ZW0gbG9ja3Mgc3Bhbm5pbmcgRExNIGxvY2tzIGxpa2UgYG5m
+c19zeW5jX3J3bG9ja2AgYW5kIHZhcmlvdXMgYHN5c2ZpbGVfbG9ja19rZXlgIHZhcmlhbnRzIGlu
+dGVuZGVkIHRvIG9yY2hlc3RyYXRlIGdsb2JhbCBvcnBoYW4gY2xlYW51cHMuIElmIGFueSBvdGhl
+ciBhcmJpdHJhcnkgdGhyZWFkIG9wZXJhdGluZyBvbiBjcmVhdGlvbiBwYXRod2F5cyBzbGVlcHMg
+YWNxdWlyaW5nIHBoeXNpY2FsIGJsb2NrIHBhZ2VzIChgZnNfcmVjbGFpbWAgbmVlZGVkKSwgdGhl
+IHBhdGhzIHdpbGwgaW50ZXJ0d2luZSByZXN1bHRpbmcgaW4gbG9jayBjeWNsZXMuClVuZm9ydHVu
+YXRlbHksIHdlIHdlcmUgdW5hYmxlIHRvIGdlbmVyYXRlIGEgcmVwcm9kdWNlciBmb3IgdGhpcyBi
+dWcuCgpQb3RlbnRpYWwgSW1wYWN0ClRoaXMgY2lyY3VsYXIgZGVwZW5kZW5jeSBjYW4gc3RhbGwg
+dGhlIGBrc3dhcGRgIGRhZW1vbiBnbG9iYWxseSBoYWx0aW5nIG1lbW9yeSBtYW5hZ2VtZW50IHRh
+c2tzLCBsZWFkaW5nIHRvIHN5c3RlbSBPT00gKE91dCBvZiBNZW1vcnkpIHBhbmljcyBhbmQgZmls
+ZXN5c3RlbSBsb2NrLXVwcy4gVGhpcyBjb25zdGl0dXRlcyBhIHBlcnNpc3RlbnQgbG9jYWwgRGVu
+aWFsIG9mIFNlcnZpY2UgKERvUykgY2FwYWJpbGl0eSB0cmlnZ2VyZWQgYXJiaXRyYXJpbHkgdW5k
+ZXIgbG93LWZyZWUgbWVtb3J5IHdvcmtsb2FkcyB3aXRoIG9ycGhhbmVkIGlub2Rlcy4KClByb3Bv
+c2VkIEZpeApUbyBtaXRpZ2F0ZSB0aGUgZGVhZGxvY2ssIGBvY2ZzMl9ldmljdF9pbm9kZWAgbXVz
+dCBkZWZlciB0aGUgaGVhdnkgYG9jZnMyX2RlbGV0ZV9pbm9kZWAgb3BlcmF0aW9ucyB0byBhIHdv
+cmtlciBxdWV1ZSBvdXRzaWRlIHRoZSBtZW1vcnkgcmVjbGFpbSBjb250ZXh0IGlmIHRoZSBjdXJy
+ZW50IHByb2Nlc3MgaXMgYSBtZW1vcnkgcmVjbGFpbWVyIChzdWNoIGFzIGBrc3dhcGRgIHNpZ25h
+bGVkIGJ5IGBjdXJyZW50LT5mbGFncyAmIFBGX01FTUFMTE9DYCkuCgpgYGBkaWZmCi0tLSBhL2Zz
+L29jZnMyL2lub2RlLmMKKysrIGIvZnMvb2NmczIvaW5vZGUuYwpAQCAtMTI5Miw4ICsxMjkyLDE2
+IEBAIHZvaWQgb2NmczJfZXZpY3RfaW5vZGUoc3RydWN0IGlub2RlICppbm9kZSkKIAl3cml0ZV9p
+bm9kZV9ub3coaW5vZGUsIDEpOwogCiAJaWYgKCFpbm9kZS0+aV9ubGluayB8fAogCSAgICAoT0NG
+UzJfSShpbm9kZSktPmlwX2ZsYWdzICYgT0NGUzJfSU5PREVfTUFZQkVfT1JQSEFORUQpKSB7Ci0J
+CW9jZnMyX2RlbGV0ZV9pbm9kZShpbm9kZSk7CisJCWlmIChjdXJyZW50LT5mbGFncyAmIFBGX01F
+TUFMTE9DKSB7CisJCQkvKgorCQkJICogRGVmZXIgZGVsZXRpbmcgb3JwaGFuIGlub2RlcyBpZiBk
+b2luZyBtZW1vcnkgcmVjbGFpbQorCQkJICogdG8gYXZvaWQgbG9ja2RlcCBjaXJjdWxhciBkZXBl
+bmRlbmNpZXMuCisJCQkgKi8KKwkJCW9jZnMyX3F1ZXVlX29ycGhhbl9zY2FuKE9DRlMyX1NCKGlu
+b2RlLT5pX3NiKSk7CisJCX0gZWxzZSB7CisJCQlvY2ZzMl9kZWxldGVfaW5vZGUoaW5vZGUpOwor
+CQl9CiAJfSBlbHNlIHsKIAkJdHJ1bmNhdGVfaW5vZGVfcGFnZXNfZmluYWwoJmlub2RlLT5pX2Rh
+dGEpOwogCX0KYGBgCgpXZSB3b3VsZCBiZSBoaWdobHkgaG9ub3JlZCBpZiB0aGlzIGNvdWxkIGJl
+IG9mIGFueSBoZWxwLgoKQmVzdCByZWdhcmRzLApSYWNlUGlsb3QgVGVhbQo=
