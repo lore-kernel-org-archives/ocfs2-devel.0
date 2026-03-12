@@ -1,170 +1,207 @@
-Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
+Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 59DD740DFCB
-	for <ocfs2-devel@lists.linux.dev>; Wed, 11 Mar 2026 07:52:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.5
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7BA5E1A5B9E
+	for <ocfs2-devel@lists.linux.dev>; Thu, 12 Mar 2026 08:21:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773215546; cv=none; b=TaRHRAFovOwITyp/IxNUCZBwNwUN06YtTEnS5YXiEbemCunSdvbYG7e5K+NaumkB+ROpOfpHJnYyEJ0jebvlNmwaN6m0RIH43MkGg1/HmpRmbheX7CDrw/HHtt/RnMQ0V9zPXe6Y8StFso6QRx7GLrGX9S9+Iffn1ku582PGjvs=
+	t=1773303670; cv=none; b=uj1g0ye7XIJd1ClZObmN5KddEago3KV0W2+xGGHFf+GMR8xGHdgAkyeaSwpmA0KVfKZdMJlj8MP/OMJheF37f5ffzBhsKGNcX8Uah7PdzZ+Rh9zm+af5VZ5Lkjra5p2d2cgO+1ECZM5wUwWDaMvwoMEau49DtZ/BwB2yMAcKnNg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773215546; c=relaxed/simple;
-	bh=gb5EWYjWhjalqlv+0aCnFuFY4MyyW6XdhH8rsxJQCfE=;
-	h=Date:From:To:Subject:Content-Type:MIME-Version:Message-ID; b=sHWCJzS2iVFqIlTJaNsGXbpvPh2UPD+66bOpgnHBj1o2Kumwzba9X7yb7PQ5LZFSvZMHO+sqVdgno98pRAU5Iu5JZoDczseTfQxaduV7ZbOCeOwsQZbtl/DCUOU431rS/W+YbgVgNH6FqLOCl3p0AebCA6XurzJlFykEkVBEkh0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=NvVCSfYi; arc=none smtp.client-ip=220.197.31.5
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
+	s=arc-20240116; t=1773303670; c=relaxed/simple;
+	bh=favSTnFJkLkEsXywenhA9nQU3MJrkbrkiDAPsfYzma0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
+	 In-Reply-To:Content-Type; b=AOya49BMwgRzE/xbTCkahvAbom8LnKCKBKkhZ3jxj8f8KNIzP5+MIiU3/DDIQj+RGNHvdA/EPftLK9OnwCJhjuPJ6RP1gxPDK67w4fcmhtIyxqPXfu2X5mrtgNbu/9iSBfcxql5EyXyGoz8QL/IaeHlR+RKqDSofVsW3Ibbs5CI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=p+ewUK/0; arc=none smtp.client-ip=115.124.30.132
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="NvVCSfYi"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
-	Message-ID; bh=gb5EWYjWhjalqlv+0aCnFuFY4MyyW6XdhH8rsxJQCfE=; b=N
-	vVCSfYi6LL2CV0Y3/kmJJZOGoOKqzIUJ5I8i18mA+KlcQywV32uxT3xmVN8M+6mf
-	LF6NHkGPtbs30GGBs5islxS6ROGnnknRfkSgTPX6WI8kuFnReqgaSqUkPphCd/4Q
-	6hf3LR9iJgi8NvmUPfTJgTPWnIljBPGwVP3u1GV2Tw=
-Received: from luckd0g$163.com ( [183.205.138.18] ) by
- ajax-webmail-wmsvr-40-127 (Coremail) ; Wed, 11 Mar 2026 15:51:38 +0800
- (CST)
-Date: Wed, 11 Mar 2026 15:51:38 +0800 (CST)
-From: "Jianzhou Zhao" <luckd0g@163.com>
-To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: possible deadlock in ocfs2_wipe_inode
-X-Priority: 3
-X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
- 20251222(83accb85) Copyright (c) 2002-2026 www.mailtech.cn 163com
-X-NTES-SC: AL_Qu2cAf6aukwi7imaZ+kfmU4Rhug7UMO3uf8n24JfPJ9wjA/p2yseUUF9NmPf88CwFTuXvxiGfTNO1/ZAU5Bifrwx9tURzJMRXSpwxeJsKK6NHQ==
-Content-Transfer-Encoding: base64
-Content-Type: text/plain; charset=GBK
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="p+ewUK/0"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1773303659; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=oqR5tVGxqSOb6M7BlsDFuBSpTLxvQFTKuucGdyCOApQ=;
+	b=p+ewUK/0q0WTVm289G7kMG6a4IdyR0GeGyWL2vA3UW3BSj69fdw7i14rV8Xr8jzLxGrTFp9DIFKFsSUSicuDpBsSuzhe/577oFv4aTAXcZaV//iVh1EpESHPJEzRWjB4A6jUrPOcSVMxmZ/rEndzrstrYZpyiRoPe9etZJvaKI8=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R701e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X-no84s_1773303657;
+Received: from 30.221.129.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-no84s_1773303657 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Thu, 12 Mar 2026 16:20:58 +0800
+Message-ID: <9dd35ba3-9b81-477a-8af3-21b1cc8c351c@linux.alibaba.com>
+Date: Thu, 12 Mar 2026 16:20:57 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Message-ID: <3d199d9e.68fb.19cdbe142b2.Coremail.luckd0g@163.com>
-X-Coremail-Locale: zh_CN
-X-CM-TRANSID:fygvCgD319ELH7FpKr52AA--.38837W
-X-CM-SenderInfo: poxfyvkqj6il2tof0z/xtbC9gqQG2mxHwq5+gAA35
-X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
+User-Agent: Mozilla Thunderbird
+Subject: Re: possible deadlock in ocfs2_wipe_inode
+To: Jianzhou Zhao <luckd0g@163.com>
+References: <3d199d9e.68fb.19cdbe142b2.Coremail.luckd0g@163.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ Heming Zhao <heming.zhao@suse.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <3d199d9e.68fb.19cdbe142b2.Coremail.luckd0g@163.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-CgpTdWJqZWN0OiBbQlVHXSBvY2ZzMjogV0FSTklORzogcG9zc2libGUgY2lyY3VsYXIgbG9ja2lu
-ZyBkZXBlbmRlbmN5IGluIG9jZnMyX2V2aWN0X2lub2RlCgpEZWFyIE1haW50YWluZXJzLAoKV2Ug
-YXJlIHdyaXRpbmcgdG8gcmVwb3J0IGEgcG9zc2libGUgY2lyY3VsYXIgbG9ja2luZyBkZXBlbmRl
-bmN5IHZ1bG5lcmFiaWxpdHkgaW4gdGhlIGBvY2ZzMmAgc3Vic3lzdGVtLCBkZXRlY3RlZCBieSB0
-aGUgTG9ja2RlcCB2YWxpZGF0aW9uIG1lY2hhbmlzbSBhcyB3ZWxsIGFzIG91ciBjdXN0b20gZnV6
-emluZyB0b29sLCBSYWNlUGlsb3QuIFRoZSBidWcgaW52b2x2ZXMgYW4gQUJCQSBkZWFkbG9jayBj
-b25jZXJuaW5nIHRoZSBzeXN0ZW0gaW5vZGUgYWxsb2NhdGlvbnMsIGBmc19yZWNsYWltYCwgYW5k
-IGBvc2ItPm5mc19zeW5jX3J3bG9ja2AuIFdlIG9ic2VydmVkIHRoaXMgb24gdGhlIExpbnV4IGtl
-cm5lbCB2ZXJzaW9uIDYuMTguMC0wODY5MS1nMjA2MWYxOGFkNzZlLWRpcnR5LgoKQ2FsbCBUcmFj
-ZSAmIENvbnRleHQKPT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
-PT09PT09PT09PT09PT09PT09PT09CldBUk5JTkc6IHBvc3NpYmxlIGNpcmN1bGFyIGxvY2tpbmcg
-ZGVwZW5kZW5jeSBkZXRlY3RlZAprc3dhcGQxLzk1IGlzIHRyeWluZyB0byBhY3F1aXJlIGxvY2s6
-CmZmZmY4ODgwMDA1ODg5YzAgKCZvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5W09SUEhBTl9ESVJfU1lT
-VEVNX0lOT0RFXSl7Ky4rLn0tezQ6NH0sIGF0OiBpbm9kZV9sb2NrIGluY2x1ZGUvbGludXgvZnMu
-aDoxMDI3IFtpbmxpbmVdCmZmZmY4ODgwMDA1ODg5YzAgKCZvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5
-W09SUEhBTl9ESVJfU1lTVEVNX0lOT0RFXSl7Ky4rLn0tezQ6NH0sIGF0OiBvY2ZzMl93aXBlX2lu
-b2RlKzB4MmRmLzB4MTM4MCBmcy9vY2ZzMi9pbm9kZS5jOjg1MgoKYnV0IHRhc2sgaXMgYWxyZWFk
-eSBob2xkaW5nIGxvY2s6CmZmZmY4ODgwNTMzYWNiZDAgKCZvc2ItPm5mc19zeW5jX3J3bG9jayl7
-LisuK30tezQ6NH0sIGF0OiBvY2ZzMl9uZnNfc3luY19sb2NrKzB4ZTkvMHgyZjAgZnMvb2NmczIv
-ZGxtZ2x1ZS5jOjI4NzUKCndoaWNoIGxvY2sgYWxyZWFkeSBkZXBlbmRzIG9uIHRoZSBuZXcgbG9j
-ay4KCnRoZSBleGlzdGluZyBkZXBlbmRlbmN5IGNoYWluIChpbiByZXZlcnNlIG9yZGVyKSBpczoK
-Ci0+ICMzICgmb3NiLT5uZnNfc3luY19yd2xvY2spey4rLit9LXs0OjR9OgogICAgICAgZG93bl9y
-ZWFkKzB4OWIvMHg0NjAga2VybmVsL2xvY2tpbmcvcndzZW0uYzoxNTM3CiAgICAgICBvY2ZzMl9u
-ZnNfc3luY19sb2NrKzB4ZTkvMHgyZjAgZnMvb2NmczIvZGxtZ2x1ZS5jOjI4NzUKICAgICAgIG9j
-ZnMyX2RlbGV0ZV9pbm9kZSBmcy9vY2ZzMi9pbm9kZS5jOjExMDYgW2lubGluZV0KICAgICAgIG9j
-ZnMyX2V2aWN0X2lub2RlKzB4MmM3LzB4MTQzMCBmcy9vY2ZzMi9pbm9kZS5jOjEyOTcKICAgICAg
-IGV2aWN0KzB4M2IzLzB4YWEwIGZzL2lub2RlLmM6ODUwCiAgICAgICAuLi4KICAgICAgIGJhbGFu
-Y2VfcGdkYXQrMHhiNzUvMHgxYTIwIG1tL3Ztc2Nhbi5jOjcyNzAKICAgICAgIGtzd2FwZCsweDU3
-Ni8weGFjMCBtbS92bXNjYW4uYzo3NTM3CgotPiAjMiAoZnNfcmVjbGFpbSl7Ky4rLn0tezA6MH06
-CiAgICAgICBfX2ZzX3JlY2xhaW1fYWNxdWlyZSBtbS9wYWdlX2FsbG9jLmM6NDI2NCBbaW5saW5l
-XQogICAgICAgZnNfcmVjbGFpbV9hY3F1aXJlKzB4MTAyLzB4MTUwIG1tL3BhZ2VfYWxsb2MuYzo0
-Mjc4CiAgICAgICAuLi4KICAgICAgIHNsYWJfYWxsb2Nfbm9kZSBtbS9zbHViLmM6NTIzNCBbaW5s
-aW5lXQogICAgICAga21hbGxvY19ub3Byb2YgaW5jbHVkZS9saW51eC9zbGFiLmg6OTU3IFtpbmxp
-bmVdCiAgICAgICBvY2ZzMl9yZXNlcnZlX25ld19tZXRhZGF0YV9ibG9ja3MrMHhlZC8weGI1MCBm
-cy9vY2ZzMi9zdWJhbGxvYy5jOjk2OAogICAgICAgb2NmczJfbWtub2QrMHhhNjUvMHgyNGUwIGZz
-L29jZnMyL25hbWVpLmM6MzUwCiAgICAgICBvY2ZzMl9jcmVhdGUrMHgxODAvMHg0MzAgZnMvb2Nm
-czIvbmFtZWkuYzo2NzYKICAgICAgIC4uLgogICAgICAgZG9fc3lzX29wZW4gZnMvb3Blbi5jOjE0
-MzYgW2lubGluZV0KICAgICAgIF9feDY0X3N5c19vcGVuYXQrMHgxM2YvMHgxZjAgZnMvb3Blbi5j
-OjE0NDcKCi0+ICMxICgmb2NmczJfc3lzZmlsZV9sb2NrX2tleVtJTk9ERV9BTExPQ19TWVNURU1f
-SU5PREVdKXsrLisufS17NDo0fToKICAgICAgIGRvd25fd3JpdGUrMHg5MS8weDIwMCBrZXJuZWwv
-bG9ja2luZy9yd3NlbS5jOjE1OTAKICAgICAgIGlub2RlX2xvY2sgaW5jbHVkZS9saW51eC9mcy5o
-OjEwMjcgW2lubGluZV0KICAgICAgIG9jZnMyX3JlbW92ZV9pbm9kZSsweDE1ZS8weDhlMCBmcy9v
-Y2ZzMi9pbm9kZS5jOjczMQogICAgICAgb2NmczJfd2lwZV9pbm9kZSsweDY1Mi8weDEzODAgZnMv
-b2NmczIvaW5vZGUuYzo4OTQKICAgICAgIG9jZnMyX2RlbGV0ZV9pbm9kZSBmcy9vY2ZzMi9pbm9k
-ZS5jOjExNTUgW2lubGluZV0KICAgICAgIG9jZnMyX2V2aWN0X2lub2RlKzB4NjllLzB4MTQzMCBm
-cy9vY2ZzMi9pbm9kZS5jOjEyOTcKICAgICAgIC4uLgoKLT4gIzAgKCZvY2ZzMl9zeXNmaWxlX2xv
-Y2tfa2V5W09SUEhBTl9ESVJfU1lTVEVNX0lOT0RFXSl7Ky4rLn0tezQ6NH06CiAgICAgICBsb2Nr
-X2FjcXVpcmUrMHgxN2IvMHgzMzAga2VybmVsL2xvY2tpbmcvbG9ja2RlcC5jOjU4MjUKICAgICAg
-IGRvd25fd3JpdGUrMHg5MS8weDIwMCBrZXJuZWwvbG9ja2luZy9yd3NlbS5jOjE1OTAKICAgICAg
-IGlub2RlX2xvY2sgaW5jbHVkZS9saW51eC9mcy5oOjEwMjcgW2lubGluZV0KICAgICAgIG9jZnMy
-X3dpcGVfaW5vZGUrMHgyZGYvMHgxMzgwIGZzL29jZnMyL2lub2RlLmM6ODUyCiAgICAgICBvY2Zz
-Ml9kZWxldGVfaW5vZGUgZnMvb2NmczIvaW5vZGUuYzoxMTU1IFtpbmxpbmVdCiAgICAgICBvY2Zz
-Ml9ldmljdF9pbm9kZSsweDY5ZS8weDE0MzAgZnMvb2NmczIvaW5vZGUuYzoxMjk3CiAgICAgICAu
-Li4KICAgICAgIGtzd2FwZCsweDU3Ni8weGFjMCBtbS92bXNjYW4uYzo3NTM3CgpvdGhlciBpbmZv
-IHRoYXQgbWlnaHQgaGVscCB1cyBkZWJ1ZyB0aGlzOgoKQ2hhaW4gZXhpc3RzIG9mOgogICZvY2Zz
-Ml9zeXNmaWxlX2xvY2tfa2V5W09SUEhBTl9ESVJfU1lTVEVNX0lOT0RFXSAtLT4gZnNfcmVjbGFp
-bSAtLT4gJm9zYi0+bmZzX3N5bmNfcndsb2NrCgogUG9zc2libGUgdW5zYWZlIGxvY2tpbmcgc2Nl
-bmFyaW86CgogICAgICAgQ1BVMCAgICAgICAgICAgICAgICAgICAgQ1BVMQogICAgICAgLS0tLSAg
-ICAgICAgICAgICAgICAgICAgLS0tLQogIHJsb2NrKCZvc2ItPm5mc19zeW5jX3J3bG9jayk7CiAg
-ICAgICAgICAgICAgICAgICAgICAgICAgICAgICBsb2NrKGZzX3JlY2xhaW0pOwogICAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICAgbG9jaygmb3NiLT5uZnNfc3luY19yd2xvY2spOwogIGxvY2so
-Jm9jZnMyX3N5c2ZpbGVfbG9ja19rZXlbT1JQSEFOX0RJUl9TWVNURU1fSU5PREVdKTsKCiAqKiog
-REVBRExPQ0sgKioqCj09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09PT09
-PT09PT09PT09PT09PT09PT09PT09PQoKRXhlY3V0aW9uIEZsb3cgJiBDb2RlIENvbnRleHQKVGhl
-IGBrc3dhcGRgIHRocmVhZCBwcm9jZXNzZXMgZXZpY3Rpb24gbG9naWMgZm9yIHVudXNlZCBpbm9k
-ZXMgaW4gdGhlIGRjYWNoZSBxdWV1ZSBob2xkaW5nIHRoZSBgZnNfcmVjbGFpbWAgbG9jayBjb250
-ZXh0cy4gV2hlbiBhIHVubGlua2VkIGlub2RlIGVudGVycyBgb2NmczJfZXZpY3RfaW5vZGUoKWAs
-IGl0IGNhbGxzIGludG8gYG9jZnMyX2RlbGV0ZV9pbm9kZSgpYC4gVGhlIGRlbGV0aW9uIHBhdGh3
-YXkgYXR0ZW1wdHMgdG8gc2VjdXJlbHkgY2xlYXIgdHJhY2VzIG9mIHRoZSBpbm9kZSBnbG9iYWxs
-eSBieSBsb2NraW5nIGludGVybmFsIHN0cnVjdHVyZSBtdXRleGVzIGluY2x1ZGluZyB0aGUgYG5m
-c19zeW5jX3J3bG9ja2AgYW5kIGBPUlBIQU5fRElSX1NZU1RFTV9JTk9ERWAgbG9jazoKYGBgYwov
-LyBmcy9vY2ZzMi9pbm9kZS5jCnN0YXRpYyB2b2lkIG9jZnMyX2RlbGV0ZV9pbm9kZShzdHJ1Y3Qg
-aW5vZGUgKmlub2RlKQp7CgkuLi4KCXN0YXR1cyA9IG9jZnMyX25mc19zeW5jX2xvY2soT0NGUzJf
-U0IoaW5vZGUtPmlfc2IpLCAwKTsgLy8gPC0tIFRha2VzIG5mc19zeW5jX3J3bG9jawoJLi4uCglz
-dGF0dXMgPSBvY2ZzMl93aXBlX2lub2RlKGlub2RlLCBkaV9iaCk7CgkuLi4KfQoKc3RhdGljIGlu
-dCBvY2ZzMl93aXBlX2lub2RlKHN0cnVjdCBpbm9kZSAqaW5vZGUsIHN0cnVjdCBidWZmZXJfaGVh
-ZCAqZGlfYmgpCnsKCS4uLgoJCWlub2RlX2xvY2sob3JwaGFuX2Rpcl9pbm9kZSk7IC8vIDwtLSBU
-YWtlcyBvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5W09SUEhBTl9ESVJdCgkJc3RhdHVzID0gb2NmczJf
-aW5vZGVfbG9jayhvcnBoYW5fZGlyX2lub2RlLCAmb3JwaGFuX2Rpcl9iaCwgMSk7CgkuLi4KfQpg
-YGAKQ29uY3VycmVudGx5LCBhbm90aGVyIHRocmVhZCBjb3VsZCBpbnZva2UgZmlsZSBjcmVhdGlv
-biAoYG9jZnMyX2NyZWF0ZWAgLi4uIGBvY2ZzMl9yZXNlcnZlX25ld19tZXRhZGF0YV9ibG9ja3Ng
-KSwgcmVxdWlyaW5nIG1lbW9yeS4gSW4gdGhpcyBwYXRoLCBpZiBpdCBwYXVzZXMgYWxsb2NhdGlv
-biwgaXQgY2FsbHMgYGttYWxsb2NgIGludm9raW5nIGBmc19yZWNsYWltX2FjcXVpcmVgLCBtYWtp
-bmcgYCZvY2ZzMl9zeXNmaWxlX2xvY2tfa2V5YCAtPiBgZnNfcmVjbGFpbWAgZGVwZW5kZW50IGxv
-b3BzIHNpbmNlIHNvbWUgbWV0YWRhdGEgbW9kaWZpY2F0aW9ucyBuYXR1cmFsbHkgZ3Jhc3Agc3lz
-dGVtIGZpbGUgY2x1c3RlciBsb2NrcyB0byBwcm90ZWN0IGFsbG9jIHN0cnVjdHVyZXMuCgpSb290
-IENhdXNlIEFuYWx5c2lzCkEgY2lyY3VsYXIgbG9ja2luZyBkZWFkbG9jayBleGlzdHMgYmVjYXVz
-ZSBgb2NmczJfZXZpY3RfaW5vZGVgIGlzIHRyaWdnZXJlZCBkaXJlY3RseSB1bmRlciBtZW1vcnkg
-YGZzX3JlY2xhaW1gIHNocmlua2VyIHBhdGh3YXlzIChlLmcuLCBmcm9tIGBrc3dhcGRgKS4gV2hl
-biBga3N3YXBkYCBmcmVlcyB0aGUgZGVudHJ5IHN0cnVjdHVyZXMsIGBldmljdGAgaXMgcHJvY2Vz
-c2VkIHN5bmNocm9ub3VzbHkgaW4gdGhlIHJlY2xhaW0gY29udGV4dCwgd2hpY2ggaW4gT0NGUzIg
-dGFrZXMgY29tcGxleCBzdWJzeXN0ZW0gbG9ja3Mgc3Bhbm5pbmcgRExNIGxvY2tzIGxpa2UgYG5m
-c19zeW5jX3J3bG9ja2AgYW5kIHZhcmlvdXMgYHN5c2ZpbGVfbG9ja19rZXlgIHZhcmlhbnRzIGlu
-dGVuZGVkIHRvIG9yY2hlc3RyYXRlIGdsb2JhbCBvcnBoYW4gY2xlYW51cHMuIElmIGFueSBvdGhl
-ciBhcmJpdHJhcnkgdGhyZWFkIG9wZXJhdGluZyBvbiBjcmVhdGlvbiBwYXRod2F5cyBzbGVlcHMg
-YWNxdWlyaW5nIHBoeXNpY2FsIGJsb2NrIHBhZ2VzIChgZnNfcmVjbGFpbWAgbmVlZGVkKSwgdGhl
-IHBhdGhzIHdpbGwgaW50ZXJ0d2luZSByZXN1bHRpbmcgaW4gbG9jayBjeWNsZXMuClVuZm9ydHVu
-YXRlbHksIHdlIHdlcmUgdW5hYmxlIHRvIGdlbmVyYXRlIGEgcmVwcm9kdWNlciBmb3IgdGhpcyBi
-dWcuCgpQb3RlbnRpYWwgSW1wYWN0ClRoaXMgY2lyY3VsYXIgZGVwZW5kZW5jeSBjYW4gc3RhbGwg
-dGhlIGBrc3dhcGRgIGRhZW1vbiBnbG9iYWxseSBoYWx0aW5nIG1lbW9yeSBtYW5hZ2VtZW50IHRh
-c2tzLCBsZWFkaW5nIHRvIHN5c3RlbSBPT00gKE91dCBvZiBNZW1vcnkpIHBhbmljcyBhbmQgZmls
-ZXN5c3RlbSBsb2NrLXVwcy4gVGhpcyBjb25zdGl0dXRlcyBhIHBlcnNpc3RlbnQgbG9jYWwgRGVu
-aWFsIG9mIFNlcnZpY2UgKERvUykgY2FwYWJpbGl0eSB0cmlnZ2VyZWQgYXJiaXRyYXJpbHkgdW5k
-ZXIgbG93LWZyZWUgbWVtb3J5IHdvcmtsb2FkcyB3aXRoIG9ycGhhbmVkIGlub2Rlcy4KClByb3Bv
-c2VkIEZpeApUbyBtaXRpZ2F0ZSB0aGUgZGVhZGxvY2ssIGBvY2ZzMl9ldmljdF9pbm9kZWAgbXVz
-dCBkZWZlciB0aGUgaGVhdnkgYG9jZnMyX2RlbGV0ZV9pbm9kZWAgb3BlcmF0aW9ucyB0byBhIHdv
-cmtlciBxdWV1ZSBvdXRzaWRlIHRoZSBtZW1vcnkgcmVjbGFpbSBjb250ZXh0IGlmIHRoZSBjdXJy
-ZW50IHByb2Nlc3MgaXMgYSBtZW1vcnkgcmVjbGFpbWVyIChzdWNoIGFzIGBrc3dhcGRgIHNpZ25h
-bGVkIGJ5IGBjdXJyZW50LT5mbGFncyAmIFBGX01FTUFMTE9DYCkuCgpgYGBkaWZmCi0tLSBhL2Zz
-L29jZnMyL2lub2RlLmMKKysrIGIvZnMvb2NmczIvaW5vZGUuYwpAQCAtMTI5Miw4ICsxMjkyLDE2
-IEBAIHZvaWQgb2NmczJfZXZpY3RfaW5vZGUoc3RydWN0IGlub2RlICppbm9kZSkKIAl3cml0ZV9p
-bm9kZV9ub3coaW5vZGUsIDEpOwogCiAJaWYgKCFpbm9kZS0+aV9ubGluayB8fAogCSAgICAoT0NG
-UzJfSShpbm9kZSktPmlwX2ZsYWdzICYgT0NGUzJfSU5PREVfTUFZQkVfT1JQSEFORUQpKSB7Ci0J
-CW9jZnMyX2RlbGV0ZV9pbm9kZShpbm9kZSk7CisJCWlmIChjdXJyZW50LT5mbGFncyAmIFBGX01F
-TUFMTE9DKSB7CisJCQkvKgorCQkJICogRGVmZXIgZGVsZXRpbmcgb3JwaGFuIGlub2RlcyBpZiBk
-b2luZyBtZW1vcnkgcmVjbGFpbQorCQkJICogdG8gYXZvaWQgbG9ja2RlcCBjaXJjdWxhciBkZXBl
-bmRlbmNpZXMuCisJCQkgKi8KKwkJCW9jZnMyX3F1ZXVlX29ycGhhbl9zY2FuKE9DRlMyX1NCKGlu
-b2RlLT5pX3NiKSk7CisJCX0gZWxzZSB7CisJCQlvY2ZzMl9kZWxldGVfaW5vZGUoaW5vZGUpOwor
-CQl9CiAJfSBlbHNlIHsKIAkJdHJ1bmNhdGVfaW5vZGVfcGFnZXNfZmluYWwoJmlub2RlLT5pX2Rh
-dGEpOwogCX0KYGBgCgpXZSB3b3VsZCBiZSBoaWdobHkgaG9ub3JlZCBpZiB0aGlzIGNvdWxkIGJl
-IG9mIGFueSBoZWxwLgoKQmVzdCByZWdhcmRzLApSYWNlUGlsb3QgVGVhbQo=
+
+
+On 3/11/26 3:51 PM, Jianzhou Zhao wrote:
+> 
+> 
+> Subject: [BUG] ocfs2: WARNING: possible circular locking dependency in ocfs2_evict_inode
+> 
+> Dear Maintainers,
+> 
+> We are writing to report a possible circular locking dependency vulnerability in the `ocfs2` subsystem, detected by the Lockdep validation mechanism as well as our custom fuzzing tool, RacePilot. The bug involves an ABBA deadlock concerning the system inode allocations, `fs_reclaim`, and `osb->nfs_sync_rwlock`. We observed this on the Linux kernel version 6.18.0-08691-g2061f18ad76e-dirty.
+> 
+> Call Trace & Context
+> ==================================================================
+> WARNING: possible circular locking dependency detected
+> kswapd1/95 is trying to acquire lock:
+> ffff8880005889c0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1027 [inline]
+> ffff8880005889c0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_wipe_inode+0x2df/0x1380 fs/ocfs2/inode.c:852
+> 
+> but task is already holding lock:
+> ffff8880533acbd0 (&osb->nfs_sync_rwlock){.+.+}-{4:4}, at: ocfs2_nfs_sync_lock+0xe9/0x2f0 fs/ocfs2/dlmglue.c:2875
+> 
+> which lock already depends on the new lock.
+> 
+> the existing dependency chain (in reverse order) is:
+> 
+> -> #3 (&osb->nfs_sync_rwlock){.+.+}-{4:4}:
+>        down_read+0x9b/0x460 kernel/locking/rwsem.c:1537
+>        ocfs2_nfs_sync_lock+0xe9/0x2f0 fs/ocfs2/dlmglue.c:2875
+>        ocfs2_delete_inode fs/ocfs2/inode.c:1106 [inline]
+>        ocfs2_evict_inode+0x2c7/0x1430 fs/ocfs2/inode.c:1297
+>        evict+0x3b3/0xaa0 fs/inode.c:850
+>        ...
+>        balance_pgdat+0xb75/0x1a20 mm/vmscan.c:7270
+>        kswapd+0x576/0xac0 mm/vmscan.c:7537
+> 
+> -> #2 (fs_reclaim){+.+.}-{0:0}:
+>        __fs_reclaim_acquire mm/page_alloc.c:4264 [inline]
+>        fs_reclaim_acquire+0x102/0x150 mm/page_alloc.c:4278
+>        ...
+>        slab_alloc_node mm/slub.c:5234 [inline]
+>        kmalloc_noprof include/linux/slab.h:957 [inline]
+>        ocfs2_reserve_new_metadata_blocks+0xed/0xb50 fs/ocfs2/suballoc.c:968
+>        ocfs2_mknod+0xa65/0x24e0 fs/ocfs2/namei.c:350
+>        ocfs2_create+0x180/0x430 fs/ocfs2/namei.c:676
+>        ...
+>        do_sys_open fs/open.c:1436 [inline]
+>        __x64_sys_openat+0x13f/0x1f0 fs/open.c:1447
+> 
+> -> #1 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+>        down_write+0x91/0x200 kernel/locking/rwsem.c:1590
+>        inode_lock include/linux/fs.h:1027 [inline]
+>        ocfs2_remove_inode+0x15e/0x8e0 fs/ocfs2/inode.c:731
+>        ocfs2_wipe_inode+0x652/0x1380 fs/ocfs2/inode.c:894
+>        ocfs2_delete_inode fs/ocfs2/inode.c:1155 [inline]
+>        ocfs2_evict_inode+0x69e/0x1430 fs/ocfs2/inode.c:1297
+>        ...
+> 
+> -> #0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
+>        lock_acquire+0x17b/0x330 kernel/locking/lockdep.c:5825
+>        down_write+0x91/0x200 kernel/locking/rwsem.c:1590
+>        inode_lock include/linux/fs.h:1027 [inline]
+>        ocfs2_wipe_inode+0x2df/0x1380 fs/ocfs2/inode.c:852
+>        ocfs2_delete_inode fs/ocfs2/inode.c:1155 [inline]
+>        ocfs2_evict_inode+0x69e/0x1430 fs/ocfs2/inode.c:1297
+>        ...
+>        kswapd+0x576/0xac0 mm/vmscan.c:7537
+> 
+> other info that might help us debug this:
+> 
+> Chain exists of:
+>   &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE] --> fs_reclaim --> &osb->nfs_sync_rwlock
+> 
+>  Possible unsafe locking scenario:
+> 
+>        CPU0                    CPU1
+>        ----                    ----
+>   rlock(&osb->nfs_sync_rwlock);
+>                                lock(fs_reclaim);
+>                                lock(&osb->nfs_sync_rwlock);
+>   lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+> 
+>  *** DEADLOCK ***
+> ==================================================================
+> 
+> Execution Flow & Code Context
+> The `kswapd` thread processes eviction logic for unused inodes in the dcache queue holding the `fs_reclaim` lock contexts. When a unlinked inode enters `ocfs2_evict_inode()`, it calls into `ocfs2_delete_inode()`. The deletion pathway attempts to securely clear traces of the inode globally by locking internal structure mutexes including the `nfs_sync_rwlock` and `ORPHAN_DIR_SYSTEM_INODE` lock:
+> ```c
+> // fs/ocfs2/inode.c
+> static void ocfs2_delete_inode(struct inode *inode)
+> {
+> 	...
+> 	status = ocfs2_nfs_sync_lock(OCFS2_SB(inode->i_sb), 0); // <-- Takes nfs_sync_rwlock
+> 	...
+> 	status = ocfs2_wipe_inode(inode, di_bh);
+> 	...
+> }
+> 
+> static int ocfs2_wipe_inode(struct inode *inode, struct buffer_head *di_bh)
+> {
+> 	...
+> 		inode_lock(orphan_dir_inode); // <-- Takes ocfs2_sysfile_lock_key[ORPHAN_DIR]
+> 		status = ocfs2_inode_lock(orphan_dir_inode, &orphan_dir_bh, 1);
+> 	...
+> }
+> ```
+> Concurrently, another thread could invoke file creation (`ocfs2_create` ... `ocfs2_reserve_new_metadata_blocks`), requiring memory. In this path, if it pauses allocation, it calls `kmalloc` invoking `fs_reclaim_acquire`, making `&ocfs2_sysfile_lock_key` -> `fs_reclaim` dependent loops since some metadata modifications naturally grasp system file cluster locks to protect alloc structures.
+> 
+> Root Cause Analysis
+> A circular locking deadlock exists because `ocfs2_evict_inode` is triggered directly under memory `fs_reclaim` shrinker pathways (e.g., from `kswapd`). When `kswapd` frees the dentry structures, `evict` is processed synchronously in the reclaim context, which in OCFS2 takes complex subsystem locks spanning DLM locks like `nfs_sync_rwlock` and various `sysfile_lock_key` variants intended to orchestrate global orphan cleanups. If any other arbitrary thread operating on creation pathways sleeps acquiring physical block pages (`fs_reclaim` needed), the paths will intertwine resulting in lock cycles.
+> Unfortunately, we were unable to generate a reproducer for this bug.
+> 
+> Potential Impact
+> This circular dependency can stall the `kswapd` daemon globally halting memory management tasks, leading to system OOM (Out of Memory) panics and filesystem lock-ups. This constitutes a persistent local Denial of Service (DoS) capability triggered arbitrarily under low-free memory workloads with orphaned inodes.
+> 
+> Proposed Fix
+> To mitigate the deadlock, `ocfs2_evict_inode` must defer the heavy `ocfs2_delete_inode` operations to a worker queue outside the memory reclaim context if the current process is a memory reclaimer (such as `kswapd` signaled by `current->flags & PF_MEMALLOC`).
+> 
+> ```diff
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1292,8 +1292,16 @@ void ocfs2_evict_inode(struct inode *inode)
+>  	write_inode_now(inode, 1);
+>  
+>  	if (!inode->i_nlink ||
+>  	    (OCFS2_I(inode)->ip_flags & OCFS2_INODE_MAYBE_ORPHANED)) {
+> -		ocfs2_delete_inode(inode);
+> +		if (current->flags & PF_MEMALLOC) {
+> +			/*
+> +			 * Defer deleting orphan inodes if doing memory reclaim
+> +			 * to avoid lockdep circular dependencies.
+> +			 */
+> +			ocfs2_queue_orphan_scan(OCFS2_SB(inode->i_sb));
+> +		} else {
+> +			ocfs2_delete_inode(inode);
+> +		}
+>  	} else {
+>  		truncate_inode_pages_final(&inode->i_data);
+>  	}
+> ```
+> 
+> We would be highly honored if this could be of any help.
+> 
+
+Take a look at this report, I think it could *theoreticallly* happen.
+
+    CPU0				CPU1
+fs_reclaim			    ocfs2_reserve_suballoc_bits
+  ocfs2_evict_inode		      inode_lock(INODE_ALLOC)
+    down_read(nfs_sync_rwlock)        ocfs2_block_group_alloc
+    ocfs2_wipe_inode                    ocfs2_reserve_clusters_with_limit
+      inode_lock(ORPHAN_DIR)              kzalloc_obj
+      ocfs2_remove_inode
+        inode_lock(INODE_ALLOC)
+
+Your proposed fix looks incorrect and it could be much complicated.
+Maybe use memalloc_nofs_[save|restore] when allocate.
+
+Thanks,
+Joseph
