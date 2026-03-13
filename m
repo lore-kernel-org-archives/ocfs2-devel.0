@@ -1,32 +1,32 @@
-Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
+Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84E8A331211
-	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Mar 2026 02:04:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 842C9340273
+	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Mar 2026 02:27:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773367463; cv=none; b=aRnORu25WshXf2UrpeV4KlospXS3eixnezNQ2pUjVx+HgQruZrftXaz+puX8AThqdMAfFrj/DBpwBxDqyYKSxUqXEq2Roy+qHGN4BNgcyIfH2S2UfKWCDzLK4NTd5FE2idJK/3Js0i9n66pAN/eramU1qCkkKSoowjDPT7uoj+8=
+	t=1773368861; cv=none; b=oCeSQjXmz5d/ELziRV7aeLE7DQZUQJ0BQLny2LkCm00EjrITrixxFd47dVdctQE/VJsm1bL010coaXWoaf3yIWcuw2SSMGGVsTRV0Fuc+CD5DMaoQTx31ThgocSbjDoISuEf5mHiPr4qVs763vxktXlfi5ONEQ7evt79uUuYP2w=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773367463; c=relaxed/simple;
-	bh=3oL3wzCpHf9LQtVFmJfgNvi/YGhIkkmmkwrsQt7hWyc=;
+	s=arc-20240116; t=1773368861; c=relaxed/simple;
+	bh=b9SXnmBnOaAHrStoyDuECQm8EP0VE67rplyIxasg3QM=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=Bn+NsH0vQdyyIHIZly5zIliwrgQ0w31tkCsCSbQ5UXHShdvjIPZWbWsCPIMCoLuaKHSUU6Fv5kOa3mR0DWzdP8wf6pX8fjgIhR8kOVwZggn6wkU9DXmOByAl39tVzzYuMwLIyZJ5Icwy8nP3I2gzYGQFQFfLv6t5JYb0kdlLEno=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=wzkOSfxh; arc=none smtp.client-ip=115.124.30.99
+	 In-Reply-To:Content-Type; b=rbp9NfaUmqNjb5JKJOMj8Ynb9fceLzP7NpnxcWUDF5C1VIywpUSCdAZNCi0k0d1wPeMzhMo7Xn33wF5qLT6cSLcYWf6LslRLPbjFyoB+ZOy6tO5CJFGTwpjZq4vNROkUhSWqWhfqS9zWHPTN+v9/Ei1qHgIn4wG9cLs/1CO3pUE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ylITBevw; arc=none smtp.client-ip=115.124.30.119
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="wzkOSfxh"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ylITBevw"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1773367452; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=TG/Dl2F4q5L14jJ3iHKHtdcBKHUfENp/+r1Bz/i2BV4=;
-	b=wzkOSfxhd5nizEWbHvrYETpny0mxvIpViMrtSVnK7tT7uUgougOTOLmQasXTx8RHMvdApk83ocJDUz8Vnhg0JUFFDFpiN7+2W8ieTVyQcT3ymmCoq50kFGQnCLcqiLppv93ha77FgaYf/X2mfvHEU/6eDArzazl4wUIenpDnIt4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R461e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0X-qNXvA_1773367451;
-Received: from 30.221.129.56(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-qNXvA_1773367451 cluster:ay36)
+	t=1773368851; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=P2/OSQUGfORN8iIc46PjhNzjHY+wvGwwN5dwLXZYc+A=;
+	b=ylITBevwP+GGz9r6nIxtoVWASqcKsKnmTgwBUItdc2ntqfhwwg/JjNIiOM4p1LRAqA+R/hiUZpb5+hpqQxiaHW+jNyK7m74VGpNH38oKOL2WJ/8v4xK9RAF7wj5B47hFcOVPirO8vlbIQM8pDRT67eMpXCIOWVuU9BNILtaPp8I=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R811e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0X-qTJep_1773368850;
+Received: from 30.221.129.56(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-qTJep_1773368850 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 13 Mar 2026 10:04:11 +0800
-Message-ID: <ca9c4609-210f-4426-a4e1-5ee732646411@linux.alibaba.com>
-Date: Fri, 13 Mar 2026 10:04:11 +0800
+          Fri, 13 Mar 2026 10:27:30 +0800
+Message-ID: <75f89a17-213b-42a0-a30e-d52fb2d077a6@linux.alibaba.com>
+Date: Fri, 13 Mar 2026 10:27:28 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -46,7 +46,7 @@ In-Reply-To: <20260312162725.15523-2-heming.zhao@suse.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-Almost looks fine, minor updates below.
+
 
 On 3/13/26 12:27 AM, Heming Zhao wrote:
 > During ocfs2 dio operations, JBD2 may report warnings via following call trace:
@@ -123,15 +123,19 @@ On 3/13/26 12:27 AM, Heming Zhao wrote:
 > -
 >  	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
 > -		ret = ocfs2_assure_trans_credits(handle, credits);
+
+Since now no any caller for ocfs2_assure_trans_credits(), we may remove
+it in PATCH 2 of this series.
+
+Thanks,
+Joseph
+
 > -		if (ret < 0) {
 > +		handle = ocfs2_start_trans(osb, credits);
 > +		if (IS_ERR(handle)) {
 > +			ret = PTR_ERR(handle);
 >  			mlog_errno(ret);
 >  			break;
-
-I'd rather goto unlock directly without update i_size in case error.
-
 >  		}
 > +		ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
 > +					      OCFS2_JOURNAL_ACCESS_WRITE);
@@ -139,9 +143,6 @@ I'd rather goto unlock directly without update i_size in case error.
 > +			mlog_errno(ret);
 > +			ocfs2_commit_trans(osb, handle);
 > +			break;
-
-Ditto.
-
 > +		}
 >  		ret = ocfs2_mark_extent_written(inode, &et, handle,
 >  						ue->ue_cpos, 1,
@@ -151,14 +152,6 @@ Ditto.
 >  			mlog_errno(ret);
 > +			ocfs2_commit_trans(osb, handle);
 >  			break;
-
-Ditto.
-BTW, we can move ocfs2_commit_trans() rightly after ocfs2_mark_extent_written()
-to save the extra call in case error.
-
-Thanks,
-Joseph
-
 >  		}
 > +		ocfs2_commit_trans(osb, handle);
 >  	}
