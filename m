@@ -1,184 +1,136 @@
-Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qk1-f178.google.com (mail-qk1-f178.google.com [209.85.222.178])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 84AA0261B71
-	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Mar 2026 05:35:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7F8CE3822A0
+	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Mar 2026 21:42:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773380123; cv=none; b=fA04n0VePsyxQi1ZWEFx2Ur9f+o/+bcVqKHFMbgVg98f0msVX8IVQ/7+zy2HxIjkIwj4T/xd3RDEysNT65TsHGwkdfmtiJ4oPagW/4lGTkQE0KVc7i1Q5enKVrBeW5vM7Z/N2TK2BsfJXESJ3U86lPM+KTCnLFLe0oT5ciVy9f8=
+	t=1773438177; cv=none; b=iZUIjU6D6zIjqQob/L5x65NuI4yaSeI6m0smc81MVwBPEzeP6xFgtiKho/I1/VswRP1XVzRuskVIk+yW2D2PovcAPQlaLX6T85g571IJK+bqbIgvE9CdvD2WvMsYrbYFdtmFgfuEjyK1Eu8tbvq0siVCeMFKXDg1+1BxUAvgcvA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773380123; c=relaxed/simple;
-	bh=yoAmtuV4Rt7JLmLPLdWSAOMKYN/b1quTaQRsyCtgxrs=;
-	h=Message-ID:Date:MIME-Version:Subject:From:To:Cc:References:
-	 In-Reply-To:Content-Type; b=PzrdkMjpO4G/wV/QxuRQAccI1FrJ4j/2+KfFHWIaFtA1OSE4iCKuV2bxlUtb079YQFt5MUZNlHc+aqwCMr89j3PNqgFtMedfb44tQKh/uB8NDETeoW6DonkyAXjkH5XnAbM/d1P6DIjolzuNZ/weZk/w/JIwROzOtPkrjqfRkXU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Odj4Kplp; arc=none smtp.client-ip=115.124.30.110
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1773438177; c=relaxed/simple;
+	bh=bHG4gZMAiN6VNR/qTLz4pbVjdYOaTPWJrossjls/ObU=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=bVRx3d8s3edSEyfnF+FpqA4c2C+/svZjZciOjy/LQUSXiPBrVLYQ9lPVY6hJTh4CuKN2EE3FJbsmWrPoz+h2UQP4XvIQaLPQ0t+CF4r78LyRXgQt22wJJ1Ca4pazL2ieU6T5xyBuKzrGhDsvXu8/1yunjYHmvO4qobolBi9Buf8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=RAVSYUKl; arc=none smtp.client-ip=209.85.222.178
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Odj4Kplp"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1773380119; h=Message-ID:Date:MIME-Version:Subject:From:To:Content-Type;
-	bh=8xuSwu51JAUBAfIMOasB14qyu6X2mOAggsEKtDm+0Zo=;
-	b=Odj4KplpFUL3D+JHvWQxsI7qMHDl548CyWgc0g9IZmVtcJtP7+ayHaucYlk5+VDIZv1YZAK4G/hNTQ+D8t/RHmBf9up8rMLeupkif/PYNhDuq/9EBcp2qUXJHyKmn1MQWUR86Or3sZtUn6zB8//shFEt/PPyCL/ncHS3jI+eS4M=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0X-r1AHr_1773380117;
-Received: from 30.221.129.56(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X-r1AHr_1773380117 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 13 Mar 2026 13:35:18 +0800
-Message-ID: <f20e0032-79f2-4465-a74b-b689d1f46772@linux.alibaba.com>
-Date: Fri, 13 Mar 2026 13:35:17 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="RAVSYUKl"
+Received: by mail-qk1-f178.google.com with SMTP id af79cd13be357-8cb4136d865so344080985a.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 13 Mar 2026 14:42:56 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20230601; t=1773438175; x=1774042975; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=+IsH/P92VNlZ7hzAjgOWNGzQev1SNkbaW27hkcWXgNw=;
+        b=RAVSYUKlZMNk+LRb4QfS5KgWS2LA+mkMGbhghSBBEFdVlXoss/u+mAvlrf+mu/3HKm
+         ZrTRr/oiRTpjIK99PUdWit4HkmGDBRxB34m3JPlIgAfulRj88/dh+MgdfDP6UqMp0Ume
+         5b88kKsZlDysrifT5/1QW8kc8OMBBsYmeOZsooXeRDmwPOX5peJz4ddkG8uTu2sHG9+v
+         921y2EOCfJJHi8Mcx4OTi4Z3zwJ/550RB9GwSOXDGmcqrDw1IcGXL0lZ7voNP77YP41Y
+         IEpqdgcfEFqZ+N6q4qO6qMFwOBQtzWJD/jdG8GuwG1zG8YyCZMrt4eTA4uA7gJfNXP9H
+         Xx7w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1773438175; x=1774042975;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=+IsH/P92VNlZ7hzAjgOWNGzQev1SNkbaW27hkcWXgNw=;
+        b=S+hH3hcew4597uPuzKGl4p3oN0RIpafmur/6qnFRJ1JXRoFZTF2qAAaz4uXIU8OOp4
+         oWHBNkaKAVjO6kGX/poHLsP4G/80r3S9lXDEB9/mBXUV39QXUZEcLl4yOX59pwcPprqj
+         x0c0d6ynsbhH/j4ysYJzC9h2iVQOw6K2U9bH1egbC6bqNFRrXxUQ2bIdQIPd+IdLgIUL
+         eVsfzfeNQ6RgbRHy/hX74oNeBVCElasR2GJbVMeg0KArbN5FHRoZfhyefsZmZuM2d4+7
+         Ud64J1BMu3GI5DuKeltugzD9GVyg7mFCs4AiAN9eyF7egTDIUkRj4amtKtAQBs/7FiGX
+         /fRQ==
+X-Gm-Message-State: AOJu0YyoIxHdyxIi4bO4JaVJjwuNAswpwKulUCuU8+meQOFcYD1KIqEf
+	TR9Gl+Rgfn7eMRXwPP+Whu3R3UVlHbr87uIpH8O8S1xyyyPltOYLIswE
+X-Gm-Gg: ATEYQzyKjIQtmaI7hgDs0GhgIaOpz9e4VYzqyFylk7azjpVepswK04m5WZSAA2Ud5h0
+	fcoXues0aBhGOJucRhCZH7I/WI59bpaBGqrdGzeLO6se2ZP3W3Ofq9zYkww+vpI6ThmiAxURYFD
+	5WkCRwI0m5dvnlPJmlBGUQSwbPXi3V+3lwSXD4kskEiFM5Yw7KCFacO9ykztfzFkZ1+e5tE3eY1
+	OXgr9ZrDKM262OUVTGAEBrcm8XuzVXl7lki2mjp55vGHOLlyqksE0+lmP5E5JT5G9aphpRywmHX
+	JBNpghdqzDKmHkS2leQtyabAStxaNCDPdI2kaa/Ka01NXV3SahxxIPfOatDN4FVmR8NtFfQycfU
+	aW6iMo9WJwJqH5vIwjPsgfrYaySa+jSHHgpPYfpNODUbfLOtyfse316SzdJN75lekxi3k6Ro71f
+	4OwyRocar/jI6kDgqB/vjR5KQz5VQeJlS1LQ==
+X-Received: by 2002:a05:620a:4707:b0:8cd:b52c:598f with SMTP id af79cd13be357-8cdb5baae87mr696012285a.59.1773438175373;
+        Fri, 13 Mar 2026 14:42:55 -0700 (PDT)
+Received: from 192-222-50-213.ll.local ([192.222.50.213])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-8cda215c2a9sm639620885a.46.2026.03.13.14.42.55
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 13 Mar 2026 14:42:55 -0700 (PDT)
+From: Jenny Guanni Qu <qguanni@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	klaudia@vidocsecurity.com,
+	dawid@vidocsecurity.com,
+	Jenny Guanni Qu <qguanni@gmail.com>
+Subject: [PATCH] ocfs2: dlm: validate bit index in refmap helpers
+Date: Fri, 13 Mar 2026 21:42:54 +0000
+Message-Id: <20260313214254.2594762-1-qguanni@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 1/1] ocfs2: split transactions in dio completion to
- avoid credit exhaustion
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- Jan Kara <jack@suse.cz>
-References: <20260312162725.15523-1-heming.zhao@suse.com>
- <20260312162725.15523-2-heming.zhao@suse.com>
- <ca9c4609-210f-4426-a4e1-5ee732646411@linux.alibaba.com>
- <qziha6iel7os7c7ecgqphyiqluyf663ntlmxt65bibn5iregsl@qsxg6bi7r2ev>
- <488ccee8-f197-4326-aca4-4466003aed3e@linux.alibaba.com>
-In-Reply-To: <488ccee8-f197-4326-aca4-4466003aed3e@linux.alibaba.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+dlm_lockres_set_refmap_bit() and dlm_lockres_clear_refmap_bit() pass
+the bit parameter directly to set_bit()/clear_bit() on res->refmap
+without checking that it is within O2NM_MAX_NODES. Since refmap is
+sized for exactly O2NM_MAX_NODES bits, an out-of-range value causes
+an out-of-bounds write past the bitmap.
 
+The bit value originates from request->node_idx in network message
+handlers such as dlm_master_request_handler(), which do not validate
+node_idx before calling set_refmap_bit. In contrast,
+dlm_deref_lockres_handler() already checks node_idx >= O2NM_MAX_NODES.
 
-On 3/13/26 12:53 PM, Joseph Qi wrote:
-> 
-> 
-> On 3/13/26 11:17 AM, Heming Zhao wrote:
->> On Fri, Mar 13, 2026 at 10:04:11AM +0800, Joseph Qi wrote:
->>> Almost looks fine, minor updates below.
->>>
->>> On 3/13/26 12:27 AM, Heming Zhao wrote:
->>>> During ocfs2 dio operations, JBD2 may report warnings via following call trace:
->>>> ocfs2_dio_end_io_write
->>>>  ocfs2_mark_extent_written
->>>>   ocfs2_change_extent_flag
->>>>    ocfs2_split_extent
->>>>     ocfs2_try_to_merge_extent
->>>>      ocfs2_extend_rotate_transaction
->>>>       ocfs2_extend_trans
->>>>        jbd2__journal_restart
->>>>         start_this_handle
->>>>          output: JBD2: kworker/6:2 wants too many credits credits:5450 rsv_credits:0 max:5449
->>>>
->>>> To prevent exceeding the credits limit, modify ocfs2_dio_end_io_write() to
->>>> handle each extent in a separate transaction.
->>>>
->>>> Additionally, relocate ocfs2_del_inode_from_orphan(). The orphan inode should
->>>> only be removed from the orphan list after the extent tree update is complete.
->>>> this ensures that if a crash occurs in the middle of extent tree updates, we
->>>> won't leave stale blocks beyond EOF.
->>>>
->>>> This patch also removes the only call to ocfs2_assure_trans_credits(), which
->>>> was introduced by commit be346c1a6eeb ("ocfs2: fix DIO failure due to
->>>> insufficient transaction credits").
->>>>
->>>> Finally, thanks to Jans for providing the bug fix prototype and suggestions.
->>>>
->>>> Suggested-by: Jan Kara <jack@suse.cz>
->>>> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
->>>> ---
->>>>  fs/ocfs2/aops.c | 58 ++++++++++++++++++++++++-------------------------
->>>>  1 file changed, 29 insertions(+), 29 deletions(-)
->>>>
->>>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->>>> index 09146b43d1f0..91997b330d39 100644
->>>> --- a/fs/ocfs2/aops.c
->>>> +++ b/fs/ocfs2/aops.c
->>>> @@ -2294,18 +2294,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>>  		goto out;
->>>>  	}
->>>>  
->>>> -	/* Delete orphan before acquire i_rwsem. */
->>>> -	if (dwc->dw_orphaned) {
->>>> -		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
->>>> -
->>>> -		end = end > i_size_read(inode) ? end : 0;
->>>> -
->>>> -		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
->>>> -				!!end, end);
->>>> -		if (ret < 0)
->>>> -			mlog_errno(ret);
->>>> -	}
->>>> -
->>>>  	down_write(&oi->ip_alloc_sem);
->>>>  	di = (struct ocfs2_dinode *)di_bh->b_data;
->>>>  
->>>> @@ -2326,44 +2314,56 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>>  
->>>>  	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
->>>>  
->>>> -	handle = ocfs2_start_trans(osb, credits);
->>>> -	if (IS_ERR(handle)) {
->>>> -		ret = PTR_ERR(handle);
->>>> -		mlog_errno(ret);
->>>> -		goto unlock;
->>>> -	}
->>>> -	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
->>>> -				      OCFS2_JOURNAL_ACCESS_WRITE);
->>>> -	if (ret) {
->>>> -		mlog_errno(ret);
->>>> -		goto commit;
->>>> -	}
->>>> -
->>>>  	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
->>>> -		ret = ocfs2_assure_trans_credits(handle, credits);
->>>> -		if (ret < 0) {
->>>> +		handle = ocfs2_start_trans(osb, credits);
->>>> +		if (IS_ERR(handle)) {
->>>> +			ret = PTR_ERR(handle);
->>>>  			mlog_errno(ret);
->>>>  			break;
->>>
->>> I'd rather goto unlock directly without update i_size in case error.
->>
->> agree
->>>
->>>>  		}
->>>> +		ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
->>>> +					      OCFS2_JOURNAL_ACCESS_WRITE);
->>>> +		if (ret) {
->>>> +			mlog_errno(ret);
->>>> +			ocfs2_commit_trans(osb, handle);
->>>> +			break;
->>>
->>> Ditto.
->>
->> agree
->>>
->>>> +		}
->>>>  		ret = ocfs2_mark_extent_written(inode, &et, handle,
->>>>  						ue->ue_cpos, 1,
->>>>  						ue->ue_phys,
->>>>  						meta_ac, &dealloc);
->>>>  		if (ret < 0) {
->>>>  			mlog_errno(ret);
->>>> +			ocfs2_commit_trans(osb, handle);
->>>>  			break;
->>>
->>> Ditto.
->>
->> The existing code still updates i_size even if ocfs2_mark_extent_written()
->> returns an error. I am not certain whether updating i_size in this case is
->> correct, but I prefer to maintain the original logic for now.
->> Does that seem reasonable to you?
->>
-> 
-> Since it returns 0 for unwritten extents, it looks fine.
-> 
-Think it a bit more, I think it would be more acceptable to behave
-consistent here.
-e.g. succeeds in the first round and fails to start transaction in the
-second, now it won't update i_size.
+Add bounds checks in both refmap helpers to prevent OOB writes from
+any caller.
 
-Joseph
+The OOB write pattern was confirmed with KASAN using a test module
+that calls set_bit() with an out-of-range index on a kmalloc'd bitmap
+matching the refmap layout.
+
+Fixes: 8d400b81cc83 ("ocfs2/dlm: Clean up refmap helpers")
+Reported-by: Klaudia Kloc <klaudia@vidocsecurity.com>
+Reported-by: Dawid Moczadło <dawid@vidocsecurity.com>
+Tested-by: Jenny Guanni Qu <qguanni@gmail.com>
+Signed-off-by: Jenny Guanni Qu <qguanni@gmail.com>
+---
+ fs/ocfs2/dlm/dlmmaster.c | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+index d610da8e2f24..08746e118466 100644
+--- a/fs/ocfs2/dlm/dlmmaster.c
++++ b/fs/ocfs2/dlm/dlmmaster.c
+@@ -606,6 +606,11 @@ void dlm_lockres_set_refmap_bit(struct dlm_ctxt *dlm,
+ 	mlog(0, "res %.*s, set node %u, %ps()\n", res->lockname.len,
+ 	     res->lockname.name, bit, __builtin_return_address(0));
+ 
++	if (bit >= O2NM_MAX_NODES) {
++		mlog(ML_ERROR, "bit %d >= O2NM_MAX_NODES (%d)\n",
++		     bit, O2NM_MAX_NODES);
++		return;
++	}
+ 	set_bit(bit, res->refmap);
+ }
+ 
+@@ -617,6 +622,11 @@ void dlm_lockres_clear_refmap_bit(struct dlm_ctxt *dlm,
+ 	mlog(0, "res %.*s, clr node %u, %ps()\n", res->lockname.len,
+ 	     res->lockname.name, bit, __builtin_return_address(0));
+ 
++	if (bit >= O2NM_MAX_NODES) {
++		mlog(ML_ERROR, "bit %d >= O2NM_MAX_NODES (%d)\n",
++		     bit, O2NM_MAX_NODES);
++		return;
++	}
+ 	clear_bit(bit, res->refmap);
+ }
+ 
+-- 
+2.34.1
+
