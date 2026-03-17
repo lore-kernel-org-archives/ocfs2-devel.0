@@ -1,32 +1,32 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7965A299944
-	for <ocfs2-devel@lists.linux.dev>; Mon, 16 Mar 2026 08:54:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3E33F3C3BEE
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Mar 2026 12:22:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773651278; cv=none; b=ga5S3OSzXC0a0uAgVxcpDBmuzNF5DT4kxftZb05LgYln59miGKCfS1MAqkJaHI/Peg5u1dEy1crjmeN10WGBMKb78Ee8+rYiLXWWWQ7V8ZRd6h4lR1GyjdvN6S27zX04YME255Kw4+YbCOxvbY5jwtRkrNPprlwogFEXcBSY9Tk=
+	t=1773750137; cv=none; b=IPzARHiN9CxC+Tr57DjxjKb7UL6omwhUPKlTjrkAohv1zX80OyQtmb9vIGlv1+0r1RRab9oysP2Dc0AsdRQP6aKVCm1Qot4pq0x+wtEBEFGMV8h2cmrKXpXT07pTpWsT+rqcptzyBZ0yjp0aBdXtbmEXySZiyiQj0Vf0MykYBEg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773651278; c=relaxed/simple;
-	bh=25BWmn8vxwkogKKrcKSFbEP1n21luwGKDEFjpjGwceg=;
+	s=arc-20240116; t=1773750137; c=relaxed/simple;
+	bh=CwqmOtDedE3vPSKwcIgRZGYpswGb8oUFdLF3Cn/PjsQ=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=QxsUbfjCsXfXddfHZGSCzNXFLczXsqOoaoKV3rd/F9LDaDQ1WjEM2hNH9vIETIXCJY7CK2p0z66n7PGYT9plpye5UW7QA2zuFVSNEVPk1qcHrXvO+hLSNjGkclX0/8xI0m1lFWSYC6yKIYY9jH6ASs/mJ9+0N+9QTgjyhuWkLxE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Zbb47k9s; arc=none smtp.client-ip=115.124.30.97
+	 In-Reply-To:Content-Type; b=BOasTVDQlvjlW6rYz8BEW7WBtyvPO0jma11aioxhmtdtuObeyzWrXwYd6wLv4XMOIeQRVbERH42KsVkHnlZmYoo+iNLXF43rMdTe31zWwQLrZbxOsyVfR0Pzkj51+U7f2Ii2X0h39dsw3u4mfVZAWF5DCevX23NpFifDgLJNpjQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Bc/y0/Qr; arc=none smtp.client-ip=115.124.30.118
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Zbb47k9s"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Bc/y0/Qr"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1773651267; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=QTYKu8qef6OUmc9LDLnvS0NDPtNj7ibgYB4xMOgUO2M=;
-	b=Zbb47k9s2noTff6Bn1avibQr4kYdPVAkqr2CJm4fl9VHGIYThuJrU4ZmniszdDxg2M7EoBFumDis3tHhTCy3kSOANZyZpfKUoClKGmXkGqCAwiQtI1TETS8+YfqgrAjpFTYJWwYumVyZivoAjNJTe7O0/fJtMvqC9rxRO9BMygk=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R861e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X.1hs04_1773651266;
-Received: from 30.221.129.206(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X.1hs04_1773651266 cluster:ay36)
+	t=1773750130; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=IcBDrMF6egPDeR1Nx999ZhF+DZ+aH1WWZBUJtvevnHg=;
+	b=Bc/y0/QrM3BZwBjdBwmz6brc+pNeL8M0v+SKD9O/std5F6ED5McpM9iGPlKSHKaxah0f/43tBOSvenGD0DWvgDdK4Zxd5IzN66qq6xj4AQBlIfO2yZJCNGTxexYHeozRbsmMWwdj7UrH3c2lzelhJlkg4LWu1TkmEbzILvPWrQM=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X.B.vPK_1773750128;
+Received: from 30.221.129.140(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X.B.vPK_1773750128 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 16 Mar 2026 16:54:26 +0800
-Message-ID: <56a5f4eb-05de-4463-b37c-b7b70873b389@linux.alibaba.com>
-Date: Mon, 16 Mar 2026 16:54:24 +0800
+          Tue, 17 Mar 2026 20:22:09 +0800
+Message-ID: <a7f7510b-652c-414b-a530-3aeda945c74a@linux.alibaba.com>
+Date: Tue, 17 Mar 2026 20:22:08 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,40 +34,80 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: dlm: validate bit index in refmap helpers
-To: Jenny Guanni Qu <qguanni@gmail.com>
-Cc: ocfs2-devel@lists.linux.dev, klaudia@vidocsecurity.com,
- dawid@vidocsecurity.com, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-References: <20260313214254.2594762-1-qguanni@gmail.com>
+Subject: Re: [PATCH] ocfs2/dlm: validate message payload length in query
+ handlers
+To: Junrui Luo <moonafterrain@outlook.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ stable@vger.kernel.org, Yuhao Jiang <danisjiang@gmail.com>,
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Sunil Mushran <sunil.mushran@oracle.com>
+References: <SYBPR01MB7881890B57945C79BC03F31EAF44A@SYBPR01MB7881.ausprd01.prod.outlook.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260313214254.2594762-1-qguanni@gmail.com>
+In-Reply-To: <SYBPR01MB7881890B57945C79BC03F31EAF44A@SYBPR01MB7881.ausprd01.prod.outlook.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 3/14/26 5:42 AM, Jenny Guanni Qu wrote:
-> dlm_lockres_set_refmap_bit() and dlm_lockres_clear_refmap_bit() pass
-> the bit parameter directly to set_bit()/clear_bit() on res->refmap
-> without checking that it is within O2NM_MAX_NODES. Since refmap is
-> sized for exactly O2NM_MAX_NODES bits, an out-of-range value causes
-> an out-of-bounds write past the bitmap.
+On 3/12/26 6:03 PM, Junrui Luo wrote:
+> dlm_query_region_handler() and dlm_query_nodeinfo_handler() cast
+> msg->buf to their respective structure pointers without validating
+> that the received message length is sufficient. The o2net transport
+> layer only enforces a maximum payload length, not a minimum, so a
+> truncated message passes the network check and reaches the handler.
 > 
-> The bit value originates from request->node_idx in network message
-> handlers such as dlm_master_request_handler(), which do not validate
-> node_idx before calling set_refmap_bit. In contrast,
-> dlm_deref_lockres_handler() already checks node_idx >= O2NM_MAX_NODES.
-> 
-> Add bounds checks in both refmap helpers to prevent OOB writes from
-> any caller.
-> 
-> The OOB write pattern was confirmed with KASAN using a test module
-> that calls set_bit() with an out-of-range index on a kmalloc'd bitmap
-> matching the refmap layout.
+> This causes out-of-bounds reads from the receive page buffer when
+> accessing structure fields beyond the actual payload, leading to
+> operations on stale or uninitialized data.
 > 
 
-Do you have a real reproducer to trigger this OOB access?
+OCFS2 is always deployed in trusted network.
+So if not considering defensive programming, how does it happen in real
+environment?
 
 Thanks,
 Joseph
+
+> Fix by validating that len covers the full expected structure size
+> before accessing any payload fields.
+> 
+> Cc: stable@vger.kernel.org
+> Fixes: ea2034416b54 ("ocfs2/dlm: Add message DLM_QUERY_REGION")
+> Fixes: 18cfdf1b1a8e ("ocfs2/dlm: Add message DLM_QUERY_NODEINFO")
+> Reported-by: Yuhao Jiang <danisjiang@gmail.com>
+> Signed-off-by: Junrui Luo <moonafterrain@outlook.com>
+> ---
+>  fs/ocfs2/dlm/dlmdomain.c | 6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 70ca79e4bdc3..07aef9ae8cbe 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -1100,6 +1100,9 @@ static int dlm_query_region_handler(struct o2net_msg *msg, u32 len,
+>  	char *local = NULL;
+>  	int status = 0;
+>  
+> +	if (len < sizeof(struct o2net_msg) + sizeof(struct dlm_query_region))
+> +		return -EINVAL;
+> +
+>  	qr = (struct dlm_query_region *) msg->buf;
+>  
+>  	mlog(0, "Node %u queries hb regions on domain %s\n", qr->qr_node,
+> @@ -1276,6 +1279,9 @@ static int dlm_query_nodeinfo_handler(struct o2net_msg *msg, u32 len,
+>  	struct dlm_ctxt *dlm = NULL;
+>  	int status = -EINVAL;
+>  
+> +	if (len < sizeof(struct o2net_msg) + sizeof(struct dlm_query_nodeinfo))
+> +		return -EINVAL;
+> +
+>  	qn = (struct dlm_query_nodeinfo *) msg->buf;
+>  
+>  	mlog(0, "Node %u queries nodes on domain %s\n", qn->qn_nodenum,
+> 
+> ---
+> base-commit: 1f318b96cc84d7c2ab792fcc0bfd42a7ca890681
+> change-id: 20260312-fixes-c80f56fb6069
+> 
+> Best regards,
+
