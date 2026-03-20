@@ -1,234 +1,147 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3A7263859F0
-	for <ocfs2-devel@lists.linux.dev>; Thu, 19 Mar 2026 01:53:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 67D6E2EC57C
+	for <ocfs2-devel@lists.linux.dev>; Fri, 20 Mar 2026 13:41:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1773885208; cv=none; b=WDR8OvGhWQXa5MvVli5M7DLuK0xlNAK2aNIymMX87+Dd3gI9HyjF6sooBF9zebAwrmIz7G53mPtABv8qdJ3uqOzjDxithWmq5RseX1q72Kziz6xoLbcRUINKSFpW5YZnoo5jLXmSlpjjy3uKIPW9VLr4k+u2WRrQCaDKDF1Eb4s=
+	t=1774014108; cv=none; b=e86o4uZizWReuRIPnQjxosejgaULZLxJYDg6bh+V9VY5rktvYiGuvMUN69LyDwFpYxrtEV7vn2afQjkVHRAMmFuEZYw9VnQrGQRA9jRSX25f0ZHaTaRTUTWqmjnD8jFMuw8WlUwzZdyohuonCdZZfou8buErZk5wEfsLJLob+PE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1773885208; c=relaxed/simple;
-	bh=wF51DpOnL/H/hNe2I4pZdUi09u33yhKbvpvo5Lxwsc4=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=nU5nnpdR1AbQbc97JasLfv4cXdli1xr207cjtjgis4aZVmR5Ku87nJX0oEwP1Ab6P+V0snhoYIaOnS/96RhfSkv2JlSWYx/o5UgFFtve65c+J4YCrYf5ZQRo/s1bfkIJyxc2E+ny0zK9T9Kzq3hpBPGP4mTw3gHb5ygcDaXBO+s=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ZSSyr7CZ; arc=none smtp.client-ip=115.124.30.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1774014108; c=relaxed/simple;
+	bh=ud/28G3xYrWf6hhDA8l9j5Yn2n0f8oX/rNwQdYapQHM=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=iEgsOd+OrW0zfad+arx96E/UVaMNnQ8HOJdybsgvwmRHF0avaZd6IsZ6xpiaae3qavwFzfFKJRN1Kfz/kjKwY/1xYs++O5+/hurPV9XP1y721ebZmAuWljm+sbnBLPW+X+IjqUdr31KiUvC48zIo5ejjZGNmvAdVRb6XKEU0iQ0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=DAPLLtye; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=ld8iMnlB; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ZSSyr7CZ"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1773885198; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=jdWOjKaPZICQ9X9HB96PVpjtb2bwy7Mm2ONALU30SXA=;
-	b=ZSSyr7CZ+Dg+1gqTIlWvIcm142dBIhS1RwmKq6VV+fS5Z7bJweExQOC56ZgjkNCioBVf2zMgOGsnZhgQkOhWZJcwk0eCdhnXAokcRwMSvDrFcnBjMqiaa7fWH6g0W5+kPrj+tjW9IbWW3N5Y9NWsaGMOxqbed2a8FNDufcTwJv0=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R371e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X.GfTht_1773885197;
-Received: from 30.221.129.148(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X.GfTht_1773885197 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 19 Mar 2026 09:53:17 +0800
-Message-ID: <a108b18a-e27e-424c-80f1-c19ea2c30685@linux.alibaba.com>
-Date: Thu, 19 Mar 2026 09:53:16 +0800
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="DAPLLtye";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="ld8iMnlB"
+Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id CB6524D1FF;
+	Fri, 20 Mar 2026 13:41:44 +0000 (UTC)
+Authentication-Results: smtp-out1.suse.de;
+	none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1774014104; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7JZGRSCzVw+dnMxvlEGqz/JeWA6SU2+LFt85FuvrPTw=;
+	b=DAPLLtyeGj8Mj4FG2qMIGu514EcEy0/oF8jWLsy8i1UZCVIwaI6nF0Ty9ARBCIkpNmxdVD
+	UeJEAz7uc7FaIsjCZhNpt9/uQzMsSyeiuRVBiO53J6jLqnkjh3HzspmVY1cTWiIGIKu1q1
+	BPfB7ZEskuYcsKCR9/RLz+Y4cZ+xEnE=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1774014104;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7JZGRSCzVw+dnMxvlEGqz/JeWA6SU2+LFt85FuvrPTw=;
+	b=ld8iMnlB1gNKrPDtQADook5ngMlyzUuLnA3OOR5NiwzcFvq0b3IiJ/Jjlsoc4wXdatJuyr
+	67YemWKgp5EJW/Ag==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id B32A44281C;
+	Fri, 20 Mar 2026 13:41:44 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id POG3K5hOvWlHCQAAD6G6ig
+	(envelope-from <jack@suse.cz>); Fri, 20 Mar 2026 13:41:44 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 719B3A0B39; Fri, 20 Mar 2026 14:41:44 +0100 (CET)
+From: Jan Kara <jack@suse.cz>
+To: <linux-fsdevel@vger.kernel.org>
+Cc: <linux-block@vger.kernel.org>,
+	Christian Brauner <brauner@kernel.org>,
+	Al Viro <viro@ZenIV.linux.org.uk>,
+	<linux-ext4@vger.kernel.org>,
+	Ted Tso <tytso@mit.edu>,
+	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
+	David Sterba <dsterba@suse.com>,
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
+	Muchun Song <muchun.song@linux.dev>,
+	Oscar Salvador <osalvador@suse.de>,
+	David Hildenbrand <david@kernel.org>,
+	linux-mm@kvack.org,
+	linux-aio@kvack.org,
+	Benjamin LaHaise <bcrl@kvack.org>,
+	Jan Kara <jack@suse.cz>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	ocfs2-devel@lists.linux.dev
+Subject: [PATCH 04/41] ocfs2: Drop pointless sync_mapping_buffers() calls
+Date: Fri, 20 Mar 2026 14:40:59 +0100
+Message-ID: <20260320134100.20731-45-jack@suse.cz>
+X-Mailer: git-send-email 2.51.0
+In-Reply-To: <20260320131728.6449-1-jack@suse.cz>
+References: <20260320131728.6449-1-jack@suse.cz>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 1/1] ocfs2: split transactions in dio completion to
- avoid credit exhaustion
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- Jan Kara <jack@suse.cz>, glass.su@suse.com
-References: <20260312162725.15523-1-heming.zhao@suse.com>
- <20260312162725.15523-2-heming.zhao@suse.com>
- <ca9c4609-210f-4426-a4e1-5ee732646411@linux.alibaba.com>
- <qziha6iel7os7c7ecgqphyiqluyf663ntlmxt65bibn5iregsl@qsxg6bi7r2ev>
- <488ccee8-f197-4326-aca4-4466003aed3e@linux.alibaba.com>
- <x7tv6dzqhiwcvld2cct4olou5oioeis5k4nlpr6oglpch2skvr@duochardclqx>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <x7tv6dzqhiwcvld2cct4olou5oioeis5k4nlpr6oglpch2skvr@duochardclqx>
-Content-Type: text/plain; charset=UTF-8
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1308; i=jack@suse.cz; h=from:subject; bh=ud/28G3xYrWf6hhDA8l9j5Yn2n0f8oX/rNwQdYapQHM=; b=owEBbQGS/pANAwAIAZydqgc/ZEDZAcsmYgBpvU5vRii9H+t97Y2LO0i9U30mEMXFAbwMkKJma eYyaJh30hyJATMEAAEIAB0WIQSrWdEr1p4yirVVKBycnaoHP2RA2QUCab1ObwAKCRCcnaoHP2RA 2U72CAClYJt4Vp3rWQy+nuN5XC33Sf0SKvdnx/nZehF9DNrggjtZwXkB4YsJjrAnWGUsCGFF/f3 YlQANF2+LWsoMsyadCF+47yP6lp02w/qkM5CIEK3Cr11d+sJmijZvBHd2InvMAS/fiS38kL2ly/ Xx5xJml/gFauzSj7XhjW/G7aHBPA9HxXgpSOBgNx8IcQvXgYBPF8ZIIwEC3gfZadi/Pwdq3OJF9 Sjs897pgik/+X4KIFXex1RazII9Qijsh5u7RBf91D+jQ8hS6MjfUmDtalSVmETNlYdHkRtkHMhD gQ1B+JmY63Jw5VmFHLElivbTdNzPYbruznMB3TYRKmxtXbS/
+X-Developer-Key: i=jack@suse.cz; a=openpgp; fpr=93C6099A142276A28BBE35D815BC833443038D8C
 Content-Transfer-Encoding: 8bit
+X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
+X-Spamd-Result: default: False [-4.00 / 50.00];
+	REPLY(-4.00)[];
+	TAGGED_RCPT(0.00)[]
+X-Rspamd-Queue-Id: CB6524D1FF
+X-Rspamd-Pre-Result: action=no action;
+	module=replies;
+	Message is reply to one we originated
+X-Rspamd-Action: no action
+X-Spam-Flag: NO
+X-Spam-Score: -4.00
+X-Spam-Level: 
 
+ocfs2 never calls mark_buffer_dirty_inode() and thus its metadata
+buffers list is always empty. Drop the pointless sync_mapping_buffers()
+calls.
 
+CC: Joel Becker <jlbec@evilplan.org>
+CC: Joseph Qi <joseph.qi@linux.alibaba.com>
+CC: ocfs2-devel@lists.linux.dev
+Signed-off-by: Jan Kara <jack@suse.cz>
+---
+ fs/ocfs2/dlmglue.c | 1 -
+ fs/ocfs2/namei.c   | 3 ---
+ 2 files changed, 4 deletions(-)
 
-On 3/18/26 2:40 PM, Heming Zhao wrote:
-> On Fri, Mar 13, 2026 at 12:53:32PM +0800, Joseph Qi wrote:
->>
->>
->> On 3/13/26 11:17 AM, Heming Zhao wrote:
->>> On Fri, Mar 13, 2026 at 10:04:11AM +0800, Joseph Qi wrote:
->>>> Almost looks fine, minor updates below.
->>>>
->>>> On 3/13/26 12:27 AM, Heming Zhao wrote:
->>>>> During ocfs2 dio operations, JBD2 may report warnings via following call trace:
->>>>> ocfs2_dio_end_io_write
->>>>>  ocfs2_mark_extent_written
->>>>>   ocfs2_change_extent_flag
->>>>>    ocfs2_split_extent
->>>>>     ocfs2_try_to_merge_extent
->>>>>      ocfs2_extend_rotate_transaction
->>>>>       ocfs2_extend_trans
->>>>>        jbd2__journal_restart
->>>>>         start_this_handle
->>>>>          output: JBD2: kworker/6:2 wants too many credits credits:5450 rsv_credits:0 max:5449
->>>>>
->>>>> To prevent exceeding the credits limit, modify ocfs2_dio_end_io_write() to
->>>>> handle each extent in a separate transaction.
->>>>>
->>>>> Additionally, relocate ocfs2_del_inode_from_orphan(). The orphan inode should
->>>>> only be removed from the orphan list after the extent tree update is complete.
->>>>> this ensures that if a crash occurs in the middle of extent tree updates, we
->>>>> won't leave stale blocks beyond EOF.
->>>>>
->>>>> This patch also removes the only call to ocfs2_assure_trans_credits(), which
->>>>> was introduced by commit be346c1a6eeb ("ocfs2: fix DIO failure due to
->>>>> insufficient transaction credits").
->>>>>
->>>>> Finally, thanks to Jans for providing the bug fix prototype and suggestions.
->>>>>
->>>>> Suggested-by: Jan Kara <jack@suse.cz>
->>>>> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
->>>>> ---
->>>>>  fs/ocfs2/aops.c | 58 ++++++++++++++++++++++++-------------------------
->>>>>  1 file changed, 29 insertions(+), 29 deletions(-)
->>>>>
->>>>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
->>>>> index 09146b43d1f0..91997b330d39 100644
->>>>> --- a/fs/ocfs2/aops.c
->>>>> +++ b/fs/ocfs2/aops.c
->>>>> @@ -2294,18 +2294,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>>>  		goto out;
->>>>>  	}
->>>>>  
->>>>> -	/* Delete orphan before acquire i_rwsem. */
->>>>> -	if (dwc->dw_orphaned) {
->>>>> -		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
->>>>> -
->>>>> -		end = end > i_size_read(inode) ? end : 0;
->>>>> -
->>>>> -		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
->>>>> -				!!end, end);
->>>>> -		if (ret < 0)
->>>>> -			mlog_errno(ret);
->>>>> -	}
->>>>> -
->>>>>  	down_write(&oi->ip_alloc_sem);
->>>>>  	di = (struct ocfs2_dinode *)di_bh->b_data;
->>>>>  
->>>>> @@ -2326,44 +2314,56 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->>>>>  
->>>>>  	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
->>>>>  
->>>>> -	handle = ocfs2_start_trans(osb, credits);
->>>>> -	if (IS_ERR(handle)) {
->>>>> -		ret = PTR_ERR(handle);
->>>>> -		mlog_errno(ret);
->>>>> -		goto unlock;
->>>>> -	}
->>>>> -	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
->>>>> -				      OCFS2_JOURNAL_ACCESS_WRITE);
->>>>> -	if (ret) {
->>>>> -		mlog_errno(ret);
->>>>> -		goto commit;
->>>>> -	}
->>>>> -
->>>>>  	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
->>>>> -		ret = ocfs2_assure_trans_credits(handle, credits);
->>>>> -		if (ret < 0) {
->>>>> +		handle = ocfs2_start_trans(osb, credits);
->>>>> +		if (IS_ERR(handle)) {
->>>>> +			ret = PTR_ERR(handle);
->>>>>  			mlog_errno(ret);
->>>>>  			break;
->>>>
->>>> I'd rather goto unlock directly without update i_size in case error.
->>>
->>> agree
->>>>
->>>>>  		}
->>>>> +		ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
->>>>> +					      OCFS2_JOURNAL_ACCESS_WRITE);
->>>>> +		if (ret) {
->>>>> +			mlog_errno(ret);
->>>>> +			ocfs2_commit_trans(osb, handle);
->>>>> +			break;
->>>>
->>>> Ditto.
->>>
->>> agree
->>>>
->>>>> +		}
->>>>>  		ret = ocfs2_mark_extent_written(inode, &et, handle,
->>>>>  						ue->ue_cpos, 1,
->>>>>  						ue->ue_phys,
->>>>>  						meta_ac, &dealloc);
->>>>>  		if (ret < 0) {
->>>>>  			mlog_errno(ret);
->>>>> +			ocfs2_commit_trans(osb, handle);
->>>>>  			break;
->>>>
->>>> Ditto.
->>>
->>> The existing code still updates i_size even if ocfs2_mark_extent_written()
->>> returns an error. I am not certain whether updating i_size in this case is
->>> correct, but I prefer to maintain the original logic for now.
->>> Does that seem reasonable to you?
->>>
->>
->> Since it returns 0 for unwritten extents, it looks fine.
->>
->>>> BTW, we can move ocfs2_commit_trans() rightly after ocfs2_mark_extent_written()
->>>> to save the extra call in case error.
->>>
->>> agree
->>>
->>> I ran a DIO test using 64MB chunk size (e.g.: fio --bs=64M), the dwc->dw_zero_count
->>> is about 12107 ~ 12457.
->>> Regarding the transaction splitting in the unwritten handling loop: this patch
->>> introduces a minor performance regression. I would like to merge some of the
->>> transaction calls. e.g.: by starting a new transaction every 100 or 200 iterations.
->>> What do you think of this approach?
->>>
->>
->> Seems we can limit max credit for a single transaction here?
->> If exceeds, restart a new one.
->>
->> Joseph,
->> Thanks
-> 
-> sorry for the late reply, I spend some time running the tests.
-> I have created two different types of patches (see below) to address this issue.
-> 
-> time consumption results:
-> 
-> ocfs2-dynamic-... patch
-> real    2m9.900s
-> user    0m0.333s
-> sys     0m22.687s
-> 
-> %200 of ocfs2-split-trans-... patch
-> real    1m48.901s
-> user    0m0.306s
-> sys     0m23.019s
-> 
-> %500 of ocfs2-split-trans-... patch
-> real    1m49.350s
-> user    0m0.299s
-> sys     0m22.718s
-> 
-> As shown above, the fixed "500% mode" is faster than the dynamic style.
-> Which approach do you prefer?
-> 
-I'd prefer solution B, it looks simpler to directly set a commit batch.
-Some comments for the formal patch：
-1. I don't think you have to use 'cnt + trans_start + mod' to control
-the batch commit, just check 'batch + handle' seems enough.
-2. Define a macro for the batch, e.g. OCFS2_DIO_MARK_EXTENT_BATCH,
-3. Do not update i_size in case error.
-4. Correctly handle commit transaction in case error.
-
-Thanks,
-Joseph
-
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index bd2ddb7d841d..7283bb2c5a31 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3971,7 +3971,6 @@ static int ocfs2_data_convert_worker(struct ocfs2_lock_res *lockres,
+ 		mlog(ML_ERROR, "Could not sync inode %llu for downconvert!",
+ 		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+ 	}
+-	sync_mapping_buffers(mapping);
+ 	if (blocking == DLM_LOCK_EX) {
+ 		truncate_inode_pages(mapping, 0);
+ 	} else {
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 268b79339a51..1277666c77cd 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -1683,9 +1683,6 @@ static int ocfs2_rename(struct mnt_idmap *idmap,
+ 	if (rename_lock)
+ 		ocfs2_rename_unlock(osb);
+ 
+-	if (new_inode)
+-		sync_mapping_buffers(old_inode->i_mapping);
+-
+ 	iput(new_inode);
+ 
+ 	ocfs2_free_dir_lookup_result(&target_lookup_res);
+-- 
+2.51.0
 
