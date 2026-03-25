@@ -1,71 +1,70 @@
-Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+Received: from mail-wm1-f45.google.com (mail-wm1-f45.google.com [209.85.128.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 224DB3C3C06
-	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Mar 2026 07:19:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E784285CB3
+	for <ocfs2-devel@lists.linux.dev>; Wed, 25 Mar 2026 03:31:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774336753; cv=none; b=erIlXuIEO54UDDGQ026f7E5/S7lknOBXGdJ4Nt5PJS9wAs/AgP0Zs5dlm2pr2nC7ubl0irqkzFvpdnFhILWOEUaYbF+BWs+dKgg6MCxNgxUYiEht5PM+dsKe6IlZm/R+FJgNNyjy2QLTazWV7cWchDVLtp99v13uAlIB6XH1Xj0=
+	t=1774409470; cv=none; b=q33SJecAISAyRBvWZK5dlcKg23osq3HUooIRMQ7EW1Z6SAvfm04YcgfYX3P/9cZ+i1htL7YoHe6GfJ5vdNKIpEq+75uRSJeBsrIvX9lZ+TgDF1QjxN8N6ek+qHLjdgv3uxdiGm7lJCzSNh+l/kIvEYxFR95OXWxlhDQTAfcDeFc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774336753; c=relaxed/simple;
-	bh=NWvw5/ClmO5ScRjBYdEj4DHpPHCxitCpDf5mGSFZBHM=;
+	s=arc-20240116; t=1774409470; c=relaxed/simple;
+	bh=ZMxkRBI1QQjmkKGhpx/hwUOOgzamOiAAuZc0ZrRqiZs=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Rs1G4Nb4oJMsxcgkZzYD3eCW1cKYYeLLIbFF+fdZgD8qSijoCnCq1THSjfVDPNAQZEIcypfzSP0M34O6G/TdHl35U4mdKhFfQvDc1QifwCTNQ3El+CmjoLleUjMeMsEBlc0aAJsW6BDwfBXxD9bmZ1pUfNyKO0DjFWVizEWFFDs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=g3BwfDDM; arc=none smtp.client-ip=209.85.128.46
+	 Content-Type:Content-Disposition:In-Reply-To; b=MDvzMPv5htEQWz44DvhCKl1icfeyUzmERw1pJDciL7GSG0jDKjEKbYIqfBw5ehBF+cYnDmbfqt9/+J9e1NKcOUbtZWnM0mSL9gW2qIiONuMxH7buhyqjB1NC+Qg8srvyr6c4/WKuluhR6653d2yWkx+XHlBKIPqUB8/btB5SkS0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Iq+22Q7t; arc=none smtp.client-ip=209.85.128.45
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="g3BwfDDM"
-Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-483ad568d68so7095085e9.2
-        for <ocfs2-devel@lists.linux.dev>; Tue, 24 Mar 2026 00:19:03 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Iq+22Q7t"
+Received: by mail-wm1-f45.google.com with SMTP id 5b1f17b1804b1-4830b67aa6bso9399935e9.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 24 Mar 2026 20:31:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1774336742; x=1774941542; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1774409466; x=1775014266; darn=lists.linux.dev;
         h=in-reply-to:content-transfer-encoding:content-disposition
          :mime-version:references:message-id:subject:cc:to:from:date:from:to
          :cc:subject:date:message-id:reply-to;
-        bh=C513bjvIajggVoBYujaXRwmVtgpXvNf3vF4QTkToet4=;
-        b=g3BwfDDMa0klTLi3BPwTWAL2TVdlyanDHwaCK2yPCfHvismpqB/ejNMLLHBeUu6e8c
-         crr9UamtfD1r2IrAWqpCyi/U1sw9aY+D3T83pT4PgHS3LCKZmQl190m55mGgJpUSDwAx
-         xt8NTYywZGFJFHDgAo1p4DbcfxLbAQoRjvDTMVjV5smT3VvxAQWYH3lVFMz8SxR4oMGX
-         DOFT9I8WmTDOaYKRt7Mytl859h1BBir1aj2X85NeafTps6hvBmGke1900YmJFG4nYbyh
-         FI/WSVJmlEgNSSbr05QOfWBqn3s0fzD84176Nlod5Zs08nrM5AeQKiiH7old56zlpF8x
-         hXDw==
+        bh=YCcFKlYT3hj3/T0JzTSZHm3mLG7Vj9KxrxQOjBNTlRc=;
+        b=Iq+22Q7tl4RbirpN2RlFue3D9dmHSqB8cqDKA/sMfpv/4hffJBuUlwdL8yKeXrNHXm
+         mhUDYv3RyC/Bhe0JWLp4bz1d8Uhmsu1/GKh+iYP0nSQmxvjLB/sw28GMeSiZvHkkDmI2
+         yeTO2tZXF+nKuNNtKVc5WrI1qa5tudkunnitSjqL3Gw+ivomMXFBYfU+61nX6bfMg892
+         aBNPZr67Yg66T8N30GtJFO2HYZ4leW6CefFRoiHuZttD+RL+l26maJ8+hErVGZO90ciQ
+         JOXW7RabXnxbkY8mp/dstye9Yl2Ee4H+GiIyK0OUq8t/ruDjCSDw+Lrao/tpDCGeQ8iM
+         Yguw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1774336742; x=1774941542;
+        d=1e100.net; s=20251104; t=1774409466; x=1775014266;
         h=in-reply-to:content-transfer-encoding:content-disposition
          :mime-version:references:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
-        bh=C513bjvIajggVoBYujaXRwmVtgpXvNf3vF4QTkToet4=;
-        b=sjdvWa/O0bTDsIr+m3fQl1Ea0oirtZzucOj7c7NyGIbMNw5mwvHwT9mnZ7dxgpcpTH
-         5YVUJ18/xavWTNdT3Rw+qe0+0ncix7KHCH7/mBSVWsKIhILawd2G5Fd6OzLR2iAS7PVS
-         8O2Kf60WRezN+gnast61tP6RcDn3UobMOPmzl0TAxVaSQW34dZ7RjV2gx1vsiA+xNmc1
-         OJnbpHksYaULwrn+JSCEgTX2j8eaONGLzb4l9njWaSMlicfTkqcUz9oniR7t275lWp5n
-         Zo0Ycqxdnurdc8VatMm0LIt/q/uGNF0BlNbC2xdxzWGgPsauISEd/x3OKfkof9FmmW3g
-         mRsA==
-X-Gm-Message-State: AOJu0Yw4areFSATieKUGPwuhxTb6TRC8El9mfPxwJfsy6N5DOjNVgtXX
-	05+6C8sO95Zg5X1P1g36PDrcJ9Q+e4390BPZMBBZgq8fOHW/mxoll8xFfGmC1Fb+aOJ6c/uj89o
-	yGz4R
-X-Gm-Gg: ATEYQzzggNE0Jx1p7Z9vsNRTZKUvGfkQMnA+YIcMEzu3ZW2t1aRig5LoFc8L5uhMPbk
-	wDLTM1UCPMdDiK6kCRLEstHNzOQiCsIutYHJANz4R/S99lcazUknaq04SOaJylSbZw5lMqZAgUJ
-	0qF2gG3o64qK36S30YEXlKnImXuyiQxBBfbuj8/nu64IlOwGpGF1hkRRG40Erz9WfwmyVlQi8pn
-	qUjI2xcSLCOAjXImQkMim/gXQg1AIZXvj83OtMcmFD+VHArGm4SHjbG5JY0r74dyeSimuChqk4w
-	oMMz+37T27Tqfe3fdODEdPpimBGdv47IDzHPy+vOzUiljbqokoCVPkDrJiejNgSxut4sDoLBoF6
-	VvnTxSfoRWH4sbFZqcwfW154HpAB5C7qbMovGDclyITJilOc7QtQfUxK1m8y3+ctFzQF4cj42fC
-	INwPULT13V4Hh1OiuVvV4SWA==
-X-Received: by 2002:a05:600c:630d:b0:485:385f:674d with SMTP id 5b1f17b1804b1-486ff0230d9mr137495825e9.8.1774336742072;
-        Tue, 24 Mar 2026 00:19:02 -0700 (PDT)
+        bh=YCcFKlYT3hj3/T0JzTSZHm3mLG7Vj9KxrxQOjBNTlRc=;
+        b=dafSwmF4a992OgcpECSr1jPrCt9e6ZrfxDXccVkIIZcZ2trUfiqcvhPELfJN974nfH
+         9kn9m4pDMMxko+zrsr5+iA14p4buc4QR7K7qz2esz40kww0iDWCmnLBXmTh5v/Cdjai2
+         q4NyudRncz7XiqhYPzxKUpHsEaYqrU6G0pyiijMcWFwoGXSROMXEMy316tMaX0mVeMZ4
+         m4hJ0Ark7w5Omcz4xSQoYdQ2fDLfCnO2k8OV35nwInRu+FYH4KuzPaC8/uBbq9peSN/S
+         UJNBKVzYGUhtq0b7QK0QIZTxCXMImSnreTAzgmmwd+hIRpTAVuOqV3r8o4Va6DbjR7Ux
+         a9yg==
+X-Gm-Message-State: AOJu0Yw7eN4UdtLxosjRryTt5RI3xh3tUHmkqCH4ULflCC4Nk6zepMAf
+	BV5cd93eecGMouynU+hb29rsIDmiYDHVqau9nSP5gc9sTpW8dxGm9d7e7eZmBUVV4zw=
+X-Gm-Gg: ATEYQzzwtGHbGt3YwqsOJyfubD9JM4XwETrN3JONuyaMxnnDZmLZwoSjkEfc+jK665T
+	L+9R6li4jXR2rAFUvgbBzO3OmSaFL4MBhrD9tYriyufBxNYepJbbCRqObCaOfDv547AlVQDRQOi
+	vvjRFsg8nYM7qzpdI5Fl3ap2HTPDLZDwZm7TP0tGpbIJvyRklZ1UKpYvduYFpuTYx0nCXgMVZFI
+	e4tJH2+GDFW3F5Vq7U5G1vqOnlgLogTmaOZhgSV/VnQ3JORSQUfj1fppS7ngzeY5Sr0oxtGLRnt
+	gI4w7ev77T27D6MKL4bnFNxZ+mTfJlyipqhjeBmviYriOgaAzl3af1M7FF9J+xRsQYrh1YAL2Uq
+	vvLjLyUmxudHDrvR8ra3PR2vd9FaYUpXf8nfrtrO9Qcd3VN6tVUcvh82HyGZG32lP3fNv758sfX
+	PR8du7132jY93zeKInEzIBmg==
+X-Received: by 2002:a05:600c:4f89:b0:47d:6f12:de57 with SMTP id 5b1f17b1804b1-4871606daa2mr15907565e9.4.1774409465478;
+        Tue, 24 Mar 2026 20:31:05 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2b08366b9aesm172099715ad.58.2026.03.24.00.19.00
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c76565c35desm4830663a12.15.2026.03.24.20.31.03
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 24 Mar 2026 00:19:01 -0700 (PDT)
-Date: Tue, 24 Mar 2026 15:18:57 +0800
+        Tue, 24 Mar 2026 20:31:04 -0700 (PDT)
+Date: Wed, 25 Mar 2026 11:31:01 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
 	Jan Kara <jack@suse.cz>, glass.su@suse.com
 Subject: Re: [PATCH v2 1/1] ocfs2: split transactions in dio completion to
  avoid credit exhaustion
-Message-ID: <asb2zcmotukhuk45efyv3nzpyv2uignjrs6mz2qn5qpuo2mb43@u4jbyfvv3sml>
+Message-ID: <fxq56b3asrnttbxflhegeetn74kbo3xfjqipcelisbifbtuxku@g2zhgyuzq6je>
 References: <20260312162725.15523-1-heming.zhao@suse.com>
  <20260312162725.15523-2-heming.zhao@suse.com>
  <ca9c4609-210f-4426-a4e1-5ee732646411@linux.alibaba.com>
@@ -83,8 +82,6 @@ Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
 In-Reply-To: <a108b18a-e27e-424c-80f1-c19ea2c30685@linux.alibaba.com>
-
-Sorry, I just found this mail. Please ignore my previous mail.
 
 On Thu, Mar 19, 2026 at 09:53:16AM +0800, Joseph Qi wrote:
 > 
@@ -268,4 +265,124 @@ On Thu, Mar 19, 2026 at 09:53:16AM +0800, Joseph Qi wrote:
 > Thanks,
 > Joseph
 > 
-> 
+
+I hope I understand your point correctly.
+creating and setting OCFS2_DIO_MARK_EXTENT_BATCH to 800, corresponding to the
+%200 used in my previous 'cnt+trans_start+mod' patch.
+
+the time consumption:
+real    1m50.508s
+user    0m0.365s
+sys     0m22.829s
+
+```
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 7a65d5a36a3e..4e3a51e86e32 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -37,6 +37,8 @@
+ #include "namei.h"
+ #include "sysfile.h"
+ 
++#define OCFS2_DIO_MARK_EXTENT_BATCH 800
++
+ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
+ 				   struct buffer_head *bh_result, int create)
+ {
+@@ -2279,6 +2281,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	handle_t *handle = NULL;
+ 	loff_t end = offset + bytes;
+ 	int ret = 0, credits = 0;
++	int trans_err = 0, wanted;
+ 
+ 	ocfs2_init_dealloc_ctxt(&dealloc);
+ 
+@@ -2295,18 +2298,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 		goto out;
+ 	}
+ 
+-	/* Delete orphan before acquire i_rwsem. */
+-	if (dwc->dw_orphaned) {
+-		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+-
+-		end = end > i_size_read(inode) ? end : 0;
+-
+-		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
+-				!!end, end);
+-		if (ret < 0)
+-			mlog_errno(ret);
+-	}
+-
+ 	down_write(&oi->ip_alloc_sem);
+ 	di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
+@@ -2341,11 +2332,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 	}
+ 
+ 	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
+-		ret = ocfs2_assure_trans_credits(handle, credits);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			break;
+-		}
+ 		ret = ocfs2_mark_extent_written(inode, &et, handle,
+ 						ue->ue_cpos, 1,
+ 						ue->ue_phys,
+@@ -2354,17 +2340,46 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+ 			mlog_errno(ret);
+ 			break;
+ 		}
+-	}
+ 
+-	if (end > i_size_read(inode)) {
+-		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
+-		if (ret < 0)
+-			mlog_errno(ret);
++		wanted = jbd2_handle_buffer_credits(handle) + (credits << 2);
++		if (wanted > OCFS2_DIO_MARK_EXTENT_BATCH) {
++			ocfs2_commit_trans(osb, handle);
++			handle = ocfs2_start_trans(osb, credits);
++			if (IS_ERR(handle)) {
++				ret = PTR_ERR(handle);
++				mlog_errno(ret);
++				trans_err = 1;
++				break;
++			}
++			ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
++					OCFS2_JOURNAL_ACCESS_WRITE);
++			if (ret) {
++				mlog_errno(ret);
++				break;
++			}
++		}
+ 	}
++
++	if (!trans_err) {
++		if (end > i_size_read(inode)) {
++			ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
++			if (ret < 0)
++				mlog_errno(ret);
++		}
+ commit:
+-	ocfs2_commit_trans(osb, handle);
++		ocfs2_commit_trans(osb, handle);
++	}
+ unlock:
+ 	up_write(&oi->ip_alloc_sem);
++
++	/* everything looks good, let's start the cleanup */
++	if (dwc->dw_orphaned) {
++		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
++
++		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh, 0, 0);
++		if (ret < 0)
++			mlog_errno(ret);
++	}
+ 	ocfs2_inode_unlock(inode, 1);
+ 	brelse(di_bh);
+ out:
+```
+
+if this approach is acceptable, I will send v3. 
+
+- Heming
