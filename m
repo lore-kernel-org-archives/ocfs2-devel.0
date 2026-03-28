@@ -1,236 +1,196 @@
-Received: from mail-wm1-f45.google.com (mail-wm1-f45.google.com [209.85.128.45])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out-188.mta0.migadu.com (out-188.mta0.migadu.com [91.218.175.188])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1EEB03B8BD1
-	for <ocfs2-devel@lists.linux.dev>; Fri, 27 Mar 2026 06:36:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8C8D725EF87
+	for <ocfs2-devel@lists.linux.dev>; Sat, 28 Mar 2026 09:23:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=91.218.175.188
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1774593420; cv=none; b=qHRs9fhnsf1P/RmCA+XgyQ+MmTQNU45tONghzzjnMFtMPmmXvyAOBmNOisGja0t67WV0SElpAeHUDzJpVlPBNgrsaK3UYC6zPuNrWtfTwi3p2+dCp0dI/3sFndpxPu981U+awQ+B1tjW8wKpbD0U1Bd5jPFYN6SbTkqdjrkWNpo=
+	t=1774689832; cv=none; b=VnEVEE3FiJiuQXbldrsLh2J26XDM+Cb0K4MKWsGwxVd5+2n+a1/QnrpIIiQ38y2/5Grcyzqj/95r/Uq82+Z/jymFXeuROhYoZXPgkd1KkABHTRYPIoILiawwXBqNU9+fG0dL+wGNh4hOdiVO3/Nsj8GWrb6wdO+Kp8IoamwfyNU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1774593420; c=relaxed/simple;
-	bh=6Qjgytl6wg2QArtvD4J05K4KuLLYc3eNsd+FdaB2Rak=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=sDwth8uNHgCtJg3pnA5YBwLAZHrIJcVrMrPeOEQo12dO8hNBHsBcn1bD8FOnBg5SlwXSv1qndudB9mp0mZXsAsb3vHPOhdRFwbn6H9sf6tj4WQ+oYOHG4ZNZ3ncqf7r2yvo4dRnVkhCo3DEq7Xm0JxHmsH9Z1LwCvCrOyQUA6UI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=SxwnV+vB; arc=none smtp.client-ip=209.85.128.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1774689832; c=relaxed/simple;
+	bh=n+/ko9WnqhGa6irCZS9OhHG1C9YFxFiPMFkjKIznaDU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=EzesjHLVpJZCYT2PBy4rbyQULiud5O8q0Z/elFRP4s8/t8kbNCq2U84iTT1TUvuG1LySxP/VTVscHTq0b4hOBv1uDHhc3BOQdzP+En41hK65/vDpzocRNie8S8JzY5B06jl5J/klQkVEgsTOmnuC2TABzaXWNtyEWijMX7EjJzE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev; spf=pass smtp.mailfrom=linux.dev; dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b=cZ4YKimE; arc=none smtp.client-ip=91.218.175.188
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.dev
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.dev
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="SxwnV+vB"
-Received: by mail-wm1-f45.google.com with SMTP id 5b1f17b1804b1-483ad568d68so2540655e9.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 26 Mar 2026 23:36:43 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1774593402; x=1775198202; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=nU8qFExDEanhu1yB6N1aCOH6lO0L98OpkQXZxpR303E=;
-        b=SxwnV+vBhUzmBdU6HLC5P4lGgsgznoOkMIZ7c2UV3GbXYtn50krKbD3vB6XnU15cF3
-         vNUVPhjKpnefVsI0E/z02l8Qfr/RbGPpaB5AT1CVA47vAskmNGVwy8K186q77HYHEPfD
-         yxyNPgJyMbqK9/cz6hbfcGmOPUiPFFLuFQLlQR/OXrQNysc8s6ItBw3THY2VagNAMVIX
-         TW1qkZphCRjw0iHUnd3cP9gzR/m0M1HsMneyLFj/FgbI4Dv+ZtoxfweiC8iKjs1RlWjH
-         yBCctnFUlr41qrul7MtJhycK0WYKJm1Rv/7w+hAC4zuT9jcVBMXJwzDTB8wpnOHCpiTF
-         rB6A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1774593402; x=1775198202;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=nU8qFExDEanhu1yB6N1aCOH6lO0L98OpkQXZxpR303E=;
-        b=IbzBOIA94oUpokWX9X5snXFIGfqVnQMzR4p3ypIHPCJYvGj0tELVmd5YcUIQXlWdLz
-         DF5UlHMAxz9JyO0I0cTOJeltN7IlBxTpFPUWMf5w8coMPNtt/uRtBK3ZOeJdStvF4+yV
-         eOzkT0FNkZqgNnOCLKK29TlSsnttE3WLg/n2AVE7BYlgULGtiQ6meHFvC0R1WNwEJ5fH
-         fthbZ1s3sXtcC5FVUcGVBA9iwvlYprC/kvMfDfGk9YXMWK4v9DxzLLSOvHmJpoHSXRyn
-         Ncsj2c7uU1VWgIMJS4rFJRxGu7/InRFFy1TrWtoHeNx6Ft37BEDpelTh1idmvh62oRT5
-         mDEA==
-X-Forwarded-Encrypted: i=1; AJvYcCUZFGou/TdvhOaQ4vH3e4uNhLgeUqKn2QBNdRB0+OJy5vszekLEQgkvmeS/h8GhpVfiYqbhtNXzvpihfg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyyHFRTgi/17QDB7n9kQCbJfnEdEhwC4VTbJZOQQzohbXvto8/E
-	06umZInZwOFSIof27NRiT3SOyxLWCs7Ug2UHBZ3H7rXzgA/662/QtR/n6tkpy4WN90o=
-X-Gm-Gg: ATEYQzwll3X2x0MaZiOGVq3ZxdwqaDkaLyP2J40EXGLBHcVW4JLgOaWj8YjHaHcxKQe
-	Sfq7J5v6Ru+4lC74qB4hBSu1xERJ3U3XgofC+95np/KtM6C8lWODOTepLW3d0Zy7/WxsEQTfE0n
-	Ep+HCsKOBvn2c4XarW4gKJlDSUiCXlrVadsuWgTXdw903a1GN5A+PCu8FX6wORyhjXo9s3K+MNA
-	v6uRdFQ/K0FCsbNHw6WXUSq0ulBATsX7pV8e5ZhwVsnWDAjNkTjcU1VwQw7Jsq95lD/sUCmzSmI
-	VdxptMFzNELkQdD9TOnSpMb7LD91aZKSJOXjfMuIyhxblK5cHxfriSQZHJ4kCGInf7QB6vF0TjC
-	fp3UU66103ZLWSPdDsfOkyl0izCfUVDSuVIvy5lFous5EfPNIO3pWlm2/YJG5NlxvizO2H2SDAq
-	RnzFGyFAYZNuYSMF2gO5gXOoxwjMd/L68XWq9o
-X-Received: by 2002:a05:600c:19d2:b0:485:3177:d80c with SMTP id 5b1f17b1804b1-48727d6fbc6mr11526595e9.2.1774593401599;
-        Thu, 26 Mar 2026 23:36:41 -0700 (PDT)
-Received: from localhost.localdomain ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c76739311d1sm3849190a12.15.2026.03.26.23.36.39
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 26 Mar 2026 23:36:40 -0700 (PDT)
-From: Heming Zhao <heming.zhao@suse.com>
-To: joseph.qi@linux.alibaba.com,
-	jack@suse.cz
-Cc: Heming Zhao <heming.zhao@suse.com>,
+	dkim=pass (1024-bit key) header.d=linux.dev header.i=@linux.dev header.b="cZ4YKimE"
+X-Report-Abuse: Please report any abuse attempt to abuse@migadu.com and include these headers.
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=linux.dev; s=key1;
+	t=1774689828;
+	h=from:from:reply-to:subject:subject:date:date:message-id:message-id:
+	 to:to:cc:cc:mime-version:mime-version:
+	 content-transfer-encoding:content-transfer-encoding;
+	bh=oMwRq5HnS+78DwQUlqC1Tm5QUKwvNs03NfwdMzwehuI=;
+	b=cZ4YKimESZuso/j1XQXM9keaH81rMt2E/YlFqxKHFwGEtW+MsGyavc4XdZ09RLkGmDCoA+
+	3obf224Tgq2L9dCc06f590XBNloYG783owDw7KZY6Nq3s2F3KrSmTnPczcwzbIK1X+W67x
+	EDoxHsX/Jb76icij++/zsaU+z80m660=
+From: Yufan Chen <yufan.chen@linux.dev>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
 	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	glass.su@suse.com
-Subject: [PATCH v5 1/1] ocfs2: split transactions in dio completion to avoid credit exhaustion
-Date: Fri, 27 Mar 2026 14:36:25 +0800
-Message-ID: <20260327063626.10225-2-heming.zhao@suse.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260327063626.10225-1-heming.zhao@suse.com>
-References: <20260327063626.10225-1-heming.zhao@suse.com>
+	linux-kernel@vger.kernel.org
+Cc: yufan.chen@linux.dev,
+	Yufan Chen <ericterminal@gmail.com>
+Subject: [PATCH] ocfs2/heartbeat: fix slot mapping rollback leaks on error paths
+Date: Sat, 28 Mar 2026 17:23:39 +0800
+Message-ID: <20260328092339.75306-1-yufan.chen@linux.dev>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+X-Developer-Signature: v=1; a=openpgp-sha256; l=4754; i=ericterminal@gmail.com; h=from:subject; bh=qcdY096lMznJ2ikeq8Den44mbzGNepyRr/kPQoTEyh4=; b=owGbwMvMwCXWM/dCzeS3H+sZT6slMWQen8PS1MWTN5W/5tw8vzcRV0PsdDLXyLXue3JFsuq7U PzaChfLjoksDGJcDJZiiix3/++bm+t1a8517sO5MHNYmUCGSIs0MAABCwNfbmJeqZGOkZ6ptqGe oZGOgY4xAxenAEz1ZCmGf1b+gj5bpiYJzwrtnKUZGl+0/2JtZnl2TiOfQmrXE4UT2Qx/xb6tN24 VtNScfFbmtPnR89EnTPkiUyc9yjxUOfHYk1m2XAA=
+X-Developer-Key: i=ericterminal@gmail.com; a=openpgp; fpr=DDFFBE9D6D4ADA9CD70BC36D8C9DD07C93EDF17F
 Content-Transfer-Encoding: 8bit
+X-Migadu-Flow: FLOW_OUT
 
-During ocfs2 dio operations, JBD2 may report warnings via following call trace:
-ocfs2_dio_end_io_write
- ocfs2_mark_extent_written
-  ocfs2_change_extent_flag
-   ocfs2_split_extent
-    ocfs2_try_to_merge_extent
-     ocfs2_extend_rotate_transaction
-      ocfs2_extend_trans
-       jbd2__journal_restart
-        start_this_handle
-         output: JBD2: kworker/6:2 wants too many credits credits:5450 rsv_credits:0 max:5449
+From: Yufan Chen <ericterminal@gmail.com>
 
-To prevent exceeding the credits limit, modify ocfs2_dio_end_io_write() to
-handle extents in a batch of transaction.
+o2hb_map_slot_data() allocated hr_tmp_block, hr_slots, hr_slot_data, and pages in stages but returned directly on allocation failures without unwinding previously allocated resources. Under repeated allocation failures this could leak memory and increase pressure toward OOM.
 
-Additionally, relocate ocfs2_del_inode_from_orphan(). The orphan inode should
-only be removed from the orphan list after the extent tree update is complete.
-This ensures that if a crash occurs in the middle of extent tree updates, we
-won't leave stale blocks beyond EOF.
+o2hb_region_dev_store() also failed to roll back slot mapping resources when setup aborted, leaving stale allocations around retry attempts.
 
-This patch also changes the logic for updating the inode size and removing
-orphan, making it similar to ext4_dio_write_end_io(). Both operations are
-performed only when everything looks good.
+Introduce o2hb_unmap_slot_data() as a single reverse-order cleanup helper, switch o2hb_map_slot_data() to a centralized goto-based error exit, and call the same rollback path from o2hb_region_dev_store() after stopping a possibly started heartbeat thread. This ensures failed setup fully releases resources and remains safely retryable.
 
-Finally, thanks to Jans and Joseph for providing the bug fix prototype and
-suggestions.
-
-Suggested-by: Jan Kara <jack@suse.cz>
-Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Reviewed-by: Jan Kara <jack@suse.cz>
-Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+Signed-off-by: Yufan Chen <ericterminal@gmail.com>
 ---
- fs/ocfs2/aops.c | 63 +++++++++++++++++++++++++++----------------------
- 1 file changed, 35 insertions(+), 28 deletions(-)
+ fs/ocfs2/cluster/heartbeat.c | 64 +++++++++++++++++++++++++-----------
+ 1 file changed, 45 insertions(+), 19 deletions(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 09146b43d1f0..a542cd0a6f75 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -37,6 +37,8 @@
- #include "namei.h"
- #include "sysfile.h"
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index fe1949578..2f82040f4 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1488,18 +1488,10 @@ static struct o2hb_region *to_o2hb_region(struct config_item *item)
+ 	return item ? container_of(item, struct o2hb_region, hr_item) : NULL;
+ }
  
-+#define OCFS2_DIO_MARK_EXTENT_BATCH 200
-+
- static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
- 				   struct buffer_head *bh_result, int create)
+-/* drop_item only drops its ref after killing the thread, nothing should
+- * be using the region anymore.  this has to clean up any state that
+- * attributes might have built up. */
+-static void o2hb_region_release(struct config_item *item)
++static void o2hb_unmap_slot_data(struct o2hb_region *reg)
  {
-@@ -2277,7 +2279,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
- 	struct ocfs2_alloc_context *meta_ac = NULL;
- 	handle_t *handle = NULL;
- 	loff_t end = offset + bytes;
--	int ret = 0, credits = 0;
-+	int ret = 0, credits = 0, batch = 0;
- 
- 	ocfs2_init_dealloc_ctxt(&dealloc);
- 
-@@ -2294,18 +2296,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
- 		goto out;
- 	}
- 
--	/* Delete orphan before acquire i_rwsem. */
--	if (dwc->dw_orphaned) {
--		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+ 	int i;
+ 	struct page *page;
+-	struct o2hb_region *reg = to_o2hb_region(item);
 -
--		end = end > i_size_read(inode) ? end : 0;
+-	mlog(ML_HEARTBEAT, "hb region release (%pg)\n", reg_bdev(reg));
 -
--		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
--				!!end, end);
--		if (ret < 0)
--			mlog_errno(ret);
--	}
--
- 	down_write(&oi->ip_alloc_sem);
- 	di = (struct ocfs2_dinode *)di_bh->b_data;
+-	kfree(reg->hr_tmp_block);
  
-@@ -2326,24 +2316,25 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
- 
- 	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
- 
--	handle = ocfs2_start_trans(osb, credits);
--	if (IS_ERR(handle)) {
--		ret = PTR_ERR(handle);
--		mlog_errno(ret);
--		goto unlock;
--	}
--	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
--				      OCFS2_JOURNAL_ACCESS_WRITE);
--	if (ret) {
--		mlog_errno(ret);
--		goto commit;
--	}
--
- 	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
-+		if (!handle) {
-+			handle = ocfs2_start_trans(osb, credits);
-+			if (IS_ERR(handle)) {
-+				ret = PTR_ERR(handle);
-+				mlog_errno(ret);
-+				goto unlock;
-+			}
-+			ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-+					OCFS2_JOURNAL_ACCESS_WRITE);
-+			if (ret) {
-+				mlog_errno(ret);
-+				goto commit;
-+			}
-+		}
- 		ret = ocfs2_assure_trans_credits(handle, credits);
- 		if (ret < 0) {
- 			mlog_errno(ret);
--			break;
-+			goto commit;
+ 	if (reg->hr_slot_data) {
+ 		for (i = 0; i < reg->hr_num_pages; i++) {
+@@ -1508,13 +1500,32 @@ static void o2hb_region_release(struct config_item *item)
+ 				__free_page(page);
  		}
- 		ret = ocfs2_mark_extent_written(inode, &et, handle,
- 						ue->ue_cpos, 1,
-@@ -2351,7 +2342,13 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
- 						meta_ac, &dealloc);
- 		if (ret < 0) {
- 			mlog_errno(ret);
--			break;
-+			goto commit;
-+		}
-+
-+		if (++batch == OCFS2_DIO_MARK_EXTENT_BATCH) {
-+			ocfs2_commit_trans(osb, handle);
-+			handle = NULL;
-+			batch = 0;
- 		}
+ 		kfree(reg->hr_slot_data);
++		reg->hr_slot_data = NULL;
  	}
  
-@@ -2360,10 +2357,20 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
- 		if (ret < 0)
- 			mlog_errno(ret);
++	kfree(reg->hr_slots);
++	reg->hr_slots = NULL;
++
++	kfree(reg->hr_tmp_block);
++	reg->hr_tmp_block = NULL;
++	reg->hr_num_pages = 0;
++}
++
++/* drop_item only drops its ref after killing the thread, nothing should
++ * be using the region anymore.  this has to clean up any state that
++ * attributes might have built up.
++ */
++static void o2hb_region_release(struct config_item *item)
++{
++	struct o2hb_region *reg = to_o2hb_region(item);
++
++	mlog(ML_HEARTBEAT, "hb region release (%pg)\n", reg_bdev(reg));
++
++	o2hb_unmap_slot_data(reg);
++
+ 	if (reg->hr_bdev_file)
+ 		fput(reg->hr_bdev_file);
+ 
+-	kfree(reg->hr_slots);
+-
+ 	debugfs_remove_recursive(reg->hr_debug_dir);
+ 	kfree(reg->hr_db_livenodes);
+ 	kfree(reg->hr_db_regnum);
+@@ -1667,6 +1678,7 @@ static void o2hb_init_region_params(struct o2hb_region *reg)
+ static int o2hb_map_slot_data(struct o2hb_region *reg)
+ {
+ 	int i, j;
++	int ret = -ENOMEM;
+ 	unsigned int last_slot;
+ 	unsigned int spp = reg->hr_slots_per_page;
+ 	struct page *page;
+@@ -1674,14 +1686,14 @@ static int o2hb_map_slot_data(struct o2hb_region *reg)
+ 	struct o2hb_disk_slot *slot;
+ 
+ 	reg->hr_tmp_block = kmalloc(reg->hr_block_bytes, GFP_KERNEL);
+-	if (reg->hr_tmp_block == NULL)
+-		return -ENOMEM;
++	if (!reg->hr_tmp_block)
++		goto out;
+ 
+ 	reg->hr_slots = kzalloc_objs(struct o2hb_disk_slot, reg->hr_blocks);
+-	if (reg->hr_slots == NULL)
+-		return -ENOMEM;
++	if (!reg->hr_slots)
++		goto out;
+ 
+-	for(i = 0; i < reg->hr_blocks; i++) {
++	for (i = 0; i < reg->hr_blocks; i++) {
+ 		slot = &reg->hr_slots[i];
+ 		slot->ds_node_num = i;
+ 		INIT_LIST_HEAD(&slot->ds_live_item);
+@@ -1695,12 +1707,12 @@ static int o2hb_map_slot_data(struct o2hb_region *reg)
+ 
+ 	reg->hr_slot_data = kzalloc_objs(struct page *, reg->hr_num_pages);
+ 	if (!reg->hr_slot_data)
+-		return -ENOMEM;
++		goto out;
+ 
+-	for(i = 0; i < reg->hr_num_pages; i++) {
++	for (i = 0; i < reg->hr_num_pages; i++) {
+ 		page = alloc_page(GFP_KERNEL);
+ 		if (!page)
+-			return -ENOMEM;
++			goto out;
+ 
+ 		reg->hr_slot_data[i] = page;
+ 
+@@ -1720,6 +1732,10 @@ static int o2hb_map_slot_data(struct o2hb_region *reg)
  	}
+ 
+ 	return 0;
 +
- commit:
- 	ocfs2_commit_trans(osb, handle);
- unlock:
- 	up_write(&oi->ip_alloc_sem);
++out:
++	o2hb_unmap_slot_data(reg);
++	return ret;
+ }
+ 
+ /* Read in all the slots available and populate the tracking
+@@ -1903,6 +1919,16 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
+ 
+ out3:
+ 	if (ret < 0) {
++		spin_lock(&o2hb_live_lock);
++		hb_task = reg->hr_task;
++		reg->hr_task = NULL;
++		spin_unlock(&o2hb_live_lock);
 +
-+	/* everything looks good, let's start the cleanup */
-+	if (!ret && dwc->dw_orphaned) {
-+		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
++		if (hb_task)
++			kthread_stop(hb_task);
 +
-+		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh, 0, 0);
-+		if (ret < 0)
-+			mlog_errno(ret);
-+	}
- 	ocfs2_inode_unlock(inode, 1);
- 	brelse(di_bh);
- out:
++		o2hb_unmap_slot_data(reg);
++
+ 		fput(reg->hr_bdev_file);
+ 		reg->hr_bdev_file = NULL;
+ 	}
 -- 
-2.43.0
+2.47.3
 
