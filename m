@@ -1,32 +1,32 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 13AB6339B41
-	for <ocfs2-devel@lists.linux.dev>; Wed,  1 Apr 2026 03:28:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2B85732A3DA
+	for <ocfs2-devel@lists.linux.dev>; Wed,  1 Apr 2026 03:29:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775014105; cv=none; b=IPwRkdkHq0rs3dMqA0J2d6lj7IwcKvozW4hOy51foyvili9htAw7RiSC+MGwq5UlKp/otr2Ez5Sz1JTF/yo8pXAE6lhiJ/Rdmrke6G53e/RHVmRv3tOBij2ilAyiceMxYRpety3pWuxtOtU1UwwytB7Io/B43lV4bOGpi3aOai0=
+	t=1775014184; cv=none; b=Sn8TN4n8zNJcakqD3tsG2hgVxh5NmaRTWBSWM9oq2CkJLo6ltVxhTPwXTBO7nFcM68HLHdfudGKltwwT0fpvps3kYMr6QHlS7N52x+3wKoJmwLCt2mSwt3wbNsp64X79EkvGgvbQwNGN+CaFnQWVo97GMExDoSV1MlahIaOjbWM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775014105; c=relaxed/simple;
-	bh=iOBtZq2FQV7zby5EmATd1pXC6ILvaGEebb6vGUBIjYs=;
+	s=arc-20240116; t=1775014184; c=relaxed/simple;
+	bh=wnxARK+owZgpnXQVR8wVBGdXWPjJ3fyzmQa41WIQHbc=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=lhJGNKfB/5x27PhBZvFl9w5ntTaasD6dJR28hioUApfcXEF98SdS65hwlYAhdIbdmUjl3w4vQ13GRq11YlwoqIUefK84LJcUwHCAvuoTu7I6P6ior+TWWlbC5rRaacuMPK7zwY4ZQ1cs7U39w7JE/Z5pe5XloP4zOHIcTgRtxAY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=bNkKsxOo; arc=none smtp.client-ip=115.124.30.119
+	 In-Reply-To:Content-Type; b=CcquH22D1nDlWUibggwlygGjfxsz/P+/y6VYPKNVJZwwBlj38zaGow41KPfdb2Oy0DGnGtaU1l3SE4J1qOpDHigSKo4xPg/SP2iHHq2RnWJONweQvdYEtlkozUtRfJ3zTslLKivc28AC+tTkKnN5JwDNqLgGbm/0TAphqpWdS2s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=pHOdkPYK; arc=none smtp.client-ip=115.124.30.131
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="bNkKsxOo"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="pHOdkPYK"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1775014099; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=m1xFu2uwUxuA+kQ5clFDyHsazE4yNF0cgDLfMtwyD00=;
-	b=bNkKsxOowquAid80amHf6yD2BpX8BEeLOg9Ee3Cx1dwYJv761TzcMD8gVIYFr+73OxwC1gyvqa4mc1W9pWMYe1RH2UAhQOV32/19qMEb/V70DJUWGSiqGp3Bm5HtsVZyOwMqbMu0nsreVsyuX1JwWUe4Xf+JGPcKT39EqDBwwZE=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R191e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X06pIha_1775014095;
-Received: from 30.221.145.27(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X06pIha_1775014095 cluster:ay36)
+	t=1775014180; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=vTDKu1MTZgt+yKLQ585rB4NZHIpa28DY0kQBhhjsBfM=;
+	b=pHOdkPYK1yK2hZ04vVZ2yN18Bzte7sDyReHmIEbtkIZXqtUVTA31L1HFtJangkYJNtkZLq9hWfVe4TQjks5rB0J3n0ZHitV7NVBbbHRsR34pe+Kal/1tdNDcTqxLsBbRbUoD8+DQAdi7K1p5aikiRFmOBMVYFf1wpAp/czMTkwE=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0X06pJ63_1775014178;
+Received: from 30.221.145.27(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X06pJ63_1775014178 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Wed, 01 Apr 2026 11:28:18 +0800
-Message-ID: <b403e0e7-7269-4e38-9855-5a6a41b2bea0@linux.alibaba.com>
-Date: Wed, 1 Apr 2026 11:28:13 +0800
+          Wed, 01 Apr 2026 11:29:39 +0800
+Message-ID: <99c4c231-01d8-4dea-a65d-bf59bd2b38eb@linux.alibaba.com>
+Date: Wed, 1 Apr 2026 11:29:38 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,127 +34,118 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix use-after-free in ocfs2_fault() when
- VM_FAULT_RETRY
-To: tejas bharambe <tejas.bharambe@outlook.com>
-Cc: "mark@fasheh.com" <mark@fasheh.com>,
- "jlbec@evilplan.org" <jlbec@evilplan.org>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
- "syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com"
- <syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com>,
- Heming Zhao <heming.zhao@suse.com>,
- "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
-References: <JH0PR06MB663281D3B927A61AAA2BDAA08953A@JH0PR06MB6632.apcprd06.prod.outlook.com>
- <5f7200f6-41b6-438b-bd22-461ea651ebf6@linux.alibaba.com>
- <JH0PR06MB66326B03AB7ABB7E40C0A2398950A@JH0PR06MB6632.apcprd06.prod.outlook.com>
+Subject: Re: [PATCH v2] ocfs2: validate bg_list extent bounds in discontig
+ groups
+To: ZhengYuan Huang <gality369@gmail.com>, akpm <akpm@linux-foundation.org>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Heming Zhao <heming.zhao@suse.com>
+References: <20260401021622.3560952-1-gality369@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <JH0PR06MB66326B03AB7ABB7E40C0A2398950A@JH0PR06MB6632.apcprd06.prod.outlook.com>
+In-Reply-To: <20260401021622.3560952-1-gality369@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-It looks fine to me.
-Could you please send a formal patch based on the mainline?
 
-Joseph
 
-On 4/1/26 11:24 AM, tejas bharambe wrote:
-> Hi Joseph, 
+On 4/1/26 10:16 AM, ZhengYuan Huang wrote:
+> [BUG]
+> Running ocfs2 on a corrupted image with a discontiguous block
+> group whose bg_list.l_next_free_rec is set to an excessively
+> large value triggers a KASAN use-after-free crash:
 > 
-> That is nice.  
-> Did the following:
-> 1. Using inode
-> 2. Removed vma (had to update the ocfs2_trace.h as well)
+> BUG: KASAN: use-after-free in ocfs2_bg_discontig_fix_by_rec fs/ocfs2/suballoc.c:1678 [inline]
+> BUG: KASAN: use-after-free in ocfs2_bg_discontig_fix_result+0x4a4/0x560 fs/ocfs2/suballoc.c:1715
+> Read of size 4 at addr ffff88801a85f000 by task syz.0.115/552
 > 
-> Thank you for the suggestion
+> Call Trace:
+>  ...
+>  __asan_report_load4_noabort+0x14/0x30 mm/kasan/report_generic.c:380
+>  ocfs2_bg_discontig_fix_by_rec fs/ocfs2/suballoc.c:1678 [inline]
+>  ocfs2_bg_discontig_fix_result+0x4a4/0x560 fs/ocfs2/suballoc.c:1715
+>  ocfs2_search_one_group fs/ocfs2/suballoc.c:1752 [inline]
+>  ocfs2_claim_suballoc_bits+0x13c3/0x1cd0 fs/ocfs2/suballoc.c:1984
+>  ocfs2_claim_new_inode+0x2e7/0x8a0 fs/ocfs2/suballoc.c:2292
+>  ocfs2_mknod_locked.constprop.0+0x121/0x2a0 fs/ocfs2/namei.c:637
+>  ocfs2_mknod+0xc71/0x2400 fs/ocfs2/namei.c:384
+>  ocfs2_create+0x158/0x390 fs/ocfs2/namei.c:676
+>  lookup_open.isra.0+0x10a1/0x1460 fs/namei.c:3796
+>  open_last_lookups fs/namei.c:3895 [inline]
+>  path_openat+0x11fe/0x2ce0 fs/namei.c:4131
+>  do_filp_open+0x1f6/0x430 fs/namei.c:4161
+>  do_sys_openat2+0x117/0x1c0 fs/open.c:1437
+>  do_sys_open fs/open.c:1452 [inline]
+>  __do_sys_openat fs/open.c:1468 [inline]
+>  ...
 > 
-> Please find v2 below:
+> [CAUSE]
+> ocfs2_bg_discontig_fix_result() iterates over bg->bg_list.l_recs[]
+> using l_next_free_rec as the upper bound without any sanity check:
 > 
-> filemap_fault() may drop the mmap_lock before returning VM_FAULT_RETRY,
-> as documented in mm/filemap.c:
+>   for (i = 0; i < le16_to_cpu(bg->bg_list.l_next_free_rec); i++) {
+>           rec = &bg->bg_list.l_recs[i];
 > 
->   "If our return value has VM_FAULT_RETRY set, it's because the mmap_lock
->   may be dropped before doing I/O or by lock_folio_maybe_drop_mmap()."
+> l_next_free_rec is read directly from the on-disk group descriptor and
+> is trusted blindly. On a 4 KiB block device, bg_list.l_recs[] can hold
+> at most 235 entries (ocfs2_extent_recs_per_gd(sb)). A corrupted or
+> crafted filesystem image can set l_next_free_rec to an arbitrarily
+> large value, causing the loop to index past the end of the group
+> descriptor buffer_head data page and into an adjacent freed page.
 > 
-> When this happens, a concurrent munmap() can call remove_vma() and free
-> the vm_area_struct via RCU. The saved 'vma' pointer in ocfs2_fault() then
-> becomes a dangling pointer, and the subsequent trace_ocfs2_fault() call
-> dereferences it -- a use-after-free.
+> [FIX]
+> Validate discontiguous bg_list.l_count against
+> ocfs2_extent_recs_per_gd(sb), then reject l_next_free_rec values that
+> exceed l_count. This keeps the on-disk extent list self-consistent and
+> matches how the rest of ocfs2 uses l_count as the extent-list bound.
 > 
-> Fix this by saving the inode reference before calling filemap_fault(),
-> and removing vma from the trace event. The inode remains valid across
-> the lock drop since the file is still open, so the trace can fire in
-> all cases without dereferencing the potentially freed vma.
-> 
-> Reported-by: syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=a49010a0e8fcdeea075f
-> Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Tejas Bharambe <tejas.bharambe@outlook.com>
+> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
 > ---
->  fs/ocfs2/mmap.c        | 14 +++-----------
->  fs/ocfs2/ocfs2_trace.h | 10 ++++------
->  2 files changed, 7 insertions(+), 17 deletions(-)
+> Changes in v2:
+> - Validate bg_list.l_count against ocfs2_extent_recs_per_gd(sb).
+> - Bound bg_list.l_next_free_rec by bg_list.l_count.
+> - Update the changelog text to explain the l_count validation.
+> ---
+>  fs/ocfs2/suballoc.c | 25 +++++++++++++++++++++++++
+>  1 file changed, 25 insertions(+)
 > 
-> diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
-> index adf6423ae9..41c08c5a3d 100644
-> --- a/fs/ocfs2/mmap.c
-> +++ b/fs/ocfs2/mmap.c
-> @@ -30,7 +30,7 @@
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index 6ac4dcd54588..29a8a878c2df 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -196,6 +196,31 @@ static int ocfs2_validate_gd_self(struct super_block *sb,
+>  			 8 * le16_to_cpu(gd->bg_size));
+>  	}
 >  
->  static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
->  {
-> -	struct vm_area_struct *vma = vmf->vma;
-> +	struct inode *inode = file_inode(vmf->vma->vm_file);
->  	sigset_t oldset;
->  	vm_fault_t ret;
->  
-> @@ -38,16 +38,8 @@ static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
->  	ret = filemap_fault(vmf);
->  	ocfs2_unblock_signals(&oldset);
->  
-> -	/*
-> -	 * filemap_fault() may drop the mmap_lock and return VM_FAULT_RETRY.
-> -	 * In that case the vma may have been freed by a concurrent munmap(),
-> -	 * so we must not dereference it.
-> -	 */
-> -	if (ret & VM_FAULT_RETRY)
-> -		return ret;
-> -
-> -	trace_ocfs2_fault(OCFS2_I(vma->vm_file->f_mapping->host)->ip_blkno,
-> -			  vma, vmf->page, vmf->pgoff);
-> +	trace_ocfs2_fault(OCFS2_I(inode)->ip_blkno,
-> +			  vmf->page, vmf->pgoff);
->  	return ret;
+> +	/*
+> +	 * For discontiguous block groups, validate the on-disk extent list
+> +	 * against the maximum number of extent records that can physically
+> +	 * fit in a single block.
+> +	 */
+> +	if (ocfs2_gd_is_discontig(gd)) {
+> +		u16 max_recs = ocfs2_extent_recs_per_gd(sb);
+> +		u16 l_count = le16_to_cpu(gd->bg_list.l_count);
+> +		u16 l_next_free_rec = le16_to_cpu(gd->bg_list.l_next_free_rec);
+> +
+> +		if (l_count != max_recs) {
+> +			do_error("Group descriptor #%llu bad discontig l_count %u expected %u\n",
+> +				 (unsigned long long)bh->b_blocknr,
+> +				 l_count,
+> +				 max_recs);
+> +		}
+> +
+> +		if (l_next_free_rec > l_count) {
+> +			do_error("Group descriptor #%llu bad discontig l_next_free_rec %u max %u\n",
+> +				 (unsigned long long)bh->b_blocknr,
+> +				 l_next_free_rec,
+> +				 l_count);
+> +		}
+> +	}
+> +
+>  	return 0;
 >  }
 >  
-> diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
-> index 4b32fb5658..6c2c97a980 100644
-> --- a/fs/ocfs2/ocfs2_trace.h
-> +++ b/fs/ocfs2/ocfs2_trace.h
-> @@ -1246,22 +1246,20 @@ TRACE_EVENT(ocfs2_write_end_inline,
->  
->  TRACE_EVENT(ocfs2_fault,
->  	TP_PROTO(unsigned long long ino,
-> -		 void *area, void *page, unsigned long pgoff),
-> -	TP_ARGS(ino, area, page, pgoff),
-> +		 void *page, unsigned long pgoff),
-> +	TP_ARGS(ino, page, pgoff),
->  	TP_STRUCT__entry(
->  		__field(unsigned long long, ino)
-> -		__field(void *, area)
->  		__field(void *, page)
->  		__field(unsigned long, pgoff)
->  	),
->  	TP_fast_assign(
->  		__entry->ino = ino;
-> -		__entry->area = area;
->  		__entry->page = page;
->  		__entry->pgoff = pgoff;
->  	),
-> -	TP_printk("%llu %p %p %lu",
-> -		  __entry->ino, __entry->area, __entry->page, __entry->pgoff)
-> +	TP_printk("%llu %p %lu",
-> +		  __entry->ino, __entry->page, __entry->pgoff)
->  );
->  
->  /* End of trace events for fs/ocfs2/mmap.c. */
 
