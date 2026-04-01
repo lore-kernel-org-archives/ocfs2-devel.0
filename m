@@ -1,32 +1,32 @@
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B463139BFF5
-	for <ocfs2-devel@lists.linux.dev>; Wed,  1 Apr 2026 09:47:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3F63B39B49D
+	for <ocfs2-devel@lists.linux.dev>; Wed,  1 Apr 2026 10:00:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.111
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775036828; cv=none; b=IGIf2dXkAe3yQKwLna/EVZBWglb9pGGWBSYkmlS6z1PhBvjWzjw47owoEwPnPac1nmZIwRjlu6gjmqRQNNdDzT+edfhdUyTMSUybvJst2FJ335pBR607R1EPwwT7bgBwJg95qAvZSahHMFtEyEze+dV/66MUKamcghvPR1R2hWo=
+	t=1775037625; cv=none; b=cHGkh8M2Z9yYhomzw6rNZgmvMTJsxQErBcRedEofOpd15Mt1sKpDw2r0a2AKskZceCZAh4udDqI283fKlgQhxWiFJftwGPMoIcyeqFoTjahOhV6NraWJCOHpkF/O0xueBGEiBRgp99gbyobUJ5Gyk6HpGnAh8j8s4Q9Lf+u+GT8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775036828; c=relaxed/simple;
-	bh=jbnVPqgOBxkzR85fGJcd5D5HUYJKtaN+tzUcmNvGrlI=;
+	s=arc-20240116; t=1775037625; c=relaxed/simple;
+	bh=uJTwv599PHz936vgBK7BXRWHdTkK5YFbXR/3mcy1dlg=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=NEuA2oS4L/GwFgTyrrS3xiaYLAILvllFHEUOkMyRTaxZBq80fk3IOevL1tYIY0vhdER1Ql/Jbb+3tCP4H+L2b2BlqcQhKg6Hl5jfOAd8N+5epwj2f2qL3kiv3gQ1VXVwIGcvqtK5FRvFohejntX1+/2Pp/wkm8v8iIidQuxTrDo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=LZzsxToq; arc=none smtp.client-ip=115.124.30.132
+	 In-Reply-To:Content-Type; b=m4a7WExLrfWEwY+l0tNXrSmAk+nAWjMP/Nunx5f4zq9IZ+Sg5V6FRixr6+OSx7ClRnbcNQ3Lt9T6FOMgK6/mfZYyxA3s/IyYQ1IW2ToM8X22TmwZsfpW2IznmlZwMem6b0HxcOsm5EjKTcxNkFAujaDKivlIlJdwYFVlSBzTrT0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=NCZw3KAh; arc=none smtp.client-ip=115.124.30.111
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="LZzsxToq"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="NCZw3KAh"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1775036817; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=CWFdaIyXXKYubFcZtyFhugP8NDVvB5eJ08IFrFOVnUg=;
-	b=LZzsxToqeKxmqI/hB47fM+QNQ3BdHjtyDFNmxxwoiMCyySN3yS0FCFAzM0tg9uaRJAb0lVrjoBgJTilWvInLoCEXkHsEZyAVZPlSftVHufuyN1UOCud07K51sPjhFhnaVXnKIsvu/HRE+n1Q/ikvVImetHx0SvXdFTPIXOAOHsw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R151e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X0AXFBq_1775036816;
-Received: from 30.221.145.27(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0AXFBq_1775036816 cluster:ay36)
+	t=1775037614; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=cI1dNycY7yichGWRiRFg+/poiw8N+OXrXdXyJB1KWcE=;
+	b=NCZw3KAhwDbLDxaKOu07IbftzxK8Oy2CJhUeDRzgWTee9xYCpiViz0b0Mh90eKYWzW6QsGXcRXyO9LsGBfvBDrc9v7G9o5K49aGlzHxdLsmgbPyw58VDYXWjCaHhhWWHPL7R4bHSGT5PMYx7Wp4Q6Mk5+ILL9PAzlrS/jzipb1c=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X0AdNe6_1775037611;
+Received: from 30.221.145.27(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0AdNe6_1775037611 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Wed, 01 Apr 2026 17:46:56 +0800
-Message-ID: <2501759b-1a26-4ea8-b17d-d2f4b8c96ac9@linux.alibaba.com>
-Date: Wed, 1 Apr 2026 17:46:56 +0800
+          Wed, 01 Apr 2026 18:00:12 +0800
+Message-ID: <342f0be0-6d4c-44aa-aadb-86741b9bfadc@linux.alibaba.com>
+Date: Wed, 1 Apr 2026 18:00:11 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,182 +34,80 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v5 1/1] ocfs2: split transactions in dio completion to
- avoid credit exhaustion
-To: Heming Zhao <heming.zhao@suse.com>
+Subject: Re: [PATCH] ocfs2: handle invalid dinode in ocfs2_group_extend
+To: ZhengYuan Huang <gality369@gmail.com>, akpm <akpm@linux-foundation.org>
 Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- glass.su@suse.com, Jan Kara <jack@suse.cz>
-References: <20260327063626.10225-1-heming.zhao@suse.com>
- <20260327063626.10225-2-heming.zhao@suse.com>
+ baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
+References: <20260401092303.3709187-1-gality369@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260327063626.10225-2-heming.zhao@suse.com>
+In-Reply-To: <20260401092303.3709187-1-gality369@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 3/27/26 2:36 PM, Heming Zhao wrote:
-> During ocfs2 dio operations, JBD2 may report warnings via following call trace:
-> ocfs2_dio_end_io_write
->  ocfs2_mark_extent_written
->   ocfs2_change_extent_flag
->    ocfs2_split_extent
->     ocfs2_try_to_merge_extent
->      ocfs2_extend_rotate_transaction
->       ocfs2_extend_trans
->        jbd2__journal_restart
->         start_this_handle
->          output: JBD2: kworker/6:2 wants too many credits credits:5450 rsv_credits:0 max:5449
+On 4/1/26 5:23 PM, ZhengYuan Huang wrote:
+> [BUG]
+> kernel BUG at fs/ocfs2/resize.c:308!
+> Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+> RIP: 0010:ocfs2_group_extend+0x10aa/0x1ae0 fs/ocfs2/resize.c:308
+> Code: 8b8520ff ffff83f8 860f8580 030000e8 5cc3c1fe
+> Call Trace:
+>  ...
+>  ocfs2_ioctl+0x175/0x6e0 fs/ocfs2/ioctl.c:869
+>  vfs_ioctl fs/ioctl.c:51 [inline]
+>  __do_sys_ioctl fs/ioctl.c:597 [inline]
+>  __se_sys_ioctl fs/ioctl.c:583 [inline]
+>  __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
+>  x64_sys_call+0x1144/0x26a0 arch/x86/include/generated/asm/syscalls_64.h:17
+>  do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+>  do_syscall_64+0x93/0xf80 arch/x86/entry/syscall_64.c:94
+>  entry_SYSCALL_64_after_hwframe+0x76/0x7e
+>  ...
 > 
-> To prevent exceeding the credits limit, modify ocfs2_dio_end_io_write() to
-> handle extents in a batch of transaction.
+> [CAUSE]
+> ocfs2_group_extend() assumes that the global bitmap inode block
+> returned from ocfs2_inode_lock() has already been validated and
+> BUG_ONs when the signature is not a dinode. That assumption is too
+> strong for crafted filesystems because the JBD2-managed buffer path
+> can bypass structural validation and return an invalid dinode to the
+> resize ioctl.
 > 
-> Additionally, relocate ocfs2_del_inode_from_orphan(). The orphan inode should
-> only be removed from the orphan list after the extent tree update is complete.
-> This ensures that if a crash occurs in the middle of extent tree updates, we
-> won't leave stale blocks beyond EOF.
+> [FIX]
+> Validate the dinode explicitly in ocfs2_group_extend(). If the global
+> bitmap buffer does not contain a valid dinode, report filesystem
+> corruption with ocfs2_error() and fail the resize operation instead of
+> crashing the kernel.
 > 
-> This patch also changes the logic for updating the inode size and removing
-> orphan, making it similar to ext4_dio_write_end_io(). Both operations are
-> performed only when everything looks good.
-> 
-> Finally, thanks to Jans and Joseph for providing the bug fix prototype and
-> suggestions.
-> 
-> Suggested-by: Jan Kara <jack@suse.cz>
-> Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Reviewed-by: Jan Kara <jack@suse.cz>
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+> Fixes: 10995aa2451a ("ocfs2: Morph the haphazard OCFS2_IS_VALID_DINODE() checks.")
+> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
 > ---
->  fs/ocfs2/aops.c | 63 +++++++++++++++++++++++++++----------------------
->  1 file changed, 35 insertions(+), 28 deletions(-)
+>  fs/ocfs2/resize.c | 10 +++++++---
+>  1 file changed, 7 insertions(+), 3 deletions(-)
 > 
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 09146b43d1f0..a542cd0a6f75 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -37,6 +37,8 @@
->  #include "namei.h"
->  #include "sysfile.h"
+> diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+> index b0733c08ed13..ed7ed15ad9a7 100644
+> --- a/fs/ocfs2/resize.c
+> +++ b/fs/ocfs2/resize.c
+> @@ -303,9 +303,13 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
 >  
-> +#define OCFS2_DIO_MARK_EXTENT_BATCH 200
-> +
->  static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
->  				   struct buffer_head *bh_result, int create)
->  {
-> @@ -2277,7 +2279,7 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  	struct ocfs2_alloc_context *meta_ac = NULL;
->  	handle_t *handle = NULL;
->  	loff_t end = offset + bytes;
-> -	int ret = 0, credits = 0;
-> +	int ret = 0, credits = 0, batch = 0;
+>  	fe = (struct ocfs2_dinode *)main_bm_bh->b_data;
 >  
->  	ocfs2_init_dealloc_ctxt(&dealloc);
->  
-> @@ -2294,18 +2296,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  		goto out;
->  	}
->  
-> -	/* Delete orphan before acquire i_rwsem. */
-> -	if (dwc->dw_orphaned) {
-> -		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
-> -
-> -		end = end > i_size_read(inode) ? end : 0;
-> -
-> -		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh,
-> -				!!end, end);
-> -		if (ret < 0)
-> -			mlog_errno(ret);
-> -	}
-> -
->  	down_write(&oi->ip_alloc_sem);
->  	di = (struct ocfs2_dinode *)di_bh->b_data;
->  
-> @@ -2326,24 +2316,25 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  
->  	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
->  
-> -	handle = ocfs2_start_trans(osb, credits);
-> -	if (IS_ERR(handle)) {
-> -		ret = PTR_ERR(handle);
-> -		mlog_errno(ret);
-> -		goto unlock;
-> -	}
-> -	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-> -				      OCFS2_JOURNAL_ACCESS_WRITE);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto commit;
-> -	}
-> -
->  	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
-> +		if (!handle) {
-> +			handle = ocfs2_start_trans(osb, credits);
-> +			if (IS_ERR(handle)) {
-> +				ret = PTR_ERR(handle);
-> +				mlog_errno(ret);
-> +				goto unlock;
-> +			}
-> +			ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-> +					OCFS2_JOURNAL_ACCESS_WRITE);
-> +			if (ret) {
-> +				mlog_errno(ret);
-> +				goto commit;
-> +			}
-> +		}
->  		ret = ocfs2_assure_trans_credits(handle, credits);
->  		if (ret < 0) {
->  			mlog_errno(ret);
-> -			break;
-> +			goto commit;
->  		}
->  		ret = ocfs2_mark_extent_written(inode, &et, handle,
->  						ue->ue_cpos, 1,
-> @@ -2351,7 +2342,13 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  						meta_ac, &dealloc);
->  		if (ret < 0) {
->  			mlog_errno(ret);
-> -			break;
-> +			goto commit;
-> +		}
-> +
-> +		if (++batch == OCFS2_DIO_MARK_EXTENT_BATCH) {
-> +			ocfs2_commit_trans(osb, handle);
-> +			handle = NULL;
-> +			batch = 0;
->  		}
->  	}
->  
-> @@ -2360,10 +2357,20 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  		if (ret < 0)
->  			mlog_errno(ret);
->  	}
-> +
->  commit:
->  	ocfs2_commit_trans(osb, handle);
-
-We have to check 'handle' here to prevent NULL pointer dereference. e.g.
-rightly after OCFS2_DIO_MARK_EXTENT_BATCH round.
-
-And you've missed ocfs2_start_trans() and ocfs2_journal_access_di()
-before ocfs2_set_inode_size().
-
-Thanks,
-Joseph
-
-
->  unlock:
->  	up_write(&oi->ip_alloc_sem);
-> +
-> +	/* everything looks good, let's start the cleanup */
-> +	if (!ret && dwc->dw_orphaned) {
-> +		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
-> +
-> +		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh, 0, 0);
-> +		if (ret < 0)
-> +			mlog_errno(ret);
+> -	/* main_bm_bh is validated by inode read inside ocfs2_inode_lock(),
+> -	 * so any corruption is a code bug. */
+> -	BUG_ON(!OCFS2_IS_VALID_DINODE(fe));
+> +	/* JBD-managed buffers can bypass validation, so treat this as corruption. */
+> +	if (!OCFS2_IS_VALID_DINODE(fe)) {
+> +		ret = ocfs2_error(main_bm_inode->i_sb,
+> +				  "Invalid dinode #%llu\n",
+> +				  (unsigned long long)OCFS2_I(main_bm_inode)->ip_blkno);
+> +		goto out_unlock;
 > +	}
->  	ocfs2_inode_unlock(inode, 1);
->  	brelse(di_bh);
->  out:
+>  
+>  	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
+>  		ocfs2_group_bitmap_size(osb->sb, 0,
 
