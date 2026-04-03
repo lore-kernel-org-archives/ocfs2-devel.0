@@ -1,92 +1,128 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+Received: from mgamail.intel.com (mgamail.intel.com [192.198.163.12])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB3E52FDC27
-	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Apr 2026 09:30:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 20A6E33C19E;
+	Fri,  3 Apr 2026 16:50:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=192.198.163.12
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775208624; cv=none; b=dEYiLMWm+lw5a0kuzj+jLyiHfDxfHui99cBnl/dMvjyrjZFrXAq2EGSJD2oJXeAP0vIZS5jEGKHwIyhio5F5eXiFBTSKUsUq61jUsKCqwYtsl1aXhPq3Mor2JdJ/5JsBUcIrGlBEddODFN7Nu1PdzPgF/uCYIU0zNAV/kK5mqtI=
+	t=1775235042; cv=none; b=rv8BRA1MxKCSKCyfVaFxvunGOnyHQ8GCFcP8pn1BudTQvz0xY+UEQ7W1PlUzSW/js5g4cs0wzOOmcsnVgZRbxxmUAz4tdEAR9pEKQbdsyo3xAzwbV9M8nv28TJpdAwY8jCJq37Q9Y0p4Zc80NOoYQS9SgO3CLeH66U59z5w4dFs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775208624; c=relaxed/simple;
-	bh=3NHMJ1S+cIyUY2bqVYA9HbCYkP2UDNnI3HRlGOAZFeI=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=RDkwrYJU2jEFBF8YjPsSjnpXtfKC69dNWLevEB0Vhn1HevrgwOYJX2d0lataQ22kZAO42qfdnvS6bK6KLry4HHT3IA3X2GhWLwK4hUibEczew4bRPFEewKfiNQfa7chBHmElgFhQHPrnBMUdyNSN76GJZH7KFZkDNqiuUYX2/vA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ZjaXdDP7; arc=none smtp.client-ip=115.124.30.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1775235042; c=relaxed/simple;
+	bh=2xqBDOykXD1kBTCGt2dwa2sovl9p54P5tmdA/MPdlfc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Osd3iudJ/fsz1Ulck1G6Myt2zn4ENnlJ0p2nP26G1cOHrdFCnQ4mUi6pma2X5IueY+pNjPlzMD7QLpe2bM1rJh0uHDTleWFFHK/p00lQsqSj9qJisSR6Kv6uIUFBT5ecSE8kdcocys8077iYmEs5mK0QE5/n7JKYNeXf85k517I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com; spf=pass smtp.mailfrom=intel.com; dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b=lfvAlwoQ; arc=none smtp.client-ip=192.198.163.12
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=intel.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=intel.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ZjaXdDP7"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1775208614; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=NjSWYt2V6fO7NxMUGDUWpdEe+vws9h1rmtZOwOyxleE=;
-	b=ZjaXdDP72U55dsrn6rMyzWPU7eEgQ+9aOT7GvCSZe9xdS/N5A+3Q4LB6n5M0V3yajaKInJUvF3MlnZjGswGV3/r57gqCdlKho+oMCbXmPru56URiBEZ4sMwlzqL3nOU9UvLJhQxtiOyCkJPG/j1+h6g9TQNLSzlnTPxTyrsHPdo=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R791e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X0JrH26_1775208612;
-Received: from 30.221.145.18(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0JrH26_1775208612 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 03 Apr 2026 17:30:13 +0800
-Message-ID: <de8b2fd1-5176-472c-9fe6-e0b464133e7f@linux.alibaba.com>
-Date: Fri, 3 Apr 2026 17:30:11 +0800
+	dkim=pass (2048-bit key) header.d=intel.com header.i=@intel.com header.b="lfvAlwoQ"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple;
+  d=intel.com; i=@intel.com; q=dns/txt; s=Intel;
+  t=1775235041; x=1806771041;
+  h=date:from:to:cc:subject:message-id:references:
+   mime-version:in-reply-to;
+  bh=2xqBDOykXD1kBTCGt2dwa2sovl9p54P5tmdA/MPdlfc=;
+  b=lfvAlwoQibRDplOVNQQTbDgoQillwmIczcD+rqrqGtZXTpafVN8+wEFz
+   x/tDaETI5HAl3jpfpR7+VI2OxPgaX2/6tJsmzodRllR9aP41BE5KPJeSS
+   1fi01VzD/v73/12Lu/szibr/M6xjdZX7EavzsdDh6w65Cig6FC9P8qmEK
+   Fbe8YvJGY2NhqgqfP1VYNbduotHBymRDl35HI2ADPd0FFdqYQ0PaYhqOI
+   rco07dH0StjgcjCMOIxaTnVbPdzCTJJBIO5iSzE9zc8XbXcDsy9SSD5lX
+   713RROP/SoMYzIhIsGSnqd99EardHb+RHZngABag9Di8eycA7ORUf4Hxe
+   g==;
+X-CSE-ConnectionGUID: hmtpxipRTuyEtnwuQ4Avpg==
+X-CSE-MsgGUID: OisQuxd2Toe9nBWerRbMiQ==
+X-IronPort-AV: E=McAfee;i="6800,10657,11748"; a="80183167"
+X-IronPort-AV: E=Sophos;i="6.23,158,1770624000"; 
+   d="scan'208";a="80183167"
+Received: from orviesa005.jf.intel.com ([10.64.159.145])
+  by fmvoesa106.fm.intel.com with ESMTP/TLS/ECDHE-RSA-AES256-GCM-SHA384; 03 Apr 2026 09:50:41 -0700
+X-CSE-ConnectionGUID: DtI/I18XSQG81Ka/bjzRHg==
+X-CSE-MsgGUID: K895qlu2R0SOuQ2phOp8Qg==
+X-ExtLoop1: 1
+X-IronPort-AV: E=Sophos;i="6.23,158,1770624000"; 
+   d="scan'208";a="232227048"
+Received: from igk-lkp-server01.igk.intel.com (HELO 9958d990ccf2) ([10.211.93.152])
+  by orviesa005.jf.intel.com with ESMTP; 03 Apr 2026 09:50:38 -0700
+Received: from kbuild by 9958d990ccf2 with local (Exim 4.98.2)
+	(envelope-from <lkp@intel.com>)
+	id 1w8hj9-000000009LR-2bbQ;
+	Fri, 03 Apr 2026 16:50:35 +0000
+Date: Fri, 3 Apr 2026 18:50:17 +0200
+From: kernel test robot <lkp@intel.com>
+To: tejas bharambe <tejas.bharambe@outlook.com>,
+	"ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
+Cc: llvm@lists.linux.dev, oe-kbuild-all@lists.linux.dev,
+	"mark@fasheh.com" <mark@fasheh.com>,
+	"jlbec@evilplan.org" <jlbec@evilplan.org>,
+	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+	"syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com" <syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Subject: Re: [PATCH v2] ocfs2: fix use-after-free in ocfs2_fault() when
+ VM_FAULT_RETRY
+Message-ID: <202604031809.3cnzRidc-lkp@intel.com>
+References: <JH0PR06MB66325344CF84BBC38B2973C38950A@JH0PR06MB6632.apcprd06.prod.outlook.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 0/3] ocfs2: stop BUG_ON crashes in suballoc invalid-dinode
- paths
-To: ZhengYuan Huang <gality369@gmail.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- akpm <akpm@linux-foundation.org>
-References: <20260403063016.438287-1-gality369@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260403063016.438287-1-gality369@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <JH0PR06MB66325344CF84BBC38B2973C38950A@JH0PR06MB6632.apcprd06.prod.outlook.com>
+
+Hi tejas,
+
+kernel test robot noticed the following build errors:
+
+[auto build test ERROR on brauner-vfs/vfs.all]
+[also build test ERROR on linus/master v7.0-rc6]
+[cannot apply to next-20260403]
+[If your patch is applied to the wrong git tree, kindly drop us a note.
+And when submitting patch, we suggest to use '--base' as documented in
+https://git-scm.com/docs/git-format-patch#_base_tree_information]
+
+url:    https://github.com/intel-lab-lkp/linux/commits/tejas-bharambe/ocfs2-fix-use-after-free-in-ocfs2_fault-when-VM_FAULT_RETRY/20260403-161805
+base:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git vfs.all
+patch link:    https://lore.kernel.org/r/JH0PR06MB66325344CF84BBC38B2973C38950A%40JH0PR06MB6632.apcprd06.prod.outlook.com
+patch subject: [PATCH v2] ocfs2: fix use-after-free in ocfs2_fault() when VM_FAULT_RETRY
+config: x86_64-kexec (https://download.01.org/0day-ci/archive/20260403/202604031809.3cnzRidc-lkp@intel.com/config)
+compiler: clang version 20.1.8 (https://github.com/llvm/llvm-project 87f0227cb60147a26a1eeb4fb06e3b505e9c7261)
+reproduce (this is a W=1 build): (https://download.01.org/0day-ci/archive/20260403/202604031809.3cnzRidc-lkp@intel.com/reproduce)
+
+If you fix the issue in a separate patch/commit (i.e. not just a new version of
+the same patch/commit), kindly add following tags
+| Reported-by: kernel test robot <lkp@intel.com>
+| Closes: https://lore.kernel.org/oe-kbuild-all/202604031809.3cnzRidc-lkp@intel.com/
+
+All errors (new ones prefixed by >>):
+
+>> fs/ocfs2/mmap.c:41:28: error: use of undeclared identifier 'inode'
+      41 |         trace_ocfs2_fault(OCFS2_I(inode)->ip_blkno,
+         |                                   ^
+   1 error generated.
 
 
+vim +/inode +41 fs/ocfs2/mmap.c
 
-On 4/3/26 2:30 PM, ZhengYuan Huang wrote:
-> commit 10995aa2451a ("ocfs2: Morph the haphazard
-> OCFS2_IS_VALID_DINODE() checks.") converted several OCFS2 dinode
-> corruption checks from graceful error handling to BUG_ON() under the
-> assumption that every caller only sees validated inode buffers.
-> 
-> That assumption does not always hold for JBD-managed buffers. The common
-> inode read path can still hand suballoc code an invalid dinode, which turns
-> crafted filesystem corruption into a kernel panic instead of a normal OCFS2
-> filesystem error.
-> 
+    29	
+    30	
+    31	static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
+    32	{
+    33		struct vm_area_struct *vma = vmf->vma;
+    34		sigset_t oldset;
+    35		vm_fault_t ret;
+    36	
+    37		ocfs2_block_signals(&oldset);
+    38		ret = filemap_fault(vmf);
+    39		ocfs2_unblock_signals(&oldset);
+    40	
+  > 41		trace_ocfs2_fault(OCFS2_I(inode)->ip_blkno,
+    42				  vmf->page, vmf->pgoff);
+    43		return ret;
+    44	}
+    45	
 
-When inode first read from disk, it will call ocfs2_validate_inode_block()
-to validate if it is valid.
-So it seems this is a code bug once the buffer is modified? Or how it
-happens?
-
-Thanks,
-Joseph
-
-> This series restores graceful corruption handling at the three
-> independently reachable BUG_ON() sites in fs/ocfs2/suballoc.c:
-> 
-> 1. reserve_suballoc_bits()
-> 2. claim_suballoc_bits()
-> 3. _ocfs2_free_suballoc_bits()
-> 
-> The series is split per crash site so each patch fixes one bug. A broader
-> follow-up could harden structural validation for JBD-managed inode reads,
-> but that change touches a much wider read-side contract and is kept out of
-> scope here.
-> 
-> ZhengYuan Huang (3):
->   ocfs2: handle invalid dinode in reserve_suballoc_bits
->   ocfs2: handle invalid dinode in claim_suballoc_bits
->   ocfs2: handle invalid dinode in _ocfs2_free_suballoc_bits
-> 
->  fs/ocfs2/suballoc.c | 33 +++++++++++++++++++++------------
->  1 file changed, 21 insertions(+), 12 deletions(-)
-> 
-
+-- 
+0-DAY CI Kernel Test Service
+https://github.com/intel/lkp-tests/wiki
