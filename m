@@ -1,39 +1,39 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 18E72389E03
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 273B2386554
 	for <ocfs2-devel@lists.linux.dev>; Fri,  3 Apr 2026 09:08:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775207292; cv=none; b=t1xNP602sEzh5YoDuROIIrqC/zsfZRn+eBtyxfd6TqoA9NePWO4ku5CoYInmpDGotJe/ahkRLr1Pqw30shvjtfEig9FEhvpj2YmOk3GGzCCEDG/qWDmSsVbNRWs8N3Y5grMsHr+lsUM5nH24+NzPRPY3RN3TZAOcJS0lJrE3zVU=
+	t=1775207292; cv=none; b=EOoXOOtTRsv7dGZ2IJKMofK7yOu3HzayLtj7ig5AxK+OuFYxwg+G3GXAVlnYT1XESqeo7iJ8KM7DeISYlQgKDL4oKvCrno0ysn+0x+D9DFWCiuoZ0CuNJStXtqyOXlFMfjBYSWwTGTCtg4TwdNi60vsPAIO1ucpynzLTxcvN0fU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1775207292; c=relaxed/simple;
-	bh=3sXjutqgIKHS+W6WA2F3yrs2jEN20n7ZVeeWkwfD3UM=;
+	bh=9kuk44SM25nMs/1+zgEYpPfIKfNAvjiTqEybT+vzrXU=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=tR3Ojmyc39nj5kGQVOm2ObHG/HmeI6CIH4TKCc57hwJbladlKcbAoiq6rHIcPwnPATrA49iuj5CcDXrws79j5vAiYnAB+v3ts8aVWnx0SpHDXH20Rw+hLu6crrNgJtYwuEMjDfMv4pJYVlO0m6K61aSMRPDlxkkjcq5SVf0Y7Z8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Um+jIB+p; arc=none smtp.client-ip=115.124.30.101
+	 MIME-Version; b=afVbhD9KkoVyxCL7b9uUuQczeoVT+3fnA7b0g8td33Wbh7ZYcupEf8n48yPgTrO8j9lcG7bNUQz4XMk2Drr+hGN72ooFHxu1hH4PJY0V9t1Dv3FtBJn2KK6E0AoPK3zFMWUAjHrraVVCme4KE6Cfx3rxeZPg4xZsJ2ulxj6BurU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=aLRGMPsy; arc=none smtp.client-ip=115.124.30.118
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Um+jIB+p"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="aLRGMPsy"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1775207287; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=hlKPn4y+yxU2tcXJIzv72CtTy7V2nwR6H/B4diAaeZE=;
-	b=Um+jIB+pjMnUoiX4EKG22uT7iX0jzI/ccFBp6mzofDQk7kknvRIVBQPYwznhdGpshPyPLJufAy0wleE5Cn0e1m+fz+MeQKrv/A+la3IDsviYVUNDf3Q8AbgogvAvNZHDUJJ395WjukVshu0yi8Qk4GeWF4EKM8s81rj47RNUIFI=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R311e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X0JqO8O_1775207286;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0JqO8O_1775207286 cluster:ay36)
+	t=1775207288; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=9u4i4CuYLhmblA3aqm/e9wXf2wX7ubkTsct3lQ7y2BQ=;
+	b=aLRGMPsyzInLhZSn7CfVk13y6VgRvAG3VJDoScsttqz4/VA4//iJrP5+BmLpbGD7YsGeORD5g4zJDwd8sEsdnBd8Wl02mW9iLtTMLnnqyrWM+5YLUObvL4aPG3LqtQJE0P+LRKDYVjNnlWVprJI3Xrsxq149/G/2shcXiNJNwhQ=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R641e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X0JsYHD_1775207287;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0JsYHD_1775207287 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 03 Apr 2026 17:08:07 +0800
+          Fri, 03 Apr 2026 17:08:08 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>,
 	ZhengYuan Huang <gality369@gmail.com>
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Subject: [PATCH 3/4] ocfs2: validate extent block list fields during block read
-Date: Fri,  3 Apr 2026 17:08:02 +0800
-Message-Id: <20260403090803.3860971-4-joseph.qi@linux.alibaba.com>
+Subject: [PATCH 4/4] ocfs2: remove redundant l_next_free_rec check in __ocfs2_find_path()
+Date: Fri,  3 Apr 2026 17:08:03 +0800
+Message-Id: <20260403090803.3860971-5-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20260403090803.3860971-1-joseph.qi@linux.alibaba.com>
 References: <20260403090803.3860971-1-joseph.qi@linux.alibaba.com>
@@ -45,62 +45,41 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Add extent list validation to ocfs2_validate_extent_block() so that
-corrupted on-disk fields are caught early at block read time rather
-than during extent tree traversal.
+The l_next_free_rec > l_count check after ocfs2_read_extent_block() in
+__ocfs2_find_path() is now redundant, as ocfs2_validate_extent_block()
+already performs this validation at block read time.
 
-Two checks are added:
-
-  - l_count must equal the expected value from
-    ocfs2_extent_recs_per_eb(), catching blocks with a corrupted record
-    count before any array iteration.
-
-  - l_next_free_rec must not exceed l_count, preventing out-of-bounds
-    access when iterating over extent records.
+Remove the duplicate check to avoid maintaining the same validation in
+two places.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/alloc.c | 23 ++++++++++++++++++++++-
- 1 file changed, 22 insertions(+), 1 deletion(-)
+ fs/ocfs2/alloc.c | 12 ------------
+ 1 file changed, 12 deletions(-)
 
 diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 344fd4d95fbc..8639806bcbb8 100644
+index 8639806bcbb8..08e137928080 100644
 --- a/fs/ocfs2/alloc.c
 +++ b/fs/ocfs2/alloc.c
-@@ -917,11 +917,32 @@ static int ocfs2_validate_extent_block(struct super_block *sb,
- 		goto bail;
- 	}
+@@ -1878,18 +1878,6 @@ static int __ocfs2_find_path(struct ocfs2_caching_info *ci,
+ 		eb = (struct ocfs2_extent_block *) bh->b_data;
+ 		el = &eb->h_list;
  
--	if (le32_to_cpu(eb->h_fs_generation) != OCFS2_SB(sb)->fs_generation)
-+	if (le32_to_cpu(eb->h_fs_generation) != OCFS2_SB(sb)->fs_generation) {
- 		rc = ocfs2_error(sb,
- 				 "Extent block #%llu has an invalid h_fs_generation of #%u\n",
- 				 (unsigned long long)bh->b_blocknr,
- 				 le32_to_cpu(eb->h_fs_generation));
-+		goto bail;
-+	}
-+
-+	if (le16_to_cpu(eb->h_list.l_count) != ocfs2_extent_recs_per_eb(sb)) {
-+		rc = ocfs2_error(sb,
-+				 "Extent block #%llu has invalid l_count %u (expected %u)\n",
-+				 (unsigned long long)bh->b_blocknr,
-+				 le16_to_cpu(eb->h_list.l_count),
-+				 ocfs2_extent_recs_per_eb(sb));
-+		goto bail;
-+	}
-+
-+	if (le16_to_cpu(eb->h_list.l_next_free_rec) > le16_to_cpu(eb->h_list.l_count)) {
-+		rc = ocfs2_error(sb,
-+				 "Extent block #%llu has invalid l_next_free_rec %u (l_count %u)\n",
-+				 (unsigned long long)bh->b_blocknr,
-+				 le16_to_cpu(eb->h_list.l_next_free_rec),
-+				 le16_to_cpu(eb->h_list.l_count));
-+		goto bail;
-+	}
-+
- bail:
- 	return rc;
- }
+-		if (le16_to_cpu(el->l_next_free_rec) >
+-		    le16_to_cpu(el->l_count)) {
+-			ocfs2_error(ocfs2_metadata_cache_get_super(ci),
+-				    "Owner %llu has bad count in extent list at block %llu (next free=%u, count=%u)\n",
+-				    (unsigned long long)ocfs2_metadata_cache_owner(ci),
+-				    (unsigned long long)bh->b_blocknr,
+-				    le16_to_cpu(el->l_next_free_rec),
+-				    le16_to_cpu(el->l_count));
+-			ret = -EROFS;
+-			goto out;
+-		}
+-
+ 		if (func)
+ 			func(data, bh);
+ 	}
 -- 
 2.39.3
 
