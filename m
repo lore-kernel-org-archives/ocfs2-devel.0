@@ -1,72 +1,73 @@
 Received: from mail-wm1-f45.google.com (mail-wm1-f45.google.com [209.85.128.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B0692C08AB
-	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Apr 2026 14:58:54 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6962F259C9C
+	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Apr 2026 14:59:31 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775573938; cv=none; b=JUj81sNnyWD8xr+Or39KZzXPFHMcyITIekBODs42O5LIaI64RHYlh4R2V6FAwHshSkrgbPFpmGwVf1YSbjCNzpyyMlLJSe7AHFyWbXP3Q83xMR3F5X7d097LRIeRy0uLD6MV08nXx+kw71+NJyB86vazfYPrpwuxr7dmyyTOI3Q=
+	t=1775573972; cv=none; b=ss3dbqFEAeR3j/oWGwV0iufLnJuNAaOlDEC+j9jdojznrOEbXq9Aq6pmVGb9LDgqBxNZcPKsoh4rjvV2LQaA0+5nonv4LJbyYXfZAiD6QzSXaVLGRNNTx7IIBI6+AkgoCCuii2d2g0VDhU2a7/1UwzbLYR3stIcSbpYHhQ+sDpY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775573938; c=relaxed/simple;
-	bh=I3U4Rkz6xcjX1LaikQkQC8WzJfqaYkWi3iCoanNg5CI=;
+	s=arc-20240116; t=1775573972; c=relaxed/simple;
+	bh=/X84+yHVdHkyU33xHuaRlZsUgWwE5VdWB28sm24zV9M=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Iknymczpm9gj8MuEBRL+EHQFwB6r288mFwOwAkZACzmC7uDHGFS1S1dOm8ajizy6+qDLwt6dQ0Bb/9sYY5UyCJEPcb5mYh2Pdl/CwtCORKdRakATaqvK8IxYcl4KLq25Fi+ntlAS8YM+X9lItnI/BZjxGoMXLwRCXipfep/fbtc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=NwN2MoZV; arc=none smtp.client-ip=209.85.128.45
+	 Content-Type:Content-Disposition:In-Reply-To; b=Rtj7N4deV+c5W/ZcFWg00qnU0YLaCKi9BaUV2sVNWcA1whNzkt7iYGjIk6hhdK+eLyGr7nOctwyw+LNZwaxu4ooOVQuVANuiRNeHEJQBfdfCl2Jnhaj/ewlJrkbLOywo9FTHRXKquEGwqYwwqN6NKobXb7+9vZTcTgcfKyOo9p4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=KqW29e0r; arc=none smtp.client-ip=209.85.128.45
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="NwN2MoZV"
-Received: by mail-wm1-f45.google.com with SMTP id 5b1f17b1804b1-4836fc075d2so6486525e9.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 07 Apr 2026 07:58:54 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="KqW29e0r"
+Received: by mail-wm1-f45.google.com with SMTP id 5b1f17b1804b1-488965bc979so5755295e9.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 07 Apr 2026 07:59:31 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1775573933; x=1776178733; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1775573970; x=1776178770; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=T6SFlJcGJUoTobrDq/Ifrg5q33AM9QXRjUl5zgkUQvc=;
-        b=NwN2MoZVXYKqe0PzRoLdw72LavGrpw/OTjz8eHAP3OJOOKbfAzzX4LPRrHtxm0DpSc
-         Xx2XUo5aiXej/yuTvFI3ETCUSw8Tvr4HisQCUBE/tdD/g+fZeQw+BFWFgMUX8wWlMT0I
-         XsGCZrEkg60DQXYZsQAQyTwGMOAdnZyP/Tc2gUj5sml3VA6hHn0Clml0zazaOwPX5WGy
-         DqcUfh20X0uazHBOSJV/cT09euwNxX+lMnN6f/uThAcn43Cv8kB99IKLtlSnjiFbUJg8
-         x9Rrb+/v3RNzau4/sHa4oZE8AUX78FEBISBPE6UB6kz4A0DJyiAf+emAjId+Wp2mUzhT
-         wDoQ==
+        bh=PRhC2WlJKz2CjZWrJ483l/aUZpwufOOpOooWNoXZ+zM=;
+        b=KqW29e0rXIbR8PEFdSRdCKqL6uao9zbgPmHMiTzTHcBtMgAc1OpJMSHO1YjgvqFLlG
+         TqmTIakf29hOH0H+TvdqB+SGObDo/yrP165LSm7wS59+qWoBJP/hsQp2TEl9jTEosv/V
+         ieZRC3savwtZGTs/9NHmrEZqwYUiNC5Eff7s6wH+doZJAIpd2Lcte103QmWQpHErvamJ
+         hspjsjLJ5DsQJy6Xxn5kyu+IbH84+nNnoy4MKtwwikHYoRL/zJ2kbzur/+SnH92wZq6q
+         z960ywgFACDrgPasTAZptu3lfFphL+8ME/z5njep79pROzEoaBMMYyKcR9CZSnLYi0Ud
+         bztA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775573933; x=1776178733;
+        d=1e100.net; s=20251104; t=1775573970; x=1776178770;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=T6SFlJcGJUoTobrDq/Ifrg5q33AM9QXRjUl5zgkUQvc=;
-        b=OCLrSOZlo3HOPq1QtO3A/bpyueaPWHLQFnTB3SWk2YQ8N5xehSl8y7YniLOantI/0n
-         YMWs1oeSruOGSiKOMAaTIayU+zDe+lhSXTbChG42yxRVHOGC+SimoQIMY0H7wi9vEcS0
-         VZEHlOvv0zdvZUTsG9FZvDppSSLalihD/HrWH4jKC1JeezyUErrxfLNkRdyhT6KXaTuZ
-         E4/sjAPipcsiaTedA3edDhX7rEaOCpM49ouv9TvJB6+enUfAFpSV24yUjW2A03Yy2dzE
-         wzZyf2UlGBpxy6qvtuZvaL2adJh1XZgia9Xgv5JZwXhXjb/GsdwIzoabTrK3BO/mlU6F
-         56Wg==
-X-Forwarded-Encrypted: i=1; AJvYcCUPew6V5yb5m4rSW0IGMqfehf55Y3Ib8mLaPaABy1jWOZRixmR4Q7OYWN2YkNuk0LJqih98+PtMQe9qoA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyX1WcpvA6eY92dhCYO3DQg82T19DAxNS7FRyIRF+Eb+bkzk1e3
-	t3QtLUTZ+7Y1xxfwvIrRflI2mlhwRq14Oucl5UuiQzcRK7uc7iUANLFlp9bxtiSHoL4=
-X-Gm-Gg: AeBDiesBXr+/BD8xc1tBfaAe95PTrCGJi2T0A9tuhAomPvE5JdyfNHiOa542Sd/3aJg
-	21aZ93uk6m4i0mE6g5jXtQ4EUnMuSZrnlN6v9z9GqYDMBuLY0HSe8Zz0t/O9+prwC04O1v0B47H
-	z3xiV7Jz6i7Ho6/iTGIlCFydsz8/VFIgFCBBI0zyj9RZH4dDPB60a7Yf8WuMXmvraq6vOPqFzZU
-	k1jwJ77n1FtegFzpDtYiTSdgmGT0uvt0lZvbTjI2NYrEKoSTQmHvLvcP0GBFvcocJBZyy7OciE/
-	SWONJGj1KuOSvOQKexuq8N15FaZ7AWb/tkHJnXcKNMAXgvBNqUwx+YtQl/vSinwmWPXN2DCwV9t
-	3IR5lHXH+HdZjQ0rQKDIJbnJmL2dAbZWBI8PUqIwd+8ps2QWxxgn1caE+W71ooBmMHXXbA9vOCp
-	HT4mEBifzabqCC84XDxnuakQ==
-X-Received: by 2002:a05:600c:a43:b0:488:9e7e:e1e3 with SMTP id 5b1f17b1804b1-4889e7eefaamr116783585e9.2.1775573932756;
-        Tue, 07 Apr 2026 07:58:52 -0700 (PDT)
+        bh=PRhC2WlJKz2CjZWrJ483l/aUZpwufOOpOooWNoXZ+zM=;
+        b=W73sZr2Eq3uhiN/gxCzOrfNxPv/7nH7GT7HvBKgmpWSbzjdzPtPqE1M9D1jWyo4Ame
+         phc5l3E/MzYkMm8DVOuacqJbQ/X/+B2PrwxTc72mUh1TRfVs14enhkg8vmh7e2J/a0BI
+         xW9oUQYYclBRbCS5N0ToHpClcIiNRACq8b4eg1yUVIsr3JdThlA629XmE7QXBtCfcxhx
+         tIEnzmcIiXE+k4wOdZfs+ndQTuYGtzugvf7cuhQGMZfoaS6JSnsse/MhSpwZmgMJSr8U
+         /NP4pqcqRVd21Fsmp67Ht7r8/9XDuV1x/6DmDdOvfNUORr8pXlgjM/oDFmFInZOHXjZm
+         hqTw==
+X-Forwarded-Encrypted: i=1; AJvYcCXb9op46r2HabNePnqwd9sUUeXb3Y6+m/zGAitLaME5mFPHN5LJpIxPcZModzfiYtcOvLPLfsRdgPz/Kg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yw5p18yUkoc9BKqQEyZGEN858bX0zgutHD+bQB+T9FPR6WzqN4M
+	zvqEFEJQ6k5J8kGjoOHjlmgkOsfW1hAQOz3FidTxv+XEDleOxY1NU1tf1aSUz1GuD9+gu0eRI/L
+	5HTIERGM=
+X-Gm-Gg: AeBDiesNFooTGo32k1dGsVuBmKaAooXuxxUetat72KMzBJZBMR4HDRNQyZpqE+kbgCN
+	ayFQu22kngUoR02NLKcGSE5BSwFXdJnLPlCPt0CCH9/aFNr0A9m4iI3cwVluphvFmBHNy0k78t3
+	M5gSg+o2nfT7rr2m8CYm0hsgWrp8lKi4ZNLJBn1AvBA1v/h+7rixhZGXj67z7fECcot3YmZ4Wl9
+	sZ8GTbZh93oHtqdgCqSMAd9algDqYReCrF5lPUkqSEDaQwhdsgyzVF0V4Smw+7EzvhBNLPa/mQU
+	hU/SjZjY4KAwDBxNzxYV9xGsTAyqz04ZhUIIxsLfa8CP1O2ubmhbL/IcMZUMJo0Y3qCFvGD0pNZ
+	GkFsOwO2JEQi4c5LuwpX5KYjutizbWhCuTK+v4yrswr1N/sYU4FZI6Wl+ELJNzVQflo3RPvWBok
+	XH9ElvoRIoyIt3fiLI32cv4A==
+X-Received: by 2002:a05:600c:34d5:b0:488:afb4:b98c with SMTP id 5b1f17b1804b1-488afb4bab3mr67213815e9.3.1775573969802;
+        Tue, 07 Apr 2026 07:59:29 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c76c65991a8sm16913153a12.28.2026.04.07.07.58.51
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-82cf9ca1f28sm18489527b3a.57.2026.04.07.07.59.28
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 07 Apr 2026 07:58:51 -0700 (PDT)
-Date: Tue, 7 Apr 2026 22:58:48 +0800
+        Tue, 07 Apr 2026 07:59:28 -0700 (PDT)
+Date: Tue, 7 Apr 2026 22:59:26 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
 	ZhengYuan Huang <gality369@gmail.com>, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 1/4] ocfs2: validate dx_root extent list fields during
- block read
-Message-ID: <7xxyxgd6lomzalhigpp255b25rvpewf2dhwqvt4yr65mshunjn@sbxp4juiw6qp>
+Subject: Re: [PATCH 2/4] ocfs2: remove empty extent list check in
+ ocfs2_dx_dir_lookup_rec()
+Message-ID: <4x7tuyncmpm36ebkp7hccw47fxwhdqgtxwu2lulvcy7cjyt25r@knp63pjqsg6n>
 References: <20260403090803.3860971-1-joseph.qi@linux.alibaba.com>
- <20260403090803.3860971-2-joseph.qi@linux.alibaba.com>
+ <20260403090803.3860971-3-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -75,88 +76,58 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260403090803.3860971-2-joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260403090803.3860971-3-joseph.qi@linux.alibaba.com>
 
-On Fri, Apr 03, 2026 at 05:08:00PM +0800, Joseph Qi wrote:
-> Move the extent list l_count validation from ocfs2_dx_dir_lookup_rec()
-> into ocfs2_validate_dx_root(), so that corrupted on-disk fields are
-> caught early at block read time rather than during directory lookups.
+On Fri, Apr 03, 2026 at 05:08:01PM +0800, Joseph Qi wrote:
+> The full extent list check is introduced by commit 44acc46d182f, which
+> is to avoid NULL pointer dereference if a dirent is not found.
 > 
-> Additionally, add a l_next_free_rec <= l_count check to prevent
-> out-of-bounds access when iterating over extent records.
-> 
-> Both checks are skipped for inline dx roots (OCFS2_DX_FLAG_INLINE),
-> which use dr_entries instead of dr_list.
+> Reworking the error message to not reference rec. Instead, report
+> major_hash being looked up and l_next_free_rec, which naturally covers
+> both failure cases (empty extent list and no matching record) without
+> needing a separate l_next_free_rec == 0 guard.
 > 
 > Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
 LGTM
 Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 > ---
->  fs/ocfs2/dir.c | 34 +++++++++++++++++++++++++---------
->  1 file changed, 25 insertions(+), 9 deletions(-)
+>  fs/ocfs2/dir.c | 15 +++------------
+>  1 file changed, 3 insertions(+), 12 deletions(-)
 > 
 > diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 1c8abf2c592c..82e720c8ba32 100644
+> index 82e720c8ba32..d94595a49923 100644
 > --- a/fs/ocfs2/dir.c
 > +++ b/fs/ocfs2/dir.c
-> @@ -593,7 +593,7 @@ static int ocfs2_validate_dx_root(struct super_block *sb,
->  		mlog(ML_ERROR,
->  		     "Checksum failed for dir index root block %llu\n",
->  		     (unsigned long long)bh->b_blocknr);
-> -		return ret;
-> +		goto bail;
+> @@ -835,14 +835,6 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
+>  		}
 >  	}
 >  
->  	if (!OCFS2_IS_VALID_DX_ROOT(dx_root)) {
-> @@ -601,8 +601,32 @@ static int ocfs2_validate_dx_root(struct super_block *sb,
->  				  "Dir Index Root # %llu has bad signature %.*s\n",
->  				  (unsigned long long)le64_to_cpu(dx_root->dr_blkno),
->  				  7, dx_root->dr_signature);
-> +		goto bail;
-> +	}
-> +
-> +	if (!(dx_root->dr_flags & OCFS2_DX_FLAG_INLINE)) {
-> +		struct ocfs2_extent_list *el = &dx_root->dr_list;
-> +
-> +		if (le16_to_cpu(el->l_count) != ocfs2_extent_recs_per_dx_root(sb)) {
-> +			ret = ocfs2_error(sb,
-> +					  "Dir Index Root # %llu has invalid l_count %u (expected %u)\n",
-> +					  (unsigned long long)le64_to_cpu(dx_root->dr_blkno),
-> +					  le16_to_cpu(el->l_count),
-> +					  ocfs2_extent_recs_per_dx_root(sb));
-> +			goto bail;
-> +		}
-> +
-> +		if (le16_to_cpu(el->l_next_free_rec) > le16_to_cpu(el->l_count)) {
-> +			ret = ocfs2_error(sb,
-> +					  "Dir Index Root # %llu has invalid l_next_free_rec %u (l_count %u)\n",
-> +					  (unsigned long long)le64_to_cpu(dx_root->dr_blkno),
-> +					  le16_to_cpu(el->l_next_free_rec),
-> +					  le16_to_cpu(el->l_count));
-> +			goto bail;
-> +		}
->  	}
->  
-> +bail:
->  	return ret;
->  }
->  
-> @@ -791,14 +815,6 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
->  	struct ocfs2_extent_block *eb;
->  	struct ocfs2_extent_rec *rec = NULL;
->  
-> -	if (le16_to_cpu(el->l_count) !=
-> -	    ocfs2_extent_recs_per_dx_root(inode->i_sb)) {
+> -	if (le16_to_cpu(el->l_next_free_rec) == 0) {
 > -		ret = ocfs2_error(inode->i_sb,
-> -				  "Inode %lu has invalid extent list length %u\n",
-> -				  inode->i_ino, le16_to_cpu(el->l_count));
+> -				  "Inode %lu has empty extent list at depth %u\n",
+> -				  inode->i_ino,
+> -				  le16_to_cpu(el->l_tree_depth));
 > -		goto out;
 > -	}
 > -
->  	if (el->l_tree_depth) {
->  		ret = ocfs2_find_leaf(INODE_CACHE(inode), el, major_hash,
->  				      &eb_bh);
+>  	found = 0;
+>  	for (i = le16_to_cpu(el->l_next_free_rec) - 1; i >= 0; i--) {
+>  		rec = &el->l_recs[i];
+> @@ -855,10 +847,9 @@ static int ocfs2_dx_dir_lookup_rec(struct inode *inode,
+>  
+>  	if (!found) {
+>  		ret = ocfs2_error(inode->i_sb,
+> -				  "Inode %lu has bad extent record (%u, %u, 0) in btree\n",
+> -				  inode->i_ino,
+> -				  le32_to_cpu(rec->e_cpos),
+> -				  ocfs2_rec_clusters(el, rec));
+> +				  "Inode %lu has no extent record for hash %u in btree (next_free_rec %u)\n",
+> +				  inode->i_ino, major_hash,
+> +				  le16_to_cpu(el->l_next_free_rec));
+>  		goto out;
+>  	}
+>  
 > -- 
 > 2.39.3
 > 
