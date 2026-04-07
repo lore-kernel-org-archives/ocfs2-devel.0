@@ -1,32 +1,32 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D310D2A1B2
-	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Apr 2026 01:27:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B9F12264BB
+	for <ocfs2-devel@lists.linux.dev>; Tue,  7 Apr 2026 01:44:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775525258; cv=none; b=K94zPF1UYW17xo13QC2Yy7kgFWnANARnWeElb4MH7aZBp7xtvmxI+S1ztdRpYdFw5Ht0q/Kd4aX2phCVHGEnpAvpDHsj+AfV8wwTp4lkEflc1pTO7SHvUkfp28WmJmp9erhM6fa58msgqFoicLsY2w3tmRkKfXEAp4ntJYODxo8=
+	t=1775526286; cv=none; b=U9e05FWJfJq8XOEv5fwwrw0dYsc1K3DsIojfYmIOkXEZ6Km2KjJ+dqbMHtosT9SBsF3og9aJ8ujEITadZ2CWdqQT412nurJ1Q+8S0aoM5yKBEnpBgboX/h3ICrvUI3D8ZzEEUxyxT076jhU1Vb//a7EQzymQqGpoLOzQ0Jj6wg0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775525258; c=relaxed/simple;
-	bh=0mwxc1k1ANdj8M1/rDBwRCipRM4Y27qK7IvOR75VohY=;
+	s=arc-20240116; t=1775526286; c=relaxed/simple;
+	bh=7ixh2BK4SaH3XLpN6z6EYte+umaVCbLbdt9Ktz3fuHE=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=dTpUJT/LAZZYqsf3NnqU0xFoYoAzGN+QchrVyGcUdGXMP1xRhN0r721BJuQetFSTdPAa5wwhTmFWmUuZIbT9tYyQphRyqW9E9CPvNV8twiwxLbUyVfnmbM9qMyRcTDaGX8tSgSdTvmhKNbWx4q2cD/aljG8R2Rubvs3krFC+vgk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Q4YJFD2u; arc=none smtp.client-ip=115.124.30.100
+	 In-Reply-To:Content-Type; b=uDNYhYVLXxdw02JqkPGVKHdQzkPhqciZzu/qGYdE6EceU9n8uy+7P5AFcN9wuiRTRhWcrfNFTqpculF1RTd97+4cQ3ADIqDK49RVboyJayRnsL4EdSmqZXjgk+F8XdgdsycMKLR6/gpBIrnLHDppFUH/spkKiBc0JQqcrx/qPmk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=bWvgztQw; arc=none smtp.client-ip=115.124.30.112
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Q4YJFD2u"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="bWvgztQw"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1775525247; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=qJ8I0/N8QGRyDIyU30ELRQCQvpqCsa0nH4ECSX+PqWQ=;
-	b=Q4YJFD2usYlGNEwCDD1RwXr31vPBysolpGI1ZwbXGBciCSbJiv58BZ9nCZSe4KjjiTw9juASpsXEg8vIlszBijp2WY3uCbVXH5PHn19vfbd4TSWtwFJNtSv+xCqdE1ww4QT0L/reu1DjYVgl6B2MlLeHrlp/AKJgs9SN4UgnFhw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0X0a0r6I_1775525246;
-Received: from 30.221.145.153(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0a0r6I_1775525246 cluster:ay36)
+	t=1775526280; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=SwZZDo9gvwBJOFxueZcE2LRfgM690V0sXvqgqgqIAk0=;
+	b=bWvgztQwCs05yxPlUdJPl41P92Z4+oJrtwTNThZTjI3UPBMCxh23WUGNR1a5doNM/7S5YL+e+IxX9PZbZGlSiViAp0eb/Z4E+gXCfO0aOR3gD3C74djQH86Ze5ITcgK/o8OjBEMSL9l/h2RVWBZp5Mtkrq6QYG+lcQZgBmL6hrs=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X0a7j5l_1775526279;
+Received: from 30.221.145.153(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0a7j5l_1775526279 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 07 Apr 2026 09:27:26 +0800
-Message-ID: <a09fdf81-6a28-4b56-a76f-8fa5025f0ddc@linux.alibaba.com>
-Date: Tue, 7 Apr 2026 09:27:25 +0800
+          Tue, 07 Apr 2026 09:44:39 +0800
+Message-ID: <0c733707-d339-42f4-a11b-b597487918dc@linux.alibaba.com>
+Date: Tue, 7 Apr 2026 09:44:38 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,57 +34,39 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix out-of-bounds write in ocfs2_write_end_inline
+Subject: Re: [PATCH 0/4] ocfs2: consolidate extent list validation into block
+ read callbacks
 To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@lists.linux.dev,
+Cc: Heming Zhao <heming.zhao@suse.com>, ZhengYuan Huang
+ <gality369@gmail.com>, ocfs2-devel@lists.linux.dev,
  linux-kernel@vger.kernel.org
-References: <20260403063830.3662739-1-joseph.qi@linux.alibaba.com>
- <20260403122846.daf61b872e045baee9470f3a@linux-foundation.org>
+References: <20260403090803.3860971-1-joseph.qi@linux.alibaba.com>
+ <20260403122714.d01b268f8ac8148aaf55dc3c@linux-foundation.org>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260403122846.daf61b872e045baee9470f3a@linux-foundation.org>
+In-Reply-To: <20260403122714.d01b268f8ac8148aaf55dc3c@linux-foundation.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 4/4/26 3:28 AM, Andrew Morton wrote:
-> On Fri,  3 Apr 2026 14:38:30 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+On 4/4/26 3:27 AM, Andrew Morton wrote:
+> On Fri,  3 Apr 2026 17:07:59 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
 > 
->> KASAN reports a use-after-free write of 4086 bytes in
->> ocfs2_write_end_inline, called from ocfs2_write_end_nolock during a
->> copy_file_range splice fallback on a corrupted ocfs2 filesystem mounted
->> on a loop device. The actual bug is an out-of-bounds write past the
->> inode block buffer, not a true use-after-free. The write overflows into
->> an adjacent freed page, which KASAN reports as UAF.
+>> ocfs2 validates extent list fields (l_count, l_next_free_rec) at various
+>> points during extent tree traversal. This is fragile because each caller
+>> must remember to check for corrupted on-disk data before using it.
 >>
->> The root cause is that ocfs2_try_to_write_inline_data trusts the
->> on-disk id_count field to determine whether a write fits in inline
->> data. On a corrupted filesystem, id_count can exceed the physical
->> maximum inline data capacity, causing writes to overflow the inode
->> block buffer.
->>
->> Call trace (crash path):
->>
->>    vfs_copy_file_range (fs/read_write.c:1634)
->>      do_splice_direct
->>        splice_direct_to_actor
->>          iter_file_splice_write
->>            ocfs2_file_write_iter
->>              generic_perform_write
->>                ocfs2_write_end
->>                  ocfs2_write_end_nolock (fs/ocfs2/aops.c:1949)
->>                    ocfs2_write_end_inline (fs/ocfs2/aops.c:1915)
->>                      memcpy_from_folio     <-- KASAN: write OOB
->>
->> So add id_count upper bound check in ocfs2_validate_inode_block() to
->> alongside the existing i_size check to fix it.
+>> This series moves those checks into the block read validation callbacks
+>> (ocfs2_validate_dx_root and ocfs2_validate_extent_block), so corrupted
+>> fields are caught early at block read time. Redundant post-read checks
+>> are then removed.
 > 
-> AI review had a question:
-> 	https://sashiko.dev/#/patchset/20260403063830.3662739-1-joseph.qi@linux.alibaba.com
+> AI review asked a few questions - mainly suggesting additional changes.
+> https://sashiko.dev/#/patchset/20260403090803.3860971-1-joseph.qi@linux.alibaba.com
 
-Sashiko worries about it can't handle the case OCFS2_INLINE_DATA_FL not set.
-I think it is a seprated case.
+Yes, not regressions, actually some improvements.
 
 Thanks,
 Joseph
+
 
