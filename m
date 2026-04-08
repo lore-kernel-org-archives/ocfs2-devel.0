@@ -1,41 +1,41 @@
 Received: from sender4-op-o15.zoho.com (sender4-op-o15.zoho.com [136.143.188.15])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 31EDF40DFD4
-	for <ocfs2-devel@lists.linux.dev>; Wed,  8 Apr 2026 02:12:39 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E45E35E959
+	for <ocfs2-devel@lists.linux.dev>; Wed,  8 Apr 2026 02:27:05 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.188.15
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775614361; cv=pass; b=jfgtSs6qHB/mmvLvzL23wxTS9t6DzzKHh4+uvjCtN/eHNv6dqe/T2eYg9XwuPtDok8UdGNBA6tjdR0lmiXn32aH0dc8xWx4A/WvDvMQ+dm87LW14kS94b9nuMJz9EFI8tYDCdfqYagqO573gHRusufm6hcLVSrasdm+cHIzyp3o=
+	t=1775615227; cv=pass; b=kqLRnAJiqPWKtbNMgpkjOmnBPD+BCJdZedN/Z6hF78OS4PB75Mmfk+W0Lhdlu9dRR6iIEx5AsOKTNNGUkHIrVzVZ2OE98l4RFvNhsZj7Yk69b8S7KoGKHsc1EyqXcnuNm7ETb3hNHUxXmQCfb8fF0wse1HW6OZuEETy2KsDvwIo=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775614361; c=relaxed/simple;
-	bh=eyoyXlcJTyoWlelpg/gBuIe+Uh0cOF1QNrrDhnzQwDo=;
+	s=arc-20240116; t=1775615227; c=relaxed/simple;
+	bh=N/ltqINkh2/c/d168k2F6BYTluvcvXKv64rdp8sdKnA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=WxV8g3ukCiqB9JzHf3BztOPrnyTbPQSL4dGUKx9J+1D8vCvIs9p5CXlW6FrGHEJP0uWOA1CzcsiRbsxP+s1GLPsqw1DD/LJw6dW1X+cU3cPDaQs2CUNO1PX/y/fvSq2ovuTE7jejETHzCYQEbSAk8IPV1dkq0mCDM/ywiwt0kcs=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=ImJFZvO3; arc=pass smtp.client-ip=136.143.188.15
+	 MIME-Version; b=Z7oLV+xPUcw/oOIjVQuuAkQkmOC5Exu9IYg8NgkOrdaSCz7+wtslUlT558h4lURZza0gXi3vQkIz+qxiTeb6/JxefyaTKBb1O3zSpu3yNWnLFBBBa/W4NoKJEit2h8RHgDrmDunOcnm5/ZmBG3evYIfyo9HN8u5/3cc0+vhWHGc=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty; spf=pass smtp.mailfrom=linux.beauty; dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b=NZjcjA7l; arc=pass smtp.client-ip=136.143.188.15
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.beauty
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.beauty
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="ImJFZvO3"
-ARC-Seal: i=1; a=rsa-sha256; t=1775614354; cv=none; 
+	dkim=pass (1024-bit key) header.d=linux.beauty header.i=me@linux.beauty header.b="NZjcjA7l"
+ARC-Seal: i=1; a=rsa-sha256; t=1775615222; cv=none; 
 	d=zohomail.com; s=zohoarc; 
-	b=DR7jxLPDruobcn+KlW56bCuNMd9nWyonqcIfLzi2NKV+pzY/krmy7I+0CPhRQtxVi9Zhbhp9iGHsNFzoE7Ollr7WO7Z+UKbUNC8T+maxsVoEJd7xoVnNbeLwmEQLyFhmrAAMbf+e6J68tC90XS1evYP7WP4P4/bdxr/qYPGZGS8=
+	b=OD56zDbUuOy9ZrVwvp0U6+2y9lDQCQ8IsPzXwGwibGUBbUNbVrQKj44EC4FwlvKUHVnWCA38upURzLWM8SIAm4U0l/fB7itnrzGfp15+WO7ANgfwYSaX6bAvn0CLLa759VTjGhNrMJBhg+bYFmLy+LDL3zf5gIIfIxo8ze7lopQ=
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.com; s=zohoarc; 
-	t=1775614354; h=Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=eyoyXlcJTyoWlelpg/gBuIe+Uh0cOF1QNrrDhnzQwDo=; 
-	b=m6Jl37K8BU3WDOmVCczdNiGVTcnMTftA2vYSJKaxbnmg/B94OSlU7yplG2e6ZwHdv28pTJqHetv/Xkgk5GBTl0CG+9cwg/9MhCiCCIn7BmWNF0ODLBeNjBIzWEJebu+HnAgMdTY5EEGP+Cex7mfF9l/86BYJ3VGqI61T9La/iIw=
+	t=1775615222; h=Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:References:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=N/ltqINkh2/c/d168k2F6BYTluvcvXKv64rdp8sdKnA=; 
+	b=haSLwAPP7r9pBn15VcoNUgLk074yOrRZu4vVjXlVvPB1/tGP/AC8rwtJrbBjt2F62L+1v2JFmiFfJ/zOAN1SuDo0fjvWzJvO7+P/CBNJDiFRHfL9QjCbXFIv6RTkEE/lIjXbUOVT1vCGG9WODKAOzzqZM9CbemdEsQ6qm/UZoeo=
 ARC-Authentication-Results: i=1; mx.zohomail.com;
 	dkim=pass  header.i=linux.beauty;
 	spf=pass  smtp.mailfrom=me@linux.beauty;
 	dmarc=pass header.from=<me@linux.beauty>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1775614353;
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1775615222;
 	s=zmail; d=linux.beauty; i=me@linux.beauty;
 	h=From:From:To:To:Cc:Cc:Subject:Subject:Date:Date:Message-ID:In-Reply-To:References:MIME-Version:Content-Transfer-Encoding:Message-Id:Reply-To;
-	bh=eyoyXlcJTyoWlelpg/gBuIe+Uh0cOF1QNrrDhnzQwDo=;
-	b=ImJFZvO3J/22H8qAaSz1lOLgdpiL3RljdSIlJaZfJD8LsJRe07ow7jJagMdf8ISi
-	x38Gv3upkkrPHIGn4t537fwchc3da3qMlEjyTsK9Aatbxpunec6UioTJXp/QcgV2c00
-	oDlfFuyiZrry2zeV6JnPmNy3wrhl2l+zzSihhNBM=
-Received: by mx.zohomail.com with SMTPS id 177561434908025.963734623901928;
-	Tue, 7 Apr 2026 19:12:29 -0700 (PDT)
+	bh=N/ltqINkh2/c/d168k2F6BYTluvcvXKv64rdp8sdKnA=;
+	b=NZjcjA7lQAhde4g++tBnPWE8o74b+lmpiz1n0eAFup5+GT9uPBHuuv830kbodCXu
+	XdbvFrLtTbJ8mZ5gJbzH+pCMSlxMsCxYlvHYtMEzTRWuztnpqhGva3JjRol27qg4+TN
+	N3ONYSnm26f9DHgZORy625bfiEJ9kv9RoTlYAqHg=
+Received: by mx.zohomail.com with SMTPS id 1775615218815883.4975175356943;
+	Tue, 7 Apr 2026 19:26:58 -0700 (PDT)
 From: Li Chen <me@linux.beauty>
 To: Theodore Ts'o <tytso@mit.edu>,
 	Jan Kara <jack@suse.cz>,
@@ -47,8 +47,8 @@ Cc: Andreas Dilger <adilger@dilger.ca>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>,
 	linux-kernel@vger.kernel.org
 Subject: Re: [PATCH v4 0/4] jbd2/ext4/ocfs2: lockless jinode dirty range
-Date: Wed,  8 Apr 2026 10:12:14 +0800
-Message-ID: <20260408021214.2060713-1-me@linux.beauty>
+Date: Wed,  8 Apr 2026 10:26:45 +0800
+Message-ID: <20260408022645.2070599-1-me@linux.beauty>
 X-Mailer: git-send-email 2.52.0
 In-Reply-To: <20260306085643.465275-1-me@linux.beauty>
 References: <20260306085643.465275-1-me@linux.beauty>
@@ -63,13 +63,8 @@ X-ZohoMailClient: External
 
 Hi,
 
-Just a gentle ping on this series posted on March 6, 2026.
-
-The current v4 has Reviewed-by tags from Jan on all four patches.
-If there are no further concerns, could you please consider it for
-merging?
-
-I'm happy to resend if that would help.
+One more note: if there are any remaining concerns or comments on the
+series, please let me know and I'll address them promptly.
 
 Thanks,
 Li
