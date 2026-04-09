@@ -1,160 +1,185 @@
-Received: from mail-ej1-f43.google.com (mail-ej1-f43.google.com [209.85.218.43])
+Received: from mail-pl1-f171.google.com (mail-pl1-f171.google.com [209.85.214.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1AC234CFC3
-	for <ocfs2-devel@lists.linux.dev>; Thu,  9 Apr 2026 06:55:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.218.43
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775717760; cv=pass; b=ZUxSMaV+e8UJdOi0SKcycsTZcFn7RoNzs3xa4baorhbCSkZCXNiDvh/7VdLfl0ZTyBSHQW60p6JQXtS0JvJXbEXzdx2+JeiXBZLsQvr/BBMtf9li6Pm5FU2IfzVHGEwX5K+74Rc6U572RYwm+zwou5Nw/xaMbUT1ufx0tIvmJBw=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775717760; c=relaxed/simple;
-	bh=3IpANIu28JfqdLaLo0/WJ5ofLI7wVFWWIdbcEAVUVRI=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=pC8dF+VqbwPPCdxIiDyAimNVAwVqsWzu69INwdZCvqINGHijq3i/ac0y0BlVFdHeoOoem8Lbj5Ep4ZjseYjQ2NClvUM+uDD3gfpvUP56Qs0O/pJjt8BI5Kmz3ZF1bPKmwNv8F69x/MWvgcWb447w8GtNOYn8TkTaYmLXWSpFrR8=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=G60UJhjl; arc=pass smtp.client-ip=209.85.218.43
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EE71D33F591
+	for <ocfs2-devel@lists.linux.dev>; Thu,  9 Apr 2026 07:06:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.171
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775718419; cv=none; b=e+e9ePR65K3s7bJjicfOilsfxg7DTvI669E4iAy/BS02HPGBhWC9wcb/5SjXOa9KFEnAjt3HI4QHW7tM/+nh/CO29y/AWq8WbtPLO16aE6XrlpfHKAOOQnkgScK6zgAE4VIsM6NlCPg+YDJm17o5RFsfwbJ76vJAtHOKRDpWfjk=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775718419; c=relaxed/simple;
+	bh=HqDHRNm9BlO10tBUdSahIpJVMdUXQ+Kkwot9S1XzJoQ=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=oFhuWZ+IezmJmDCa3fxp5RZ3sLFbkKxXSkgJe4oaQm5ceg9mTuBXg/eLsSx4e1yl7FQp5EJ1JrfyZJUZUD9kjRu75hyaG3lcy0/ml6WBWeka3EEhrsnVZNi/RjRDRrMKhvjLQ+WRPBKxK5/CLxcxq+q/MISQ5A5IhjCww6m9j+4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=IHKWb3CQ; arc=none smtp.client-ip=209.85.214.171
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="G60UJhjl"
-Received: by mail-ej1-f43.google.com with SMTP id a640c23a62f3a-b936331786dso56347566b.3
-        for <ocfs2-devel@lists.linux.dev>; Wed, 08 Apr 2026 23:55:58 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1775717757; cv=none;
-        d=google.com; s=arc-20240605;
-        b=bv4PL5j1eiBm82OJfHWbSAOgJ5jlZHZ0v85QN8y5JFh9DhM5AU/F2tFkJ4vGVU5Err
-         XwcWAy/9JHN4+92KYSv2qxTVkb6L3kIpCjovb6dSoiLkIunThjL2wOu6pshgjkzMaYV1
-         kq9vzdjNGw6V1zaVYoke4dGDdyzwD4qtfUNz/Sel3KQu5dWo/57N+UyJLEV8Wuo1urse
-         BQz2hsNOeXExkJzfljvS4os75ZOqsDFUXvF0g+fL6vYdSnUNjNifMQOl++j6vU2mfWmd
-         WQbOrcm21rMOvoFzcrqMhTeqLAO5nZ+62sifuYaoctQSzdnBMSnt5UfFetSuHR0RWKx/
-         8FWg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=Fwsb2faRkE5i5QesOX+w0NhXPiYQaot6ZK97Msmq42E=;
-        fh=0Ppj+Xh+6eiqR230IDpxSbKU0UI/Ma2Vy80qWMAtlxc=;
-        b=fmo0Lo+Hdg1XmNaP37Ne2yXElP8aTT2/qtW2+7HvD72uh2Gf5YYnAzlJmfSkvv0F7L
-         0I76mUrXLcSf/6cQxDqKcnMu/CONcY1cYxZ0ALn7VnvOauqmuf8EIBn2kIc75wE1tyUm
-         FzLlGRjrE03R/Eb9V7FJfNXpMkOaIv8VM6W7fwc6gOH13QsuDRzEASKs/3Mav2lCBo2N
-         Wdy4/LPePctHf+jUtRDNYaarPMJLwNR5Giv7Kxp8zX+kHhwdOUngy3+S28beoRJ3LGDW
-         jTN9wZOUJXi8D0NRJJ66287qyooF8jfWyHom4lNBCMWOVPLjMiEswz87Hfq01xiCk9sS
-         JmMw==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="IHKWb3CQ"
+Received: by mail-pl1-f171.google.com with SMTP id d9443c01a7336-2b2503753efso5097785ad.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 09 Apr 2026 00:06:57 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1775717757; x=1776322557; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=Fwsb2faRkE5i5QesOX+w0NhXPiYQaot6ZK97Msmq42E=;
-        b=G60UJhjl9nzzvyylw8iIDWRfJA+utVGmv6LavTPfnV61KsaFs0cncoCdO6VzTid6dm
-         kO7LC3UYiVl0YL37pE+hMBg8PYsgBPR0zgpEPTZt4F/Eoh+RYnlB2ioNAawPjjYXGmcs
-         V6157ChTb5InEEo/D4jabnqRQfnvSiZDv9G5vSA9gmCn6r9xFvj7aR+HGXutSQ1Y8xtE
-         z/kbNjGWKwGcKVgInoOFABnCW8ueFb5pXLOdET8wj7qsA0264iQwL0xWwkyKXKSVJgQf
-         rhDyM5M6cG7mQjOwf9+Toxh3exlbIpuYkdaOyTAlkM8mj2goMAoA9fIMSZIUvPP8datk
-         /Y4g==
+        d=gmail.com; s=20251104; t=1775718417; x=1776323217; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=AbcoiDxqvm3yVuuY+3FJXoEqdX3dggqK0L2trSGSZKo=;
+        b=IHKWb3CQfob6YZGNHcNDQPF0+wadRDM1LqHfZiKD/d/Wh4LIFj979rQV3eOVj6f2sX
+         6431qRB6Hnhgv9FlNtyU/LQGSbjmblWp9T0SMZecOGnqs7VZKGg/vuXfUkNc4PYaCJpC
+         WOzrdxXUlI7Q/qbgCipHlwji16cxRJR6lc+g0wV3bmH3T9/6nOk6Gb0Txmp1Dk1Vfknb
+         lR5WwdqaIgMLDp2OrSm63DG+Gx/mg6dD2zy3b2xQQaGoK7CkdXNmXdsKwd4WTQ7FkZpf
+         sG+ieFmTdf+rNKllu9CZtrCaAxyEElFkVtdv75z7ZqyJNfFuwwhqWYgbgJC3d/1WZQDJ
+         kbzg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775717757; x=1776322557;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=Fwsb2faRkE5i5QesOX+w0NhXPiYQaot6ZK97Msmq42E=;
-        b=Sw30jZX8dKN/HgmuJN39ziCj18bZgHJWtaHqrsChLRieI7UuaMpg07z5cVSWMzXkUd
-         dIhLqivsLqzJG3i1hH1m0YL289Y5RWDdIKsdWdO+CogEiTJb8lkFErbjOs0vg2rt80LK
-         M/yFhVyySySXm9jYmaEwR3K1uHYNyST+jJiRfhkFDmJ4gkvJYljKakYiSGSgGmBr9e9i
-         CIMtbcaX+miIdLKkrNFsKvj5IlHXpjFcCTRxVoQ3FLdyjzvtL/gLCy3V6B2rLC8F2L4a
-         I/BtQcKI/eB6lXAFRHmY3Itg7XiSComkEfdX7Pc1g1K9p764uUc/jH0dSOcD9Q5a4Jzg
-         PibQ==
-X-Forwarded-Encrypted: i=1; AJvYcCVdCcv5aqWccYU5BB5zMnanRZ+FU7kbosHK2nRomtNe00S8BkArDHtukJGbC8E0WlTv7OwlGR4BFQM3Kw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwjRycz61n+gDMG2GmpG+AKdkR2Ha+ZOEPoioa34gljryxuucjS
-	rq82+ons1scy1FyHe8hTNTQI8g5hGaQv1XZwYUNXTPsakfUXJ53N9uMrH09DiAnmzBIytje7p+k
-	LqSCgHzq+0aWXK4Zhh8tO0/NGkgVFJ3Q=
-X-Gm-Gg: AeBDieuCEsfvkVjEhJetFDLsq/UyIrD+cIEvLcPPwsn8uiN/JIaYEmyAFo3FLIB83as
-	9QTUCJq+EbMweJKgHJJLBspvm6DKkY/zucjtTS8RM6Ru6fO9XOgKDtOJDvSCgjqbcJmjMhGPxFo
-	obNqpx1CCvKOlPJa527LIkZ02+5Z7p+DPq7783ZyY+J3k8ZIblJ3PK07t3RqoroQhn25STJYCvs
-	nv/OSnc/+rPFHIjW9qOa6gJRnS2fmNyGlAeMi0srASHoGEUwc848cWUGH9klfkXnRfirFMdIH9i
-	1PsM2kSh6Fdw4ik1/U18Lzas5leF7CDG4wjf9ipuNR2lJnVWn1ESQuU=
-X-Received: by 2002:a17:907:1caa:b0:b8f:b32e:e196 with SMTP id
- a640c23a62f3a-b9c679518f6mr1334078266b.30.1775717756990; Wed, 08 Apr 2026
- 23:55:56 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1775718417; x=1776323217;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=AbcoiDxqvm3yVuuY+3FJXoEqdX3dggqK0L2trSGSZKo=;
+        b=MG5xwdvL+LRBu/iULt5+o+SSTn5WvsggzQrL4U40xeM9sHSiYiI1bhcNUx2+CJ3uVC
+         atycRXfr9im6G0ckBw1B//sYp/4v8B+SXkjSQILu4AN4osBSqnmDNwxUJc6wjBZxv1US
+         dhwdTpC/6OWjxdhyg3v4bnyLzPm95p7jZuHPnZ0fcSezGeCuIy0XWo2KVbYce0QITrTp
+         HIT3wxog/0Rd6GAB0kGaXlTO04AOzKamnhtLm/g1wevVWPD5IQXgp0QEYp+F0HIneIYY
+         pirT3z03UUHHNG1VenEiYHhEnVTMm1OO1Jr8akdZnz88rMZymqScAlWUXf4ZIk8WOir1
+         JlaA==
+X-Gm-Message-State: AOJu0YxU67sKNURhTPnmCmoDtidefJyfSvzy/02qF4ZrmtP4Y1wDZFYS
+	oGfP5Ncjv8yWMGDqaWUo03LqaBeKd0c9j7GfQcy2sM6yo4ZriO/c+KCS
+X-Gm-Gg: AeBDieuMHxdXU04kimdYYulEVZypfeOnfH2i4iqof+Z/5o9acQmvZuhncWnFQLKhzsO
+	5lup97aWWlhJgjC+WlJUOpOAlVPgU1/HH1vaIUi6dECwG+Mw60Wl49e4B1QVXL+aMWcuhoh4SM7
+	1QE3lQ5zdVzgVDsCLuqCCYlq++8RsrobCusEDmTqYy7YIX+0OyEBUPK2/k8Rob/0HVBWFAXhVo4
+	DdQGOV6N+4bVkSd96xBXcNH8N0LVrDJRhRnaL3gDvQmwJNbq3jTjyDgL7p8JCvrTnBBTiq/6lu/
+	VNLpw0A7c19w35LkKnX5GtDm8AGLegOOu39k/r/QjtEE+jzfwTjfZnYtb+UNF2QvNO3kL7q6Mih
+	NAP6pgaXT+Wpd2XiYMb10mlQcHV/gD2ctJ2UPwsyKZZHdvlOJiAG1A2KNAy1QrlGwzRQsMTCR5s
+	N+dMEcmkUneuD0m9xLMeB0Qm1z+01WzRrIcCZCfdFfMjNy5yB1ykrWI6kQIf4cDgu6k8P3f89kL
+	50rHdrU
+X-Received: by 2002:a17:903:3205:b0:2b2:4eec:9806 with SMTP id d9443c01a7336-2b28182ca4cmr282342715ad.8.1775718417185;
+        Thu, 09 Apr 2026 00:06:57 -0700 (PDT)
+Received: from kernel-fuzz.. ([138.199.21.245])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2b27472d55fsm297666265ad.11.2026.04.09.00.06.54
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 09 Apr 2026 00:06:56 -0700 (PDT)
+From: ZhengYuan Huang <gality369@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	r33s3n6@gmail.com,
+	zzzccc427@gmail.com,
+	ZhengYuan Huang <gality369@gmail.com>
+Subject: [PATCH v2] ocfs2: validate bg_bits during freefrag scan
+Date: Thu,  9 Apr 2026 15:06:24 +0800
+Message-ID: <20260409070624.3357378-1-gality369@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260409060241.3344855-1-gality369@gmail.com> <gyzh7hjexqrnjn334l3ev6dwo6yfb6deaynvnqsetjvqc4flpf@z2plhmz7vigo>
-In-Reply-To: <gyzh7hjexqrnjn334l3ev6dwo6yfb6deaynvnqsetjvqc4flpf@z2plhmz7vigo>
-From: ZhengYuan Huang <gality369@gmail.com>
-Date: Thu, 9 Apr 2026 14:55:29 +0800
-X-Gm-Features: AQROBzDpXA1W62faH68e_mHjOI48-hwJcrVrXG-A2Q-qXuyeJ_OtCTaehmVDC9o
-Message-ID: <CAOmEq9VenRkvGREGXJEse4qgBN7FrTQhBxm0NWzEGf0mhxJY5g@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: validate bg_bits during freefrag scan
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 
-On Thu, Apr 9, 2026 at 2:50=E2=80=AFPM Heming Zhao <heming.zhao@suse.com> w=
-rote:
-> > diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> > index b6864602814c..a341a599e440 100644
-> > --- a/fs/ocfs2/ioctl.c
-> > +++ b/fs/ocfs2/ioctl.c
-> > @@ -441,7 +441,7 @@ static int ocfs2_info_freefrag_scan_chain(struct oc=
-fs2_super *osb,
-> >       struct buffer_head *bh =3D NULL;
-> >       struct ocfs2_group_desc *bg =3D NULL;
-> >
-> > -     unsigned int max_bits, num_clusters;
-> > +     unsigned int max_bits, max_bitmap_bits, num_clusters;
-> >       unsigned int offset =3D 0, cluster, chunk;
-> >       unsigned int chunk_free, last_chunksize =3D 0;
-> >
-> > @@ -474,11 +474,27 @@ static int ocfs2_info_freefrag_scan_chain(struct =
-ocfs2_super *osb,
-> >               }
-> >
-> >               bg =3D (struct ocfs2_group_desc *)bh->b_data;
-> > +             max_bits =3D le16_to_cpu(bg->bg_bits);
-> > +             max_bitmap_bits =3D 8U * le16_to_cpu(bg->bg_size);
->
-> The bg->bg_size can also change.
-> It is better to use ocfs2_group_bitmap_size(osb->sb, 1, osb->s_feature_in=
-compat)*8
-> to retrieve the max_bitmap_bits value.
->
-> > +
-> > +             /*
-> > +              * Non-coherent scans read raw blocks and do not get the
-> > +              * bg_bits <=3D bg_size * 8 validation from
-> > +              * ocfs2_read_group_descriptor().
-> > +              */
-> > +             if (max_bits > max_bitmap_bits) {
-> > +                     mlog(ML_ERROR,
-> > +                          "Group desc #%llu has %u bits but bitmap hol=
-ds %u\n",
-> > +                          (unsigned long long)blkno,
-> > +                          max_bits,
-> > +                          max_bitmap_bits);
-> > +                     status =3D -EIO;
-> > +                     goto bail;
->
-> Since this function is used to report chain states, it's better to contin=
-ue
-> instead of breaking. In my view, reporting the error message and overwrit=
-ing
-> max_bits with max_bitmap_bits is sufficient.
->
-> Thanks,
-> Heming
+[BUG]
+A crafted filesystem can trigger an out-of-bounds bitmap walk when
+OCFS2_IOC_INFO is issued with OCFS2_INFO_FL_NON_COHERENT.
 
-Since this function is mainly used for reporting chain states, it makes sen=
-se
-to continue instead of failing hard here.
+BUG: KASAN: use-after-free in instrument_atomic_read include/linux/instrumented.h:68 [inline]
+BUG: KASAN: use-after-free in _test_bit include/asm-generic/bitops/instrumented-non-atomic.h:141 [inline]
+BUG: KASAN: use-after-free in test_bit_le include/asm-generic/bitops/le.h:21 [inline]
+BUG: KASAN: use-after-free in ocfs2_info_freefrag_scan_chain fs/ocfs2/ioctl.c:495 [inline]
+BUG: KASAN: use-after-free in ocfs2_info_freefrag_scan_bitmap fs/ocfs2/ioctl.c:588 [inline]
+BUG: KASAN: use-after-free in ocfs2_info_handle_freefrag fs/ocfs2/ioctl.c:662 [inline]
+BUG: KASAN: use-after-free in ocfs2_info_handle_request+0x1c66/0x3370 fs/ocfs2/ioctl.c:754
+Read of size 8 at addr ffff888031bce000 by task syz.0.636/1435
+Call Trace:
+ __dump_stack lib/dump_stack.c:94 [inline]
+ dump_stack_lvl+0xbe/0x130 lib/dump_stack.c:120
+ print_address_description mm/kasan/report.c:378 [inline]
+ print_report+0xd1/0x650 mm/kasan/report.c:482
+ kasan_report+0xfb/0x140 mm/kasan/report.c:595
+ check_region_inline mm/kasan/generic.c:186 [inline]
+ kasan_check_range+0x11c/0x200 mm/kasan/generic.c:200
+ __kasan_check_read+0x11/0x20 mm/kasan/shadow.c:31
+ instrument_atomic_read include/linux/instrumented.h:68 [inline]
+ _test_bit include/asm-generic/bitops/instrumented-non-atomic.h:141 [inline]
+ test_bit_le include/asm-generic/bitops/le.h:21 [inline]
+ ocfs2_info_freefrag_scan_chain fs/ocfs2/ioctl.c:495 [inline]
+ ocfs2_info_freefrag_scan_bitmap fs/ocfs2/ioctl.c:588 [inline]
+ ocfs2_info_handle_freefrag fs/ocfs2/ioctl.c:662 [inline]
+ ocfs2_info_handle_request+0x1c66/0x3370 fs/ocfs2/ioctl.c:754
+ ocfs2_info_handle+0x18d/0x2a0 fs/ocfs2/ioctl.c:828
+ ocfs2_ioctl+0x632/0x6e0 fs/ocfs2/ioctl.c:913
+ vfs_ioctl fs/ioctl.c:51 [inline]
+ __do_sys_ioctl fs/ioctl.c:597 [inline]
+ __se_sys_ioctl fs/ioctl.c:583 [inline]
+ __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
+ ...
 
-I'll change it to log the error and clamp max_bits to max_bitmap_bits,
-so we can still report as much information as possible.
+[CAUSE]
+ocfs2_info_freefrag_scan_chain() uses on-disk bg_bits directly as the
+bitmap scan limit. The coherent path reads group descriptors through
+ocfs2_read_group_descriptor(), which validates the descriptor before
+use. The non-coherent path uses ocfs2_read_blocks_sync() instead and
+skips that validation, so an impossible bg_bits value can drive the
+bitmap walk past the end of the block.
 
-Thanks,
-ZhengYuan Huang
+[FIX]
+Compute the bitmap capacity from the filesystem format with
+ocfs2_group_bitmap_size(), report descriptors whose bg_bits exceeds
+that limit, and clamp the scan to the computed capacity. This keeps the
+freefrag report going while avoiding reads beyond the buffer.
+
+Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+---
+v2:
+- Use ocfs2_group_bitmap_size() instead of the on-disk bg_size field
+- Clamp bg_bits to the computed bitmap capacity and continue scanning
+---
+ fs/ocfs2/ioctl.c | 21 +++++++++++++++++++--
+ 1 file changed, 19 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+index b6864602814c..fa0ca014c6d5 100644
+--- a/fs/ocfs2/ioctl.c
++++ b/fs/ocfs2/ioctl.c
+@@ -441,7 +441,7 @@ static int ocfs2_info_freefrag_scan_chain(struct ocfs2_super *osb,
+ 	struct buffer_head *bh = NULL;
+ 	struct ocfs2_group_desc *bg = NULL;
+ 
+-	unsigned int max_bits, num_clusters;
++	unsigned int max_bits, max_bitmap_bits, num_clusters;
+ 	unsigned int offset = 0, cluster, chunk;
+ 	unsigned int chunk_free, last_chunksize = 0;
+ 
+@@ -474,11 +474,28 @@ static int ocfs2_info_freefrag_scan_chain(struct ocfs2_super *osb,
+ 		}
+ 
+ 		bg = (struct ocfs2_group_desc *)bh->b_data;
++		max_bits = le16_to_cpu(bg->bg_bits);
++		max_bitmap_bits = 8U *
++			ocfs2_group_bitmap_size(osb->sb, 1,
++						osb->s_feature_incompat);
++
++		/*
++		 * Non-coherent scans read raw blocks and do not get the
++		 * bg_bits validation from
++		 * ocfs2_read_group_descriptor().
++		 */
++		if (max_bits > max_bitmap_bits) {
++			mlog(ML_ERROR,
++			     "Group desc #%llu has %u bits, max bitmap bits %u\n",
++			     (unsigned long long)blkno,
++			     max_bits,
++			     max_bitmap_bits);
++			max_bits = max_bitmap_bits;
++		}
+ 
+ 		if (!le16_to_cpu(bg->bg_free_bits_count))
+ 			continue;
+ 
+-		max_bits = le16_to_cpu(bg->bg_bits);
+ 		offset = 0;
+ 
+ 		for (chunk = 0; chunk < chunks_in_group; chunk++) {
+-- 
+2.43.0
+
