@@ -1,194 +1,169 @@
-Received: from mail-qk1-f169.google.com (mail-qk1-f169.google.com [209.85.222.169])
+Received: from mail-dl1-f54.google.com (mail-dl1-f54.google.com [74.125.82.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 964B83537D5
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 08:01:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.222.169
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775808105; cv=pass; b=ZtHkjgXMjN9nfq8FhrKVEWJ/y1TGZVe2XCmhE1MIUMUsMdKqP1g6riJhWZYqdmylJQZ8cCnEt/t4tSF1sRITV5jDdCUdPZ8laDfWp2jRfc0MMGqJfjmvO9XEmJ1YNam2veGzymoO3DzYKjMkyvlI5syFHFk9HWYfF8h160K9hbk=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775808105; c=relaxed/simple;
-	bh=/Yc6vgah8TkpPGbCjR8i99D6TDxMyPvwt8bh/TWD1+k=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=ZEk8tnIm8bBfPLr6bGerO5M4pIHlM61KwBZdWgWqA82SrTGxLkFGGAoALvOhZ+pAGw4g1J0YPqFM3EAPKfYwhNgjHeaHSUqvIisLww89YVQacrLJ/pjAnVmAdvzud8QrKdB4iC195ceDZAyqlC8KNs0aLoF8d3nPdJODKpaAFdA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=K1VxCGf+; arc=pass smtp.client-ip=209.85.222.169
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A293E332EAC
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 08:04:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.82.54
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775808297; cv=none; b=MSGZ1BNTcrqo3frPrmUJX3Mzqay5tOr5TthhNyYEwRqeKV1ExEvP1M8bAr510G6lG6qvECrCKIGarYK3vwGgdSKMN0BMK3n//GYMOzd7DxomrqRhNBRt2/yx7R1YJztDtIvsfmboAF2ReWVbud2KTL5WhBUxMnl9L+JY+uwMgRM=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775808297; c=relaxed/simple;
+	bh=2vzGcnNhpiIAONLC17Hy6GpLRRZRjPyICSrVDETbAEA=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=DIVux2KC+hocTq8v0JioANlNXLQ99PWIMyTo1tMpD+ZNEvCQ++L05XTmJ8F/CGGmIoPj8SUBvbyhCCNeobGwqpgN29F3qnDu6B9BZlE7pYJ0dhMcP3U7tFQvPzPZ/o7loii/eM5sR+Zyx6YvLJcpRzAH6HpcFxhp2G0Ax+pFRIY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=S72I+TjI; arc=none smtp.client-ip=74.125.82.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="K1VxCGf+"
-Received: by mail-qk1-f169.google.com with SMTP id af79cd13be357-8da8ae314deso23081685a.3
-        for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 01:01:44 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1775808103; cv=none;
-        d=google.com; s=arc-20240605;
-        b=H8cYXOQqMOZB1h1EnWXsMwdFjd8qjaJhs9NmBJNSQJ/3QMX5Ta9hbVwbc2AOpjWe+q
-         X5ZlmeJospQacpS0NOivbWhVvEuXf93dR6m6ARg3nKvCXyXRzvrXk2wvjNvUeVdbPyhn
-         D1auIP0agk6gyDf/v9qOxZpw80XFN6S2FLBPbX7CBPkBYE3jBem8iDNqCCAcB0Tm5FZn
-         vCOOHMMsoqCj1Dw5Zeo/fot5abM+icatXEZoWb8tN1DZfr7VCfXHKDGlp9Q2b+HkG95N
-         h7fGwv2JRWmmW1LlwbH9ib/yCZPuGKD0cu+r3u6uEDI1o8ZtsJdAbPzg9/AGp30eRSGC
-         QpqA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=XHwAwZJ34fHwTUT86MVvAndeny4bZKfD64hDKUnMj/g=;
-        fh=8Z29Kn/Abxdg2txgAzWtbq5yRPorzLYHGlADsKc3G1g=;
-        b=U5vNmcbgJ5zOEbyNUoXweu60Alerxpy8WUtZbxXy+pgD1J2oYJM2duZcag5n88E0mg
-         xrtStEfb7aAQwPQLnuEqUHQwm6pc8TSa2LiVo1pZh1FEnxCVxps3YikccINPS7bhXEzz
-         EcloP+etMr/AgKPcbGC+nfx5myGR3Ov8pXD8O+gDKrQjYPZ6q66+kLK44mRizRNUb8dP
-         dOGxca/Jq/04dhnsLQkXVejGvf+Djd7z90QbajABCX5t8I8G/9iME8qsNEmcjEr7Trgh
-         VWmZi0zC8TB7dlQbUb5XiJIv1VfhICiQunhd2vwZa6jooCPq4yM6MBZv61BuREUSEGle
-         8ZfQ==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="S72I+TjI"
+Received: by mail-dl1-f54.google.com with SMTP id a92af1059eb24-128bae6a35aso549272c88.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 01:04:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1775808103; x=1776412903; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=XHwAwZJ34fHwTUT86MVvAndeny4bZKfD64hDKUnMj/g=;
-        b=K1VxCGf+7LniMdoKt2kYIn29QjyPAGUy9ZxGiGXSU9SwWRss/D5cOZa6FAM5ULb+dq
-         DMI+gncQrRch1Op47BZR1TO/PDdpVDMm4hE64CbW1H8BI/+vIB8Jg5TR96FxnqiLANXe
-         gEhmVDbpdekN+toRPK5GxIHjiThGnw7jUjU769xIl8XqV740VLvmloRIJc4bB0HIYdGB
-         DMI4gdjKPMZWNveuEoiJ7iUzw+x5dhUKaWIXfaGCqSAkdyb95qGILkgX8SvYM/ZEGppT
-         kEG8fVMNcMUbXd4m56MmsvbKrbtYTsjbOPwY7E530xYB+oAdpE8upb+h1VpDbage0E/7
-         gyfQ==
+        d=gmail.com; s=20251104; t=1775808296; x=1776413096; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=cGYShwk/FAKXSlmM6Pq7ffufoxw0zBbsv7DQNDGdeZ4=;
+        b=S72I+TjIv0rNqU0608K+MWMVaU3snB4efEB5d43NGShChJx+XpfPQE58nH2p+vV+pI
+         ATPgVhNvlaUXjpmAHCmGjME+zx3yT7N2rKo3rRXHJG8/Di5+p+uUnTJoUC+Ic3NRDaC8
+         ZbmAw3OmQwd9SeVvK4gI7Vuod7rWQA/w9OFgY3qPvFC7yn2ECt7cii8Tn7WqNCKTXnlA
+         A+lBJkhKCPFVNA4oilzwm0eIH7x4E/mf82sxLeSLKtYquTgk/NoSMmxuc7hLJ5zyi8/B
+         dpwhypE5wdJzZqLECN5RSzB/jdjvqLnMjrzKz8kQqZ50K0IQINz9T/Fpn6Xt+hsLeybs
+         f9iw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775808103; x=1776412903;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=XHwAwZJ34fHwTUT86MVvAndeny4bZKfD64hDKUnMj/g=;
-        b=qc2Jh4FqJj08DBEffjMmU4rzWXft1xEXx6cDetzVsvEoaX4VnE7O+az6Gs6R8wuX44
-         BKtHFH/IGKwWK5hZRJrAh/vvhKOwap1+0Ge7RBe2E3pZ1GEAZc0ormOPhuNBr8QSzKDG
-         0oFrD/68YDdYWENVIF8BOC9qK4mSV+/+ZxJUo6MBiSRSJUR+df7ZR4mNsiHP0Vp2UMGj
-         l3aJ6xhUjyHx6RU0qzlWzxp2z1dlqt8iLanD6mDHowfaGtJB1cxDaxAUCs7gw/QHQaGU
-         ItmUjLg5B1c5sr50uA4i0C29RpluYbYxHxmchwBqNah8j50tkRXduxobF81JlMLJjGxP
-         9czg==
-X-Forwarded-Encrypted: i=1; AJvYcCVqConrY6PoLKwOJbx28WzCtkMXPvD3//VjxqzfECOj2TXcvP2MPyfTxEflJGA3myFAGhyYaUx7YXxPjQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwCglNwX5WfTm9CvIW8rso+kYGa1MmuYzp1+mGr4kOxOqfzFQx4
-	lfSNgMmrDru1iSTrf8d9GIBgSmpvTdw9JQcyEq0voLcPXpgUOQ26+zMIBBQTr3GOwK7QWNtlnsN
-	bUeYBaIxZPezxSXAR9xxJB+nJK37vNZv1LyDEoWc=
-X-Gm-Gg: AeBDieurK8/KM1Nw9S1M0Q0WC/QxO5tMx9B3HCCk5uPa/PV+9FHypiEcCS5ZNWY02dZ
-	8TQJaIcSoPVOCLfRo7l085yXJytYHMYr8rQsNWEqznvmXEUA827+6n8j+rnXZ9MWbM9VdLACHUk
-	jw4wHE6exeRAPkviU9gQ50hNrwtFfcg2l45q33JBtoepjOU97B64i+sT91+HcphOmlstHLw1RLA
-	Oap1ZRUcJCqWGMQlx5uwEiAsbPkL24LRMrydPZ9t5x74i2EFu2XmRrjkKELlQoSweLvPbisBHlb
-	v+BPF4ddeDD54TgNLvxbDWA=
-X-Received: by 2002:a05:622a:351:b0:50b:5286:f757 with SMTP id
- d75a77b69052e-50dd5cf408emr21488891cf.4.1775808103504; Fri, 10 Apr 2026
- 01:01:43 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1775808296; x=1776413096;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=cGYShwk/FAKXSlmM6Pq7ffufoxw0zBbsv7DQNDGdeZ4=;
+        b=O0X2T6U6JggVfUHVGD3H8ii6wqvKazGYMcQj1xiY+mpXjhpDcIvP6k8u2+STvGQAVb
+         zIJQfDdHG/bxuhHi9gxaHzQRq8l/xQ3IDCoHvuxnBw7HCQq3WKFkg/I7cmk4StBX+zkg
+         5UKyJqlt5zcWeJ3OpTxXLxolFkbxehTQ4wNNYAb0KCmq8DWo44W0L3Gf4sFLEMzHbawQ
+         dpAEFISdjh6YmZjcX0BlhSF59SjwYzRcX2joCFPSnLWKfXI/ZgbuvuoskL/qLG140b3x
+         qBYvhBgyVcnp1Xd32R3U75BL5pGL2glV9ZODAH5gVf5rNEs+dWXfmu5MkAfHjnE4iTb1
+         Ao1w==
+X-Gm-Message-State: AOJu0YwgKlAcFvPBptutx94QtvJ5wH2OWYaBP+2VMAWhii8kCC4io937
+	G15wV+/qK1TT9vtYzd5k3c3IMIxPWpuDyJOyi7txpm09VfKzK75wkgGmA/hRp+V4
+X-Gm-Gg: AeBDieujGkEkTo+2j5Ao0B884BTjsLZKlCvEahSnGD82LzXfXmaodUhmRiKzapCnqpU
+	SF3XJhpcuhK4iUgZYVIhA1CyZrNFEonjIXTWz/HT0fipAZWrz96+Ju1ZfFvOjcIE1NBk0UBas3e
+	UDcG1OkirlnDAehNNBSjiT1SywR3pSxE/yfpfnFTiIm/rYALsxNMFJyVXWXoxMwTjldxbESil1Z
+	Y501c2qt8CBbDWUXsETROMKLQWXvHfVe28+v8gxH2lYEqrxxHAiWqkkBujlyl6ZeSOaKhGgeUDB
+	0O6mWm8FZhyMqHCw1HWwzanIuHqp0iOQ6uGdYtHnuTiJT3H8GwxZgR88KIueHvHSVKhFTQrbw9g
+	lotvVRBSDnxggVfeQczEoRK6QTXsNnFAVnKgCItSRQiY4mGLHQ1bbDiz5JICDrtd7Bv3XeYC9zn
+	rF+4aaLmz6jVtAejgs
+X-Received: by 2002:a05:7300:a984:b0:2c0:c55c:156f with SMTP id 5a478bee46e88-2d5c39f4a6bmr345876eec.4.1775808295434;
+        Fri, 10 Apr 2026 01:04:55 -0700 (PDT)
+Received: from macbookair ([2600:8802:2a09:a700::2791])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-2d55ff826dcsm3103870eec.13.2026.04.10.01.04.54
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 10 Apr 2026 01:04:54 -0700 (PDT)
+From: Tejas Bharambe <thbharam@gmail.com>
+X-Google-Original-From: Tejas Bharambe <tejas.bharambe@outlook.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	linux-kernel@vger.kernel.org,
+	syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com,
+	akpm@linux-foundation.org,
+	stable@vger.kernel.org,
+	Tejas Bharambe <tejas.bharambe@outlook.com>
+Subject: [PATCH v5] ocfs2: fix use-after-free in ocfs2_fault() when VM_FAULT_RETRY
+Date: Fri, 10 Apr 2026 01:04:45 -0700
+Message-ID: <20260410080445.29422-1-tejas.bharambe@outlook.com>
+X-Mailer: git-send-email 2.53.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260403035333.136824-1-tejas.bharambe@outlook.com>
- <20260403122947.2afc337b5333fb1990a78a65@linux-foundation.org>
- <JH0PR06MB66320ABCFAD8F239FE5112B2895CA@JH0PR06MB6632.apcprd06.prod.outlook.com>
- <20260404175040.40a746040ddb0cb5ce347fe3@linux-foundation.org>
- <JH0PR06MB6632F1A4381AB798FED980CE895BA@JH0PR06MB6632.apcprd06.prod.outlook.com>
- <20260408131225.a37cd581ca47b3512a4219bc@linux-foundation.org>
-In-Reply-To: <20260408131225.a37cd581ca47b3512a4219bc@linux-foundation.org>
-From: Tejas Bharambe <thbharam@gmail.com>
-Date: Fri, 10 Apr 2026 01:01:31 -0700
-X-Gm-Features: AQROBzC1i7kYsHHSDBDyr4hc1Srf620y6vG7I3HHQgVD_622ygA-RxpXMNdTIVE
-Message-ID: <CAJL2up6TkQq1JXUDvhwC0MnwGyXMzr8hU8iCQoYzz8HwjHdd-A@mail.gmail.com>
-Subject: Re: [PATCH v4] ocfs2: fix use-after-free in ocfs2_fault() when VM_FAULT_RETRY
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: tejas bharambe <tejas.bharambe@outlook.com>, 
-	"ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>, "mark@fasheh.com" <mark@fasheh.com>, 
-	"jlbec@evilplan.org" <jlbec@evilplan.org>, 
-	"joseph.qi@linux.alibaba.com" <joseph.qi@linux.alibaba.com>, 
-	"linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>, 
-	"syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com" <syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com>, 
-	"stable@vger.kernel.org" <stable@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 
-I see the concern on using ihold/iput on performance. I find Jospeh's
-suggestion valuable. Let me send in a new patch, I will just save
-ip_blkno as a plain integer, that should be zero overhead
+From: Tejas Bharambe <tejas.bharambe@outlook.com>
 
+filemap_fault() may drop the mmap_lock before returning VM_FAULT_RETRY,
+as documented in mm/filemap.c:
 
-On Wed, Apr 8, 2026 at 1:12=E2=80=AFPM Andrew Morton <akpm@linux-foundation=
-.org> wrote:
->
-> On Wed, 8 Apr 2026 03:50:17 +0000 tejas bharambe <tejas.bharambe@outlook.=
-com> wrote:
->
-> > Hi Andrew,
-> >
-> > You're right, I missed that scenario.
-> >
-> > The inode can be freed if the file descriptor is closed after mmap() an=
-d munmap() races with the fault handler.
-> >
-> > I can do one of the following:
-> > 1. I can skip the trace firing when VM_FAULT_RETRY is set as I did in v=
-1. It was changed to v4 after Joseph's suggestion to keep traces.
-> > 2. If we want to keep traces, we can use ihold()/iput() as shown below:
-> >
-> > ihold(inode);   //pin inode
-> > ret =3D filemap_fault(vmf);
-> > trace_ocfs2_fault(OCFS2_I(inode)->ip_blkno, ...);  // safe, refcount he=
-ld
-> > iput(inode);  //release inode
-> >
-> >
-> > Which approach do you prefer?
->
-> Well, that's down to the ocfs2 maintiners.  Me, omitting traces doesn't
-> sound good.
->
-> But we should consider performance implications - this is a fairly hot
-> path and iget/iput are a little costly.  Perhaps there's a way to avoid
-> the iget/iput if tracing isn't enabled.  As long as we handle the case
-> where tracing get enabled immediately after we've done the
->
->         if (tracing enabled)
->                 iget()
->
->
-> > Thanks,
-> > Tejas
-> > ________________________________________
-> > From: Andrew Morton <akpm@linux-foundation.org>
-> > Sent: Saturday, April 4, 2026 5:50 PM
-> > To: tejas bharambe <tejas.bharambe@outlook.com>
-> > Cc: Tejas Bharambe <thbharam@gmail.com>; ocfs2-devel@lists.linux.dev <o=
-cfs2-devel@lists.linux.dev>; mark@fasheh.com <mark@fasheh.com>; jlbec@evilp=
-lan.org <jlbec@evilplan.org>; joseph.qi@linux.alibaba.com <joseph.qi@linux.=
-alibaba.com>; linux-kernel@vger.kernel.org <linux-kernel@vger.kernel.org>; =
-syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com <syzbot+a49010a0e8fcd=
-eea075f@syzkaller.appspotmail.com>; stable@vger.kernel.org <stable@vger.ker=
-nel.org>
-> > Subject: Re: [PATCH v4] ocfs2: fix use-after-free in ocfs2_fault() when=
- VM_FAULT_RETRY
-> >
-> > On Sun, 5 Apr 2026 00:30:14 +0000 tejas bharambe <tejas.bharambe@outloo=
-k.com> wrote:
-> >
-> > > Following is my response for question posted on https://sashiko.dev/#=
-/patchset/20260403035333.136824-1-tejas.bharambe%40outlook.com
-> > >
-> > >
-> > > No. For ocfs2_fault() to be executing, the file must be open and
-> > > the process holds an active file descriptor. The inode's lifetime
-> > > is tied to the file's reference count, which remains held by the
-> > > file descriptor for the duration of the fault handler. munmap()
-> > > can free the VMA (decrementing vm_file's refcount) but cannot
-> > > free the inode as long as the file descriptor is open. The faulting
-> > > thread cannot call close() while it is inside the fault handler,
-> > > so the inode is guaranteed to outlive the trace call.
-> >
-> > I don't think that's the scenario which Sashiko is suggesting.
-> >
-> > Suppose userspace does
-> >
-> >         fd =3D open(...);
-> >         p =3D mmap(fd, ...);
-> >         close(fd);
-> >
-> > Now, that mmap is the only ref against fd.
-> >
-> > Now, suppose that userspace does munmap() while another thread is in
-> > the fault handler.
+  "If our return value has VM_FAULT_RETRY set, it's because the mmap_lock
+  may be dropped before doing I/O or by lock_folio_maybe_drop_mmap()."
+
+When this happens, a concurrent munmap() can call remove_vma() and free
+the vm_area_struct via RCU. The saved 'vma' pointer in ocfs2_fault() then
+becomes a dangling pointer, and the subsequent trace_ocfs2_fault() call
+dereferences it -- a use-after-free.
+
+Fix this by saving the inode reference before calling filemap_fault(),
+and removing vma from the trace event. The inode remains valid across
+the lock drop since the file is still open, so the trace can fire in
+all cases without dereferencing the potentially freed vma.
+
+Reported-by: syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=a49010a0e8fcdeea075f
+Cc: stable@vger.kernel.org
+Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Signed-off-by: Tejas Bharambe <tejas.bharambe@outlook.com>
+---
+ fs/ocfs2/mmap.c        |  7 +++----
+ fs/ocfs2/ocfs2_trace.h | 10 ++++------
+ 2 files changed, 7 insertions(+), 10 deletions(-)
+
+diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+index 50e2faf64c..6c570157ca 100644
+--- a/fs/ocfs2/mmap.c
++++ b/fs/ocfs2/mmap.c
+@@ -30,7 +30,8 @@
+ 
+ static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
+ {
+-	struct vm_area_struct *vma = vmf->vma;
++	unsigned long long ip_blkno =
++		OCFS2_I(file_inode(vmf->vma->vm_file))->ip_blkno;
+ 	sigset_t oldset;
+ 	vm_fault_t ret;
+ 
+@@ -38,11 +39,9 @@ static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
+ 	ret = filemap_fault(vmf);
+ 	ocfs2_unblock_signals(&oldset);
+ 
+-	trace_ocfs2_fault(OCFS2_I(vma->vm_file->f_mapping->host)->ip_blkno,
+-			  vma, vmf->page, vmf->pgoff);
++	trace_ocfs2_fault(ip_blkno, vmf->page, vmf->pgoff);
+ 	return ret;
+ }
+-
+ static vm_fault_t __ocfs2_page_mkwrite(struct file *file,
+ 			struct buffer_head *di_bh, struct folio *folio)
+ {
+diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+index 4b32fb5658..6c2c97a980 100644
+--- a/fs/ocfs2/ocfs2_trace.h
++++ b/fs/ocfs2/ocfs2_trace.h
+@@ -1246,22 +1246,20 @@ TRACE_EVENT(ocfs2_write_end_inline,
+ 
+ TRACE_EVENT(ocfs2_fault,
+ 	TP_PROTO(unsigned long long ino,
+-		 void *area, void *page, unsigned long pgoff),
+-	TP_ARGS(ino, area, page, pgoff),
++		 void *page, unsigned long pgoff),
++	TP_ARGS(ino, page, pgoff),
+ 	TP_STRUCT__entry(
+ 		__field(unsigned long long, ino)
+-		__field(void *, area)
+ 		__field(void *, page)
+ 		__field(unsigned long, pgoff)
+ 	),
+ 	TP_fast_assign(
+ 		__entry->ino = ino;
+-		__entry->area = area;
+ 		__entry->page = page;
+ 		__entry->pgoff = pgoff;
+ 	),
+-	TP_printk("%llu %p %p %lu",
+-		  __entry->ino, __entry->area, __entry->page, __entry->pgoff)
++	TP_printk("%llu %p %lu",
++		  __entry->ino, __entry->page, __entry->pgoff)
+ );
+ 
+ /* End of trace events for fs/ocfs2/mmap.c. */
+-- 
+2.53.0
+
