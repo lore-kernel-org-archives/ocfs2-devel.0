@@ -1,123 +1,218 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pg1-f170.google.com (mail-pg1-f170.google.com [209.85.215.170])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A36E39B955
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 11:20:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 245C728F935
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 11:32:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775820008; cv=none; b=A+ioO/Zfa55mbwCfpOWRG6fHD61+JCfiwM5LObl4+lswIYnkOQbcrUDLWSXH0QSp2PZgxUT9znydCDQRJgWdQUlWf/7L8ioEMFMTAjhRPldG7Eu0me4mOm/iV8mE+GPcqYoEMjhZPHVL8K+a5XrRsCoJBmGFLlWaZ8PyC6yfxL0=
+	t=1775820767; cv=none; b=sEQU9CPr5gLHlR2SLaF3drB6bj+7QcSj94VVGe9nx7tSIHU2pF9koCZ7IyveNkcEgJE/IuaEak43d4VeDImxOn2SsQgpRJ8xzJhas3VZcNl4zpNF3wC/UI5WxV+EaVNEpxvQWxdAT13B20bE0XzIa40cgR8cOFSaerUM2pEOqr0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775820008; c=relaxed/simple;
-	bh=zbReux8eWS2QUjpvqqXGDw1JkXQbyMVJ+JFIRL3Qe8A=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=eHhmblw9u1q1Z47OB1iErqmV3P0gGS8cdnrbCMQPq9oChvG46vds+1k7q8c9P+GD0wy6DeHS+VaWaGzAAcLbgYNJwOSB/FwT4emNymwgNa93+4Kz2aGaZu32mY6+hJwyQEm/qJT3v8i3quTCXhUlcBzsDDJhdyiWkFXOERvSfGE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=f40/0Juu; arc=none smtp.client-ip=115.124.30.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1775820767; c=relaxed/simple;
+	bh=gEMS2xJaq0V9sKvSwwHi1qTBNP3yVwG104j5DDh1vEo=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=WS08lGH/RUdjHfWQtk9mUXfIa0PyISK9MaOeAkPg3/JxQpsal9OYv02PSfGtT2NMGw+/3yi/EqVjiv+xhLri94QuwWusZ6axs6EpUR16+W+jTOILywNPe+5rIOoFgmNDyWM7PUR02Jq3UQpY8tD+0/uZRZPFpsCHyqYBdRmumyA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=aaLQy7ns; arc=none smtp.client-ip=209.85.215.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="f40/0Juu"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1775820003; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=e0jjetCAJ+07gZdA13Xj13l0kcxFTteRog9u5ixsQQA=;
-	b=f40/0JuuGRk5v90alSjAQzoRn55RXhh8hkideeBx6NP6eS8L7fSbA/QOuvohLYtFyLW0d66csgg8DegRPB7v0ax4o1hRHpKj0eN2BKMgKOtJ7SMjR/hH0hqCnwelKMi4gWZS7hlP1i6c7zPr9V1vr24akCAO8euIkdIHttqrJs4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0X0l9.Ef_1775820001;
-Received: from 30.221.145.28(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0l9.Ef_1775820001 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 10 Apr 2026 19:20:02 +0800
-Message-ID: <8d9a93d4-6a38-4b34-bfbf-311a05fcee69@linux.alibaba.com>
-Date: Fri, 10 Apr 2026 19:20:01 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="aaLQy7ns"
+Received: by mail-pg1-f170.google.com with SMTP id 41be03b00d2f7-c76b6abdb73so1400497a12.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 04:32:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1775820765; x=1776425565; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=6IT1BRZSlVlVJq8P6hsnpqwDmmBbMY+acQe50ucgs78=;
+        b=aaLQy7nsD12HsYpoRfjv1SttSJz5VuwTRVrzvJaiWUg3reQRe1yTettEp/NURQItgM
+         ckjsCXwZIqL1EO3G1e4jtUd9VAPzRHgEl/Ll2akxQmrLX30ROEHJLIEsNYzyPyhLo9kQ
+         baZSjDW4UtdGZN3uf1v100AFLpahS2WxV5NHnDk9envXSzdZ5FQWBTbJqn76GCbdbrL+
+         mZk3koHeiVTz3+Kv9Zr/tDynC2Fbe3SEBp6FdyJLdm6xWTDw5YBASzkSLXxx2l8uUEtD
+         o2GAaaHsZjCcB7gl5XUlVbQqZGWZM7YkCAm1dzUik3Yq3DkbTRqqZkyQWgT+RiXfz49L
+         y8Aw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1775820765; x=1776425565;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=6IT1BRZSlVlVJq8P6hsnpqwDmmBbMY+acQe50ucgs78=;
+        b=Tj6mcRy0z6qqGZh7WIZVcfHemx0FM6IE/X9WTwKYnWxsmxwLOR0eRz4AstDqH5fdHQ
+         BXXdSXybgh7BJGuDvKZMY8yaAoRuFn3Cko/PK7O4RhbPHAMJAztxB7k+Wc+e6lqo9dRs
+         pJbjaZjcEOoZ6QDN1n6YmSgu8zIkiH5xEGE/MRHNvO8/eFM44XpwXTYwXtd7pI1nmm0Z
+         qu3/cZ9FhZ5cUUAFDRBx3rwO8jfUsSUDb9cdUd49d7/WNYU/W85U2xdgUAADluNZalmr
+         DPauPX8k4kR16RFz1jLGjdgKzPtKQOByLMiVxajuADoyriwwPdZck6+wyEjmgKErf//0
+         7V1A==
+X-Gm-Message-State: AOJu0YyMmrFrMUxeWyVJtIHdimaOY4a5Zs//+M46GH28AttpshwGLWjl
+	9PNsaralDYgCoUxSuUaulHGMmgsvNyqaY1WaEJJDk07vMLvhYSQ84iwc
+X-Gm-Gg: AeBDietA9PcfvYrvy9sa5psmfLfwXW11soKAI7YBUr0PPSYO153yULA5STL3CJBxr9o
+	imlYSC9WJ/SOaga5KlLVGbhXzQz8IUwrV5lkWPDWjog0mFDJW5L9xnlFQmXc0Y61Rv6ACdlf1fa
+	a4ee8s7c7E3L2xWlqZpWS4n7driSujQyH+ihTFRwOkLtuQms+n2a7GHOS4YJwljelq9BewS9KbU
+	BZNyEZ+q5ZYsGHqofgIgHl4vc1smzWU4IWh3R2qsv/7vMnUvEkJvwQShTHix+CbxVyNf3UkcdeL
+	V4Ypu/xduYYi375eKAPDEoqNtre5/mljROyIxU2Hi1O2b3bRBVL/kKH2NkBhQIgquc5JvrpgsqB
+	pqQDQKqcLWavsgeQpVnH02KEd+gmJJuDfCWgri409DXJw6kP0T4ncGcqC6NJehakAdFHUc+PhfB
+	mA/nQEauzAvmIT0QwiuK+kClJOL8Xcl9RE2+sJP61KSqsUbaVX+efXiTOhRum3DIFIUTJiZQ==
+X-Received: by 2002:a05:6a20:7494:b0:39b:9644:6e93 with SMTP id adf61e73a8af0-39fe3c748demr3594487637.6.1775820765183;
+        Fri, 10 Apr 2026 04:32:45 -0700 (PDT)
+Received: from kernel-fuzz.. ([138.199.21.245])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c7921a3e6d2sm2109875a12.32.2026.04.10.04.32.42
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 10 Apr 2026 04:32:44 -0700 (PDT)
+From: ZhengYuan Huang <gality369@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	r33s3n6@gmail.com,
+	zzzccc427@gmail.com,
+	ZhengYuan Huang <gality369@gmail.com>
+Subject: [PATCH v2] ocfs2: validate inline dir size during inode reads
+Date: Fri, 10 Apr 2026 19:32:29 +0800
+Message-ID: <20260410113229.4092277-1-gality369@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix listxattr handling when the buffer is full
-To: ZhengYuan Huang <gality369@gmail.com>, akpm <akpm@linux-foundation.org>,
- Heming Zhao <heming.zhao@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-References: <20260410040339.3837162-1-gality369@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260410040339.3837162-1-gality369@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+[BUG]
+A crafted inline-data directory can store i_size larger than id_count.
+Once such a dinode is instantiated, readdir walks past data->id_data
+and KASAN reports:
 
+BUG: KASAN: use-after-free in ocfs2_check_dir_entry.isra.0+0x31f/0x370 fs/ocfs2/dir.c:305
+Read of size 2 at addr ffff8880088f0008 by task syz.0.1936/4656
+Call Trace:
+ ...
+ ocfs2_check_dir_entry.isra.0+0x31f/0x370 fs/ocfs2/dir.c:305
+ ocfs2_dir_foreach_blk_id+0x203/0xa70 fs/ocfs2/dir.c:1805
+ ocfs2_dir_foreach_blk fs/ocfs2/dir.c:1933 [inline]
+ ocfs2_readdir+0x4ba/0x520 fs/ocfs2/dir.c:1977
+ wrap_directory_iterator+0x9c/0xe0 fs/readdir.c:65
+ shared_ocfs2_readdir+0x29/0x40 fs/ocfs2/file.c:2822
+ iterate_dir+0x276/0x9e0 fs/readdir.c:108
+ __do_sys_getdents64 fs/readdir.c:410 [inline]
+ __se_sys_getdents64 fs/readdir.c:396 [inline]
+ __x64_sys_getdents64+0x143/0x2a0 fs/readdir.c:396
+ ...
 
-On 4/10/26 12:03 PM, ZhengYuan Huang wrote:
-> [BUG]
-> If an OCFS2 inode has both inline and block-based xattrs, listxattr()
-> can return a size larger than the caller's buffer when the inline names
-> consume that buffer exactly.
-> 
-> kernel BUG at mm/usercopy.c:102!
-> Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-> RIP: 0010:usercopy_abort+0xb7/0xd0 mm/usercopy.c:102
-> Call Trace:
->  __check_heap_object+0xe3/0x120 mm/slub.c:8243
->  check_heap_object mm/usercopy.c:196 [inline]
->  __check_object_size mm/usercopy.c:250 [inline]
->  __check_object_size+0x5c5/0x780 mm/usercopy.c:215
->  check_object_size include/linux/ucopysize.h:22 [inline]
->  check_copy_size include/linux/ucopysize.h:59 [inline]
->  copy_to_user include/linux/uaccess.h:219 [inline]
->  listxattr+0xb0/0x170 fs/xattr.c:926
->  filename_listxattr fs/xattr.c:958 [inline]
->  path_listxattrat+0x137/0x320 fs/xattr.c:988
->  __do_sys_listxattr fs/xattr.c:1001 [inline]
->  __se_sys_listxattr fs/xattr.c:998 [inline]
->  __x64_sys_listxattr+0x7f/0xd0 fs/xattr.c:998
->  ...
-> 
-> [CAUSE]
-> Commit 936b8834366e ("ocfs2: Refactor xattr list and remove
-> ocfs2_xattr_handler().") replaced the old per-handler list accounting
-> with ocfs2_xattr_list_entry(), but it kept using size == 0 to detect
-> probe mode.
-> 
-> That assumption stops being true once ocfs2_listxattr() finishes the
-> inline-xattr pass. If the inline names fill the caller buffer exactly,
-> the block-xattr pass runs with a non-NULL buffer and a remaining size of
-> zero. ocfs2_xattr_list_entry() then skips the bounds check, keeps
-> counting block names, and returns a positive size larger than the
-> supplied buffer.
-> 
-> [FIX]
-> Detect probe mode by testing whether the destination buffer pointer is
-> NULL instead of whether the remaining size is zero.
-> 
-> That restores the pre-refactor behavior and matches the OCFS2 getxattr
-> helpers. Once the remaining buffer reaches zero while more names are
-> left, the block-xattr pass now returns -ERANGE instead of reporting a
-> size larger than the allocated list buffer.
-> 
-> Fixes: 936b8834366e ("ocfs2: Refactor xattr list and remove ocfs2_xattr_handler().")
-> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+[CAUSE]
+The inline-dir invariant i_size <= id_count is never validated when a
+dinode is read. ocfs2_validate_inode_block() accepts the corrupted
+metadata, then ocfs2_populate_inode() or ocfs2_refresh_inode() copies
+that unchecked on-disk i_size into inode->i_size.
 
-Looks good.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+JBD2-managed buffers can also bypass ocfs2_validate_inode_block(), so
+the same unchecked size can still reach ocfs2_populate_inode() and
+ocfs2_refresh_inode() through those read paths.
 
-> ---
->  fs/ocfs2/xattr.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -906,8 +906,8 @@ static int ocfs2_xattr_list_entry(struct super_block *sb,
->  	prefix_len = strlen(prefix);
->  	total_len = prefix_len + name_len + 1;
->  	*result += total_len;
-> 
-> -	/* we are just looking for how big our buffer needs to be */
-> -	if (!size)
-> +	/* No buffer means we are only looking for the required size. */
-> +	if (!buffer)
->  		return 0;
->  
->  	if (*result > size)
+[FIX]
+Introduce a shared helper that validates inline directory i_size
+against id_count. Call it from ocfs2_validate_inode_block() so corrupt
+inline-dir dinodes are rejected in the cold metadata-read path, and add
+matching guards in ocfs2_read_locked_inode() and ocfs2_inode_lock_update()
+for the JBD2-managed buffer paths that skip the validator.
 
+This blocks the corrupted metadata before it reaches VFS inode state
+and keeps the hot readdir path unchanged.
+
+Fixes: 23193e513d1c ("ocfs2: Read support for directories with inline data")
+Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+---
+v2:
+- Move the validation from ocfs2_dir_foreach_blk_id() to inode read paths
+- Add JBD2-managed buffer guards in ocfs2_read_locked_inode() and ocfs2_inode_lock_update()
+- Reword the changelog to describe unchecked on-disk i_size rather than corrupted in-memory state
+---
+ fs/ocfs2/dlmglue.c |  5 +++++
+ fs/ocfs2/inode.c   | 29 +++++++++++++++++++++++++++++
+ fs/ocfs2/inode.h   |  2 ++
+ 3 files changed, 36 insertions(+)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 92a6149da9c1..69aaceeb76bc 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -2363,6 +2363,11 @@ static int ocfs2_inode_lock_update(struct inode *inode,
+ 			goto bail_refresh;
+ 		}
+ 
++		/* JBD2-managed buffers can bypass ocfs2_validate_inode_block(). */
++		status = ocfs2_validate_inline_dir(inode->i_sb, oi->ip_blkno, fe);
++		if (status)
++			goto bail_refresh;
++
+ 		/* This is a good chance to make sure we're not
+ 		 * locking an invalid object.  ocfs2_read_inode_block()
+ 		 * already checked that the inode block is sane.
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index fcc89856ab95..3c8a9b592d25 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -66,6 +66,26 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
+ 					      struct buffer_head *bh);
+ 
++/* Inline directories must never advertise more data than id_count can hold. */
++int ocfs2_validate_inline_dir(struct super_block *sb, u64 blkno,
++			      struct ocfs2_dinode *di)
++{
++	struct ocfs2_inline_data *data = &di->id2.i_data;
++
++	if (!S_ISDIR(le16_to_cpu(di->i_mode)) ||
++	    !(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL))
++		return 0;
++
++	if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count))
++		return ocfs2_error(sb,
++				   "Invalid dinode #%llu: inline dir i_size %llu exceeds id_count %u\n",
++				   (unsigned long long)blkno,
++				   (unsigned long long)le64_to_cpu(di->i_size),
++				   le16_to_cpu(data->id_count));
++
++	return 0;
++}
++
+ void ocfs2_set_inode_flags(struct inode *inode)
+ {
+ 	unsigned int flags = OCFS2_I(inode)->ip_attr;
+@@ -611,6 +631,11 @@ static int ocfs2_read_locked_inode(struct inode *inode,
+ 			"Inode %llu: system file state is ambiguous\n",
+ 			(unsigned long long)args->fi_blkno);
+ 
++	/* JBD2-managed buffers can bypass ocfs2_validate_inode_block(). */
++	status = ocfs2_validate_inline_dir(inode->i_sb, args->fi_blkno, fe);
++	if (status)
++		goto bail;
++
+ 	if (S_ISCHR(le16_to_cpu(fe->i_mode)) ||
+ 	    S_ISBLK(le16_to_cpu(fe->i_mode)))
+ 		inode->i_rdev = huge_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev));
+@@ -1503,6 +1528,10 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
++	rc = ocfs2_validate_inline_dir(sb, bh->b_blocknr, di);
++	if (rc)
++		goto bail;
++
+ 	rc = 0;
+ 
+ bail:
+diff --git a/fs/ocfs2/inode.h b/fs/ocfs2/inode.h
+index accf03d4765e..1d71648c1294 100644
+--- a/fs/ocfs2/inode.h
++++ b/fs/ocfs2/inode.h
+@@ -139,6 +139,8 @@ int ocfs2_mark_inode_dirty(handle_t *handle,
+ 
+ void ocfs2_set_inode_flags(struct inode *inode);
+ void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi);
++int ocfs2_validate_inline_dir(struct super_block *sb, u64 blkno,
++			      struct ocfs2_dinode *di);
+ 
+ static inline blkcnt_t ocfs2_inode_sector_count(struct inode *inode)
+ {
+-- 
+2.49.0
