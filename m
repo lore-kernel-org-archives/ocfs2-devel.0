@@ -1,162 +1,123 @@
-Received: from mail-ej1-f44.google.com (mail-ej1-f44.google.com [209.85.218.44])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 250DD38642C
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 10:36:14 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.218.44
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775817376; cv=pass; b=H7XIMInYFG/46fOYAxJMdD6rY+PrYBZPYWSJtAoG4LwGVfn/yaVUMt/ys8RVD8AI414MljYjfPIpEktza6mNlqFfmyufPipbhynRnM+twblgO3l8kBnNo6jpW3vpEbL6MBZnNCxS6aID/CaXmL/2Uh5RAAts1O+8JPZ4YUZwfMU=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775817376; c=relaxed/simple;
-	bh=MSZwMuo1s2PQ3xpjuYD4tj4AGujUi5WE5c5TCwfSLsk=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=mGkxiwPhS9mJoLV5/fji5ue6Quf6JJzJ5ZBSzhhcuCCAe1mribW+Nqm9VlCa/iMjcCObnU+hqh5dDpZElaU7Gc7WlB1QEbEZw0xB9Rdi2b/0JVdoB92l4hL45uy9YjvAJVDJGgXpQI5Lcdr/NBbtVNoPfON3HpGYgyBnXmNT4R0=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=bszV4UG8; arc=pass smtp.client-ip=209.85.218.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A36E39B955
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 11:20:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775820008; cv=none; b=A+ioO/Zfa55mbwCfpOWRG6fHD61+JCfiwM5LObl4+lswIYnkOQbcrUDLWSXH0QSp2PZgxUT9znydCDQRJgWdQUlWf/7L8ioEMFMTAjhRPldG7Eu0me4mOm/iV8mE+GPcqYoEMjhZPHVL8K+a5XrRsCoJBmGFLlWaZ8PyC6yfxL0=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775820008; c=relaxed/simple;
+	bh=zbReux8eWS2QUjpvqqXGDw1JkXQbyMVJ+JFIRL3Qe8A=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=eHhmblw9u1q1Z47OB1iErqmV3P0gGS8cdnrbCMQPq9oChvG46vds+1k7q8c9P+GD0wy6DeHS+VaWaGzAAcLbgYNJwOSB/FwT4emNymwgNa93+4Kz2aGaZu32mY6+hJwyQEm/qJT3v8i3quTCXhUlcBzsDDJhdyiWkFXOERvSfGE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=f40/0Juu; arc=none smtp.client-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="bszV4UG8"
-Received: by mail-ej1-f44.google.com with SMTP id a640c23a62f3a-b9c603ec2dfso268037666b.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 03:36:14 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1775817373; cv=none;
-        d=google.com; s=arc-20240605;
-        b=G8Z2ZcJNp174BkQIGtnq5Pyrl8vwnmsCtegVIuoHQIvBzAtokGYhnySpVQWfht0DC3
-         31s2xb4fYgh1dswhMPg7wDgQ1okFAOkWxDT59nhdlx7aEg73+Qo7SPc8u7OE0nYwN+Kh
-         sg115+3TQgvr6md7bj+wLLkssdgCqQT/ftSJsDbH5Cy9Y9D7MfZ69ELvdq4HtXzjZ34i
-         DRjH/7igfpKnBmnQvVKK5CU4QCf/rAJ+tWoZ6ELSrLa3C64IjCyORCgdGDlXCwAp3GhW
-         pYR0Q3x6VrjGtNe/yr7dBb6+rfvYbimjJZZ9cgNRQyA5HFj0zwXqUpyr3kLaPg6Dt7ni
-         i5VQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=00SHmhIircwo8jSFx2a1LHX2q4NxFm9rLB+P2eIJFFM=;
-        fh=FLRldhW73fzzUGsTXchr7wQPBS3DwSWYsZYi7QDX0Vc=;
-        b=TGcSEL4LyiS2v1+fU8/ygpfEJncJdjv7hLZBgUgrsKrfrSOiM16nL6y7RTMfrDjPhz
-         P/lwKJmrJ/mq61z+ngU+WSYPRFZi5VmZnpIflu4X5dsNUWa+GXsFWxAmQ+rM3Yr07yTf
-         L1t4lF+izBgltsS0myVnlJbCa4IZaCo+IvsirCQrlG+SvDabiIbHFZywvppqq2jq5o31
-         4TpfdrfSm7hfEyZvbiBtH6TBB6OePbc06k1mJUHkm00JLyQ6nz5jG4Byhs1da10h4iCz
-         eBrMaqUPzD8nj8Fnd3d+x6fQaXUyJy8uKXVoaO2VLUR8iTkbABkAtt/ctxUgOlzRam9S
-         ScvA==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1775817373; x=1776422173; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=00SHmhIircwo8jSFx2a1LHX2q4NxFm9rLB+P2eIJFFM=;
-        b=bszV4UG8bv9tPoOXhwdtbwI005nmVNVhbqfA3BKUt4aBLmSPxHe4TtUtzSFEmdKogp
-         SmHPfltVgWSPodxK4So06/1ZQ4SpV75yNi/sxwHV0JaK6yL8Zz/2wCEb3pXIiH75iuMq
-         bRocYtEdDQjUeozLBTSEchyav8/RRdpFi5LzZBTd0kG6X+Vh4CO3gOuYPXBBWlG39O/H
-         /eqTtnXUJNewYSmX4qUq3l9FO+er9Hztwj/M4eIjDwre1MIMalIFgQM3hKVPFAWleRTa
-         3tV+moJHAPj0Ubnjt6NMHhluki/OJfYDQebdmaK1tI7NlK3m4OSpnw2PaqHgOSMfgroB
-         hHMA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775817373; x=1776422173;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=00SHmhIircwo8jSFx2a1LHX2q4NxFm9rLB+P2eIJFFM=;
-        b=Xmwo0Dd7o65c/WN3rXHY0zHJc8+31CvVk7EyL/nSPjEvr+XB6dGUsuXijX6C05KP51
-         4I8sumJwq8OquImYq2vWbxp3mnE10IiS7jqXuLyS7DwpGlyd9ptchZNbJ+Dxyfsvk1HZ
-         STvrE2Acerfj/FzDI7SQB38/2Yo9JZymGAUh7fktPlj1AYJVInJUq3axJOnnYn8Eifx2
-         j3jZdvOu9FKa/ks4DeOosUZvs43ioJyfe9TgU61tFYb+PleGEVomGRzRDEqh5ZKeK+6F
-         IDS0Ih0r4MjnIb3f93M4UBfwmDpSAk8sTuFfZHsIgJgMtynQfBLr+epl6oEV+4oJi+Ee
-         T4sg==
-X-Gm-Message-State: AOJu0YxB7OL2OVowlbKpADo1xkVAm++BIHXs+PJrICacgzKVUWU/JOA0
-	5rOLUtnSVcnoVQSf9Kzf+ttl65YFLHN4AwuoIxMx217VudSrNINLohtqLgr9kq4dPRDLtFNdSF0
-	NJtLjZaSfCeobIohWTd4AZ26uALG9sDs=
-X-Gm-Gg: AeBDieu/vmvb8AkNnjnpvDoLbOm+6uzvE3Fx31ys6v7E1r1VJOMrLuRR6rKAG5Uk6vN
-	1AI/E9HSPnkWncz8MnRur1KD+GPBZ9E72xMIlC+7jepPCdexDj4BoMZDo9LHqa/VenUlhur9Pux
-	yPupSdpSR5TEsEHdIpso1eZNE3co0aJ/F/KChsrNNUgy232/l/DeO8JhvQa24o3gHjuE/53Xmy7
-	OW+3mOqWmJGdDa7zqBIuVWMMNl334CQ7eX93xvgIhhMcj+pSHAXLHLDqAjgjSY4zfIIdV2g4+FK
-	M+3zdzRb72DGZsPKHNWSuguv8VhMmbZLFT5/JUigPEMVN4Mjg5Kc9Bk=
-X-Received: by 2002:a17:906:eec7:b0:b98:528b:844a with SMTP id
- a640c23a62f3a-b9d72ac40e6mr157825666b.51.1775817372972; Fri, 10 Apr 2026
- 03:36:12 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="f40/0Juu"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1775820003; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=e0jjetCAJ+07gZdA13Xj13l0kcxFTteRog9u5ixsQQA=;
+	b=f40/0JuuGRk5v90alSjAQzoRn55RXhh8hkideeBx6NP6eS8L7fSbA/QOuvohLYtFyLW0d66csgg8DegRPB7v0ax4o1hRHpKj0eN2BKMgKOtJ7SMjR/hH0hqCnwelKMi4gWZS7hlP1i6c7zPr9V1vr24akCAO8euIkdIHttqrJs4=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0X0l9.Ef_1775820001;
+Received: from 30.221.145.28(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0l9.Ef_1775820001 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 10 Apr 2026 19:20:02 +0800
+Message-ID: <8d9a93d4-6a38-4b34-bfbf-311a05fcee69@linux.alibaba.com>
+Date: Fri, 10 Apr 2026 19:20:01 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260410062227.3881209-1-gality369@gmail.com> <1dbba5a6-a7e2-49b4-8475-9f1d338efb5c@linux.alibaba.com>
-In-Reply-To: <1dbba5a6-a7e2-49b4-8475-9f1d338efb5c@linux.alibaba.com>
-From: ZhengYuan Huang <gality369@gmail.com>
-Date: Fri, 10 Apr 2026 18:35:46 +0800
-X-Gm-Features: AQROBzAkWY7kVUy0qgfA8kJL7EvjqYGxMjw2lFHbVF4fIW1OewmAjDKnvGLyyg4
-Message-ID: <CAOmEq9X2YQpPu81nxnMj2Pr9KsVci7GqjvKf5-e2c4K8Pu-=Cg@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: validate inline dir size in ocfs2_dir_foreach_blk_id
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com, 
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fix listxattr handling when the buffer is full
+To: ZhengYuan Huang <gality369@gmail.com>, akpm <akpm@linux-foundation.org>,
+ Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
+References: <20260410040339.3837162-1-gality369@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260410040339.3837162-1-gality369@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Apr 10, 2026 at 6:03=E2=80=AFPM Joseph Qi <joseph.qi@linux.alibaba.=
-com> wrote:
-> On 4/10/26 2:22 PM, ZhengYuan Huang wrote:
-> > [BUG]
-> > A crafted inline-data directory can set i_size larger than id_count.
-> > readdir then walks past data->id_data and KASAN reports:
-> >
-> > BUG: KASAN: use-after-free in ocfs2_check_dir_entry.isra.0+0x31f/0x370 =
-fs/ocfs2/dir.c:305
-> > Read of size 2 at addr ffff8880088f0008 by task syz.0.1936/4656
-> > Call Trace:
-> >  ...
-> >  ocfs2_check_dir_entry.isra.0+0x31f/0x370 fs/ocfs2/dir.c:305
-> >  ocfs2_dir_foreach_blk_id+0x203/0xa70 fs/ocfs2/dir.c:1805
-> >  ocfs2_dir_foreach_blk fs/ocfs2/dir.c:1933 [inline]
-> >  ocfs2_readdir+0x4ba/0x520 fs/ocfs2/dir.c:1977
-> >  wrap_directory_iterator+0x9c/0xe0 fs/readdir.c:65
-> >  shared_ocfs2_readdir+0x29/0x40 fs/ocfs2/file.c:2822
-> >  iterate_dir+0x276/0x9e0 fs/readdir.c:108
-> >  __do_sys_getdents64 fs/readdir.c:410 [inline]
-> >  __se_sys_getdents64 fs/readdir.c:396 [inline]
-> >  __x64_sys_getdents64+0x143/0x2a0 fs/readdir.c:396
-> >  ...
-> >
-> > [CAUSE]
-> > ocfs2_dir_foreach_blk_id() uses i_size_read(inode) as the loop bound
-> > after reading the inode block. Inline directories are only valid while
-> > i_size <=3D le16_to_cpu(data->id_count), but that invariant is never
-> > checked on read. Once ctx->pos reaches id_count, data->id_data +
-> > ctx->pos points past the inode block and can land in a freed neighbor
-> > page.
-> >
->
-> ocfs2_read_inode_block() has already validated dinode->i_size.
-> So how it happens for the corrupted in-memory i_size?
->
-> Thanks,
-> Joseph
 
-Thanks, my previous description was inaccurate.
 
-The issue is not that inode->i_size becomes corrupted in memory after
-ocfs2_read_inode_block() validates the dinode. The issue is that the
-current dinode validation does not check the inline-directory
-invariant i_size <=3D id_count.
+On 4/10/26 12:03 PM, ZhengYuan Huang wrote:
+> [BUG]
+> If an OCFS2 inode has both inline and block-based xattrs, listxattr()
+> can return a size larger than the caller's buffer when the inline names
+> consume that buffer exactly.
+> 
+> kernel BUG at mm/usercopy.c:102!
+> Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+> RIP: 0010:usercopy_abort+0xb7/0xd0 mm/usercopy.c:102
+> Call Trace:
+>  __check_heap_object+0xe3/0x120 mm/slub.c:8243
+>  check_heap_object mm/usercopy.c:196 [inline]
+>  __check_object_size mm/usercopy.c:250 [inline]
+>  __check_object_size+0x5c5/0x780 mm/usercopy.c:215
+>  check_object_size include/linux/ucopysize.h:22 [inline]
+>  check_copy_size include/linux/ucopysize.h:59 [inline]
+>  copy_to_user include/linux/uaccess.h:219 [inline]
+>  listxattr+0xb0/0x170 fs/xattr.c:926
+>  filename_listxattr fs/xattr.c:958 [inline]
+>  path_listxattrat+0x137/0x320 fs/xattr.c:988
+>  __do_sys_listxattr fs/xattr.c:1001 [inline]
+>  __se_sys_listxattr fs/xattr.c:998 [inline]
+>  __x64_sys_listxattr+0x7f/0xd0 fs/xattr.c:998
+>  ...
+> 
+> [CAUSE]
+> Commit 936b8834366e ("ocfs2: Refactor xattr list and remove
+> ocfs2_xattr_handler().") replaced the old per-handler list accounting
+> with ocfs2_xattr_list_entry(), but it kept using size == 0 to detect
+> probe mode.
+> 
+> That assumption stops being true once ocfs2_listxattr() finishes the
+> inline-xattr pass. If the inline names fill the caller buffer exactly,
+> the block-xattr pass runs with a non-NULL buffer and a remaining size of
+> zero. ocfs2_xattr_list_entry() then skips the bounds check, keeps
+> counting block names, and returns a positive size larger than the
+> supplied buffer.
+> 
+> [FIX]
+> Detect probe mode by testing whether the destination buffer pointer is
+> NULL instead of whether the remaining size is zero.
+> 
+> That restores the pre-refactor behavior and matches the OCFS2 getxattr
+> helpers. Once the remaining buffer reaches zero while more names are
+> left, the block-xattr pass now returns -ERANGE instead of reporting a
+> size larger than the allocated list buffer.
+> 
+> Fixes: 936b8834366e ("ocfs2: Refactor xattr list and remove ocfs2_xattr_handler().")
+> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
 
-ocfs2_validate_inode_block() does basic dinode validation, but it does
-not verify that inline directory size fits within id_count. Then
-ocfs2_populate_inode() / ocfs2_refresh_inode() /
-ocfs2_refresh_inode_from_lvb() copy that unchecked size into the VFS
-inode.
+Looks good.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-So the actual problem is an unchecked corrupted on-disk i_size, not a
-post-validation in-memory corruption.
+> ---
+>  fs/ocfs2/xattr.c | 4 ++--
+>  1 file changed, 2 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -906,8 +906,8 @@ static int ocfs2_xattr_list_entry(struct super_block *sb,
+>  	prefix_len = strlen(prefix);
+>  	total_len = prefix_len + name_len + 1;
+>  	*result += total_len;
+> 
+> -	/* we are just looking for how big our buffer needs to be */
+> -	if (!size)
+> +	/* No buffer means we are only looking for the required size. */
+> +	if (!buffer)
+>  		return 0;
+>  
+>  	if (*result > size)
 
-Once such an inode is loaded, readdir can legally reach
-ocfs2_dir_foreach_blk_id(), which uses i_size_read(inode) as the upper
-bound.
-
-Based on your comment, I think the cleaner fix is to reject such
-inline directories when the inode is loaded or refreshed, rather than
-only checking in ocfs2_dir_foreach_blk_id(). I will respin the patch
-accordingly.
-
-Thanks,
-ZhengYuan Huang
