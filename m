@@ -1,134 +1,205 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qk1-f176.google.com (mail-qk1-f176.google.com [209.85.222.176])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D323235B653
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 10:03:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775815388; cv=none; b=Xq+3PYftuoe9CjHF4WNKfP+bTXcYlqg+SVw6d2Eq3g12M521QcQ4dPccH/rBvdVweD8dm0cwRvrY2Peq3PjTU8B9EuvF7VsFeuESpNMLBLbtbojWVMH/sR0CB29NHMuoeDGjZGMJ09/j56wTXkF9vDsVdi3GqneTHHTFPXh1NDI=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775815388; c=relaxed/simple;
-	bh=9Y95Kcm0ue4HfmOYu5vLLHdeGi55mz17ClLCts4w/fA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=O1iPeG8K3YFKvAoqvKADRXIjBJ7CWWmW+NiV0fGsEU1ji21EylOqsNyY6RNl3F3ut4/Gm8CGlRxV+sGVGKOgfyLOStNXnOpPprrpuhDzwhEzLB5czOkzY6qzubQyzkmscA/SB7RgZVLHUZJKR2EtF6vobvuJQ9S/Ae6o5h6LRz8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=tcSYOMCY; arc=none smtp.client-ip=115.124.30.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72D3E37B3F9
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 10:23:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.222.176
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1775816608; cv=pass; b=ndptkGICfHfl6FS4b0P3H4UgSxlUUdYOfdzLNyQpmcRRU3nuCWJFjWffh69HYoFqq4mMNn369JlKMXrQNate0oeRl8q9yyK+qPeUKXWFOpPZvIvR21Hm4YdrqOVcOPlZFwSLhiGvXTz9vnckgh4OtFKwfgnAOe2mwaKm+5Pttc0=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1775816608; c=relaxed/simple;
+	bh=dKd8E2RW4dTFJYLfEwnAH7Aa0NwmdURo0S7LJBypZcE=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=lt3HNXuzIKCQpbY3bFSdXVa3illZkMSDOuykG90Q5K87QsVun14EsALqH44njudTrnqbdKeqSvnrpawLjpFjBOicCIXRBSe+/H3nxPwfOnK59BnDvrr2npZluFItEQBLLEJuXzk1OWl/7iin/KFNVYxWtZ9IhdMg5b2z7TH78Ik=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=gTGloo8y; arc=pass smtp.client-ip=209.85.222.176
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="tcSYOMCY"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1775815383; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=ZgBzVzdXsw+GHkcZagHgdqOEQaBAwNvZFvRO4VZ5scY=;
-	b=tcSYOMCYrM7roa5wK20A2Fimdmb/ayV4r51TwxGF3HfMabk7zD4R5EMB4uKYaK1pF+R54sNjbJJm6EGBgEGN1Tq9YKGMFWRMcdp/vG5ZrwiQNDcAzxYYef3XWgxCuyYaGtptA0FPhnI5yhSYajBxjDqQjbVYXYbkpJNojGfFY4A=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R571e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X0kw187_1775815381;
-Received: from 30.221.145.28(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0kw187_1775815381 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 10 Apr 2026 18:03:02 +0800
-Message-ID: <1dbba5a6-a7e2-49b4-8475-9f1d338efb5c@linux.alibaba.com>
-Date: Fri, 10 Apr 2026 18:03:00 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="gTGloo8y"
+Received: by mail-qk1-f176.google.com with SMTP id af79cd13be357-8d6654f06caso26324585a.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 03:23:27 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1775816606; cv=none;
+        d=google.com; s=arc-20240605;
+        b=fgq3aCB/BwXsRsUKoAu8oPAhC7wePx8cBvsM1P4Pmz3PEvscoxjInapzBf5s84knXt
+         NPqsr6mr9ljSCj/u9cQaXeVs9F2woZsderOpxl/cBiiUQfOVsPMEXf8GyE9qbDcPV1I8
+         6hjdXXZI3EvrqYxi2aFbBOxA5sUhUJjfOHDewDN3p115gEe/lHdl13VWrNH7ybnivyYE
+         1AtslEa1j9gRsFQP16sxKQ9v9NTr7d12+gi4EBcIgqL2b4mYotSFChEiLP4/03/I9Nm5
+         Xfe11zJm3Q3iP/QuBEhb/Tfbosfpw3oc161TZHI1ckpZfDzjDLWW4sgN8Tz9/hfok39l
+         tjuA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=lNYAisjpp27qjigxRpRaF9Cz5SeEGkqLoywjYJnMoY4=;
+        fh=67b+z4RfWs8CY+t62f7hQyaf67yAIbmlOLeJu5naXbc=;
+        b=OnAfzRk1xXXks9Btai5Ohoq4WyqnDTkl5Qey3beegbSjsRL4D9S6u8QE/qjOjmW2bM
+         3780DTgMw+KwaX9hyvNchduLFWnn74clS6XNydjxl3fDYpMB5zkbrHVSJGuEYDcX0ofz
+         SizST5qaKf17ilRfmMElM/MniJE172hcDXSYmgk8IJfiOow1PLPVWz0U4/T+aSzSWe+Q
+         Wz2zzKHM0a7wjK9uBv8MyPI0+CiijyR6zHrt/FeIev2GxYJ/y8aJ1H/wD5uKk/2iJZ9a
+         xR1mciVqPc74UoBz7MJwhvCm+p7f7I6JO3yslH3+ze2Aqte9fR8vJeuvqOzx9+F9SLOH
+         pe2w==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1775816606; x=1776421406; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=lNYAisjpp27qjigxRpRaF9Cz5SeEGkqLoywjYJnMoY4=;
+        b=gTGloo8yZK5bR0i8+zzEfEKb+1BOme1536UTwREtbKLUp9n6Rekl45qGOSFIUCxxnp
+         xcSEXSKIXrEH/pSgQgtHWpFhg458xzsZ6cwtjefZTb5/z9Ttx43YMYSlW8/+mmYsZ/YH
+         x5vaTWZQ+7diNP7RmHx0H5lZNszKE+W3KmBnlgM3JxOQ2L+2b2cu/Xj7A+KhuK29/JfM
+         PT5OdxPuB9enOUCGKddhs9KIOYD6VRIxDQsuly173ZKHyl2VViAmWw1EpwKqPdq1e6rh
+         wYEBta/Y43y9ZCwX9E3Nv/yb6YHcm3KYTUv5uRtjaSJzt7P3BAyHoznMxCZw+rtvsTVF
+         tTqA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1775816606; x=1776421406;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=lNYAisjpp27qjigxRpRaF9Cz5SeEGkqLoywjYJnMoY4=;
+        b=LYx9pMvxNABraxnYd97F3mh3SXsLNsFIbqI7BqFZOiybVehyvQXCZXalp1qBks6uM9
+         4nSvy3q8BaBPfqaSMRSp9WZOuw/WXCfdKQs74n/w4RIzWl58eRPM/UerAVD0KFADS5VL
+         ECp8jLRtmAQCp8Hh9nKH9/kDQjQNKnA/oSnWdpr8ENjx7uEavggsAlnvD6QH6eTcjk3m
+         XADa1Ft8SGEjfwRBcpEky5ZOgkZL2dpLDYYASBwDSCiQfkgm1sp2cQGRaaLGe0uNKN1G
+         1j5TtPM9U2B82NhC77aiqiVXt51Wi2citiLRUCSgeO/K45iY0pvvHpdD6yX99b9Z3Xk+
+         SosQ==
+X-Forwarded-Encrypted: i=1; AJvYcCVBqnTHxkiMrGeW1Vb9rC4740mFcPGnhPR2X6Qu4sT2xHAiaxfOqLZkaEtN8wiVMnJrwd9c7DafmYXmhg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzHSZiXVXq1wOEVnsMhD8moBz5nt0Mr86krpjTmx+EwPtGJQojV
+	uqSn+jRJjlyVBSD3DplI8aRy3W/gMmkEMb7K2QmynFSA2uKa5ljwFnRAw4SYN1WkVxAcditq22y
+	++tYMB9bj4ZjaQ2weigvrwOvrIQqHJxY=
+X-Gm-Gg: AeBDieuC6lcj9iIbWh/Na3oLqxytt9/lUi58zUidXpi8+p9IZBJUceYcRSCK+FyiiaV
+	DeCWpI07AbRf2YelUFEdgeyerHGj0sWUzJmAwMQRoy6nAVbpvATvYwMkdwOS3NJ6V/HWEr1Cr6D
+	xxJgsBZdmT9Rx7SXP0Qf55HidDdBuksoVv4qyM2lKtRYzxERkJV2AFAfCj1GWYdUOcCYU3bdGfx
+	1cFZdIiKCeZcC/ppmGJYW6T1nScguPKvhfjm8Mr9Zx2V+bmC4WKxP4YLe7C4W6QBLa+qH8M0Ppo
+	Ye9I6iGCMhJB9WXnisNxK9RA5p7IfpVuHg==
+X-Received: by 2002:a05:622a:34f:b0:50d:aa1f:68be with SMTP id
+ d75a77b69052e-50dd5bf0dabmr26733861cf.4.1775816606438; Fri, 10 Apr 2026
+ 03:23:26 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: validate inline dir size in
- ocfs2_dir_foreach_blk_id
-To: ZhengYuan Huang <gality369@gmail.com>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-References: <20260410062227.3881209-1-gality369@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260410062227.3881209-1-gality369@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+References: <20260410083816.34951-1-tejas.bharambe@outlook.com> <f6a98534-32d9-48fd-a2ff-da57b0e478a6@linux.alibaba.com>
+In-Reply-To: <f6a98534-32d9-48fd-a2ff-da57b0e478a6@linux.alibaba.com>
+From: Tejas Bharambe <thbharam@gmail.com>
+Date: Fri, 10 Apr 2026 03:23:15 -0700
+X-Gm-Features: AQROBzAyHEEypp9YEVdH4RZNxVHsTAleeZGeO6mRwKrZSmjKpATdpIOcwWsVUHM
+Message-ID: <CAJL2up5yz6q1UAqPL3wmdrBxD4t2GZNMyTh46Gu=UZLFv=rS1w@mail.gmail.com>
+Subject: Re: [PATCH v6] ocfs2: fix use-after-free in ocfs2_fault() when VM_FAULT_RETRY
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: akpm <akpm@linux-foundation.org>, mark@fasheh.com, jlbec@evilplan.org, 
+	linux-kernel@vger.kernel.org, 
+	syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com, 
+	Tejas Bharambe <tejas.bharambe@outlook.com>, 
+	"ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
+Thank you Joseph,
 
+Andrew, does it look good?
 
-On 4/10/26 2:22 PM, ZhengYuan Huang wrote:
-> [BUG]
-> A crafted inline-data directory can set i_size larger than id_count.
-> readdir then walks past data->id_data and KASAN reports:
-> 
-> BUG: KASAN: use-after-free in ocfs2_check_dir_entry.isra.0+0x31f/0x370 fs/ocfs2/dir.c:305
-> Read of size 2 at addr ffff8880088f0008 by task syz.0.1936/4656
-> Call Trace:
->  ...
->  ocfs2_check_dir_entry.isra.0+0x31f/0x370 fs/ocfs2/dir.c:305
->  ocfs2_dir_foreach_blk_id+0x203/0xa70 fs/ocfs2/dir.c:1805
->  ocfs2_dir_foreach_blk fs/ocfs2/dir.c:1933 [inline]
->  ocfs2_readdir+0x4ba/0x520 fs/ocfs2/dir.c:1977
->  wrap_directory_iterator+0x9c/0xe0 fs/readdir.c:65
->  shared_ocfs2_readdir+0x29/0x40 fs/ocfs2/file.c:2822
->  iterate_dir+0x276/0x9e0 fs/readdir.c:108
->  __do_sys_getdents64 fs/readdir.c:410 [inline]
->  __se_sys_getdents64 fs/readdir.c:396 [inline]
->  __x64_sys_getdents64+0x143/0x2a0 fs/readdir.c:396
->  ...
-> 
-> [CAUSE]
-> ocfs2_dir_foreach_blk_id() uses i_size_read(inode) as the loop bound
-> after reading the inode block. Inline directories are only valid while
-> i_size <= le16_to_cpu(data->id_count), but that invariant is never
-> checked on read. Once ctx->pos reaches id_count, data->id_data +
-> ctx->pos points past the inode block and can land in a freed neighbor
-> page.
-> 
-
-ocfs2_read_inode_block() has already validated dinode->i_size.
-So how it happens for the corrupted in-memory i_size?
-
-Thanks,
-Joseph
-
-> [FIX]
-> Validate i_size_read(inode) against data->id_count immediately after
-> ocfs2_read_inode_block(). If the inline directory size exceeds its
-> on-disk capacity, return -EFSCORRUPTED before constructing any dirent
-> pointer. Keep the change local to ocfs2_dir_foreach_blk_id() so the
-> patch stays scoped to the readdir bug.
-> 
-> Fixes: 23193e513d1c ("ocfs2: Read support for directories with inline data")
-> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
-> ---
->  fs/ocfs2/dir.c | 8 +++++++-
->  1 file changed, 7 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 8c9c4825f984..fa537505d1a9 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -1761,6 +1761,7 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
->  				    struct dir_context *ctx)
->  {
->  	int ret, i;
-> +	int error = 0;
->  	unsigned long offset = ctx->pos;
->  	struct buffer_head *di_bh = NULL;
->  	struct ocfs2_dinode *di;
-> @@ -1777,6 +1778,12 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
->  	di = (struct ocfs2_dinode *)di_bh->b_data;
->  	data = &di->id2.i_data;
->  
-> +	if (unlikely(i_size_read(inode) > le16_to_cpu(data->id_count))) {
-> +		error = -EFSCORRUPTED;
-> +		mlog_errno(error);
-> +		goto out;
-> +	}
-> +
->  	while (ctx->pos < i_size_read(inode)) {
->  		/* If the dir block has changed since the last call to
->  		 * readdir(2), then we might be pointing to an invalid
-> @@ -1819,7 +1826,7 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
->  	}
->  out:
->  	brelse(di_bh);
-> -	return 0;
-> +	return error;
->  }
->  
->  /*
-
+On Fri, Apr 10, 2026 at 2:36=E2=80=AFAM Joseph Qi <joseph.qi@linux.alibaba.=
+com> wrote:
+>
+>
+>
+> On 4/10/26 4:38 PM, Tejas Bharambe wrote:
+> > From: Tejas Bharambe <tejas.bharambe@outlook.com>
+> >
+> > filemap_fault() may drop the mmap_lock before returning VM_FAULT_RETRY,
+> > as documented in mm/filemap.c:
+> >
+> >   "If our return value has VM_FAULT_RETRY set, it's because the mmap_lo=
+ck
+> >   may be dropped before doing I/O or by lock_folio_maybe_drop_mmap()."
+> >
+> > When this happens, a concurrent munmap() can call remove_vma() and free
+> > the vm_area_struct via RCU. The saved 'vma' pointer in ocfs2_fault() th=
+en
+> > becomes a dangling pointer, and the subsequent trace_ocfs2_fault() call
+> > dereferences it -- a use-after-free.
+> >
+> > Fix this by saving ip_blkno as a plain integer before calling
+> > filemap_fault(), and removing vma from the trace event. Since
+> > ip_blkno is copied by value before the lock can be dropped, it
+> > remains valid regardless of what happens to the vma or inode
+> > afterward.
+> >
+> > Reported-by: syzbot+a49010a0e8fcdeea075f@syzkaller.appspotmail.com
+> > Closes: https://syzkaller.appspot.com/bug?extid=3Da49010a0e8fcdeea075f
+> > Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> > Signed-off-by: Tejas Bharambe <tejas.bharambe@outlook.com>
+>
+> Fixes: 614a9e849ca6 ("ocfs2: Remove FILE_IO from masklog.")
+> Cc: stable@vger.kernel.org
+> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+>
+> > ---
+> >  fs/ocfs2/mmap.c        |  7 +++----
+> >  fs/ocfs2/ocfs2_trace.h | 10 ++++------
+> >  2 files changed, 7 insertions(+), 10 deletions(-)
+> >
+> > diff --git a/fs/ocfs2/mmap.c b/fs/ocfs2/mmap.c
+> > index 50e2faf64c..6c570157ca 100644
+> > --- a/fs/ocfs2/mmap.c
+> > +++ b/fs/ocfs2/mmap.c
+> > @@ -30,7 +30,8 @@
+> >
+> >  static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
+> >  {
+> > -     struct vm_area_struct *vma =3D vmf->vma;
+> > +     unsigned long long ip_blkno =3D
+> > +             OCFS2_I(file_inode(vmf->vma->vm_file))->ip_blkno;
+> >       sigset_t oldset;
+> >       vm_fault_t ret;
+> >
+> > @@ -38,11 +39,9 @@ static vm_fault_t ocfs2_fault(struct vm_fault *vmf)
+> >       ret =3D filemap_fault(vmf);
+> >       ocfs2_unblock_signals(&oldset);
+> >
+> > -     trace_ocfs2_fault(OCFS2_I(vma->vm_file->f_mapping->host)->ip_blkn=
+o,
+> > -                       vma, vmf->page, vmf->pgoff);
+> > +     trace_ocfs2_fault(ip_blkno, vmf->page, vmf->pgoff);
+> >       return ret;
+> >  }
+> > -
+> >  static vm_fault_t __ocfs2_page_mkwrite(struct file *file,
+> >                       struct buffer_head *di_bh, struct folio *folio)
+> >  {
+> > diff --git a/fs/ocfs2/ocfs2_trace.h b/fs/ocfs2/ocfs2_trace.h
+> > index 4b32fb5658..6c2c97a980 100644
+> > --- a/fs/ocfs2/ocfs2_trace.h
+> > +++ b/fs/ocfs2/ocfs2_trace.h
+> > @@ -1246,22 +1246,20 @@ TRACE_EVENT(ocfs2_write_end_inline,
+> >
+> >  TRACE_EVENT(ocfs2_fault,
+> >       TP_PROTO(unsigned long long ino,
+> > -              void *area, void *page, unsigned long pgoff),
+> > -     TP_ARGS(ino, area, page, pgoff),
+> > +              void *page, unsigned long pgoff),
+> > +     TP_ARGS(ino, page, pgoff),
+> >       TP_STRUCT__entry(
+> >               __field(unsigned long long, ino)
+> > -             __field(void *, area)
+> >               __field(void *, page)
+> >               __field(unsigned long, pgoff)
+> >       ),
+> >       TP_fast_assign(
+> >               __entry->ino =3D ino;
+> > -             __entry->area =3D area;
+> >               __entry->page =3D page;
+> >               __entry->pgoff =3D pgoff;
+> >       ),
+> > -     TP_printk("%llu %p %p %lu",
+> > -               __entry->ino, __entry->area, __entry->page, __entry->pg=
+off)
+> > +     TP_printk("%llu %p %lu",
+> > +               __entry->ino, __entry->page, __entry->pgoff)
+> >  );
+> >
+> >  /* End of trace events for fs/ocfs2/mmap.c. */
+>
