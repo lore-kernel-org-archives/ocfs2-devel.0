@@ -1,83 +1,53 @@
-Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E52820B22
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 03:12:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DC71630BF5C
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 03:23:20 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775790780; cv=none; b=hQBwOeLV2LYM3huJ6PQQsRfZmNftOSGWXBBAEKK+H07CYxOYQSuQ1hmQbPrsgagpZc0h5SvFuiSy1P+xfzFeiwB6XzVSCvf7Q/4kbJQhVaNmA8nv98YcowDVjHGaPvauUg1lB/tsryw1elKJs80HNZLz4LLutlHod174S/fTuxs=
+	t=1775791403; cv=none; b=eMrCU/cFbRMOJ9hDZnW7gUw2bWjf3RLxIrfXNfWAhif86gxCpdvbbjIfuaZt5t8J9TmLDFgMT5LOQmXvw1xYc2AVEqLk2iu+4U8GSzAVOHy6vaA11JXsKKxql/HBnSI5xT1a7ynl/XfKR3Hjt7nfRKBZ8aCfEALyONA9WFs00yU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775790780; c=relaxed/simple;
-	bh=EjQgGc3yp1VMn3r4SI7CglfF1rcgHqOnNNvLPofq8b0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=j36eYelmIhi+gZpGubFbAMAImFoCkmmLDuPEgsr+LKcBuUbEploMp6eqT3SVXuzXyYnCrScdqT+wOqD8d3GehS4pz5sNvt42FMT0F1+636TB/bb5GuNaTK31I4PqrV9NGnCRkssmdrG0KQlOl1HCXQfuzof0EK/9xuaoVlZpLho=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=EFViUg8K; arc=none smtp.client-ip=209.85.128.41
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1775791403; c=relaxed/simple;
+	bh=04eUzvqMXlFikBxXegGM1zYXikxy0l7hON4sTYFrY4g=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=LFssdGbVcKR4QcxaYi+kjFavftbOccdb5TiqEEkqazf4p2xv6KNtF/vnFPmANI9+K35kprw8zLrS+RaLEkvaJR0K81qICI7lqUrCXKDyD0uScKJ1Dki9/3O6XG7mCcHixShXnqxzCycfTTNJs7LYBsVlel0GUHf8PM+TS4sGSx0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=TbYbDFrf; arc=none smtp.client-ip=115.124.30.97
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="EFViUg8K"
-Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-488ac04e13dso2282625e9.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 09 Apr 2026 20:12:58 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1775790777; x=1776395577; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=xWKRam2xYdlx+pLvfywopQxkEx5Y++zugW3qz5oZ9HE=;
-        b=EFViUg8Ky/273NtIngp38wK8U9OXUzoNlKNp77ehuxwcU1dh/mnOda4VxGTpvuC1/w
-         5010vvXaMANeacJ8BDsvOg0rujWezV5RACW2G8/a55EwV+lFSY/Uhk1mcgye1wmc98pe
-         pbHE6fZ4fd1HhPNqV0fkYMFUm62TlL1apCocla1iihlUBPYjhP9FpV7O/kwnhgfF/hHE
-         XjSxvC3gpY/lwoAb9aYWpUR/scwXkBVF7wkmImtKI+JFf6H0yCXn5wJL2bQLNWxMP5L7
-         lBod+24RpmUTZp7yiuTC2uEZpjFEDfceEnCrrVvqAtZBPtymXr7pl8qRP+PHfoO2NKsT
-         ZhJw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775790777; x=1776395577;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=xWKRam2xYdlx+pLvfywopQxkEx5Y++zugW3qz5oZ9HE=;
-        b=qCYdxEX3r36hv9GTk9nRiI3gOqpgPhmCAHhjsDuvcTccyO5bMDRYkNzgkACL95BoU8
-         oV+PMVcjeRGOfVmAdWs89iYKlGpUS/AlP190nh0wH4Xg3oNC6QhZhyr2vog1Qhoa2+Rt
-         KA8/gOY44rn05MN+SEgDWrxWxu65gBSPBuewrD7+Oaaei4WsajYoqZ8m05wCo6uyb7RW
-         nYSypijmKxhAA3seJEBJiyI0baSpUTcNbbB5VgMwjaWE5xJ7Pv+6wVlxuIPPZPi6GhM4
-         UiQ8SG7Y1oCCu3gb5H1Xt63xMSTKQvLO9w3amqxq2UowM+t5o1l+NTmgE4MQZvqxP3zl
-         jByQ==
-X-Forwarded-Encrypted: i=1; AJvYcCXhj6vuupxOwTrb9VtoOCUGca7l2owtnffyMQFQxPo6Ezb3aMAsLFsoryypg0+UmP1GB84y48QxgZGJdg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw2KurWRemRmSBqVovGjO/jgWHaBi48a7cW+mK3KoBibtNucgjK
-	/s9Hpr1bM5Bfm2cjdzK0kM7wv31qBjLmnXSfTrh+DZydCqeQnd97BvMZIbp3P8nK3eMUEz21vex
-	Ucs4QJrI=
-X-Gm-Gg: AeBDiesUoFMj6UOwdqts+vJMXxF3kUxo6W+u5jr4P3DvILcqaM+ir3p9ffMDkMtuIY1
-	+X2OQNAle5CnKMOo9VzI7A/FzphP25in0Z8ZiFVDwLt5cinC0oQmClwsC1L01no0Q2LF0U1HEIf
-	9jn0IlEenT9zykIbYtrO8wYJLjWX1JMaidJJUSAtNPusJdjWhCDRO8R7JbLU79+Kr/rJ+SThtjY
-	o8ngFPk6SejM2lQfY4TYbUEh8GIa6oiSCQaBSVSnE1heji5alwtEzYwxA5nhtAA8oAahuSmRIf6
-	rHVSmiOmlp7wWj1vCXo1RMtOkGLG6mIcVrVJ/Zst492KojZm6igRIw5v7T99tbdcRWM3S5BQn8t
-	m/aTkO/xKeOzGzvlrv0pKtBsGRZeb4XDBij/IRatvXF44SXmHD33vxEI23FPnEe7vCxFyc4gM2R
-	liZK71sGRoy0IEKnylCpVk+wrrjYAG80B1
-X-Received: by 2002:a05:600c:1d14:b0:486:f634:f2e with SMTP id 5b1f17b1804b1-488d68b4086mr7507595e9.4.1775790776751;
-        Thu, 09 Apr 2026 20:12:56 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2b2d4f32c76sm10174275ad.67.2026.04.09.20.12.54
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 09 Apr 2026 20:12:55 -0700 (PDT)
-Date: Fri, 10 Apr 2026 11:12:52 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: ZhengYuan Huang <gality369@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, 
-	r33s3n6@gmail.com, zzzccc427@gmail.com
-Subject: Re: [PATCH v4] ocfs2: validate bg_bits during freefrag scan
-Message-ID: <zzcnbk4w2aa4buuazr57iuiqbcewgit4pglptf35lb3ig6gqvk@zl2bg4yqaoul>
-References: <20260410030004.3810769-1-gality369@gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="TbYbDFrf"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1775791396; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=7pruV5udF9JiPCvJJbSFBm80/dk1U0HTxYoQJp0ZJAw=;
+	b=TbYbDFrfa+GCvFdj1JbYcey8AszpFkva+VaHZXjKxSCiSrkotyvFVOL3R2iJqgOHZy/ZauwfSXi1Ue0ruteKg0yHj1Ox8Rei0Eq3UXyj4QNELu/0d2+mvpm6xIIB5+b01BMRDQFEpZSEKcBiYP1O1XJmgQAnxrp0mT5ZjwVsoLs=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X0joJ7B_1775791394;
+Received: from 30.221.145.28(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X0joJ7B_1775791394 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 10 Apr 2026 11:23:15 +0800
+Message-ID: <45706dfa-6a4c-4e62-bddb-cebd206e469f@linux.alibaba.com>
+Date: Fri, 10 Apr 2026 11:23:14 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v4] ocfs2: validate bg_bits during freefrag scan
+To: ZhengYuan Huang <gality369@gmail.com>, Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
+ Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
+References: <20260410030004.3810769-1-gality369@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
 In-Reply-To: <20260410030004.3810769-1-gality369@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Apr 10, 2026 at 11:00:04AM +0800, ZhengYuan Huang wrote:
+
+
+On 4/10/26 11:00 AM, ZhengYuan Huang wrote:
 > [BUG]
 > A crafted filesystem can trigger an out-of-bounds bitmap walk when
 > OCFS2_IOC_INFO is issued with OCFS2_INFO_FL_NON_COHERENT.
@@ -168,16 +138,19 @@ On Fri, Apr 10, 2026 at 11:00:04AM +0800, ZhengYuan Huang wrote:
 > -
 >  		if (!le16_to_cpu(bg->bg_free_bits_count))
 >  			continue;
-
-Don't touch unrelated line. Others looks good to me.
-
-- Heming
 >  
 >  		max_bits = le16_to_cpu(bg->bg_bits);
 > +		max_bitmap_bits = 8 *
 > +			ocfs2_group_bitmap_size(osb->sb, 0,
 > +						osb->s_feature_incompat);
 > +
+
+max_bitmap_bits is unchanged, so it could be moved out of loop.
+Other looks good me.
+
+Thanks,
+Joseph
+
 > +		/*
 > +		 * Non-coherent scans read raw blocks and do not get the
 > +		 * bg_bits validation from
@@ -193,7 +166,4 @@ Don't touch unrelated line. Others looks good to me.
 >  		offset = 0;
 >  
 >  		for (chunk = 0; chunk < chunks_in_group; chunk++) {
-> -- 
-> 2.43.0
-> 
-> 
+
