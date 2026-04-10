@@ -1,181 +1,191 @@
-Received: from mail-pg1-f179.google.com (mail-pg1-f179.google.com [209.85.215.179])
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 786E82D3A7C
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 02:02:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E29A22BE05E
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Apr 2026 02:26:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1775786556; cv=none; b=rxb072glmVkg8wDU3B5lszZCbWRTdSbSUPDgLkWmgYStvZWaiwuauxvSSjcg79D3emiR1JwMpwcqzF3MarjGCznIEqD/Hd2jI8A23AgVJBnPqHMLml3u6hRYp/D6NTO3LUL1vIP/dkSNKOW7EI4ahM1XarUjK2zDInp+/6/apug=
+	t=1775787963; cv=none; b=cgxEpc5hoPEY+ey22+BBPGaqtxEPyEPGQ3e/mCZNfE2AfWZi7jkuZc5be/VgRYqv3oCCa75u//EAcyvJTuBTqRHIZnUL3y9VFSjJTk0oEROYMkL9W351aqHxW5H0VHd1malb3raM6Ko6D8AVYr5jgy7zsVzGa0/gBdCsPZegByA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1775786556; c=relaxed/simple;
-	bh=1x1o3izrN5E2kluyZpoIKpfp3yuq0g44oixGstSh75A=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=JLaeFs0EZfx6A+Oxv/Mtn1LjYkOfH32OG9/rAUyT4KumE6soFpI8iyCiUvqg5t3yDH4Ki9PZ/0J4RrJgY4dGyAROHnf7qp4fMvL51/Vpu+Bvf7bULvUGpM+RflLgf6xWrKtf93s8Nifa1DzbXCjXrj83xJSmi3F1KQngZzUnsPw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Zm+5sOCY; arc=none smtp.client-ip=209.85.215.179
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1775787963; c=relaxed/simple;
+	bh=y+tYya1WyEOjhzRjJg25taF7fl4cF/UdHeWpfI1xkyE=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=F5qwPEvtggNohxghfGlQfXCh3VyyXm0H3LahitnF2XWKx0Xa61ixX5nIXtAqDhfCiYcl9zSBbVmBWh0ybXiVUi4rGAC65F55EEFAWNS4pdcv3+8aMG5ZWrcZD5ivT2dg1nb8tWE7RLVj8b5yvmm48WAnz7hzYDLHRlZdays0Rj0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=QKqV31Fl; arc=none smtp.client-ip=209.85.128.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Zm+5sOCY"
-Received: by mail-pg1-f179.google.com with SMTP id 41be03b00d2f7-c76ffd06593so1074313a12.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 09 Apr 2026 19:02:34 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="QKqV31Fl"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-4836fc075d2so2254335e9.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 09 Apr 2026 19:26:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1775786554; x=1776391354; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=otfCIiZTFuJX/HFbuSk3FZpc1fHYY9CXa1topBDeWiA=;
-        b=Zm+5sOCYjvcn3tgncziM6XWNAUspbXELpdHvPQidlaTn9gSwXrBsUAzt7NnIxafPOY
-         UiVOw3yXzMb5vRU1UgpaXfKm9DaLhMQbw5Eeb+K0Bmy3ZIqg9n3stbTCeM3Mo+Wtu94k
-         9xDvKXTJUzcJGibf2N3/hdiI/Wl+RNNAeajKBxXE9GoJ/TvEoDU0iR9YWrzNJoQc3sVE
-         Df3ZcPYch2nGj8E95R6Q5+lh6sEL5qo9QIGTDLQdcMRT3ryESkXSMzQ/coYDRo4fawpM
-         PPUQGffGSy18CQWb5O9yGoqzdQ/oHUKmdloKiHFmgN1M3bkkJHm1vb4/IlqUXjdy5Y4c
-         cu3w==
+        d=suse.com; s=google; t=1775787959; x=1776392759; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=g2upHh+CAfQ0tuDm0rVFEqpcgLeWwPiSma3r2hEAaY8=;
+        b=QKqV31Fl7Q3n33V29BG47/0ZspsiXY3gzjhFaa+Ue5/6/yFoC5IUdn3BF0eNvOU/cQ
+         zC6fqYAG9HfmYBqMK0g3mhzYU4OyVvLtePdmTQBM6jruyjHDi6f2pCTx3/ObQZvNOUIP
+         44ld4DT1JoncUUhTTwvse10cUnftOKryQgKw6z1S75ca6m9kupBJF2+wllVxv4L1hWf+
+         mILiilgrjBEx7binoGXZER12UD0BzwQWvktVpgb42ZYepViNbHODLrkukjJfMpcpXpvX
+         /fdrARaCpK883cs3N1JRLniiza0b6m8eSBGa7ucYeVcqyfcAXbGfrYnCMVl81crBHU81
+         NJtg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1775786554; x=1776391354;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=otfCIiZTFuJX/HFbuSk3FZpc1fHYY9CXa1topBDeWiA=;
-        b=K46KaqvFrx77Ym4xK2zTH1TwFKJhTN39pIrp3gCxvuHAeUhy9/CgMNHDoEJmoQ+VB/
-         a1xElkwUYBXSVoFkx13YQ77CpdoPD8FFDGhKrA5ifX/mBBjEBj9S6zKw2NdKhfgHUlHb
-         pBselu2v+OXjoqXVMUSeidMO5Kre1jhpd+MowwzjNh1kbqAR9y0a1hjnkLTErsjxZzhC
-         X88hHwN4WryR9US/+kQkuq2Ef51zrR1l7E2sGi2naZDRRUtV96ipGKZRybyWvElUu+0f
-         jkDedu6zdh3NJJcMiEM0Xmn3ql44B8nSzK7+C2KM1TdGHfunQx4BF9Ki0jZDyZGZFydW
-         sYgA==
-X-Gm-Message-State: AOJu0YxcpastCrhREX/eYWJL+gvdTUJ2XEBG6ravG4SwRee/F3KODODO
-	3LrH7Pupf3BNZ9o02UJ6xV76hyLBmS4tyL8JLe8NtTYGfuyiYV0l178U
-X-Gm-Gg: AeBDieskzM0l35Eya6yf5cAIqSFWm8Ps8qWtvhRNnTyeAxLWCVQAizsXnpr5jLgwQR2
-	jY2h5oMAZka4x5e//731ComaqNKVmv24IvyxlKvaGp/7WdrBAmJteyFYofb19LCpePIUfUO2Lim
-	6FR0F/VkS4MtAl3fIXNk+GHoA7U6VwHcgz0g52BjtUuHw8/R49PA3FUwWw+lC8M1EFvELamlsRx
-	vkR+JLL38o2ZhKooJUIefjvQGSNqmEDw9pimXBWpCEm3IBJ1OsACd35d33jt1vAidI7i73I5ScS
-	pKxDKCulHzQzx4zIIBTza4gc+Y0aCuxTgEGz0gVuto6we3c/ib7oNzxB5VGOC61E5o0RyizWkG2
-	xanaWjQpT3ycGOcVISAmHe8U33i8Be4eSfnEH0LVvA1dNbbQ7GEAtMKigaVIyOlE0GQsrIRi1s7
-	ajludC4kE070EgffEPO/+eYXuYE9Pbr1e0W5wY1Gb4YX2++kwV8Hn5ri3pD5TZggUFqOWvkqtV5
-	XAT7Ggo
-X-Received: by 2002:a17:903:4502:b0:2b2:53f5:4627 with SMTP id d9443c01a7336-2b2d5939409mr9093285ad.4.1775786553548;
-        Thu, 09 Apr 2026 19:02:33 -0700 (PDT)
-Received: from kernel-fuzz.. ([138.199.21.245])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2b2d4f099d6sm10512285ad.50.2026.04.09.19.02.30
+        d=1e100.net; s=20251104; t=1775787959; x=1776392759;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=g2upHh+CAfQ0tuDm0rVFEqpcgLeWwPiSma3r2hEAaY8=;
+        b=goT2mmOxVjBTqbVRcKXb9NH/eejRUNwAZV5G3L4LyxX/tWcPfQEBD6Kq7AedL8qQ76
+         Jv4BmrGZQ2yEUONdOun+tCFh8B2qs3jaU8WMYgjKU7SaRgx3l9eW0n8WEYCcJZXieC+E
+         ojkxMyY/b/9ufByAtqFCU4UyBzBNRtyA5B1+raS3+DFzFB5wPZ743M91thohPD1K2Jx/
+         hqcXT3s83xfyhSiZrtHcLJHPRaGeJ2OxEByQJ0yyGNNl2GSQfc6UN65orFXLx45nuCTY
+         rLgeLprwgbQqGPOwAnHGJBLo140hoCQcwk5w3joHk2qahgzJ3ZnBqmQZKRLEHtzSH5By
+         7Wxw==
+X-Forwarded-Encrypted: i=1; AJvYcCUBcNsdNR9yUcVyzRAHpJzdIH18E2VMJpm+4wPi/O+8Fhe2TvI4FkOeGGyMjOgCkrp24SGcfgWoL31T6g==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwwbPGUUl07lRIdtlo0E7/qazm4V1xdLMyKp2fClUgnrOCoFzWh
+	clbtlxlMklxuKd1jo2k+PjVu0DID9jktq1UtlKjlL6OLs3fhNnyYIWHlji2bcQofs5s=
+X-Gm-Gg: AeBDietPfkU3fzC0FsocmoK0OOhDmQbgb1oy5DXH8Me995R5LOy1q73KzQyB4yagn0P
+	C1FETbStQZGPlCOGMKb45pFJYyyaTVWnb7oai36+16tDWvBi3UqbD7+KCbNrQbqritAc958c1bP
+	0TpWKxtKbBP/h0WfR14y1HOkqF6ypB+0Yg1c/Z84CEh4k4wsft/FxyQl0ur4ED9wRzN4z/FE2Au
+	gAOJXN0JOQALR+CcaMJq1589blRLy7jE1Wt4fOD5kdIDdIeWaIguXNO0ySjBbGIqdoLZivkDOen
+	Zc/Ra6ngc8LLSb0NaGYpFtS2zhxOD7PQ4YtFqtX/zIPERvAQSr9OVQS0BV+oG+J7GfNoZF+F6fj
+	PzVwnAm69W5A3RtJtIV47djMzrGzQOpfXd85ZSwiCfqlgxv91Yd6XO4Z6o5HEdw/hd2IPV7G+bg
+	7fdQ1QpTAtmsPXVqe9m3MfBylcuPSOIshU
+X-Received: by 2002:a05:600c:46c8:b0:488:9e7e:e1e3 with SMTP id 5b1f17b1804b1-488d67f5115mr7610455e9.2.1775787959244;
+        Thu, 09 Apr 2026 19:25:59 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c79219f55c4sm746160a12.22.2026.04.09.19.25.57
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 09 Apr 2026 19:02:33 -0700 (PDT)
-From: ZhengYuan Huang <gality369@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	r33s3n6@gmail.com,
-	zzzccc427@gmail.com,
-	ZhengYuan Huang <gality369@gmail.com>
-Subject: [PATCH v3] ocfs2: validate group add input before caching
-Date: Fri, 10 Apr 2026 10:02:08 +0800
-Message-ID: <20260410020209.3786348-1-gality369@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        Thu, 09 Apr 2026 19:25:58 -0700 (PDT)
+Date: Fri, 10 Apr 2026 10:25:55 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: ZhengYuan Huang <gality369@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, 
+	r33s3n6@gmail.com, zzzccc427@gmail.com
+Subject: Re: [PATCH v2] ocfs2: validate bg_bits during freefrag scan
+Message-ID: <2erouzhgetyqstucsh7tfaucgxfm2wvarvja2g4gulwuqrwsmg@ch3y6xawctzp>
+References: <20260409070624.3357378-1-gality369@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260409070624.3357378-1-gality369@gmail.com>
 
-[BUG]
-OCFS2_IOC_GROUP_ADD can trigger a BUG_ON in
-ocfs2_set_new_buffer_uptodate():
+On Thu, Apr 09, 2026 at 03:06:24PM +0800, ZhengYuan Huang wrote:
+> [BUG]
+> A crafted filesystem can trigger an out-of-bounds bitmap walk when
+> OCFS2_IOC_INFO is issued with OCFS2_INFO_FL_NON_COHERENT.
+> 
+> BUG: KASAN: use-after-free in instrument_atomic_read include/linux/instrumented.h:68 [inline]
+> BUG: KASAN: use-after-free in _test_bit include/asm-generic/bitops/instrumented-non-atomic.h:141 [inline]
+> BUG: KASAN: use-after-free in test_bit_le include/asm-generic/bitops/le.h:21 [inline]
+> BUG: KASAN: use-after-free in ocfs2_info_freefrag_scan_chain fs/ocfs2/ioctl.c:495 [inline]
+> BUG: KASAN: use-after-free in ocfs2_info_freefrag_scan_bitmap fs/ocfs2/ioctl.c:588 [inline]
+> BUG: KASAN: use-after-free in ocfs2_info_handle_freefrag fs/ocfs2/ioctl.c:662 [inline]
+> BUG: KASAN: use-after-free in ocfs2_info_handle_request+0x1c66/0x3370 fs/ocfs2/ioctl.c:754
+> Read of size 8 at addr ffff888031bce000 by task syz.0.636/1435
+> Call Trace:
+>  __dump_stack lib/dump_stack.c:94 [inline]
+>  dump_stack_lvl+0xbe/0x130 lib/dump_stack.c:120
+>  print_address_description mm/kasan/report.c:378 [inline]
+>  print_report+0xd1/0x650 mm/kasan/report.c:482
+>  kasan_report+0xfb/0x140 mm/kasan/report.c:595
+>  check_region_inline mm/kasan/generic.c:186 [inline]
+>  kasan_check_range+0x11c/0x200 mm/kasan/generic.c:200
+>  __kasan_check_read+0x11/0x20 mm/kasan/shadow.c:31
+>  instrument_atomic_read include/linux/instrumented.h:68 [inline]
+>  _test_bit include/asm-generic/bitops/instrumented-non-atomic.h:141 [inline]
+>  test_bit_le include/asm-generic/bitops/le.h:21 [inline]
+>  ocfs2_info_freefrag_scan_chain fs/ocfs2/ioctl.c:495 [inline]
+>  ocfs2_info_freefrag_scan_bitmap fs/ocfs2/ioctl.c:588 [inline]
+>  ocfs2_info_handle_freefrag fs/ocfs2/ioctl.c:662 [inline]
+>  ocfs2_info_handle_request+0x1c66/0x3370 fs/ocfs2/ioctl.c:754
+>  ocfs2_info_handle+0x18d/0x2a0 fs/ocfs2/ioctl.c:828
+>  ocfs2_ioctl+0x632/0x6e0 fs/ocfs2/ioctl.c:913
+>  vfs_ioctl fs/ioctl.c:51 [inline]
+>  __do_sys_ioctl fs/ioctl.c:597 [inline]
+>  __se_sys_ioctl fs/ioctl.c:583 [inline]
+>  __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
+>  ...
+> 
+> [CAUSE]
+> ocfs2_info_freefrag_scan_chain() uses on-disk bg_bits directly as the
+> bitmap scan limit. The coherent path reads group descriptors through
+> ocfs2_read_group_descriptor(), which validates the descriptor before
+> use. The non-coherent path uses ocfs2_read_blocks_sync() instead and
+> skips that validation, so an impossible bg_bits value can drive the
+> bitmap walk past the end of the block.
+> 
+> [FIX]
+> Compute the bitmap capacity from the filesystem format with
+> ocfs2_group_bitmap_size(), report descriptors whose bg_bits exceeds
+> that limit, and clamp the scan to the computed capacity. This keeps the
+> freefrag report going while avoiding reads beyond the buffer.
+> 
+> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+> ---
+> v2:
+> - Use ocfs2_group_bitmap_size() instead of the on-disk bg_size field
+> - Clamp bg_bits to the computed bitmap capacity and continue scanning
+> ---
+>  fs/ocfs2/ioctl.c | 21 +++++++++++++++++++--
+>  1 file changed, 19 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index b6864602814c..fa0ca014c6d5 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -441,7 +441,7 @@ static int ocfs2_info_freefrag_scan_chain(struct ocfs2_super *osb,
+>  	struct buffer_head *bh = NULL;
+>  	struct ocfs2_group_desc *bg = NULL;
+>  
+> -	unsigned int max_bits, num_clusters;
+> +	unsigned int max_bits, max_bitmap_bits, num_clusters;
+>  	unsigned int offset = 0, cluster, chunk;
+>  	unsigned int chunk_free, last_chunksize = 0;
+>  
+> @@ -474,11 +474,28 @@ static int ocfs2_info_freefrag_scan_chain(struct ocfs2_super *osb,
+>  		}
+>  
+>  		bg = (struct ocfs2_group_desc *)bh->b_data;
+> +		max_bits = le16_to_cpu(bg->bg_bits);
+> +		max_bitmap_bits = 8U *
+> +			ocfs2_group_bitmap_size(osb->sb, 1,
+> +						osb->s_feature_incompat);
+> +
+> +		/*
+> +		 * Non-coherent scans read raw blocks and do not get the
+> +		 * bg_bits validation from
+> +		 * ocfs2_read_group_descriptor().
+> +		 */
+> +		if (max_bits > max_bitmap_bits) {
+> +			mlog(ML_ERROR,
+> +			     "Group desc #%llu has %u bits, max bitmap bits %u\n",
+> +			     (unsigned long long)blkno,
+> +			     max_bits,
+> +			     max_bitmap_bits);
+> +			max_bits = max_bitmap_bits;
+> +		}
+>  
+>  		if (!le16_to_cpu(bg->bg_free_bits_count))
+>  			continue;
+>  
+> -		max_bits = le16_to_cpu(bg->bg_bits);
 
-kernel BUG at fs/ocfs2/uptodate.c:509!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-RIP: 0010:ocfs2_set_new_buffer_uptodate+0x194/0x1e0 fs/ocfs2/uptodate.c:509
-Code: ffffe88f 42b9fe4c 89e64889 dfe8b4df
-Call Trace:
- ocfs2_group_add+0x3f1/0x1510 fs/ocfs2/resize.c:507
- ocfs2_ioctl+0x309/0x6e0 fs/ocfs2/ioctl.c:887
- vfs_ioctl fs/ioctl.c:51 [inline]
- __do_sys_ioctl fs/ioctl.c:597 [inline]
- __se_sys_ioctl fs/ioctl.c:583 [inline]
- __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
- x64_sys_call+0x1144/0x26a0 arch/x86/include/generated/asm/syscalls_64.h:17
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0x93/0xf80 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x76/0x7e
-RIP: 0033:0x7bbfb55a966d
+Restore this line and move the code here.
+This will save cpu cycles when bg->bg_free_bits_count is zero, which is a
+frequent occurrence.
 
-[CAUSE]
-ocfs2_group_add() calls ocfs2_set_new_buffer_uptodate() on a
-user-controlled group block before ocfs2_verify_group_and_input()
-validates that block number. That helper is only valid for newly
-allocated metadata and asserts that the block is not already present in
-the chosen metadata cache. The code also uses INODE_CACHE(inode) even
-though the group descriptor belongs to main_bm_inode and later journal
-accesses use that cache context instead.
-
-[FIX]
-Validate the on-disk group descriptor before caching it, then add it to
-the metadata cache tracked by INODE_CACHE(main_bm_inode). Keep the
-validation failure path separate from the later cleanup path so we only
-remove the buffer from that cache after it has actually been inserted.
-This keeps the group buffer lifetime consistent across validation,
-journaling, and cleanup.
-
-Fixes: 7909f2bf8353 ("[PATCH 2/2] ocfs2: Implement group add for online resize")
-Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
----
-v3:
-- keep out_free_group_bh as the brelse() label
-- add out_remove_cache for failures after cache insertion
-- send ocfs2_start_trans() failure to out_remove_cache
-
-v2:
-- add the missing Fixes tag for the group-add introduction commit
-- keep the validation failure path separate so cache removal only happens
-  after the buffer has been inserted into main_bm_inode's cache
----
- fs/ocfs2/resize.c | 12 +++++++-----
- 1 file changed, 7 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
-index b0733c08ed13..5c6975d90ad6 100644
---- a/fs/ocfs2/resize.c
-+++ b/fs/ocfs2/resize.c
-@@ -504,14 +504,14 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
- 		goto out_unlock;
- 	}
- 
--	ocfs2_set_new_buffer_uptodate(INODE_CACHE(inode), group_bh);
--
- 	ret = ocfs2_verify_group_and_input(main_bm_inode, fe, input, group_bh);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out_free_group_bh;
- 	}
- 
-+	ocfs2_set_new_buffer_uptodate(INODE_CACHE(main_bm_inode), group_bh);
-+
- 	trace_ocfs2_group_add((unsigned long long)input->group,
- 			       input->chain, input->clusters, input->frees);
- 
-@@ -519,7 +519,7 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
- 	if (IS_ERR(handle)) {
- 		mlog_errno(PTR_ERR(handle));
- 		ret = -EINVAL;
--		goto out_free_group_bh;
-+		goto out_remove_cache;
- 	}
- 
- 	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
-@@ -573,9 +573,11 @@ int ocfs2_group_add(struct inode *inode, struct ocfs2_new_group_input *input)
- out_commit:
- 	ocfs2_commit_trans(osb, handle);
- 
--out_free_group_bh:
-+out_remove_cache:
- 	if (ret < 0)
--		ocfs2_remove_from_cache(INODE_CACHE(inode), group_bh);
-+		ocfs2_remove_from_cache(INODE_CACHE(main_bm_inode), group_bh);
-+
-+out_free_group_bh:
- 	brelse(group_bh);
- 
- out_unlock:
--- 
-2.43.0
-
+- Heming
+>  		offset = 0;
+>  
+>  		for (chunk = 0; chunk < chunks_in_group; chunk++) {
+> -- 
+> 2.43.0
+> 
+> 
