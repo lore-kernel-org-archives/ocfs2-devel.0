@@ -1,177 +1,222 @@
-Received: from mail-ej1-f47.google.com (mail-ej1-f47.google.com [209.85.218.47])
+Received: from mail-pj1-f54.google.com (mail-pj1-f54.google.com [209.85.216.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 85FCA3126A9
-	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Apr 2026 04:35:18 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.218.47
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776314119; cv=pass; b=BtXKf5zSzTzYrRYvEXrtXCnn+D6sayy1d7Pw1ZPiG7hGxO8cz6xulFbxV4F8C4zqni0Nfv2XLKhVEg4Ohn3qps9QsP3mMVNWo4NeiwY0zUguA5vLF5gFGeK+fwW1NwDWNY72Zhir2C1pqplkHUEN/8o1bFG/vGjEW6vSGRNA0mg=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776314119; c=relaxed/simple;
-	bh=64G9l+U0R6IGVml3kCoXImIkc9etA5j7SZbOKzvyLxA=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=gFfvGnNCeYUui6A3muiDUFdRZ9e+PgEr7dEaEQ83zPxKOTUkqcaAQ/G4c2epmlPDXGZmYzPdCiw+SHgr6FCvkEWpmpl+ifli/xtz0VYd8s/eOtFGivGdfsbYvmjAKzLpFURP/mBpBSVXbCeixDpsmyH7cgVTu9X+kesA7bkUPEg=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=f2HLWGoH; arc=pass smtp.client-ip=209.85.218.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 54D5E248166
+	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Apr 2026 04:48:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.54
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1776314898; cv=none; b=qQy0fF2UOEpFlcrxEohHuR+gr5yJ5w6GkPFGJqsMUKaeqAQ4bqUJpq/xziR0mOsGm7QsJXpOppSUoZDIpfpPU+xxgwaUa6qGjg+wJ30eOUbX0bwXC8DcpbfAymMWfiNoVR6/CEE2/ozbmoahbeczCYG2IsocpMDn9hOj6Ury1oA=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1776314898; c=relaxed/simple;
+	bh=1kl9AyYyf2KfnOWMYBK+l9GVAFM8MhdwPPSjig1yEKc=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=hEU1m/8T74J4teO70YW49OUa+6oBcuRddBHEolIIbTUFkp+WL0HjWCh0lnE2SOJbA3jWjY8cqtPUblnoeSA4XfvdAqSz0VDKhDTW3Yz2eKa/JCt5aku28gwRYNfW0LOTZtKloOb4t58uCQarrr0eRhtTkfUHjOjGR79hi8oadYQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=cdd9zI71; arc=none smtp.client-ip=209.85.216.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="f2HLWGoH"
-Received: by mail-ej1-f47.google.com with SMTP id a640c23a62f3a-b93698bb57aso42793366b.0
-        for <ocfs2-devel@lists.linux.dev>; Wed, 15 Apr 2026 21:35:18 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1776314117; cv=none;
-        d=google.com; s=arc-20240605;
-        b=IcKQVglLajd0JkoIHH2+WXdEHlQOjaZjSrcdGGh+wqqDE8ubMjxm1iXmhLO5a9ioNn
-         9NN/IlxZJjoJ8FNFw1/Ps5CFg+ax+ns8ybG3G871o6c5DOz/ChgrsYZjexTHH3uTJnDx
-         Co44C3h2uEKrO9EscuMMG2Xnq214oxCMrbndqzfS0GM/Us74sZwq+s8vj9ioncmNnEbE
-         CLD7z/wd74WGY6td9P+98HzzNkt938kc9OdtEGo2jwC2cI/oJJvSxbfM1rxEhx1I4ggm
-         6hGgDy/3ESZcYFCdyGqJzQ5Aikp6dsl3Due15dhsSYPhYEW7v1YhTxBOgYRDbhZozVhg
-         4lQQ==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=QTxnHf/Qon1JDLNrFu2d5htE+P3hFvkr3lA/QesUOYk=;
-        fh=TWnsSZZSGdEBS58sidpkWsDK+CRWLUukVAyN/X0uYHE=;
-        b=FNHnr+B4yOT54i+34ecpyBrG2ONS/+1auCULp5m7iaxSf/SULaXySrde7ZqDg6z7t6
-         84wEFqrbA79d0/A14+/uuJ52jqSdLNWOaovlJ4qCpAAfjkWS520TxO8fUM9Bza308Jh/
-         ENh6pc7g2OFjFe5VXCWTYRKMxtBFbaccyMKRgUBDVPa0HJMR3z0uP4POm8KuJRaLk04M
-         lTQ6w72MB/FcHkQLGDLG1gEw/5/tSIdJpeozuXaLqFlRX36EtB/H7GOTMgZ5L16ektHI
-         7tfKy7T4zuTE8AjdcOdL8Rb6yRnjQmBIt6yUP5cshCcdshG4CRPAnzOpcxCt5NxI5L9x
-         aaGA==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="cdd9zI71"
+Received: by mail-pj1-f54.google.com with SMTP id 98e67ed59e1d1-35fc0d7c310so2217999a91.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 15 Apr 2026 21:48:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1776314117; x=1776918917; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=QTxnHf/Qon1JDLNrFu2d5htE+P3hFvkr3lA/QesUOYk=;
-        b=f2HLWGoHnUyHLdmHCFAdIUeYn5isxgo3z5pUBfKxLzrAZCe0dbfqeJmRJBgkDw6BdN
-         wh2S+VSRfJ+KHngvMThIeWA/xlDqVm+svXhROEN8Jj1kiT+wFQUtlhSjGsIgEiWBOWbV
-         hmQQ0hldMK3Zqn+bhRaszZ3ZkmN5QAiurKNG5g8NzxKMNgkJpxRaz0GblurH1cZsnYo1
-         WfvIYzz7Z1nwItkb/9JFSvRVzSfk6WgIutXtmBRWY3mH03jaGyIl1ESSbm91m2oqntPm
-         ruh9VkDDSc/WK/AH4awk7kytl0kPD0CTf0hmqc98vlTDxqzVfGis1JYFlkrTCQAUk+c0
-         esQQ==
+        d=gmail.com; s=20251104; t=1776314897; x=1776919697; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=ocWoS6b1EZyIiNsa6xdsZkOFjYKaXDHdjKcTd1GQEq8=;
+        b=cdd9zI71qWBZ5O+sxJ8B0L1S9b8BEqJ3t6Fkj08Ki7uWEGSDhLNcgdGnVyZciex2gV
+         bofkSeT6bWRYxrQz43CzH8WD+m5Dm8w5Chj97UI1IvuQKFbTvTvpuHHxRMbXQmOTQrj1
+         t65rgB98hrFx1gpyv/GL3UGxUlvWnyF9GhSVLhEGu9msr0lo253dc1Yi/I03uVMotE0p
+         wHjUAFrb8mhmGBictjzz1ffs148BSoKCdtxk1yYL4s/2UPU//s/FUzmUbT5RfvSQXVyz
+         XNNULLwJYYuDJzT1n9TXbsL82le7MvMror7PRqHyW94TuQyWB8BaKnIpH4oz5KPm39Dd
+         hsow==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1776314117; x=1776918917;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=QTxnHf/Qon1JDLNrFu2d5htE+P3hFvkr3lA/QesUOYk=;
-        b=H2C4B+4ktYRHBg4Coh06G4KDbbl6aikqS/3o7O89JmwHdkPnZgQRMtayF1H61EP1h3
-         3juwrt2co7M+vRHT7gszdm9Jjo45TCL5AepEzoxL2l9opqjqnHg+edIIzca23ahtpM40
-         1VViRYbb8mwOxMkCZAR/0/t4WP+Nz3qMXyd+ncTerNCHW5DCWp1B0eBEN9a8pl27mI0d
-         GfRf/IpA/r0/AdX+7Y4WdNL/YGFxUOmQZsVQvws2lHxll7Z/SpwtnJM07tg8v/wJVhfM
-         fBuwPwIlTAxMm8MCmNTlOD3IinaHZESD6DzzgU547YV2qT/wM9Kxn32aBQ7E4C7CNc1n
-         gFnQ==
-X-Forwarded-Encrypted: i=1; AFNElJ+VK5zq0C1vcbLMkGuCHnsqdqUYqraal1q3vBxIF1DHDA1IqehwUNP9RnPKHtWYIEAtDluhVkglwE+dnQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yx+vCoep+G/k2Wzz8DoaNug1gvC6l5uN7xGK3zY52lxr5FXXCTR
-	/K4ZrPIsEB9WM5pofIq5VWRa0mXIlR52+EO8XtjgtTH6n96zZbKlcjsAsyezWbSEomk/ApGDiqB
-	r1I6J79SHP3+8DKxvRZ2aJxCk6c0XdpY=
-X-Gm-Gg: AeBDietpl4Ky2bHdkvL8ZiUyEKTwhMIXJfuaviMpgrJAQ3O2GxlAOdQwNb90ybHPqIb
-	LnNt3eFQ5ayVDLEdNcNvEhllOEjXaC5/5On6Th2h4baUoxBpAWnUZ1s1Kzpk07AfB2KI7gTxmbi
-	wRVadt+6eURDsYNVY1g3OUH9xm20bMRbwzOfQ7Lb4+tSsFqfljAGYbIcSH1iQscqLFhezSSIwsT
-	78W+rRDFlbqiwppyLSehoBf21iYopiZRJPl30I5ymzdX4cE4tPajIYhXkCvAYBhNPQ0baaO+JkV
-	fB6GCUqSkTP6ty8cGsy6kKLTsCrzJ9lxpXUrNOECprYvdU3yP+E=
-X-Received: by 2002:a17:907:7b82:b0:b88:51cb:fd65 with SMTP id
- a640c23a62f3a-ba2671f405fmr108701966b.3.1776314116473; Wed, 15 Apr 2026
- 21:35:16 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1776314897; x=1776919697;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=ocWoS6b1EZyIiNsa6xdsZkOFjYKaXDHdjKcTd1GQEq8=;
+        b=PNgrjHy/W99HwQRjve3+IHeZi9tq5BSzYDiQSjrnGIs0vr2loNZhcOVEMhGnPwJte3
+         /xgyGHPzwtqG8+zvKVfp5CwMb9HYi8QffuW/xfONJiYUWsrSxQOKiuBellBT5GqLOzY6
+         4u6ZWMNbqHSc5oJVtpfuXdH2XMYNrUWlivtlxICiR8AfFepyJ9XRMw3esX9BeFGgMp+n
+         om0R6Z3Xi0mQvlA3DOWgT8DcVDE3TBz//2k0V0Rct7+pJIO/jqZmNzDo1CA8HEUs2oCk
+         i9jkcLXJM3wwIczyol9JGz3fr2T2XKhPJfdyzNP4wD0/+kMM4kHpqU4ZaC4zvWWiTc3M
+         Smjw==
+X-Gm-Message-State: AOJu0YwOV8Wpd60JNXFogZs97aALEt38UYvx+MixCXrRVjah2jOYX6sY
+	xqjvo5Ti5VRCca8rNI5T4BQWpLL5BKx6owF9cmP1JZkHXzD24BMROH9a
+X-Gm-Gg: AeBDietoi7EW+EmiRx6bSHzs0c4bJUQguC2GSu79m7qez4MUowSoVdm75mV0UMvBkEU
+	1ydPrC8SXNdm2Vr9/U78PiOfR4MqPnqG520FnvkdlWVeWc1kaeKoNPmOqHXRdEnIu/X6qziG3fU
+	F8LXLW8zJV0QIBGm0Fhmiym9ev7KmV7CI5lmvans9U198g6fcMTz164m/m/FXzHUJsQM1adakMB
+	/ZpVq5KWpqpGeep3O0T+Pmr2MrOP9M05dPSMaxjQbIjPpyfZFaK4FJPmXlbwmJL5j+14QijHyyM
+	hnvN56XQJ4lncUJ2gite/p1R3cA5VGEL1eliBq2dlG1RsPSrN8h5Q6MwqgWdw6q4jhVyKUspzAH
+	GDoxuHuc0VYkhrY+hT3h3Na0GW8PKOJ6B5IuvZ1z3AFu59jx3zNENEbKAn5L1JxZg135eJnHnTX
+	usYPMqRYD03BYUsF/qDc2M+58UTqcfvmuy3Wr6NoBswnJ57RZ0yelgHjAmCN4hE2meSoojMb0tf
+	w==
+X-Received: by 2002:a17:90b:3950:b0:35b:e4f8:7cc5 with SMTP id 98e67ed59e1d1-35e4284c7e0mr23281440a91.25.1776314896515;
+        Wed, 15 Apr 2026 21:48:16 -0700 (PDT)
+Received: from kernel-fuzz.. ([103.172.182.26])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-36132c8bd25sm1010534a91.3.2026.04.15.21.48.12
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 15 Apr 2026 21:48:15 -0700 (PDT)
+From: gality369 <gality369@gmail.com>
+X-Google-Original-From: gality369 <gality369@example.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	r33s3n6@gmail.com,
+	zzzccc427@gmail.com,
+	gality369 <gality369@example.com>
+Subject: [PATCH] ocfs2: reject inconsistent local xattr entries
+Date: Thu, 16 Apr 2026 12:48:06 +0800
+Message-ID: <20260416044806.3007438-1-gality369@example.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260410113229.4092277-1-gality369@gmail.com> <57ej3tjpgtx7myqagtuxj6js7nbnaa6wpdko26jo2wuw6ci5au@rpa7hwij2gri>
-In-Reply-To: <57ej3tjpgtx7myqagtuxj6js7nbnaa6wpdko26jo2wuw6ci5au@rpa7hwij2gri>
-From: ZhengYuan Huang <gality369@gmail.com>
-Date: Thu, 16 Apr 2026 12:34:50 +0800
-X-Gm-Features: AQROBzClhB2vyuMU1bFq87K53UA26dbcFxvjGxtHlY1bUgrRDWNKcTwzAiNNmK8
-Message-ID: <CAOmEq9VML66bTcwe6w7F03pGQva2Nqp=Yib8SOLsEBfAPwou-g@mail.gmail.com>
-Subject: Re: [PATCH v2] ocfs2: validate inline dir size during inode reads
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 
-On Mon, Apr 13, 2026 at 3:19=E2=80=AFPM Heming Zhao <heming.zhao@suse.com> =
-wrote:
->
-> On Fri, Apr 10, 2026 at 07:32:29PM +0800, ZhengYuan Huang wrote:
-> > [BUG]
-> > A crafted inline-data directory can store i_size larger than id_count.
-> > Once such a dinode is instantiated, readdir walks past data->id_data
-> > and KASAN reports:
-> >
-> > BUG: KASAN: use-after-free in ocfs2_check_dir_entry.isra.0+0x31f/0x370 =
-fs/ocfs2/dir.c:305
-> > Read of size 2 at addr ffff8880088f0008 by task syz.0.1936/4656
-> > Call Trace:
-> >  ...
-> >  ocfs2_check_dir_entry.isra.0+0x31f/0x370 fs/ocfs2/dir.c:305
-> >  ocfs2_dir_foreach_blk_id+0x203/0xa70 fs/ocfs2/dir.c:1805
-> >  ocfs2_dir_foreach_blk fs/ocfs2/dir.c:1933 [inline]
-> >  ocfs2_readdir+0x4ba/0x520 fs/ocfs2/dir.c:1977
-> >  wrap_directory_iterator+0x9c/0xe0 fs/readdir.c:65
-> >  shared_ocfs2_readdir+0x29/0x40 fs/ocfs2/file.c:2822
-> >  iterate_dir+0x276/0x9e0 fs/readdir.c:108
-> >  __do_sys_getdents64 fs/readdir.c:410 [inline]
-> >  __se_sys_getdents64 fs/readdir.c:396 [inline]
-> >  __x64_sys_getdents64+0x143/0x2a0 fs/readdir.c:396
-> >  ...
-> >
-> > [CAUSE]
-> > The inline-dir invariant i_size <=3D id_count is never validated when a
-> > dinode is read. ocfs2_validate_inode_block() accepts the corrupted
-> > metadata, then ocfs2_populate_inode() or ocfs2_refresh_inode() copies
-> > that unchecked on-disk i_size into inode->i_size.
-> >
-> > JBD2-managed buffers can also bypass ocfs2_validate_inode_block(), so
-> > the same unchecked size can still reach ocfs2_populate_inode() and
-> > ocfs2_refresh_inode() through those read paths.
-> >
-> > [FIX]
-> > Introduce a shared helper that validates inline directory i_size
-> > against id_count. Call it from ocfs2_validate_inode_block() so corrupt
-> > inline-dir dinodes are rejected in the cold metadata-read path, and add
-> > matching guards in ocfs2_read_locked_inode() and ocfs2_inode_lock_updat=
-e()
-> > for the JBD2-managed buffer paths that skip the validator.
-> >
-> > This blocks the corrupted metadata before it reaches VFS inode state
-> > and keeps the hot readdir path unchanged.
-> >
-> > Fixes: 23193e513d1c ("ocfs2: Read support for directories with inline d=
-ata")
-> > Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
-> > ---
-> > v2:
-> > - Move the validation from ocfs2_dir_foreach_blk_id() to inode read pat=
-hs
-> > - Add JBD2-managed buffer guards in ocfs2_read_locked_inode() and ocfs2=
-_inode_lock_update()
-> > - Reword the changelog to describe unchecked on-disk i_size rather than=
- corrupted in-memory state
->
-> ocfs2_validate_inode_block() already has the logic to check inline-data s=
-ize.
-> You can find it by searching for:
-> "if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) {"
->
-> - Heming
+[BUG]
+A corrupt OCFS2 xattr entry can set OCFS2_XATTR_ENTRY_LOCAL while
+keeping xe_value_size larger than OCFS2_XATTR_INLINE_SIZE.
 
-My mistake.
+Once that entry reaches namevalue_size_xe(), the filesystem trips over:
 
-I reran my reproducer on the latest upstream kernel and could not
-reproduce the issue there, so based on the current repro results, it
-appears that the bug has already been fixed.
+kernel BUG at fs/ocfs2/xattr.c:231!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+RIP: 0010:namevalue_size_xe fs/ocfs2/xattr.c:231 [inline]
+RIP: 0010:ocfs2_xa_block_wipe_namevalue+0x2e4/0x330 fs/ocfs2/xattr.c:1638
+Call Trace:
+ ocfs2_xa_wipe_namevalue fs/ocfs2/xattr.c:1470 [inline]
+ ocfs2_xa_remove_entry+0xae/0x1d0 fs/ocfs2/xattr.c:1941
+ ocfs2_xa_remove fs/ocfs2/xattr.c:2043 [inline]
+ ocfs2_xa_set+0x11a8/0x30a0 fs/ocfs2/xattr.c:2247
+ ocfs2_xattr_ibody_set+0x302/0xc50 fs/ocfs2/xattr.c:2795
+ __ocfs2_xattr_set_handle+0x7e6/0xdb0 fs/ocfs2/xattr.c:3416
+ ocfs2_xattr_set+0x1447/0x2610 fs/ocfs2/xattr.c:3650
+ ocfs2_xattr_security_set+0x37/0x50 fs/ocfs2/xattr.c:7241
+ __vfs_removexattr+0x14d/0x1d0 fs/xattr.c:518
+ cap_inode_killpriv+0x29/0x50 security/commoncap.c:355
+ security_inode_killpriv+0x105/0x220 security/security.c:2724
+ setattr_prepare+0x147/0x8a0 fs/attr.c:219
+ ocfs2_setattr+0x504/0x1fd0 fs/ocfs2/file.c:1148
+ notify_change+0x4b5/0x1030 fs/attr.c:546
+ do_truncate+0x1d2/0x230 fs/open.c:68
+ handle_truncate fs/namei.c:3596 [inline]
+ do_open fs/namei.c:3979 [inline]
+ path_openat+0x260f/0x2ce0 fs/namei.c:4134
+ do_filp_open+0x1f6/0x430 fs/namei.c:4161
+ do_sys_openat2+0x117/0x1c0 fs/open.c:1437
+ do_sys_open fs/open.c:1452 [inline]
+ ...
 
-Although code inspection still suggests that JBD-managed buffers may
-bypass that validation path, my current reproducer has not been able
-to trigger the bug on the latest kernel. We will continue testing to
-determine whether there is still a reachable path here or whether the
-issue has in fact already been fixed by another change.
+[CAUSE]
+namevalue_size_xe() assumes on-disk xattr entries keep the local flag
+and value size consistent, but OCFS2 does not reject an entry that
+claims local storage for a value larger than the inline limit before
+handing that entry to namevalue_size_xe().
 
-Thanks,
-ZhengYuan Huang
+The exact-match lookup path can return such an entry through xs->here,
+and bucket defragmentation and splitting can also walk the corrupt entry
+directly while reorganizing metadata.
+
+[FIX]
+Add a small validator for the local/value_size invariant and call it in
+the paths that feed disk entries to namevalue_size_xe(): exact-match
+lookup, bucket lookup results, bucket defragmentation, and bucket
+splitting.
+
+Corrupt metadata is now reported with ocfs2_error() and -EFSCORRUPTED
+instead of crashing the kernel with BUG_ON().
+
+Signed-off-by: gality369 <gality369@example.com>
+---
+No Fixes tag was added because this is more like a defensive check
+that is long overdue, not a regression that can be clearly attributed
+to a specific introduction commit.
+---
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 86cfd4c2adf9..63b1e55b242f 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -237,6 +237,23 @@ static int namevalue_size_xe(struct ocfs2_xattr_entry *xe)
+ 	return namevalue_size(xe->xe_name_len, value_len);
+ }
+ 
++static int ocfs2_validate_xattr_entry(struct inode *inode,
++				      struct ocfs2_xattr_entry *xe)
++{
++	u64 value_len = le64_to_cpu(xe->xe_value_size);
++
++	if (value_len > OCFS2_XATTR_INLINE_SIZE &&
++	    ocfs2_xattr_is_local(xe)) {
++		ocfs2_error(inode->i_sb,
++			    "Inode %llu has corrupt xattr entry: local value_size %llu\n",
++			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
++			    value_len);
++		return -EFSCORRUPTED;
++	}
++
++	return 0;
++}
++
+ 
+ static int ocfs2_xattr_bucket_get_name_value(struct super_block *sb,
+ 					     struct ocfs2_xattr_header *xh,
+@@ -1099,6 +1116,7 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
+ 	struct ocfs2_xattr_entry *entry;
+ 	size_t name_len;
+ 	int i, name_offset, cmp = 1;
++	int ret;
+ 
+ 	if (name == NULL)
+ 		return -EINVAL;
+@@ -1121,6 +1139,11 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
+ 				return -EFSCORRUPTED;
+ 			}
+ 			cmp = memcmp(name, (xs->base + name_offset), name_len);
++			if (!cmp) {
++				ret = ocfs2_validate_xattr_entry(inode, entry);
++				if (ret)
++					return ret;
++			}
+ 		}
+ 		if (cmp == 0)
+ 			break;
+@@ -3823,6 +3846,9 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
+ 
+ 		xe_name = bucket_block(bucket, block_off) + new_offset;
+ 		if (!memcmp(name, xe_name, name_len)) {
++			ret = ocfs2_validate_xattr_entry(inode, xe);
++			if (ret)
++				break;
+ 			*xe_index = i;
+ 			*found = 1;
+ 			ret = 0;
+@@ -4463,6 +4489,10 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
+ 	xe = xh->xh_entries;
+ 	end = OCFS2_XATTR_BUCKET_SIZE;
+ 	for (i = 0; i < le16_to_cpu(xh->xh_count); i++, xe++) {
++		ret = ocfs2_validate_xattr_entry(inode, xe);
++		if (ret)
++			goto out;
++
+ 		offset = le16_to_cpu(xe->xe_name_offset);
+ 		len = namevalue_size_xe(xe);
+ 
+@@ -4745,6 +4775,10 @@ static int ocfs2_divide_xattr_bucket(struct inode *inode,
+ 	name_value_len = 0;
+ 	for (i = 0; i < start; i++) {
+ 		xe = &xh->xh_entries[i];
++		ret = ocfs2_validate_xattr_entry(inode, xe);
++		if (ret)
++			goto out;
++
+ 		name_value_len += namevalue_size_xe(xe);
+ 		if (le16_to_cpu(xe->xe_name_offset) < name_offset)
+ 			name_offset = le16_to_cpu(xe->xe_name_offset);
+-- 
+2.43.0
