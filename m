@@ -1,63 +1,61 @@
-Received: from mail-pj1-f54.google.com (mail-pj1-f54.google.com [209.85.216.54])
+Received: from mail-pf1-f178.google.com (mail-pf1-f178.google.com [209.85.210.178])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 54D5E248166
-	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Apr 2026 04:48:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.54
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BABE633C51D
+	for <ocfs2-devel@lists.linux.dev>; Thu, 16 Apr 2026 04:57:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776314898; cv=none; b=qQy0fF2UOEpFlcrxEohHuR+gr5yJ5w6GkPFGJqsMUKaeqAQ4bqUJpq/xziR0mOsGm7QsJXpOppSUoZDIpfpPU+xxgwaUa6qGjg+wJ30eOUbX0bwXC8DcpbfAymMWfiNoVR6/CEE2/ozbmoahbeczCYG2IsocpMDn9hOj6Ury1oA=
+	t=1776315481; cv=none; b=aUlGsTPl2wv4pcNuz4AnfwefKACfUPHOWlpLNhRNUU+qddLOq6zGjN4xpNazyNoPcr2IJwhBYstIo0TJwn/WCsCj5TvMWy0dxdB7/n/EWBhovM7H1qBEqeDDwZLOxj5SnVWj17jx2CIM/uHNlHt9WBIxK8iNBtbSVXqKgvWiWLM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776314898; c=relaxed/simple;
-	bh=1kl9AyYyf2KfnOWMYBK+l9GVAFM8MhdwPPSjig1yEKc=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=hEU1m/8T74J4teO70YW49OUa+6oBcuRddBHEolIIbTUFkp+WL0HjWCh0lnE2SOJbA3jWjY8cqtPUblnoeSA4XfvdAqSz0VDKhDTW3Yz2eKa/JCt5aku28gwRYNfW0LOTZtKloOb4t58uCQarrr0eRhtTkfUHjOjGR79hi8oadYQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=cdd9zI71; arc=none smtp.client-ip=209.85.216.54
+	s=arc-20240116; t=1776315481; c=relaxed/simple;
+	bh=8TMlI1pQleftFu9PClZwNbIJshve1ZBePZlu3huWhZ4=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=s0DB6aeGq+fcUw9WpjXFpiMIoIBvr4vLWbcnCUm1FXmB+IlMRzx5AMlnfav50Eu1oqk/M49AQPknyf7TA/1qcJWzmhC+6Jy6gQHh0PFaxsUpf0nQW3mRA+8jiM7QRgBl4WpdHIKPlnKwYlenr2CXHcwU64sRGmkTxuf7FSEbxYE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=I1Ef6Yr6; arc=none smtp.client-ip=209.85.210.178
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="cdd9zI71"
-Received: by mail-pj1-f54.google.com with SMTP id 98e67ed59e1d1-35fc0d7c310so2217999a91.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 15 Apr 2026 21:48:17 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="I1Ef6Yr6"
+Received: by mail-pf1-f178.google.com with SMTP id d2e1a72fcca58-8296d553142so3905929b3a.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 15 Apr 2026 21:57:59 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1776314897; x=1776919697; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1776315479; x=1776920279; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=ocWoS6b1EZyIiNsa6xdsZkOFjYKaXDHdjKcTd1GQEq8=;
-        b=cdd9zI71qWBZ5O+sxJ8B0L1S9b8BEqJ3t6Fkj08Ki7uWEGSDhLNcgdGnVyZciex2gV
-         bofkSeT6bWRYxrQz43CzH8WD+m5Dm8w5Chj97UI1IvuQKFbTvTvpuHHxRMbXQmOTQrj1
-         t65rgB98hrFx1gpyv/GL3UGxUlvWnyF9GhSVLhEGu9msr0lo253dc1Yi/I03uVMotE0p
-         wHjUAFrb8mhmGBictjzz1ffs148BSoKCdtxk1yYL4s/2UPU//s/FUzmUbT5RfvSQXVyz
-         XNNULLwJYYuDJzT1n9TXbsL82le7MvMror7PRqHyW94TuQyWB8BaKnIpH4oz5KPm39Dd
-         hsow==
+        bh=zrAYe9vzhFRW1N9dJjeeqEl+23S+heMZp+qckgpxyGo=;
+        b=I1Ef6Yr6vIdS/NA2OplVIBH9HcE9jrEPjd7X+L6x+rBlBXXRvHceW/cQ6JMFwKmBgz
+         uHORqcNQg/8g7AHDZqqFEyLcMTglpdeE09BqVTL+hdZLt9bHpwzsqU9auTFxynnSmsbS
+         prmLa/MWCf48uNuBIA6qsXJb56G3jedWo4Dl9Mq89dG+JAoM0/EfFS/B1bxHVoEs+F3l
+         HHAWdw3TBfmTr0ySjSIdPfPnm8K5/BDSE2sHdB3gVD8SL5in8FCgb00vkEm0yFXzeTjw
+         4g3K8UMaTtLk2KdELXPvmlgob60nYtSTgpYAGfM1irby95oqzpjACe5deissfZGveCkn
+         V1Ug==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1776314897; x=1776919697;
+        d=1e100.net; s=20251104; t=1776315479; x=1776920279;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=ocWoS6b1EZyIiNsa6xdsZkOFjYKaXDHdjKcTd1GQEq8=;
-        b=PNgrjHy/W99HwQRjve3+IHeZi9tq5BSzYDiQSjrnGIs0vr2loNZhcOVEMhGnPwJte3
-         /xgyGHPzwtqG8+zvKVfp5CwMb9HYi8QffuW/xfONJiYUWsrSxQOKiuBellBT5GqLOzY6
-         4u6ZWMNbqHSc5oJVtpfuXdH2XMYNrUWlivtlxICiR8AfFepyJ9XRMw3esX9BeFGgMp+n
-         om0R6Z3Xi0mQvlA3DOWgT8DcVDE3TBz//2k0V0Rct7+pJIO/jqZmNzDo1CA8HEUs2oCk
-         i9jkcLXJM3wwIczyol9JGz3fr2T2XKhPJfdyzNP4wD0/+kMM4kHpqU4ZaC4zvWWiTc3M
-         Smjw==
-X-Gm-Message-State: AOJu0YwOV8Wpd60JNXFogZs97aALEt38UYvx+MixCXrRVjah2jOYX6sY
-	xqjvo5Ti5VRCca8rNI5T4BQWpLL5BKx6owF9cmP1JZkHXzD24BMROH9a
-X-Gm-Gg: AeBDietoi7EW+EmiRx6bSHzs0c4bJUQguC2GSu79m7qez4MUowSoVdm75mV0UMvBkEU
-	1ydPrC8SXNdm2Vr9/U78PiOfR4MqPnqG520FnvkdlWVeWc1kaeKoNPmOqHXRdEnIu/X6qziG3fU
-	F8LXLW8zJV0QIBGm0Fhmiym9ev7KmV7CI5lmvans9U198g6fcMTz164m/m/FXzHUJsQM1adakMB
-	/ZpVq5KWpqpGeep3O0T+Pmr2MrOP9M05dPSMaxjQbIjPpyfZFaK4FJPmXlbwmJL5j+14QijHyyM
-	hnvN56XQJ4lncUJ2gite/p1R3cA5VGEL1eliBq2dlG1RsPSrN8h5Q6MwqgWdw6q4jhVyKUspzAH
-	GDoxuHuc0VYkhrY+hT3h3Na0GW8PKOJ6B5IuvZ1z3AFu59jx3zNENEbKAn5L1JxZg135eJnHnTX
-	usYPMqRYD03BYUsF/qDc2M+58UTqcfvmuy3Wr6NoBswnJ57RZ0yelgHjAmCN4hE2meSoojMb0tf
-	w==
-X-Received: by 2002:a17:90b:3950:b0:35b:e4f8:7cc5 with SMTP id 98e67ed59e1d1-35e4284c7e0mr23281440a91.25.1776314896515;
-        Wed, 15 Apr 2026 21:48:16 -0700 (PDT)
+        bh=zrAYe9vzhFRW1N9dJjeeqEl+23S+heMZp+qckgpxyGo=;
+        b=beIoh77HQS2JuLpqbHIizgtucCU4NHsjzZq0WrQQKRBfHqb/DJXCnaGMqmTiDx7Utt
+         qbD6MHEJZkrfPczTqPUuTFoOgrAG7A1x5SecjrPJnjJ3rzn1eiSuln1JW3pwEPJWWD80
+         m3ZSixGjl+u3RIhW0G96nvKvFYz4o8Rj9NFERaXfKaZAhojZoZ9lh4sfu24buUXPp3m7
+         Q1uV3LCaNZm2wqcLJp9wnqicxlhjBsUcXIbVubJaPQTt57IB9ZobQTIfxR+ZrgMvZPFz
+         i5XMHeMoOS15gRpTKZelxlbUHZSgb7LLnVIJN7177+Asv7l8asTVc71VRyfSqtiXoewG
+         LMkA==
+X-Gm-Message-State: AOJu0YyvbLxuL+VCAae1O4ZHyKc6iJk6ExUz63BXVZHHuldY0u2fQfMF
+	Qf40r/o9dqkkfOVLkAJ7rnTttnI3keYUl8E2oHRm+cumnYLDbOvCPKBZ
+X-Gm-Gg: AeBDietnwTJyXCsGVAdy+bPAtOROVphJajMTU4urNS6P6MoeGFCmgIdUKCh1LbeFelO
+	OHSB3377VTycxxRsKN9OchD5UweHLQdZ96zETLUykME7yQPjKOzazZyvcMH85Wj7wx3aY9ycR4X
+	/4II9pF+eJcckkBoMSeMtUHSk+Q68Gb911cFv8D+9c1UiC7BKUguULc0OadIkF7HCnQz4ZkD8S1
+	O+GhaMWBRWW2hqIP2qkMRyJw/tN7EXwb06RAhbIyJONa9FOs6q4f2ZR0xafALj8p0oDr0M6RIer
+	mFPz4YFsBt3rpR3Bm4cHiXEBFl2pSbTQozYrLDVE/Bzu7KPjAFT2s9fM6FXSOcSeZrDGzawdXIx
+	DFBpW+K8m//fqqB+pNmcEQHayDYRGtNkkrhh1sCGIMUu2v19oWbvGcP4ly8oBVx7us9DhmqBH3m
+	uiXlvmxmWQM+KrrzHq34aKdklgjEe9tf1ZdlBkyd+htupKvXxFMFKdqQ4qZHx4I1tY9y+Hdx0=
+X-Received: by 2002:a05:6a00:400c:b0:82f:7252:38cf with SMTP id d2e1a72fcca58-82f725245a7mr3437009b3a.16.1776315478875;
+        Wed, 15 Apr 2026 21:57:58 -0700 (PDT)
 Received: from kernel-fuzz.. ([103.172.182.26])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-36132c8bd25sm1010534a91.3.2026.04.15.21.48.12
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-82f738b399bsm1846716b3a.8.2026.04.15.21.57.55
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 15 Apr 2026 21:48:15 -0700 (PDT)
+        Wed, 15 Apr 2026 21:57:58 -0700 (PDT)
 From: gality369 <gality369@gmail.com>
-X-Google-Original-From: gality369 <gality369@example.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com
@@ -66,10 +64,10 @@ Cc: ocfs2-devel@lists.linux.dev,
 	baijiaju1990@gmail.com,
 	r33s3n6@gmail.com,
 	zzzccc427@gmail.com,
-	gality369 <gality369@example.com>
-Subject: [PATCH] ocfs2: reject inconsistent local xattr entries
-Date: Thu, 16 Apr 2026 12:48:06 +0800
-Message-ID: <20260416044806.3007438-1-gality369@example.com>
+	gality369 <gality369@gmail.com>
+Subject: [PATCH v2] ocfs2: reject inconsistent local xattr entries
+Date: Thu, 16 Apr 2026 12:57:45 +0800
+Message-ID: <20260416045745.3133911-1-gality369@gmail.com>
 X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -132,11 +130,14 @@ splitting.
 Corrupt metadata is now reported with ocfs2_error() and -EFSCORRUPTED
 instead of crashing the kernel with BUG_ON().
 
-Signed-off-by: gality369 <gality369@example.com>
+Signed-off-by: gality369 <gality369@gmail.com>
 ---
 No Fixes tag was added because this is more like a defensive check
 that is long overdue, not a regression that can be clearly attributed
 to a specific introduction commit.
+
+[CHANGELOG]
+- Fix Signed-off-by email address only; no code changes since v1.
 ---
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
 index 86cfd4c2adf9..63b1e55b242f 100644
