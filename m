@@ -1,220 +1,153 @@
-Received: from mail-pf1-f178.google.com (mail-pf1-f178.google.com [209.85.210.178])
+Received: from mail-oo1-f77.google.com (mail-oo1-f77.google.com [209.85.161.77])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F78A3E3C58
-	for <ocfs2-devel@lists.linux.dev>; Thu, 23 Apr 2026 09:41:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 42564322B7D
+	for <ocfs2-devel@lists.linux.dev>; Thu, 23 Apr 2026 10:49:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.77
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1776937287; cv=none; b=KrD25Z11Xfm4u2v1nBbkrefLsgqkhoF7eeLp3B4SG+NOPNIT8+vjQNxvI2jAapL0HfcKnnqew0Aqfw+4Y9CXFGC90J+EERnt8I14kaoqtnsgi/JGeO4R3Ox6GdIDdZ2zGHEwBqvqDdBuFfNYFKtBFkYADptRN3rDYA7CdO/Exw0=
+	t=1776941362; cv=none; b=KnSNQoVq/+sCNxb8gh5FNPPRq3ACfWYLwGPkZDffBkctiiP5FqcDE3GIpE4b4wENtqkrFCRmuYAvsm8/phg2MmvwEP9QR/YO6Ug/huriaExuhRGmu8xd+DLjJ0A25pyAkgJKWnc+5lSKsk0+ZNgGFCBEaNUsVQtkIwvGrEZUzOo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1776937287; c=relaxed/simple;
-	bh=ihmAfo21IMLbCzr7j/S706oEA+WU7/yAbjbZECWwRKg=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=o/R8a7wx6Q8WyKU+XFiC1GXVtg48lMLXJQ9s+l5Y7vYphqmg7tlEJH5cydRAhbKt5kyERQ5cd+dL4449uj9vkgUvtQiHA25nzIx2Xq2ACXqnSpao/L6Fx70KRHqREWGY6hQQGpCjKTSDW+UPWm2akqVL64Qhc1UXHF8nI3jwYN0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fJg+9196; arc=none smtp.client-ip=209.85.210.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fJg+9196"
-Received: by mail-pf1-f178.google.com with SMTP id d2e1a72fcca58-82f6b592fc7so2962866b3a.3
-        for <ocfs2-devel@lists.linux.dev>; Thu, 23 Apr 2026 02:41:25 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1776937285; x=1777542085; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=MjXWV2juw1vRp8krlN6jQn7bDWv+2fW54+D1FPrGink=;
-        b=fJg+9196ZOXPAOzE+Sktcpnw9zHvCEOkcyiQgkFPKVSYo5B4O8ZHFVQgWBUNPklm/E
-         3PqM49rjXzAmMsHP/2UN7E5DMb3jwSDgH+RIaJ3q3Dl4KStMSGyhzBoswVj4coTBe7iE
-         W3KLqRgBe4uTMeuiKxDA+kBAVgD4lM9bc+U0iJ9xBVRb+74Rt7b2p2LvU4o5K9DfOvr7
-         F/QsEMDw4SUprshiO8NmfWio1OWxnrYpHODuzK1M9dsi8HGD4bLaOuRl4jlOMLqQwx2N
-         FCM5qGgmTrsRGk7GBXVgO+5pa+J/3VHfH5pdSx8AnZPGB0UrB8/F7hN+lbCGZKC88Baq
-         t0Mw==
+	s=arc-20240116; t=1776941362; c=relaxed/simple;
+	bh=wl0x3MiwmL4t2M8E/I/eiO5NX3diYIccia3v7qrRdDA=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=pYUjx8VZuf7h9snuklE5urwsYLX2NTfbSygRT/V/kb48A1qgFv7UQwS7o3m0/jCn5cYyYeFmg5x12k+ho3LFdc2Giy/j/YrsTf/m21TqfVt57tln+6jPoaqXINDLox4ZnK7F0rlmzzv4AYx+xhu9vOCknt0Gz3ndnYNhXzp1Byo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.77
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f77.google.com with SMTP id 006d021491bc7-6961163ad6aso2027518eaf.1
+        for <ocfs2-devel@lists.linux.dev>; Thu, 23 Apr 2026 03:49:21 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1776937285; x=1777542085;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=MjXWV2juw1vRp8krlN6jQn7bDWv+2fW54+D1FPrGink=;
-        b=e91ywusJk+9U0Ur1FVZI3F276/gsAro05BLag6GlS16bM2ANvuKfhx8QWdX8wgAcCP
-         p1/SLNqiaz8PxdDbIwiDvXPDWCVgd8O3WNj8Ehvct81ByoTE1J53Rz4vmtf9Z8ocIbT+
-         R/Hdws39XrRTZubYu40NYdPFrCYBjpX3DpbENKZANlR58JLVLnWoYKzwN3G1bR++9L+F
-         l2XOTcgBkBBHhsVWQPACcaQmYVCgC7P3301DkMgpX9MOkz9Ma8SfJoerxlt43PV2GSiB
-         cQ2IXDuJDORbar7Dgmnk5nR0K426eaOmWiZqCRA+iXp3agNTapgrbuAX2xe72YxvpL1w
-         ntNw==
-X-Gm-Message-State: AOJu0YzGVUIjy4+T3F9+mFBGj3YI6aRgMv7g1ho8+JeH+Nuj3/uPseh/
-	L1hLec54vR7ucq55zVa/CZVhfgkHUl7bDtItcN0ym6xcfOXAQIs0uPGK5u2oE0Jxpk0=
-X-Gm-Gg: AeBDiesUA3VFNfKFTsYtrerQoq9TohZMWB6lgP2SLCvj0HYQ9Flc6YZicCGGHss/cTh
-	2Gn11rXiaIqO0gfCN1G16Q//HKWX19GEayVE0gvYz2E2uQXZg9OZTXph3B4oE91QiwmDCn+mMba
-	IcQ8Z1M41nm13YB/nuJl+OnS5n9ClKdjjYc6ma63ga1AMcHl0uqGyEd7qsmoX3K82Sn6GomTks2
-	wtel8PMlKoOi5LqYYEUYQ0x09xox9K2au+CZyodATgyLCdevbfKdIr9z7ZjNXKDOmeNsK28JKZE
-	t3yFizuSxmOXjT+XTz36SPCpHPWYhwgPzT9ljC+5CMR/RaUWdhsKaAHlrvVxq1K0k9IEKjVKLrh
-	O9bPSUAnml+RTg5kan9iU1BtsfTqTDDL7wU4Q0hErsL5SzJUExBJt1iZJKnilisQuTnl1AEvo1t
-	p/mSGSERf9rd7DZy8IqqXMtSy4oQODRnhod5k6HBP8F1cjSLZUWwuEekE2a1lbxma1j9jZgiuy8
-	PFdqnEMp1Dcct1NAYWz
-X-Received: by 2002:a05:6a00:bb84:b0:82f:1d38:f693 with SMTP id d2e1a72fcca58-82f8c8e0f98mr27141046b3a.35.1776937285181;
-        Thu, 23 Apr 2026 02:41:25 -0700 (PDT)
-Received: from kernel-fuzz.. ([103.172.182.26])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-82f8e9cbb1dsm21547319b3a.14.2026.04.23.02.41.21
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 23 Apr 2026 02:41:24 -0700 (PDT)
-From: ZhengYuan Huang <gality369@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	r33s3n6@gmail.com,
-	zzzccc427@gmail.com,
-	ZhengYuan Huang <gality369@gmail.com>
-Subject: [PATCH v2] ocfs2: validate in-inode extent list on read
-Date: Thu, 23 Apr 2026 17:41:15 +0800
-Message-ID: <20260423094116.876696-1-gality369@gmail.com>
-X-Mailer: git-send-email 2.43.0
+        d=1e100.net; s=20251104; t=1776941360; x=1777546160;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=i1epOSAFMy6FRvV+vhtpyz0kfwoGN+5oAX7rQNGFCB0=;
+        b=Yfi8OfSkS5KPc5cdMrp21v7APg7/acBtU6ouR5t+/3f9+x1p86/rvEi4loLXc5UGeX
+         S4/4/XqHvR7kBOQ8hikg5kWzGw5Li4FZLs08D/9CV63TARBHM/zz5ETXA2GPe8FvSey+
+         9b9cJw3bjOOYsNth4lk+zEl4GpPYeo0LpGN6mpPZjEJJ8+FJVBUfmRncEBo2O74wL36P
+         jvhqNGO37tcsKiredKOpEvqnJY7gGr+hTym/UyLM47IwQafUSLOuRDXaB4rOT1UVP8/W
+         MVZtNuAmc+X8WAB84XM4pTowWN88kalshd1YLZLAhHQceIA8tBYt/oVT3DiFTiNCl6hX
+         sU2w==
+X-Forwarded-Encrypted: i=1; AFNElJ9SNU/j2A1tPHgWPDH+xJ2dtP0T/RaZp6Jkm47qvSDluH21SR5Xi7+GZiwOUR7LhAX7cJ7QYxJ34DyK7A==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwYLvlRcy2qC72Gi8lHc3SltYhkzw4a6aQyCpb580mAwq895xJ7
+	7plIbtTJEbOMHAAxm8flpQJuC/lC+dEZqWMk8x40al+pirHAxOhCFlB08+0wh5Why+CYOP8oWmx
+	ICbMb1NCV4yyMEA+wIzyQgDEg4NKAdbQ/l0gowPIushSOxV8K58pneNkuIbs=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6820:1384:b0:683:fa4c:2f2c with SMTP id
+ 006d021491bc7-69462ee6ca5mr13459341eaf.34.1776941360341; Thu, 23 Apr 2026
+ 03:49:20 -0700 (PDT)
+Date: Thu, 23 Apr 2026 03:49:20 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <69e9f930.050a0220.24bfd3.0049.GAE@google.com>
+Subject: [syzbot] [ocfs2?] UBSAN: array-index-out-of-bounds in ocfs2_grow_tree (2)
+From: syzbot <syzbot+be16e33db01e6644db7a@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-[BUG]
-A fuzzed OCFS2 image can flip the high byte of
-di->id2.i_list.l_next_free_rec. Later
-openat("./file0", O_WRONLY|O_CREAT|O_TRUNC, ...) reaches
-ocfs2_commit_truncate() and indexes past the in-inode extent array.
+Hello,
 
-KASAN: use-after-free in ocfs2_commit_truncate+0x16ea/0x1aa0 fs/ocfs2/alloc.c:7310
-Read of size 1 at addr ffff888023e900c7 by task syz.0.11/360
+syzbot found the following issue on:
 
+HEAD commit:    faeab166167f Merge tag 'pinctrl-v7.1-1' of git://git.kerne..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=1765ffca580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=d120b114be21f79
+dashboard link: https://syzkaller.appspot.com/bug?extid=be16e33db01e6644db7a
+compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-faeab166.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/756ff8e81a3b/vmlinux-faeab166.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/3c4cb66569b5/bzImage-faeab166.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+be16e33db01e6644db7a@syzkaller.appspotmail.com
+
+loop0: detected capacity change from 0 to 32768
+=======================================================
+WARNING: The mand mount option has been deprecated and
+         and is ignored by this kernel. Remove the mand
+         option from the mount to silence this warning.
+=======================================================
+JBD2: Ignoring recovery information on journal
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+(syz.0.0,5330,0):ocfs2_check_set_options:1244 ERROR: Invalid heartbeat mount options
+loop0: detected capacity change from 32768 to 32767
+(syz.0.0,5330,0):ocfs2_validate_inode_block:1449 ERROR: Invalid dinode #17058: Corrupt state (nlink = 0 or mode = 0) detected!
+(syz.0.0,5330,0):ocfs2_assign_bh:2417 ERROR: status = -117
+(syz.0.0,5330,0):ocfs2_inode_lock_full_nested:2512 ERROR: status = -117
+(syz.0.0,5330,0):ocfs2_reflink_inodes_lock:4747 ERROR: status = -117
+------------[ cut here ]------------
+UBSAN: array-index-out-of-bounds in fs/ocfs2/alloc.c:1112:9
+index -1 is out of range for type 'struct ocfs2_extent_rec[] __counted_by(l_count)' (aka 'struct ocfs2_extent_rec[]')
+CPU: 0 UID: 0 PID: 5330 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
 Call Trace:
- __dump_stack lib/dump_stack.c:94 [inline]
- dump_stack_lvl+0xbe/0x130 lib/dump_stack.c:120
- print_address_description mm/kasan/report.c:378 [inline]
- print_report+0xd1/0x650 mm/kasan/report.c:482
- kasan_report+0xfb/0x140 mm/kasan/report.c:595
- __asan_report_load1_noabort+0x14/0x30 mm/kasan/report_generic.c:378
- ocfs2_commit_truncate+0x16ea/0x1aa0 fs/ocfs2/alloc.c:7310
- ocfs2_truncate_file+0xcdd/0x13c0 fs/ocfs2/file.c:509
- ocfs2_setattr+0xa6d/0x1fd0 fs/ocfs2/file.c:1212
- notify_change+0x4b5/0x1030 fs/attr.c:546
- do_truncate+0x1d2/0x230 fs/open.c:68
- handle_truncate fs/namei.c:3596 [inline]
- do_open fs/namei.c:3979 [inline]
- path_openat+0x260f/0x2ce0 fs/namei.c:4134
- do_filp_open+0x1f6/0x430 fs/namei.c:4161
- do_sys_openat2+0x117/0x1c0 fs/open.c:1437
- do_sys_open fs/open.c:1452 [inline]
- __do_sys_openat fs/open.c:1468 [inline]
- __se_sys_openat fs/open.c:1463 [inline]
- __x64_sys_openat+0x15b/0x220 fs/open.c:1463
- ...
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ ubsan_epilogue+0xa/0x30 lib/ubsan.c:233
+ __ubsan_handle_out_of_bounds+0xe8/0xf0 lib/ubsan.c:455
+ ocfs2_sum_rightmost_rec fs/ocfs2/alloc.c:1112 [inline]
+ ocfs2_shift_tree_depth fs/ocfs2/alloc.c:1433 [inline]
+ ocfs2_grow_tree+0x37fc/0x4060 fs/ocfs2/alloc.c:1581
+ ocfs2_insert_extent+0xc67/0x1700 fs/ocfs2/alloc.c:4764
+ ocfs2_add_clusters_in_btree+0x678/0xff0 fs/ocfs2/alloc.c:4866
+ ocfs2_add_inode_data+0xe7/0x140 fs/ocfs2/file.c:551
+ ocfs2_write_cluster fs/ocfs2/aops.c:1117 [inline]
+ ocfs2_write_cluster_by_desc+0x566/0x1de0 fs/ocfs2/aops.c:1221
+ ocfs2_write_begin_nolock+0x3305/0x41a0 fs/ocfs2/aops.c:1797
+ ocfs2_write_begin+0x1c5/0x320 fs/ocfs2/aops.c:1885
+ generic_perform_write+0x2e2/0x8f0 mm/filemap.c:4324
+ ocfs2_file_write_iter+0x1663/0x1e70 fs/ocfs2/file.c:2476
+ iter_file_splice_write+0x9a1/0x10f0 fs/splice.c:736
+ do_splice_from fs/splice.c:936 [inline]
+ direct_splice_actor+0x101/0x160 fs/splice.c:1159
+ splice_direct_to_actor+0x53a/0xc70 fs/splice.c:1103
+ do_splice_direct_actor fs/splice.c:1202 [inline]
+ do_splice_direct+0x195/0x290 fs/splice.c:1228
+ vfs_copy_file_range+0xb02/0x1370 fs/read_write.c:1634
+ __do_sys_copy_file_range fs/read_write.c:1683 [inline]
+ __se_sys_copy_file_range+0x2fb/0x480 fs/read_write.c:1650
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x15f/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f5a2459c819
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f5a25523fe8 EFLAGS: 00000246 ORIG_RAX: 0000000000000146
+RAX: ffffffffffffffda RBX: 00007f5a24815fa0 RCX: 00007f5a2459c819
+RDX: 0000000000000004 RSI: 00002000000001c0 RDI: 0000000000000005
+RBP: 00007f5a24632c91 R08: ffffffffa003e45b R09: 0700000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f5a24816038 R14: 00007f5a24815fa0 R15: 00007ffc179ae578
+ </TASK>
+---[ end trace ]---
 
-[CAUSE]
-ocfs2_validate_inode_block() checks dinode header fields, but it does not
-validate the in-inode extent list layout for regular extent-bearing
-dinodes. A corrupted l_next_free_rec can therefore exceed the fixed
-record count. Truncate later uses l_next_free_rec - 1 as the last record
-index and reads rec->e_flags from beyond el->l_recs[].
 
-[FIX]
-Validate the in-inode extent list when the dinode is read. Reject lists
-with an inconsistent l_count, an out-of-range l_next_free_rec, or
-malformed used records before they reach truncate and the other extent
-consumers that assume a valid in-inode extent list.
-
-Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
 ---
-v2:
-- Rewrite the [BUG] and [CAUSE] sections around corrupted l_next_free_rec driving the truncate UAF
-- Keep the code change unchanged because the existing read-side validation already blocks this variant
----
-fs/ocfs2/inode.c | 62 +++++++++++++++++++++++++++++++++++++++++++++++-
-1 file changed, 61 insertions(+), 1 deletion(-)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index a510a0eb1adc..7fcd1ee4fd46 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -215,6 +215,61 @@ static int ocfs2_dinode_has_extents(struct ocfs2_dinode *di)
- 	return 1;
- }
- 
-+static int ocfs2_validate_inode_extent_list(struct super_block *sb,
-+					    struct buffer_head *bh,
-+					    struct ocfs2_dinode *di)
-+{
-+	struct ocfs2_extent_list *el = &di->id2.i_list;
-+	u16 count = le16_to_cpu(el->l_count);
-+	u16 next_free = le16_to_cpu(el->l_next_free_rec);
-+	u16 expected = ocfs2_extent_recs_per_inode_with_xattr(sb, di);
-+	u32 prev_end = 0;
-+	bool have_prev = false;
-+	int i;
-+
-+	if (count != expected)
-+		return ocfs2_error(sb,
-+				   "Invalid dinode #%llu: extent list count %u (expected %u)\n",
-+				   (unsigned long long)bh->b_blocknr, count,
-+				   expected);
-+
-+	if (next_free > count)
-+		return ocfs2_error(sb,
-+				   "Invalid dinode #%llu: extent list index %u (count %u)\n",
-+				   (unsigned long long)bh->b_blocknr, next_free,
-+				   count);
-+
-+	for (i = 0; i < next_free; i++) {
-+		struct ocfs2_extent_rec *rec = &el->l_recs[i];
-+		u32 rec_cpos = le32_to_cpu(rec->e_cpos);
-+		u32 rec_clusters = ocfs2_rec_clusters(el, rec);
-+		u32 rec_end = rec_cpos + rec_clusters;
-+
-+		if (!rec_clusters) {
-+			if (!el->l_tree_depth && i == 0)
-+				continue;
-+
-+			return ocfs2_error(sb,
-+					   "Invalid dinode #%llu: empty extent record %d at depth %u\n",
-+					   (unsigned long long)bh->b_blocknr,
-+					   i, le16_to_cpu(el->l_tree_depth));
-+		}
-+
-+		if (have_prev &&
-+		    ((el->l_tree_depth && rec_cpos != prev_end) ||
-+		     (!el->l_tree_depth && rec_cpos < prev_end)))
-+			return ocfs2_error(sb,
-+					   "Invalid dinode #%llu: extent record %d starts at %u after previous end %u\n",
-+					   (unsigned long long)bh->b_blocknr, i,
-+					   rec_cpos, prev_end);
-+
-+		prev_end = rec_end;
-+		have_prev = true;
-+	}
-+
-+	return 0;
-+}
-+
- /*
-  * here's how inodes get read from disk:
-  * iget5_locked -> find_actor -> OCFS2_FIND_ACTOR
-@@ -1552,6 +1607,12 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		}
- 	}
- 
-+	if (ocfs2_dinode_has_extents(di)) {
-+		rc = ocfs2_validate_inode_extent_list(sb, bh, di);
-+		if (rc)
-+			goto bail;
-+	}
-+
- 	if ((le16_to_cpu(di->i_dyn_features) & OCFS2_HAS_REFCOUNT_FL) &&
- 	    !di->i_refcount_loc) {
- 		rc = ocfs2_error(sb, "Inode #%llu has refcount flag but no i_refcount_loc\n",
-@@ -1812,4 +1873,3 @@ const struct ocfs2_caching_operations ocfs2_inode_caching_ops = {
- 	.co_io_lock		= ocfs2_inode_cache_io_lock,
- 	.co_io_unlock		= ocfs2_inode_cache_io_unlock,
- };
--
--- 
-2.43.0
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
