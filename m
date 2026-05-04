@@ -1,89 +1,182 @@
-Received: from out162-62-57-49.mail.qq.com (out162-62-57-49.mail.qq.com [162.62.57.49])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oo1-f77.google.com (mail-oo1-f77.google.com [209.85.161.77])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C189381AEA
-	for <ocfs2-devel@lists.linux.dev>; Sat,  2 May 2026 13:11:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=162.62.57.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1E84C3803FC
+	for <ocfs2-devel@lists.linux.dev>; Mon,  4 May 2026 22:27:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.77
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1777727517; cv=none; b=M6XcWb55My/tq6yEV6/xk+BlsmF0VXeNwv+XLBueThRdpKb01MvAdXK/kjGcxd3kXGUOzc0COC0UfsEEG/kz+e7xZu30Wm/47cXLNceVXYGVoj8K/Vr2RKMAzWykf4Om4xa9KPILOK0uceTM82zBs45JadWHo3vfoXsMyVEPVew=
+	t=1777933656; cv=none; b=PS9ZeyegeWObYE5zxjDcmeoNLe6pzZ9gXD25+2/mA4nBZNVXIymRnEiLiSFANPtgj8ddG1xNNGZFxG+25u6OsvPMM1ftoi5d1khO+WrpdCHctJT4rlAPOpTRud9jx+eVkP4QW6JqheanoxFMN3oMyDTh6uybUXlNadDvQFwng6o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1777727517; c=relaxed/simple;
-	bh=oNSjQWHxRTq69WpRdhbiQ6d3uRt7E6zt8TDMptL2FGU=;
-	h=Message-ID:From:To:Cc:Subject:Date:MIME-Version; b=VnFvZP1lbhd0hV7jjYUfenXwDv4iESMLuEx1BwxK+fAnfa92QPkbHTnYGmywYgzj2CQ6UNnXWTf0IlHad0FpFWtWxzbYE5IWaIgabs1jqcyMl3aLAM+f2OirVVckgAzig4E9gue1t4m6Bzfyto63hwT9w2voy6ES8XsWnmJZLS0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com; spf=pass smtp.mailfrom=qq.com; dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b=B+G8Q++y; arc=none smtp.client-ip=162.62.57.49
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=qq.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=qq.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=qq.com header.i=@qq.com header.b="B+G8Q++y"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=qq.com; s=s201512;
-	t=1777727505; bh=uldAaFaYBCJ0v58ed3zzzu+Cek0k4rB6RpuqJXzjVHg=;
-	h=From:To:Cc:Subject:Date;
-	b=B+G8Q++yoBAFdBELxaND7P+QOLlrjJU/JEUT73msu/SFkNym1cAj60uAlHLpxpJaY
-	 JacJxPMlZfUjbyvpgJfjv9Cgv4QI1dYb3jZQUNeJLEf1oRrhSSuc9jBJwzmJR6GqeA
-	 3svScscHXQvjCkDHBb1U2HxyD38b2UdztAy0VI3Q=
-Received: from Lang.smartont.net ([2409:8a44:2312:14e1:56d8:1e1e:3f0b:d0f3])
-	by newxmesmtplogicsvrszb51-1.qq.com (NewEsmtp) with SMTP
-	id 2EA24AE4; Sat, 02 May 2026 21:11:42 +0800
-X-QQ-mid: xmsmtpt1777727502t6dbgo2wj
-Message-ID: <tencent_7DF4CD0946ED97EC2B19DC11A0975CB32408@qq.com>
-X-QQ-XMAILINFO: M2dBUVw0X9hns92/FGQ0Qkh5CqZgPwv1+LpCDE9IYnKBjQuQWlxPCBEovbXQBP
-	 T+mEEs3tLmm2v09BGuuhSnkMGtbBldrdam8rC4QMW99YE8aW5ltIMvGtXwiEHLanf4oB4TyrQw78
-	 cphX+Y/iZwfVE3Qcdr+jkHGdCI4L7ba3KYYlka7nqjtUo2Q9aU15KDZrBvPYamLk/EYJ2wEQtfak
-	 JMUAQncFbUk3eVXlDjDzaKNBCfG94dIhgGx6puxpxffR+GB5e4rapHIoSC3YPO/vLZN2nbpSIkO/
-	 10j8PLbW15p5JOgf9tl1/ZSfvFtd1XUV0r2MoHI3uaKvApmFRViFMtebWdPcAMGLzjiAeOxn+8Wb
-	 rW/3Y80f4UQFXrg8yIZjoxA7dFaOs+xMJPLGgfd7MGYFOUbRQYbu2Sk8PGtFKIPy3hTc9fsa957c
-	 wk98R+fDvcjYy3eQHMqS67jz9uSf5dJKHF60QTGvJpuQTQuCS3SjVA+OKWsK6LIxO6BOXr4y7wzL
-	 mrPLdT+QRWuSN7nv+XCDZBNDR0Dr5xevu3bbIaMqZ/G3gQCnjyAphYu+iNXRJYJnYDAXz9rd0/pG
-	 iMD2YjDaTW5SO8cmRt8INVk5kgCRq64IJLfDyh6jL/Rh3JO29QyThakxnbRT1xCvVhxlrKbNjbYj
-	 4zREyiok1+wkYAmoFTUub5DfWmkJ9rfWPHw6Q+1DQFUlhcCcJbHXMANywPOk3aax/xxB68d5NojW
-	 1/CakPR26EuR/zVkRu/VIzHc/UiEK1oQ+69SDLSCWZGKOulbG70QumhFJmm9TPuxkVuvjNT2uT3R
-	 X82Jpn0unl+dIZvegYQfvXWkoDD+vtyuyq2ATI6MfUwTAwtac2wd7rHSp3vtYdPKquee0WltaICI
-	 YRMxpsvpK2FtJvRu0SR6SDhImxH3lJd9G8gEFl+3X8Lc6RkbcnV/C97jkRutXkXSBQN5UzhkEFWG
-	 4OrojldvfcrqiCM01tZqQGBCpPyKnQP5yUIBBLcHeZgWqMG13C0JkXyvPEzO8MN4/kaAQCcs/mlu
-	 6V4iuhFbPr+2ZsrFtUw6Kfng3aRtNG0xnHg1FIujwRIG8ciUzzVMMekIk5tWZpSA8oeQa7LC0CHO
-	 PRrLJ+GrSqLV8pZ6RqYLoF0Ijg5WthBproJghp/nuwsewy4wI=
-X-QQ-XMRINFO: OWPUhxQsoeAVwkVaQIEGSKwwgKCxK/fD5g==
-From: Wang Zihan <jiyu03@qq.com>
-To: ocfs2-devel@lists.linux.dev
-Cc: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	linux-kernel@vger.kernel.org,
-	Wang Zihan <jiyu03@qq.com>
-Subject: [PATCH] ocfs2: Fix typo in copyright notice
-Date: Sat,  2 May 2026 21:11:42 +0800
-X-OQ-MSGID: <20260502131142.671765-1-jiyu03@qq.com>
-X-Mailer: git-send-email 2.54.0
+	s=arc-20240116; t=1777933656; c=relaxed/simple;
+	bh=rn8xHiWnj0kmbapSBpbMj68NgvThaMmowZ2I4HgF0qA=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=P9Ln8qfrvDTLPACCNHEn9ZIXvf1yPfs6t3MpNN2ZwK5usjDOxDLPklEfEbINDozbvU0gFG1NkBhvhVs5nVrV1+xAp3Zw7kps+YdORWPI+q7dJxO0cBBudYS7jCEzdt3HyJzxhzRzM6QigRNjoRowkl0DSMOgx2YY+HCb2Bj6B1M=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.77
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f77.google.com with SMTP id 006d021491bc7-6948eac3522so7545315eaf.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 04 May 2026 15:27:34 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1777933654; x=1778538454;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=2BY4WlD/VCV67779sfW7Vcrlk3Afldj79IuYArLJLJo=;
+        b=fidZP/iC6Nb8lI8e1d/htXMNGWFrr7fnw6KUwca72ircCu0MSo23T+8u4z8Dp7wgo/
+         aNluY+IbypyTtjxBYpMJV8w0PIivDzQjrFf2Q/10wJpS7RZUATqDu0aYFejeDFMXUVq8
+         cvhlEh5GzZWuKtuSd8i5Q4a1g3zKfuLej29Nk+m9uin21H/23yKN2G+jdizNZJoGqPW4
+         8ykGVzNMmHWUCbFiD4lwuIHxEzxXM4pppBqMbVxtnh8EqHB06P/ArAi1ZqR5jXbMmyRV
+         iBxjulhkXR1wbfyMKLHOl9joxzpce/v5MSZGqqX2xg79NSWHYWsTo6wp7ufZVUP4ygZo
+         4yLQ==
+X-Forwarded-Encrypted: i=1; AFNElJ+eIN1BZSZxwph0J4I7Wt6UVtFcnzn4+48ZFl/BIZHAnmdXgixgo9+JECXvaNzcYrCQfCzPDZPjECwvOg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzFlqQ8dRupK2+e8a4x6RUcxDkIQg1/A/7ase5t5lr/KaDalyo+
+	ht0BrSQjgrjyUbUwadHGT/WH+Uh07IbwYM3IogG3ZHVvUcRYW+WDSpRmN7jLTVCMJpaxxz0BbWm
+	ZJAF9vDMHCzyEI6Z6AqNQgpaD5bWEXpjrG9MQx1ycePvT1htzTYi5Lt8ZFPQ=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a4a:e90b:0:b0:694:980a:2c33 with SMTP id
+ 006d021491bc7-696979ad5e6mr5088420eaf.5.1777933653847; Mon, 04 May 2026
+ 15:27:33 -0700 (PDT)
+Date: Mon, 04 May 2026 15:27:33 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <69f91d55.170a0220.bb392.000b.GAE@google.com>
+Subject: [syzbot] [ocfs2?] [ext4?] general protection fault in
+ jbd2_journal_dirty_metadata (2)
+From: syzbot <syzbot+98f651460e558a21baae@syzkaller.appspotmail.com>
+To: jack@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-ext4@vger.kernel.org, linux-kernel@vger.kernel.org, mark@fasheh.com, 
+	ocfs2-devel@lists.linux.dev, syzkaller-bugs@googlegroups.com, tytso@mit.edu
+Content-Type: text/plain; charset="UTF-8"
 
-Fix "Linux Torvalds" -> "Linus Torvalds" in the copyright notice.
+Hello,
 
-Found by Christian Marillat.
+syzbot found the following issue on:
 
-Signed-off-by: Wang Zihan <jiyu03@qq.com>
+HEAD commit:    08d0d3466664 Merge tag 'net-7.1-rc2' of git://git.kernel.o..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=152f81ce580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=4caf64b1ee83dac0
+dashboard link: https://syzkaller.appspot.com/bug?extid=98f651460e558a21baae
+compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=1415f2d2580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=132f81ce580000
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/c5abd4fcc5ba/disk-08d0d346.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/896c46fd9ce9/vmlinux-08d0d346.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/04a44a684bb3/bzImage-08d0d346.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/b6c8c7ca94d0/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=14e8a082580000)
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+98f651460e558a21baae@syzkaller.appspotmail.com
+
+(syz.2.23,6028,0):__ocfs2_remove_xattr_range:786 ERROR: status = -30
+(syz.2.23,6028,0):ocfs2_xattr_shrink_size:840 ERROR: status = -30
+(syz.2.23,6028,0):__ocfs2_journal_access:724 ERROR: Error -30 getting 1 access to buffer!
+(syz.2.23,6028,0):ocfs2_xa_prepare_entry:2182 ERROR: status = -30
+(syz.2.23,6028,0):ocfs2_xa_set:2285 ERROR: status = -30
+Oops: general protection fault, probably for non-canonical address 0xdffffc0000000000: 0000 [#1] SMP KASAN NOPTI
+KASAN: null-ptr-deref in range [0x0000000000000000-0x0000000000000007]
+CPU: 0 UID: 0 PID: 6028 Comm: syz.2.23 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 04/18/2026
+RIP: 0010:jbd2_journal_dirty_metadata+0x4a/0xd30 fs/jbd2/transaction.c:1520
+Code: 00 fc ff df e8 07 27 29 ff 4c 89 fd 48 c1 ed 03 42 80 7c 35 00 00 74 08 4c 89 ff e8 f0 61 94 ff 49 8b 1f 48 89 d8 48 c1 e8 03 <42> 80 3c 30 00 74 08 48 89 df e8 d7 61 94 ff 48 89 1c 24 4c 8b 2b
+RSP: 0018:ffffc90003766bc0 EFLAGS: 00010256
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff888035c3dc40
+RDX: 0000000000000000 RSI: ffff88805927b9f8 RDI: ffff888034ddbf20
+RBP: 1ffff110069bb7e4 R08: ffffffff9030a1f7 R09: 1ffffffff206143e
+R10: dffffc0000000000 R11: fffffbfff206143f R12: dffffc0000000000
+R13: 1ffff920006ecd94 R14: dffffc0000000000 R15: ffff888034ddbf20
+FS:  000055556c64d500(0000) GS:ffff888125290000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f8ff9c72700 CR3: 000000007908f000 CR4: 0000000000350ef0
+Call Trace:
+ <TASK>
+ ocfs2_journal_dirty+0x130/0x700 fs/ocfs2/journal.c:831
+ ocfs2_xa_journal_dirty fs/ocfs2/xattr.c:1483 [inline]
+ ocfs2_xa_set+0x15e3/0x2ec0 fs/ocfs2/xattr.c:2294
+ ocfs2_xattr_block_set+0x3e0/0x33c0 fs/ocfs2/xattr.c:3016
+ __ocfs2_xattr_set_handle+0x6b3/0xf50 fs/ocfs2/xattr.c:3418
+ ocfs2_xattr_set+0xf3f/0x13e0 fs/ocfs2/xattr.c:3681
+ __vfs_setxattr+0x43c/0x480 fs/xattr.c:218
+ __vfs_setxattr_noperm+0x12d/0x660 fs/xattr.c:252
+ vfs_setxattr+0x163/0x360 fs/xattr.c:339
+ do_setxattr fs/xattr.c:654 [inline]
+ filename_setxattr+0x296/0x630 fs/xattr.c:682
+ path_setxattrat+0x3eb/0x440 fs/xattr.c:726
+ __do_sys_setxattr fs/xattr.c:760 [inline]
+ __se_sys_setxattr fs/xattr.c:756 [inline]
+ __x64_sys_setxattr+0xbc/0xe0 fs/xattr.c:756
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x15f/0xf80 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f8ff9d9cdd9
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffd9c92e118 EFLAGS: 00000246 ORIG_RAX: 00000000000000bc
+RAX: ffffffffffffffda RBX: 00007f8ffa015fa0 RCX: 00007f8ff9d9cdd9
+RDX: 0000000000000000 RSI: 0000200000000140 RDI: 0000200000000080
+RBP: 00007f8ff9e32d69 R08: 0000000000000002 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f8ffa015fac R14: 00007f8ffa015fa0 R15: 00007f8ffa015fa0
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:jbd2_journal_dirty_metadata+0x4a/0xd30 fs/jbd2/transaction.c:1520
+Code: 00 fc ff df e8 07 27 29 ff 4c 89 fd 48 c1 ed 03 42 80 7c 35 00 00 74 08 4c 89 ff e8 f0 61 94 ff 49 8b 1f 48 89 d8 48 c1 e8 03 <42> 80 3c 30 00 74 08 48 89 df e8 d7 61 94 ff 48 89 1c 24 4c 8b 2b
+RSP: 0018:ffffc90003766bc0 EFLAGS: 00010256
+RAX: 0000000000000000 RBX: 0000000000000000 RCX: ffff888035c3dc40
+RDX: 0000000000000000 RSI: ffff88805927b9f8 RDI: ffff888034ddbf20
+RBP: 1ffff110069bb7e4 R08: ffffffff9030a1f7 R09: 1ffffffff206143e
+R10: dffffc0000000000 R11: fffffbfff206143f R12: dffffc0000000000
+R13: 1ffff920006ecd94 R14: dffffc0000000000 R15: ffff888034ddbf20
+FS:  000055556c64d500(0000) GS:ffff888125290000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000557909eb6950 CR3: 000000007908f000 CR4: 0000000000350ef0
+----------------
+Code disassembly (best guess), 4 bytes skipped:
+   0:	e8 07 27 29 ff       	call   0xff29270c
+   5:	4c 89 fd             	mov    %r15,%rbp
+   8:	48 c1 ed 03          	shr    $0x3,%rbp
+   c:	42 80 7c 35 00 00    	cmpb   $0x0,0x0(%rbp,%r14,1)
+  12:	74 08                	je     0x1c
+  14:	4c 89 ff             	mov    %r15,%rdi
+  17:	e8 f0 61 94 ff       	call   0xff94620c
+  1c:	49 8b 1f             	mov    (%r15),%rbx
+  1f:	48 89 d8             	mov    %rbx,%rax
+  22:	48 c1 e8 03          	shr    $0x3,%rax
+* 26:	42 80 3c 30 00       	cmpb   $0x0,(%rax,%r14,1) <-- trapping instruction
+  2b:	74 08                	je     0x35
+  2d:	48 89 df             	mov    %rbx,%rdi
+  30:	e8 d7 61 94 ff       	call   0xff94620c
+  35:	48 89 1c 24          	mov    %rbx,(%rsp)
+  39:	4c 8b 2b             	mov    (%rbx),%r13
+
+
 ---
- fs/ocfs2/namei.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index 1277666c7..40db43868 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -17,7 +17,7 @@
-  *
-  *   linux/fs/minix/dir.c
-  *
-- *   Copyright (C) 1991, 1992 Linux Torvalds
-+ *   Copyright (C) 1991, 1992 Linus Torvalds
-  */
- 
- #include <linux/fs.h>
--- 
-2.54.0
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
