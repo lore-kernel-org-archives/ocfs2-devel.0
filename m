@@ -1,121 +1,141 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from cstnet.cn (smtp21.cstnet.cn [159.226.251.21])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9628330648C
-	for <ocfs2-devel@lists.linux.dev>; Fri,  8 May 2026 09:48:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E23A12BDC2A
+	for <ocfs2-devel@lists.linux.dev>; Sat,  9 May 2026 04:28:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.21
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778233683; cv=none; b=m8y7v7Q1s9qbqawhVvGS8WG/F2pAVAw9Qj7OqfKnGUxiWJIAr2GG5FD76++Je+JAfdVwLS1VPvh1hS9BYWcd+qf/384tAVmYr5H4bD0LOzwXmTRul8oyCmzXqVbCwuYS1/iAjwzi+0N5INh6CqMYrQdnbA6C9QPS6IDQ5oBO0tk=
+	t=1778300930; cv=none; b=VfKqHPv+h+mGJ81Gvp9lGRWQP9zh+o7JwU5HzZsQA1lp4oZbxXiClr2ij8ziMCP1RPbGgnKW42+3wLVgLzIr1cKWe0XNrkocF0FTjtH0Pk22fZO9rhZxHHxhdqvQKgOE8zUs+GYMHbiZVsw61sbfoz0hPcybvJXVfrJkJcJuMCM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778233683; c=relaxed/simple;
-	bh=gV1Dmc/x+sxBDzxpvJIPJDtvR/+6AR9gMh04t7i1vXo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=MJm3Npo9BKEsEBeykU5k9ZedBfRWoqQZrEoWPamxcIel4njZvKR0+Kr/BQqpUt/qAC9tUf1iESe2a/Eci991I3AnpoNJDzyk465lorza9gfYhYE1otCGGXwdcDND6JYwvapAD7pcoSl0osI82tLsOI+rvx9mPndgce8SyNNgnFc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=t7VPvWIl; arc=none smtp.client-ip=115.124.30.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="t7VPvWIl"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1778233676; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=g2YFlCcwCas0hV737s2qd0/qcZX+ALSv9B2c95Djw+s=;
-	b=t7VPvWIlmi2AZvTrf7+uEsYbNdh894H5yY6x5m8ddeJS/2m0baK8yIEyH47sedcuXKdh+D8lD8yyMAWYoB5BqEGwxhlwzCVNt2Uii3yl80Ipu8mQJYqIZMzjQ+yy5q6iaXOxopgGBML47WFDWgzxwE2sh0UF5v3zFLVg/Nk/1R4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R961e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X2X5zmz_1778233674;
-Received: from 30.221.129.120(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X2X5zmz_1778233674 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 08 May 2026 17:47:55 +0800
-Message-ID: <75570681-a25a-4cec-9874-b76fec6167e8@linux.alibaba.com>
-Date: Fri, 8 May 2026 17:47:54 +0800
+	s=arc-20240116; t=1778300930; c=relaxed/simple;
+	bh=eTiHSx1HzzKxKESWLa+8ROHCie3rGY/obeMnCXGkEa4=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version:Content-Type; b=dr4tfmCn2iBmeOgp0iRObjm3ogCe1bnx9GPt62reulQJOeOzs+yzEQ+ntdfrUrwEaH0j9uxbEA8ZFi63SIN9ceXlqzTxRN8k9oSi+Rkxl7JN9hDGxRGl8glaUdFZzscUepquhfM85ekppgNPSjkS20egpX10/g4oUmSvRM67Oa8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn; spf=pass smtp.mailfrom=mails.ucas.ac.cn; arc=none smtp.client-ip=159.226.251.21
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mails.ucas.ac.cn
+Received: from fric.. (unknown [36.110.52.2])
+	by APP-01 (Coremail) with SMTP id qwCowADnjGj5t_5pag2sDw--.10593S2;
+	Sat, 09 May 2026 12:28:41 +0800 (CST)
+From: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
+To: joseph.qi@linux.alibaba.com
+Cc: heming.zhao@suse.com,
+	jlbec@evilplan.org,
+	kurt.hackel@oracle.com,
+	linux-kernel@vger.kernel.org,
+	mark@fasheh.com,
+	ocfs2-devel@lists.linux.dev,
+	xujiakai24@mails.ucas.ac.cn
+Subject: Re: [PATCH] ocfs2: fix use-after-free in ocfs2_inode_lock_full_nested during unmount
+Date: Sat,  9 May 2026 04:28:41 +0000
+Message-Id: <20260509042841.2038191-1-xujiakai24@mails.ucas.ac.cn>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <75570681-a25a-4cec-9874-b76fec6167e8@linux.alibaba.com>
+References: <75570681-a25a-4cec-9874-b76fec6167e8@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix use-after-free in ocfs2_inode_lock_full_nested
- during unmount
-To: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>, linux-kernel@vger.kernel.org,
- ocfs2-devel@lists.linux.dev
-Cc: Joel Becker <jlbec@evilplan.org>, Kurt Hackel <kurt.hackel@oracle.com>,
- Mark Fasheh <mark@fasheh.com>, Heming Zhao <heming.zhao@suse.com>
-References: <20260508060107.2666033-1-xujiakai24@mails.ucas.ac.cn>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260508060107.2666033-1-xujiakai24@mails.ucas.ac.cn>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:qwCowADnjGj5t_5pag2sDw--.10593S2
+X-Coremail-Antispam: 1UD129KBjvJXoWxCw4UtF1xtw4fuFW8Jr1DJrb_yoW5Gw15pF
+	WjvryYkwnFvr109ws7XaykZryxuwsrCayDGr1rG34UZas8Jr1xt39Yyr429FyYg397Gw4S
+	qr40qry7Gw4UCaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDU0xBIdaVrnRJUUUvK14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+	rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+	1l84ACjcxK6xIIjxv20xvE14v26r4j6ryUM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
+	6F4UM28EF7xvwVC2z280aVAFwI0_Cr1j6rxdM28EF7xvwVC2z280aVCY1x0267AKxVWxJr
+	0_GcWlnxkEFVAIw20F6cxK64vIFxWle2I262IYc4CY6c8Ij28IcVAaY2xG8wAqx4xG64xv
+	F2IEw4CE5I8CrVC2j2WlYx0E2Ix0cI8IcVAFwI0_Jr0_Jr4lYx0Ex4A2jsIE14v26r4j6F
+	4UMcvjeVCFs4IE7xkEbVWUJVW8JwACjcxG0xvY0x0EwIxGrwACjI8F5VA0II8E6IAqYI8I
+	648v4I1lc7CjxVAaw2AFwI0_JF0_Jw1l42xK82IYc2Ij64vIr41l4I8I3I0E4IkC6x0Yz7
+	v_Jr0_Gr1lx2IqxVAqx4xG67AKxVWUJVWUGwC20s026x8GjcxK67AKxVWUGVWUWwC2zVAF
+	1VAY17CE14v26r1q6r43MIIYrxkI7VAKI48JMIIF0xvE2Ix0cI8IcVAFwI0_Jr0_JF4lIx
+	AIcVC0I7IYx2IY6xkF7I0E14v26r1j6r4UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI
+	42IY6I8E87Iv67AKxVWUJVW8JwCI42IY6I8E87Iv6xkF7I0E14v26r1j6r4UYxBIdaVFxh
+	VjvjDU0xZFpf9x0JU-zVUUUUUU=
+X-CM-SenderInfo: 50xmxthndljko6pdxz3voxutnvoduhdfq/
 
-
-
-On 5/8/26 2:01 PM, Jiakai Xu wrote:
-> A race condition exists between filesystem unmount and inode permission
-> operations. When ocfs2_dismount_volume() frees the ocfs2_super (osb)
-> structure, concurrent access via OCFS2_SB(inode->i_sb) in
-> ocfs2_inode_lock_full_nested() can dereference freed memory, causing a
-> page fault in __pv_queued_spin_lock_slowpath via
-> ocfs2_is_hard_readonly() -> spin_lock(&osb->osb_lock).
+> It seems this is not enough, or TOCTOU still exists. Say:
 > 
-> Fix this with two changes:
-> 
-> 1. In ocfs2_dismount_volume(): set sb->s_fs_info = NULL before
->    kfree(osb), so OCFS2_SB() returns NULL instead of a dangling pointer
->    during the teardown race window.
-> 
-> 2. In ocfs2_inode_lock_full_nested(): add a NULL check on osb after
->    OCFS2_SB(), returning -EIO if the superblock info is already gone.
->    This ensures the crash path is handled gracefully when the
->    filesystem is being torn down.
+> Thread A			Thread B
+> osb = OCFS2_SB(inode->i_sb)
+> 				ocfs2_dismount_volume()
+> 				-> sb->s_fs_info = NULL
+> 				-> kfree(osb)
+> use freed osb
 > 
 
-It seems this is not enough, or TOCTOU still exists. Say:
+Hi Joseph,
 
-Thread A			Thread B
-osb = OCFS2_SB(inode->i_sb)
-				ocfs2_dismount_volume()
-				-> sb->s_fs_info = NULL
-				-> kfree(osb)
-use freed osb
+Thank you very much for the review! You are absolutely right about the
+TOCTOU issue — simply adding a NULL check after OCFS2_SB() cannot
+prevent the race where thread A reads a valid osb pointer before thread
+B frees it.
 
-BTW, how did you find this issue?
+> BTW, how did you find this issue?
 
-Joseph
+I found this issue through fuzzing. The crash report shows a page fault 
+at __pv_queued_spin_lock_slowpath via the call path:
 
-> Signed-off-by: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
-> Fixes: ccd979bdbce9f ("OCFS2: The Second Oracle Cluster Filesystem")
-> ---
->  fs/ocfs2/dlmglue.c | 3 +++
->  fs/ocfs2/super.c   | 2 +-
->  2 files changed, 4 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-> index 7283bb2c5a31..cd619958a0a2 100644
-> --- a/fs/ocfs2/dlmglue.c
-> +++ b/fs/ocfs2/dlmglue.c
-> @@ -2435,6 +2435,9 @@ int ocfs2_inode_lock_full_nested(struct inode *inode,
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
->  	struct buffer_head *local_bh = NULL;
->  
-> +	if (!osb)
-> +		return -EIO;
-> +
->  	mlog(0, "inode %llu, take %s META lock\n",
->  	     (unsigned long long)OCFS2_I(inode)->ip_blkno,
->  	     ex ? "EXMODE" : "PRMODE");
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index b875f01c9756..3fd56638e4f0 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1881,10 +1881,10 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
->  	printk(KERN_INFO "ocfs2: Unmounting device (%s) on (node %s)\n",
->  	       osb->dev_str, nodestr);
->  
-> +	sb->s_fs_info = NULL;
->  	ocfs2_delete_osb(osb);
->  	kfree(osb);
->  	sb->s_dev = 0;
-> -	sb->s_fs_info = NULL;
->  }
->  
->  static int ocfs2_setup_osb_uuid(struct ocfs2_super *osb, const unsigned char *uuid,
+  ocfs2_permission -> ocfs2_inode_lock_tracker ->
+  ocfs2_inode_lock_full_nested -> ocfs2_is_hard_readonly ->
+  spin_lock(&osb->osb_lock)
+
+The fault address was in the kernel static data region, indicating that
+the osb structure had been freed and its memory reused.
+
+I have been thinking about a more robust fix and would like to get your
+opinion on the following approach:
+
+Currently, ocfs2_dismount_volume() is called from ocfs2_put_super(),
+which runs inside generic_shutdown_super() while s_umount is still held.
+The osb structure is freed at this point, but inodes with elevated
+refcounts (e.g., held by inotify) survive evict_inodes() and may still
+trigger filesystem operations (like ocfs2_permission) that access osb.
+
+The idea is to move the osb cleanup out of ocfs2_dismount_volume() and
+into an ocfs2-specific ->kill_sb() callback, so that the cleanup happens
+after generic_shutdown_super() has completed and all concurrent VFS
+operations have drained.
+
+Specifically:
+
+1. Remove ocfs2_delete_osb(), kfree(osb), and sb->s_fs_info = NULL from
+   ocfs2_dismount_volume(). Keep all the subsystem shutdown (journal,
+   dlm, recovery, quota, etc.) there.
+
+2. Add a new ocfs2_kill_sb() that wraps kill_block_super():
+
+   static void ocfs2_kill_sb(struct super_block *sb)
+   {
+       struct ocfs2_super *osb = OCFS2_SB(sb);
+
+       kill_block_super(sb);
+       // At this point generic_shutdown_super() has completed,
+       // SB_DYING is set, and no new VFS operations can enter.
+
+       if (osb) {
+           ocfs2_delete_osb(osb);
+           kfree(osb);
+           sb->s_fs_info = NULL;
+       }
+   }
+
+3. Update ocfs2_fs_type to use ocfs2_kill_sb instead of kill_block_super.
+
+4. The NULL check in ocfs2_inode_lock_full_nested() can optionally be
+   kept as a defense-in-depth measure, though it is no longer strictly
+   necessary if the life-cycle ordering is correct.
+
+This pattern is similar to ext4 — ext4_kill_sb() calls kill_block_super()
+first and then handles cleanup after (e.g., journal_bdev_file).
+
+Does this approach make sense?
+
+Best regards,
+Jiakai
 
