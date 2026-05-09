@@ -1,138 +1,153 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from cstnet.cn (smtp21.cstnet.cn [159.226.251.21])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21C302F8E85
-	for <ocfs2-devel@lists.linux.dev>; Sat,  9 May 2026 06:20:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C8B332E134
+	for <ocfs2-devel@lists.linux.dev>; Sat,  9 May 2026 08:46:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.21
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778307611; cv=none; b=uAVr18Y6nCPsHkrXE55DYeJ2ZQ62UoPp5emPEkGu7ZeR4E2m6gXJ3hMRoz4B6JQUq3GxXbdjqHuolw49kX5lFeHZEo/qQQRuFhTlkrRFW/42VOHnF6zcgkBqylQVu0vb6ackaqiQESLyz5gEcRcN08WQOq8H3bNYGpStZVfxYCw=
+	t=1778316382; cv=none; b=ttDn2mpdW7B3pUtJ7DcNTUqR3AtUk8oalym2p9UPQLDsDg6tYwlTE69a5m3cKWD7BCi25lIONBt9JRSb0CvCsmp5RNXD8PtECmiBuVSzLWH5Ao8K+sVXScjH7XiUK0ARmJ5W0qLD4NbkyJvdsaG1EAkObDeGugjbeShgXawNKFE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778307611; c=relaxed/simple;
-	bh=WR8MMYFpeWyY61ViYsdXPqtPRO8Rl7fEXQvBUWtXMAo=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=fDLbQ8qaxBs5+lbXJmuby3C6MH6gJAavvad4A4oZOIdScVZlj9ZPaHGzAxr8f7SE+McSRl5yLfMt2lJcadsdY3efyViguzhVGAjHMu1E+sWAM15UQ/bWr64l1S/XlB2WR4byUR2vPsVeg91V5rcY7XsLOcTRCH/UB5gPNTTG044=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=CwJwebkP; arc=none smtp.client-ip=115.124.30.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="CwJwebkP"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1778307605; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=iu5X8gIAWbpOzTgDpJdNvCQ9mknIeveQAOiM9eNkjD8=;
-	b=CwJwebkPem3n2PanbO3/JmYjPmlR1FN4TJmn0a9i2nkxNa94AAQPQxYDmhGx+Lfr7lGXmNN+ZsKWzlAnFaSVs//ccEulqK7HcVFQpIxupLBBsgz9zGPwCby2MeZoc8csFT6rDuALJEA4vBbxDeEkNqQx0Xs09NwAkHrB69A44qk=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R961e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X2Za9U2_1778307604;
-Received: from 30.221.129.99(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X2Za9U2_1778307604 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Sat, 09 May 2026 14:20:04 +0800
-Message-ID: <af0ae50e-1bcf-40cb-820f-aff07af156a5@linux.alibaba.com>
-Date: Sat, 9 May 2026 14:20:04 +0800
+	s=arc-20240116; t=1778316382; c=relaxed/simple;
+	bh=iueFzQ0Jy/wR1BNKHe5OXlG3FBdLFlkx5c2xnQcYCNY=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=RVDZhVaI3w36oMVRxCgkQHMD8WrmHScGhxlpJFqXkqprUGm+xh7VKPMboxbFgpGKJfubjWkYX8KXRg8vHH2krr7+ZzrpWrViN9pqy8sKtWmQFRRbdYEcq78kFlRaL5w/XgV6DS+jNiR1jwu/UuF936kjvW/F13AdV6VsvuESOPg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn; spf=pass smtp.mailfrom=mails.ucas.ac.cn; arc=none smtp.client-ip=159.226.251.21
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mails.ucas.ac.cn
+Received: from fric.. (unknown [36.110.52.2])
+	by APP-01 (Coremail) with SMTP id qwCowACnUW1L9P5pzhSxDw--.13714S2;
+	Sat, 09 May 2026 16:46:03 +0800 (CST)
+From: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
+To: joseph.qi@linux.alibaba.com
+Cc: heming.zhao@suse.com,
+	jlbec@evilplan.org,
+	kurt.hackel@oracle.com,
+	linux-kernel@vger.kernel.org,
+	mark@fasheh.com,
+	ocfs2-devel@lists.linux.dev,
+	xujiakai24@mails.ucas.ac.cn
+Subject: Re: [PATCH] ocfs2: fix use-after-free in ocfs2_inode_lock_full_nested during unmount
+Date: Sat,  9 May 2026 08:46:03 +0000
+Message-Id: <20260509084603.3255620-1-xujiakai24@mails.ucas.ac.cn>
+X-Mailer: git-send-email 2.34.1
+In-Reply-To: <af0ae50e-1bcf-40cb-820f-aff07af156a5@linux.alibaba.com>
+References: <af0ae50e-1bcf-40cb-820f-aff07af156a5@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix use-after-free in ocfs2_inode_lock_full_nested
- during unmount
-To: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
-Cc: heming.zhao@suse.com, jlbec@evilplan.org, kurt.hackel@oracle.com,
- linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev
-References: <75570681-a25a-4cec-9874-b76fec6167e8@linux.alibaba.com>
- <20260509042841.2038191-1-xujiakai24@mails.ucas.ac.cn>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260509042841.2038191-1-xujiakai24@mails.ucas.ac.cn>
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:qwCowACnUW1L9P5pzhSxDw--.13714S2
+X-Coremail-Antispam: 1UD129KBjvJXoWxKr45uF17GFW7tr17tw1fJFb_yoW7ZrWkpr
+	yjgrsrGF48WF18AryUAry5Ar47Jr4UC3WUJrWxGrn5AFyYk3WDXr1ktrWxtr1Dtrs0v347
+	trnxXws7KrnrAaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDU0xBIdaVrnRJUUUvC14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+	rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+	1l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
+	6F4UM28EF7xvwVC2z280aVAFwI0_GcCE3s1l84ACjcxK6I8E87Iv6xkF7I0E14v26rxl6s
+	0DM2vYz4IE04k24VAvwVAKI4IrM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI
+	64kE6c02F40Ex7xfMcIj6xIIjxv20xvE14v26r126r1DMcIj6I8E87Iv67AKxVW8JVWxJw
+	Am72CE4IkC6x0Yz7v_Jr0_Gr1lF7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAG
+	YxC7MxkF7I0En4kS14v26r126r1DMxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r
+	1j6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CE
+	b7AF67AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r1j6r1xMIIF0x
+	vE2Ix0cI8IcVCY1x0267AKxVWUJVW8JwCI42IY6xAIw20EY4v20xvaj40_Jr0_JF4lIxAI
+	cVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcSsGvfC2Kf
+	nxnUUI43ZEXa7VUjpBT5UUUUU==
+X-CM-SenderInfo: 50xmxthndljko6pdxz3voxutnvoduhdfq/
 
+> What is the operation?
+> We expect all operations cannot access filesystem during filesystem shutdown.
 
+Here is the full crash report produced by the fuzzer:
 
-On 5/9/26 12:28 PM, Jiakai Xu wrote:
->> It seems this is not enough, or TOCTOU still exists. Say:
->>
->> Thread A			Thread B
->> osb = OCFS2_SB(inode->i_sb)
->> 				ocfs2_dismount_volume()
->> 				-> sb->s_fs_info = NULL
->> 				-> kfree(osb)
->> use freed osb
->>
-> 
-> Hi Joseph,
-> 
-> Thank you very much for the review! You are absolutely right about the
-> TOCTOU issue — simply adding a NULL check after OCFS2_SB() cannot
-> prevent the race where thread A reads a valid osb pointer before thread
-> B frees it.
-> 
->> BTW, how did you find this issue?
-> 
-> I found this issue through fuzzing. The crash report shows a page fault 
-> at __pv_queued_spin_lock_slowpath via the call path:
-> 
->   ocfs2_permission -> ocfs2_inode_lock_tracker ->
->   ocfs2_inode_lock_full_nested -> ocfs2_is_hard_readonly ->
->   spin_lock(&osb->osb_lock)
+BUG: unable to handle page fault for address: ffffffff1315afd0
+#PF: supervisor write access in kernel mode
+#PF: error_code(0x0002) - not-present page
+PGD 6e6a067 P4D 6e6b067 PUD 0 
+Oops: Oops: 0002 [#1] SMP NOPTI
+CPU: 0 UID: 0 PID: 12119 Comm: syz.2.132 Not tainted 6.18.5 #1 PREEMPT(full) 
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.15.0-1 04/01/2014
+RIP: 0010:__pv_queued_spin_lock_slowpath+0x109/0x430 home/zzzrrll/tmp/linux/kernel/locking/qspinlock.c:288
+Code: 9a 00 00 00 0f b7 c8 81 e1 fc ff 00 00 83 e0 03 48 c1 e0 05 4c 8d a8 00 c4 6b 89 48 c7 c2 f8 ff ff ff 48 8b ac 4a 90 0d ab 86 <48> 89 9c 05 00 c4 6b 89 b8 00 80 00 00 45 31 f6 eb 23 41 80 7c 2d
+RSP: 0018:ffa000000da9bcc0 EFLAGS: 00010216
+RAX: 0000000000000060 RBX: ff1100007da2c400 RCX: 0000000000008584
+RDX: fffffffffffffff8 RSI: 0000000085873528 RDI: 0000000000040000
+RBP: ffffffff89a9eb70 R08: ff1100007da2c414 R09: 0000000000000000
+R10: 0000000000000002 R11: ffffffff823c6ad0 R12: 0000000000000000
+R13: ffffffff896bc460 R14: ff110000f4370000 R15: ff1100007ba096c8
+FS:  00007fb3ffc0a640(0000) GS:ff110000f4370000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: ffffffff1315afd0 CR3: 000000003f598000 CR4: 0000000000751ef0
+PKRU: 80000000
+Call Trace:
+ <TASK>
+ pv_queued_spin_lock_slowpath home/zzzrrll/tmp/linux/include/asm-generic/qspinlock.h:111 [inline]
+ queued_spin_lock_slowpath home/zzzrrll/tmp/linux/arch/x86/include/asm/qspinlock.h:51 [inline]
+ queued_spin_lock home/zzzrrll/tmp/linux/include/asm-generic/qspinlock.h:114 [inline]
+ do_raw_spin_lock home/zzzrrll/tmp/linux/include/linux/spinlock.h:187 [inline]
+ __raw_spin_lock home/zzzrrll/tmp/linux/include/linux/spinlock_api_smp.h:134 [inline]
+ _raw_spin_lock+0x31/0x40 home/zzzrrll/tmp/linux/kernel/locking/spinlock.c:154
+ spin_lock home/zzzrrll/tmp/linux/include/linux/spinlock.h:351 [inline]
+ ocfs2_is_hard_readonly home/zzzrrll/tmp/linux/fs/ocfs2/ocfs2.h:665 [inline]
+ ocfs2_inode_lock_full_nested+0x5c/0xca0 home/zzzrrll/tmp/linux/fs/ocfs2/dlmglue.c:2446
+ ocfs2_inode_lock_tracker+0xd8/0x400 home/zzzrrll/tmp/linux/fs/ocfs2/dlmglue.c:2691
+ ocfs2_permission+0x75/0x130 home/zzzrrll/tmp/linux/fs/ocfs2/file.c:1349
+ do_inode_permission home/zzzrrll/tmp/linux/fs/namei.c:526 [inline]
+ inode_permission+0x1b4/0x2d0 home/zzzrrll/tmp/linux/fs/namei.c:593
+ path_permission home/zzzrrll/tmp/linux/include/linux/fs.h:3086 [inline]
+ inotify_find_inode home/zzzrrll/tmp/linux/fs/notify/inotify/inotify_user.c:381 [inline]
+ __do_sys_inotify_add_watch home/zzzrrll/tmp/linux/fs/notify/inotify/inotify_user.c:771 [inline]
+ __se_sys_inotify_add_watch+0x146/0x650 home/zzzrrll/tmp/linux/fs/notify/inotify/inotify_user.c:729
+ do_syscall_x64 home/zzzrrll/tmp/linux/arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0xc6/0xfa0 home/zzzrrll/tmp/linux/arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fb3fedae16d
+Code: 02 b8 ff ff ff ff c3 66 0f 1f 44 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fb3ffc09f98 EFLAGS: 00000246 ORIG_RAX: 00000000000000fe
+RAX: ffffffffffffffda RBX: 00007fb3feff5fa0 RCX: 00007fb3fedae16d
+RDX: 0000000004000000 RSI: 0000200000000080 RDI: 0000000000000004
+RBP: 00007fb3fee480f0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007fb3feff6038 R14: 00007fb3feff5fa0 R15: 00007fb3ffbea000
+ </TASK>
+Modules linked in:
+CR2: ffffffff1315afd0
+---[ end trace 0000000000000000 ]---
+RIP: 0010:__pv_queued_spin_lock_slowpath+0x109/0x430 home/zzzrrll/tmp/linux/kernel/locking/qspinlock.c:288
+Code: 9a 00 00 00 0f b7 c8 81 e1 fc ff 00 00 83 e0 03 48 c1 e0 05 4c 8d a8 00 c4 6b 89 48 c7 c2 f8 ff ff ff 48 8b ac 4a 90 0d ab 86 <48> 89 9c 05 00 c4 6b 89 b8 00 80 00 00 45 31 f6 eb 23 41 80 7c 2d
+RSP: 0018:ffa000000da9bcc0 EFLAGS: 00010216
+RAX: 0000000000000060 RBX: ff1100007da2c400 RCX: 0000000000008584
+RDX: fffffffffffffff8 RSI: 0000000085873528 RDI: 0000000000040000
+RBP: ffffffff89a9eb70 R08: ff1100007da2c414 R09: 0000000000000000
+R10: 0000000000000002 R11: ffffffff823c6ad0 R12: 0000000000000000
+R13: ffffffff896bc460 R14: ff110000f4370000 R15: ff1100007ba096c8
+FS:  00007fb3ffc0a640(0000) GS:ff110000f4370000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: ffffffff1315afd0 CR3: 000000003f598000 CR4: 0000000000751ef0
+PKRU: 80000000
+----------------
+Code disassembly (best guess), 1 bytes skipped:
+   0:	00 00                	add    %al,(%rax)
+   2:	00 0f                	add    %cl,(%rdi)
+   4:	b7 c8                	mov    $0xc8,%bh
+   6:	81 e1 fc ff 00 00    	and    $0xfffc,%ecx
+   c:	83 e0 03             	and    $0x3,%eax
+   f:	48 c1 e0 05          	shl    $0x5,%rax
+  13:	4c 8d a8 00 c4 6b 89 	lea    -0x76943c00(%rax),%r13
+  1a:	48 c7 c2 f8 ff ff ff 	mov    $0xfffffffffffffff8,%rdx
+  21:	48 8b ac 4a 90 0d ab 	mov    -0x7954f270(%rdx,%rcx,2),%rbp
+  28:	86
+* 29:	48 89 9c 05 00 c4 6b 	mov    %rbx,-0x76943c00(%rbp,%rax,1) <-- trapping instruction
+  30:	89
+  31:	b8 00 80 00 00       	mov    $0x8000,%eax
+  36:	45 31 f6             	xor    %r14d,%r14d
+  39:	eb 23                	jmp    0x5e
+  3b:	41                   	rex.B
+  3c:	80                   	.byte 0x80
+  3d:	7c 2d                	jl     0x6c
 
-What is the operation?
-We expect all operations cannot access filesystem during filesystem shutdown.
+Jiakai
 
-> 
-> The fault address was in the kernel static data region, indicating that
-> the osb structure had been freed and its memory reused.
-> 
-> I have been thinking about a more robust fix and would like to get your
-> opinion on the following approach:
-> 
-> Currently, ocfs2_dismount_volume() is called from ocfs2_put_super(),
-> which runs inside generic_shutdown_super() while s_umount is still held.
-> The osb structure is freed at this point, but inodes with elevated
-> refcounts (e.g., held by inotify) survive evict_inodes() and may still
-> trigger filesystem operations (like ocfs2_permission) that access osb.
-> 
-> The idea is to move the osb cleanup out of ocfs2_dismount_volume() and
-> into an ocfs2-specific ->kill_sb() callback, so that the cleanup happens
-> after generic_shutdown_super() has completed and all concurrent VFS
-> operations have drained.
-> 
-> Specifically:
-> 
-> 1. Remove ocfs2_delete_osb(), kfree(osb), and sb->s_fs_info = NULL from
->    ocfs2_dismount_volume(). Keep all the subsystem shutdown (journal,
->    dlm, recovery, quota, etc.) there.
-> 
-> 2. Add a new ocfs2_kill_sb() that wraps kill_block_super():
-> 
->    static void ocfs2_kill_sb(struct super_block *sb)
->    {
->        struct ocfs2_super *osb = OCFS2_SB(sb);
-> 
->        kill_block_super(sb);
->        // At this point generic_shutdown_super() has completed,
->        // SB_DYING is set, and no new VFS operations can enter.
-> 
->        if (osb) {
->            ocfs2_delete_osb(osb);
->            kfree(osb);
->            sb->s_fs_info = NULL;
->        }
->    }
-> 
-> 3. Update ocfs2_fs_type to use ocfs2_kill_sb instead of kill_block_super.
-> 
-> 4. The NULL check in ocfs2_inode_lock_full_nested() can optionally be
->    kept as a defense-in-depth measure, though it is no longer strictly
->    necessary if the life-cycle ordering is correct.
-> 
-> This pattern is similar to ext4 — ext4_kill_sb() calls kill_block_super()
-> first and then handles cleanup after (e.g., journal_bdev_file).
-> 
-> Does this approach make sense?
-> 
-
-In generic_shutdown_super(), it clears SB_ACTIVE.
-So it seems we can check this flag.
-
-Thanks,
-Joseph
