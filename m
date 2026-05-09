@@ -1,37 +1,75 @@
-Received: from cstnet.cn (smtp21.cstnet.cn [159.226.251.21])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+Received: from mail-pf1-f177.google.com (mail-pf1-f177.google.com [209.85.210.177])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C8B332E134
-	for <ocfs2-devel@lists.linux.dev>; Sat,  9 May 2026 08:46:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.21
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8D7B39A04E
+	for <ocfs2-devel@lists.linux.dev>; Sat,  9 May 2026 09:10:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778316382; cv=none; b=ttDn2mpdW7B3pUtJ7DcNTUqR3AtUk8oalym2p9UPQLDsDg6tYwlTE69a5m3cKWD7BCi25lIONBt9JRSb0CvCsmp5RNXD8PtECmiBuVSzLWH5Ao8K+sVXScjH7XiUK0ARmJ5W0qLD4NbkyJvdsaG1EAkObDeGugjbeShgXawNKFE=
+	t=1778317822; cv=none; b=N2jlEWnbNq+/NBHviJip2KkuOvwmPEmgExNjNSDvRnkx2/LYFAWW0hk/kGGLAhs2pH/uiZ2Jk4Z+wT1V/DOOBY6aVhjjQ/X/AxB7x3Ju3uevrzMucCDE9Mti40HGp1zwGEyD0ytOB1TVuwoIwGB+Mb2+vPIup1iKHOHarGxer7M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778316382; c=relaxed/simple;
-	bh=iueFzQ0Jy/wR1BNKHe5OXlG3FBdLFlkx5c2xnQcYCNY=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=RVDZhVaI3w36oMVRxCgkQHMD8WrmHScGhxlpJFqXkqprUGm+xh7VKPMboxbFgpGKJfubjWkYX8KXRg8vHH2krr7+ZzrpWrViN9pqy8sKtWmQFRRbdYEcq78kFlRaL5w/XgV6DS+jNiR1jwu/UuF936kjvW/F13AdV6VsvuESOPg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn; spf=pass smtp.mailfrom=mails.ucas.ac.cn; arc=none smtp.client-ip=159.226.251.21
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mails.ucas.ac.cn
-Received: from fric.. (unknown [36.110.52.2])
-	by APP-01 (Coremail) with SMTP id qwCowACnUW1L9P5pzhSxDw--.13714S2;
-	Sat, 09 May 2026 16:46:03 +0800 (CST)
-From: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
-To: joseph.qi@linux.alibaba.com
-Cc: heming.zhao@suse.com,
+	s=arc-20240116; t=1778317822; c=relaxed/simple;
+	bh=WKWdM12bQXy2amWAqjn3073rgASxZAw+mgRRdxe7iKU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=cAfd4DY/yUU+X7eoS1cZHS6Q5wFxR/xdYN55e+uge4H1H4FfYFK5rSPz/rFIcbKN0kESNu37RAiUY0fAKNutUtcyVpBfBXSEnR4t3S9HElEv2XKlcCL/bdzTQmqOAH7l5GhgA2lZLBLYEqOzyaQaTnP7/Hp3WgA5k13TRze1/v4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MjpeoeiD; arc=none smtp.client-ip=209.85.210.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MjpeoeiD"
+Received: by mail-pf1-f177.google.com with SMTP id d2e1a72fcca58-834da62e52dso1238694b3a.3
+        for <ocfs2-devel@lists.linux.dev>; Sat, 09 May 2026 02:10:18 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1778317817; x=1778922617; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=li5Xt1PaINpaL2UPymHHMMrcfub/KFmvLpc/g8W+eII=;
+        b=MjpeoeiDaXhicpcn+NFGM59bn/jfiwocgXiZlvhjXmt2pA/iQVTpqtzB9WU/l0c7RH
+         EV+909q/xvUAAM7aUGh/3qHfSdMVIUi9HyJ8QOCj/tePxvUUneUnEc6E38c4c6y+b2dN
+         yKCiSUK+U/wl7LUNzPrU5jQngaGP0djWHgp+HrlBeQE32ASGTE+XGjYoytYQTvwwuCx7
+         LalFy+FhlFyZeZXbM1k0gDqp/B/RqydgTKbdQIwa+L86lYUo2gl58jMNavYEjU2DeDbK
+         GFeCTqspV5OsaeZ01groK/npmpZxmqqfUJqITbgG+lik2tYVSxAlakpgPKh64iGxy8pZ
+         uWEg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1778317817; x=1778922617;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=li5Xt1PaINpaL2UPymHHMMrcfub/KFmvLpc/g8W+eII=;
+        b=DoHu1nQJklX33oNf7v2YeXpztXDUePkdiUFtrI1d3dhs3x0AWlv7YjI3EbkQH3jUNB
+         xI7gQOFatNmMAnvfRA+FzkS6AHj4GN9xHtp1cbQ3+4Cniv5g4UKmxuQvnd8JHcYbfI+G
+         GfUsOOxitaHDI1p2lT084W1+7jyMoAGs9ofoCnwHcU048b6xn7162QJrFH4mqmVZNtu7
+         AIJI2kasqfFOJiCGne+0JvOoe0KHDJt25sSaj6UutO2R+p2/3RF3xz0lQptfjrI3jMuy
+         FSvP/XVuOA8Xc7DjJ0cnPH5BQiaQCYMksA8fWmQszLbLHTnFgL8dVlxH3RxMm2LU/Cvf
+         TIwQ==
+X-Gm-Message-State: AOJu0Yyu1othn8o+SPSU4LVSnckKk4X9YsMIVJ99HTYPve4aqt8LHHgj
+	P0wcxsISFfS23gypKR8woowfkTUbC4xy9GSPkpGwCkjy1xedQW76yhYM
+X-Gm-Gg: Acq92OEXhE41NN/ZVlsuEhKO0TPmU72rrb1djVV8FkBeRgOz9i522GdCd49l5gWp5Z0
+	AsDqNJi2Cstda4MrNY/QN7oeG3PKjWlWIQlbb1XCW00P4YUZp4h1gbe0n5GzWO3cSaO4s/O4qJM
+	YZKh3Co7oh+XnYaCVSDlmx0xFoVhUrLj0yPmGY6jWxFZBkPULfN/WH+mJhlMe+fgL/aspgEE2uD
+	Q7DvcFg2iwRkf9vpheznWX8rjCacR5U+XpU3gBgOwUaMnEFWdRNZcpOi+EUbRRSGTz+zfmrvyeq
+	vrslh1nwy7N4tBELNdxP6LCvXkvSqq/abPeb3+nUtLGpBWXQwyDOEKyrsoujlYannNPY39iuWur
+	1Mpm7U5fiEUvlDuNeq6hYoaRQQXc4QhZDjn8c+0xOkg+1dKaBX6yCLpHvd6mGKamVgdCMXl9j7w
+	zYCtvvGZWkPReZ4HcCJ+tHRVCJB5ga9zO+kgw2bnSvQKZ3f0tXRJFPLwyk9TWZ+7MqVy6Y/1tP2
+	sEV
+X-Received: by 2002:aa7:88d6:0:b0:82a:6852:559e with SMTP id d2e1a72fcca58-83a5b8d8905mr15413203b3a.12.1778317816876;
+        Sat, 09 May 2026 02:10:16 -0700 (PDT)
+Received: from gmail.com ([103.172.182.26])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-83965d35b3bsm13529609b3a.24.2026.05.09.02.10.12
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 09 May 2026 02:10:16 -0700 (PDT)
+From: ZhengYuan Huang <gality369@gmail.com>
+To: mark@fasheh.com,
 	jlbec@evilplan.org,
-	kurt.hackel@oracle.com,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
-	mark@fasheh.com,
-	ocfs2-devel@lists.linux.dev,
-	xujiakai24@mails.ucas.ac.cn
-Subject: Re: [PATCH] ocfs2: fix use-after-free in ocfs2_inode_lock_full_nested during unmount
-Date: Sat,  9 May 2026 08:46:03 +0000
-Message-Id: <20260509084603.3255620-1-xujiakai24@mails.ucas.ac.cn>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <af0ae50e-1bcf-40cb-820f-aff07af156a5@linux.alibaba.com>
-References: <af0ae50e-1bcf-40cb-820f-aff07af156a5@linux.alibaba.com>
+	baijiaju1990@gmail.com,
+	r33s3n6@gmail.com,
+	zzzccc427@gmail.com,
+	ZhengYuan Huang <gality369@gmail.com>
+Subject: [PATCH] ocfs2: reject inconsistent inode size before truncate
+Date: Sat,  9 May 2026 17:10:04 +0800
+Message-ID: <20260509091004.758218-1-gality369@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -39,115 +77,90 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:qwCowACnUW1L9P5pzhSxDw--.13714S2
-X-Coremail-Antispam: 1UD129KBjvJXoWxKr45uF17GFW7tr17tw1fJFb_yoW7ZrWkpr
-	yjgrsrGF48WF18AryUAry5Ar47Jr4UC3WUJrWxGrn5AFyYk3WDXr1ktrWxtr1Dtrs0v347
-	trnxXws7KrnrAaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDU0xBIdaVrnRJUUUvC14x267AKxVW8JVW5JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-	rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
-	1l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
-	6F4UM28EF7xvwVC2z280aVAFwI0_GcCE3s1l84ACjcxK6I8E87Iv6xkF7I0E14v26rxl6s
-	0DM2vYz4IE04k24VAvwVAKI4IrM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI
-	64kE6c02F40Ex7xfMcIj6xIIjxv20xvE14v26r126r1DMcIj6I8E87Iv67AKxVW8JVWxJw
-	Am72CE4IkC6x0Yz7v_Jr0_Gr1lF7xvr2IYc2Ij64vIr41lF7I21c0EjII2zVCS5cI20VAG
-	YxC7MxkF7I0En4kS14v26r126r1DMxAIw28IcxkI7VAKI48JMxC20s026xCaFVCjc4AY6r
-	1j6r4UMI8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CE
-	b7AF67AKxVWUtVW8ZwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26r1j6r1xMIIF0x
-	vE2Ix0cI8IcVCY1x0267AKxVWUJVW8JwCI42IY6xAIw20EY4v20xvaj40_Jr0_JF4lIxAI
-	cVC2z280aVAFwI0_Jr0_Gr1lIxAIcVC2z280aVCY1x0267AKxVW8JVW8JrUvcSsGvfC2Kf
-	nxnUUI43ZEXa7VUjpBT5UUUUU==
-X-CM-SenderInfo: 50xmxthndljko6pdxz3voxutnvoduhdfq/
 
-> What is the operation?
-> We expect all operations cannot access filesystem during filesystem shutdown.
+[BUG]
+openat(..., O_WRONLY|O_CREAT|O_TRUNC) can hit:
 
-Here is the full crash report produced by the fuzzer:
-
-BUG: unable to handle page fault for address: ffffffff1315afd0
-#PF: supervisor write access in kernel mode
-#PF: error_code(0x0002) - not-present page
-PGD 6e6a067 P4D 6e6b067 PUD 0 
-Oops: Oops: 0002 [#1] SMP NOPTI
-CPU: 0 UID: 0 PID: 12119 Comm: syz.2.132 Not tainted 6.18.5 #1 PREEMPT(full) 
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.15.0-1 04/01/2014
-RIP: 0010:__pv_queued_spin_lock_slowpath+0x109/0x430 home/zzzrrll/tmp/linux/kernel/locking/qspinlock.c:288
-Code: 9a 00 00 00 0f b7 c8 81 e1 fc ff 00 00 83 e0 03 48 c1 e0 05 4c 8d a8 00 c4 6b 89 48 c7 c2 f8 ff ff ff 48 8b ac 4a 90 0d ab 86 <48> 89 9c 05 00 c4 6b 89 b8 00 80 00 00 45 31 f6 eb 23 41 80 7c 2d
-RSP: 0018:ffa000000da9bcc0 EFLAGS: 00010216
-RAX: 0000000000000060 RBX: ff1100007da2c400 RCX: 0000000000008584
-RDX: fffffffffffffff8 RSI: 0000000085873528 RDI: 0000000000040000
-RBP: ffffffff89a9eb70 R08: ff1100007da2c414 R09: 0000000000000000
-R10: 0000000000000002 R11: ffffffff823c6ad0 R12: 0000000000000000
-R13: ffffffff896bc460 R14: ff110000f4370000 R15: ff1100007ba096c8
-FS:  00007fb3ffc0a640(0000) GS:ff110000f4370000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: ffffffff1315afd0 CR3: 000000003f598000 CR4: 0000000000751ef0
-PKRU: 80000000
+kernel BUG at fs/ocfs2/file.c:454!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+RIP: 0010:ocfs2_truncate_file+0x1204/0x13c0 fs/ocfs2/file.c:454
 Call Trace:
- <TASK>
- pv_queued_spin_lock_slowpath home/zzzrrll/tmp/linux/include/asm-generic/qspinlock.h:111 [inline]
- queued_spin_lock_slowpath home/zzzrrll/tmp/linux/arch/x86/include/asm/qspinlock.h:51 [inline]
- queued_spin_lock home/zzzrrll/tmp/linux/include/asm-generic/qspinlock.h:114 [inline]
- do_raw_spin_lock home/zzzrrll/tmp/linux/include/linux/spinlock.h:187 [inline]
- __raw_spin_lock home/zzzrrll/tmp/linux/include/linux/spinlock_api_smp.h:134 [inline]
- _raw_spin_lock+0x31/0x40 home/zzzrrll/tmp/linux/kernel/locking/spinlock.c:154
- spin_lock home/zzzrrll/tmp/linux/include/linux/spinlock.h:351 [inline]
- ocfs2_is_hard_readonly home/zzzrrll/tmp/linux/fs/ocfs2/ocfs2.h:665 [inline]
- ocfs2_inode_lock_full_nested+0x5c/0xca0 home/zzzrrll/tmp/linux/fs/ocfs2/dlmglue.c:2446
- ocfs2_inode_lock_tracker+0xd8/0x400 home/zzzrrll/tmp/linux/fs/ocfs2/dlmglue.c:2691
- ocfs2_permission+0x75/0x130 home/zzzrrll/tmp/linux/fs/ocfs2/file.c:1349
- do_inode_permission home/zzzrrll/tmp/linux/fs/namei.c:526 [inline]
- inode_permission+0x1b4/0x2d0 home/zzzrrll/tmp/linux/fs/namei.c:593
- path_permission home/zzzrrll/tmp/linux/include/linux/fs.h:3086 [inline]
- inotify_find_inode home/zzzrrll/tmp/linux/fs/notify/inotify/inotify_user.c:381 [inline]
- __do_sys_inotify_add_watch home/zzzrrll/tmp/linux/fs/notify/inotify/inotify_user.c:771 [inline]
- __se_sys_inotify_add_watch+0x146/0x650 home/zzzrrll/tmp/linux/fs/notify/inotify/inotify_user.c:729
- do_syscall_x64 home/zzzrrll/tmp/linux/arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xc6/0xfa0 home/zzzrrll/tmp/linux/arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fb3fedae16d
-Code: 02 b8 ff ff ff ff c3 66 0f 1f 44 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fb3ffc09f98 EFLAGS: 00000246 ORIG_RAX: 00000000000000fe
-RAX: ffffffffffffffda RBX: 00007fb3feff5fa0 RCX: 00007fb3fedae16d
-RDX: 0000000004000000 RSI: 0000200000000080 RDI: 0000000000000004
-RBP: 00007fb3fee480f0 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007fb3feff6038 R14: 00007fb3feff5fa0 R15: 00007fb3ffbea000
- </TASK>
-Modules linked in:
-CR2: ffffffff1315afd0
----[ end trace 0000000000000000 ]---
-RIP: 0010:__pv_queued_spin_lock_slowpath+0x109/0x430 home/zzzrrll/tmp/linux/kernel/locking/qspinlock.c:288
-Code: 9a 00 00 00 0f b7 c8 81 e1 fc ff 00 00 83 e0 03 48 c1 e0 05 4c 8d a8 00 c4 6b 89 48 c7 c2 f8 ff ff ff 48 8b ac 4a 90 0d ab 86 <48> 89 9c 05 00 c4 6b 89 b8 00 80 00 00 45 31 f6 eb 23 41 80 7c 2d
-RSP: 0018:ffa000000da9bcc0 EFLAGS: 00010216
-RAX: 0000000000000060 RBX: ff1100007da2c400 RCX: 0000000000008584
-RDX: fffffffffffffff8 RSI: 0000000085873528 RDI: 0000000000040000
-RBP: ffffffff89a9eb70 R08: ff1100007da2c414 R09: 0000000000000000
-R10: 0000000000000002 R11: ffffffff823c6ad0 R12: 0000000000000000
-R13: ffffffff896bc460 R14: ff110000f4370000 R15: ff1100007ba096c8
-FS:  00007fb3ffc0a640(0000) GS:ff110000f4370000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: ffffffff1315afd0 CR3: 000000003f598000 CR4: 0000000000751ef0
-PKRU: 80000000
-----------------
-Code disassembly (best guess), 1 bytes skipped:
-   0:	00 00                	add    %al,(%rax)
-   2:	00 0f                	add    %cl,(%rdi)
-   4:	b7 c8                	mov    $0xc8,%bh
-   6:	81 e1 fc ff 00 00    	and    $0xfffc,%ecx
-   c:	83 e0 03             	and    $0x3,%eax
-   f:	48 c1 e0 05          	shl    $0x5,%rax
-  13:	4c 8d a8 00 c4 6b 89 	lea    -0x76943c00(%rax),%r13
-  1a:	48 c7 c2 f8 ff ff ff 	mov    $0xfffffffffffffff8,%rdx
-  21:	48 8b ac 4a 90 0d ab 	mov    -0x7954f270(%rdx,%rcx,2),%rbp
-  28:	86
-* 29:	48 89 9c 05 00 c4 6b 	mov    %rbx,-0x76943c00(%rbp,%rax,1) <-- trapping instruction
-  30:	89
-  31:	b8 00 80 00 00       	mov    $0x8000,%eax
-  36:	45 31 f6             	xor    %r14d,%r14d
-  39:	eb 23                	jmp    0x5e
-  3b:	41                   	rex.B
-  3c:	80                   	.byte 0x80
-  3d:	7c 2d                	jl     0x6c
+ ocfs2_setattr+0xa6d/0x1fd0 fs/ocfs2/file.c:1212
+ notify_change+0x4b5/0x1030 fs/attr.c:546
+ do_truncate+0x1d2/0x230 fs/open.c:68
+ handle_truncate fs/namei.c:3596 [inline]
+ do_open fs/namei.c:3979 [inline]
+ path_openat+0x260f/0x2ce0 fs/namei.c:4134
+ do_filp_open+0x1f6/0x430 fs/namei.c:4161
+ do_sys_openat2+0x117/0x1c0 fs/open.c:1437
+ do_sys_open fs/open.c:1452 [inline]
+ __do_sys_openat fs/open.c:1468 [inline]
+ __se_sys_openat fs/open.c:1463 [inline]
+ __x64_sys_openat+0x15b/0x220 fs/open.c:1463
+ ...
 
-Jiakai
+[CAUSE]
+ocfs2_truncate_file() treats di_bh->i_size matching inode->i_size as an
+internal code invariant and BUGs if it is broken.
 
+That assumption is too strong for corrupted metadata. The dinode block can
+still be structurally valid enough to pass ocfs2_read_inode_block() while
+no longer matching an already-instantiated VFS inode. On local mounts,
+ocfs2_inode_lock_update() skips refresh entirely, so truncate can
+observe the mismatch directly and crash instead of rejecting the
+corruption.
+
+[FIX]
+Turn the BUG_ON into normal OCFS2 corruption handling. If truncate sees
+di_bh->i_size disagree with inode->i_size, report it with ocfs2_error() and
+abort before touching truncate state.
+
+This keeps the fix at the first boundary that actually requires the
+sizes to match and avoids widening checks into hotter generic
+inode-lock paths.
+
+Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+---
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -444,15 +444,17 @@ int ocfs2_truncate_file(struct inode *inode,
+ 	int status = 0;
+ 	struct ocfs2_dinode *fe = NULL;
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 
+-	/* We trust di_bh because it comes from ocfs2_inode_lock(), which
+-	 * already validated it */
++	/*
++	 * ocfs2_inode_lock() validated the dinode block, but truncation
++	 * still needs to reject an inode state that no longer matches
++	 * di_bh.
++	 */
+ 	fe = (struct ocfs2_dinode *) di_bh->b_data;
+ 
+ 	trace_ocfs2_truncate_file((unsigned long long)OCFS2_I(inode)->ip_blkno,
+ 				  (unsigned long long)le64_to_cpu(fe->i_size),
+ 				  (unsigned long long)new_i_size);
+ 
+-	mlog_bug_on_msg(le64_to_cpu(fe->i_size) != i_size_read(inode),
+-			"Inode %llu, inode i_size = %lld != di "
+-			"i_size = %llu, i_flags = 0x%x\n",
+-			(unsigned long long)OCFS2_I(inode)->ip_blkno,
+-			i_size_read(inode),
+-			(unsigned long long)le64_to_cpu(fe->i_size),
+-			le32_to_cpu(fe->i_flags));
++	if (unlikely(le64_to_cpu(fe->i_size) != i_size_read(inode))) {
++		status = ocfs2_error(inode->i_sb,
++				     "Inode %llu has inconsistent i_size: inode = %lld, dinode = %llu, i_flags = 0x%x\n",
++				     (unsigned long long)OCFS2_I(inode)->ip_blkno,
++				     i_size_read(inode),
++				     (unsigned long long)le64_to_cpu(fe->i_size),
++				     le32_to_cpu(fe->i_flags));
++		goto bail;
++	}
+ 
+ 	if (new_i_size > le64_to_cpu(fe->i_size)) {
+ 		trace_ocfs2_truncate_file_error(
+ 			(unsigned long long)le64_to_cpu(fe->i_size),
+-- 
+2.43.0
