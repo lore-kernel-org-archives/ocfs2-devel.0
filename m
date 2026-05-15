@@ -1,73 +1,74 @@
-Received: from mail-wm1-f45.google.com (mail-wm1-f45.google.com [209.85.128.45])
+Received: from mail-wr1-f54.google.com (mail-wr1-f54.google.com [209.85.221.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5EAB33F86FD
-	for <ocfs2-devel@lists.linux.dev>; Fri, 15 May 2026 23:55:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 83E1E3E63AE
+	for <ocfs2-devel@lists.linux.dev>; Fri, 15 May 2026 23:56:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1778889334; cv=none; b=FCiz8VWnQYyzuQHzBZPn+jlf9Mbt8/OPYBkA3XQWBxI5CRN/auWffewGU1/+cMw6HOxF5TtDRUiVDb1u8kH+DOyQauwXpa809w/X/IDdBq9ozQCO+/SiKEKkUDDzG58qn3AiBu51L4VYnA6vams0t8/CKXD2FZkBWktFWyg3I9U=
+	t=1778889388; cv=none; b=HVHmFve1/5kB2SufG/8GT1/xWTKLv+WRo5gRm5ms29Sgq/myTvbED/kOxJFYy8V2MoEVSOYdkh8JS+tj74kqmXhb/nQrm0NMKKkS6mDICP+7jOMS8TSVB+tPVEvHvmGeQqw65hpk/algZc3HwK6Q9DGQ3Aelnax0nv2VP0+te6U=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1778889334; c=relaxed/simple;
-	bh=R7QQmAF7rHIp4ZGfTNo0zSVDjHW0y7nCf5JljviK0mw=;
+	s=arc-20240116; t=1778889388; c=relaxed/simple;
+	bh=TczwYFvezC+cxAVsXFLJSZa6yKhWgXpLxIGr4mPEKJw=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=fQKrc9T3FraXVH0+Yq/kt58xdlORpoEId/mMshRfkMz947oMnqgUFWN1yNaQ9B4DupAr+9UoC16uccTWNZMX3LvvMuF4R0ql7Fg0W0s32z/4lnIIrzuopdU+RQtSE0t+wS7vd5Etlg9dys6rwibj+7dBA9uHuixGyOxg75piarg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=F+PBzm1M; arc=none smtp.client-ip=209.85.128.45
+	 Content-Type:Content-Disposition:In-Reply-To; b=pG0b+XQUtDt7jN70Ye4Ab1JyDHO8UOYco5Hym/uU8N3pXutDF/4gZ4wyuVzfaOcdfPXhAdfgQCUGmeLjzSXgZ+UM14fa3SrKWCKsfjrwu8HgVZJQGUC+FCbauXMsz4xLgF149VjdrY5/6YdOkjg546hmQ31b8Bjcu+Wnl8MnZpY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=hBmxf75K; arc=none smtp.client-ip=209.85.221.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="F+PBzm1M"
-Received: by mail-wm1-f45.google.com with SMTP id 5b1f17b1804b1-48fde2f2d61so607005e9.3
-        for <ocfs2-devel@lists.linux.dev>; Fri, 15 May 2026 16:55:33 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="hBmxf75K"
+Received: by mail-wr1-f54.google.com with SMTP id ffacd0b85a97d-44c44af71f8so35897f8f.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 15 May 2026 16:56:27 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1778889332; x=1779494132; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1778889386; x=1779494186; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=baRntiz3PGNRxi87FvWoZh70C9xltJeEBTGSkvMq1iU=;
-        b=F+PBzm1MMqG/gLpN3Py1oM7yk98E5EcBNBvAloRQ3kuR5UMR8WSJymuDCYPBs8GX2q
-         NhIzEqY8+nuMYa+G51fVJVZ9b7l0y0IWZQDS5faK+v9I8YkyTdLETQjSDml6FFJQjZYH
-         sacN4cFU8dHlCTQ//ENEu6a4QfaQk//qDj4gPkbyb7cgZmApa0Q/bq/oYAEQIhtRb8CV
-         xJfplqT2UWo+jYqfTQ0Dtp78PxcQ/nihX58aa8oGn0NJDr/X0005PsELJOlNhCOUlDYh
-         nqcuzGarziRcJzLIpbqhezqUse22vLuLFCVM+NErFcdPwlkxA9SZ0W9IkPrr/ihKrAMP
-         pRUg==
+        bh=7l0XJ9rj+fjB2S5mDM2d3xOJnuO0et6lV2GrlUYJVSw=;
+        b=hBmxf75Kr8G2voN35SMTVNRivnqcww6ztIX7/1ducUaoq5jrJPqcS496kPABbNSwGN
+         u5xoC4LTn19F8kxCWHjYL+/fxK3+9FSOdSEcBml1RRkF50LDj+CxltxAPkrTMgkEmOWq
+         1Njud5nHsyQtX2CIcxKE6/JOlN6MUKMCsazUx3OYDvugz96T6SoyN27AXxbeYmIKgRW9
+         AIEJZFM1QxnX7qM3ppICj6O3wkW0CpKcsO8ncwW2kf6VOAyZifXOBJo4+UNbMBCsY2ns
+         lHVLTfp/0UTqqKPLDyzmQzHc21eNugw9BCdNec1T8HaLq8rBThJNEe/KaYhq2bz+xzzQ
+         JGmg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1778889332; x=1779494132;
+        d=1e100.net; s=20251104; t=1778889386; x=1779494186;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=baRntiz3PGNRxi87FvWoZh70C9xltJeEBTGSkvMq1iU=;
-        b=h45hElIAx8gxb4yelL+VAS7U9kTwLVc/fgkK7Dp8vAHLlH44kgxVIp86coZR017Fh+
-         xsO337MVr9m2w9w95wEWRnYs+lbcUj+0dH65KbSC8qFfITOyXiJCseIbyPulzlOsvbvv
-         f3GiIhTcloXuKMQD8JOgWAO+jd+o3RAS+gtnkEweXuAvSpcCcCt0Gt+DjxGwO8+kWgiE
-         lFVSvUarNL7NK1+7a8uhqEhTMhONhs5Bf0LoKC75Fcf24SDdIuVQ7PqIqPEsmcRRye7U
-         b8b5OfvFA6151V0IKASXQtFfPy1s0JFTNB23cUNurgnD/xmKqidlP796JL5z0L9UQC4H
-         Ts1A==
-X-Forwarded-Encrypted: i=1; AFNElJ/tC6GfP2w7A6S6RahNngVWyEpSr/E0Md2RgZndnMo8Ehm3toqxZidEDZ/O2eGgLJcfBQaqs3CoFJBFPw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwrFG4+e9v5ZAxjsi2NZ6PwvkKqtarku8jYu3raDAqtzu2/7i9S
-	z9/B39l+tUX7ZXxkGH4IFdaqsVzNxfxjIUHSxbeK6caHr0bUsW6v19vxTXQj0wudsBM=
-X-Gm-Gg: Acq92OFIB2fdaIoARje79tLwrVVEDReUsKh/m1W003I99AyOBC8Kbxp04fNwAtzWqNj
-	AMCQh9QX5aeyJE8hVbjqtQTEllAEl8PtknfCisvzuvTKq8cxuc+gwbHVezM5hKGKsP6U/kMbruD
-	aE68n+Fng0tPdTgOifKnvWlt9LNqUmYHbG41OJlve5qqh2oaYRQvO7uqw0xa8+VPX3hh5sHPjlt
-	xaf+s5A7Wjks/TVHysu2hSpubvr0E4ENiah5KV2FsCTthWOGslkWCMZNdms6GHDQ58SIyl5yqAG
-	n0uIkKZ0ANLTY5QedhtCaVBa0CL11YO/zwcu6l8hHN4fBAb4UC6Bmx00YXk7ugYDQwyWyXeDvwL
-	DwYBEgdRdZHIQz14tZsnx0MQztduM6rPdvZNvZq3OW4eQeqC3+nyxodWMP89nBmLKC21hHMvVtY
-	+CwCQOX04FAi2YBVj0zQv6+w==
-X-Received: by 2002:a05:600c:4fc5:b0:48e:65f3:a950 with SMTP id 5b1f17b1804b1-48fe5fd55cfmr41187575e9.1.1778889331852;
-        Fri, 15 May 2026 16:55:31 -0700 (PDT)
+        bh=7l0XJ9rj+fjB2S5mDM2d3xOJnuO0et6lV2GrlUYJVSw=;
+        b=XqDJOUJKA9fHafJtBTUhkT3lWcXf/Jro/3f1UGBMYYNCjFkRrRpPpiWihIj0jvZd1N
+         Oo2hqH18GIgDcFZxhCyIoTgg8c2LdlUr5PEMuHXth1Z2xXX12p3B2BqzjRrXkoOU2ZxM
+         cDAErgUr3LKafZxwh2F+NLRCqejYuZuNEqslVk+yuXSB6J2tU07mELyfsSi1EA7r1zl9
+         0tjLnd/HrRN4c/EEwZ6Y7/r8p6avaa9N8cPI4VSidUJ5w1OViWhurOT8Mc7J3hB0x7kT
+         NHkBgOFELDdDoDQtxC1Nk5Wv2nFrGLt/IA4yN/bkeurI1jsKUbHpWxDBhzcJSbClYvP8
+         J8hw==
+X-Forwarded-Encrypted: i=1; AFNElJ9uHsLca0r8vgZvUJfT8dwPBWfe99/13ZoRvydFk/IhXnxewRVoghiIl3np14rXqLWfJrEmasuyUX4ZqQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwBwnCQpE/8l5RIWExV2B3/P6kPNIOnqUPHa3rNi+imAs7jX5Al
+	U+ur7K3XT7EdtFDhNtuN0xxrQPIlnJXwk75n31AsgKILhOkd6e750DcwsIBZPsKgml8=
+X-Gm-Gg: Acq92OFt5tLvSrr6KXSmHcoNWGAlDInOznQIN9Om7tf+d6/2lR57m7P86UaKKBVAbWv
+	5zpTDTuP+NRKm8b+wMkZAFy8AMAWCdxCKYxILfXo+CLL1z7D1B5J5hUyz2Z13GsLLUGvcU/PS1r
+	xG2w9Qowc0ryorXmS7NJIWgtfV74cnIt9cfIiuT+JN2R4XjEqpRpXDBt/OrCOGkkzNgx//If08j
+	Fu29QDu2hFdG0GCIKm2xw9AvXAqc91hHhqStrih1IlASeyOY20Tfo3ref+JjGClMAUj5A5YnbYu
+	P6f5tdH+dpb30X2UNP2GjdupfuJMVk/18R8AYC3mC4iD9Y7TwOkH2xDI9SWN1GzAIRTg0jio03M
+	ds3nTQHPeTXlh1ME+s+EkPRYLzzSWyOMcMjpyRMaQYGbp3FVXKFHUS5qoYvYVo98S1P8+9iQmo1
+	/5LGbtbcRPZZDQeoqmIJ0ZkA==
+X-Received: by 2002:a05:600c:45d0:b0:488:a797:f099 with SMTP id 5b1f17b1804b1-48fe61f0787mr42703265e9.3.1778889385760;
+        Fri, 15 May 2026 16:56:25 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2bd5bd5fe51sm69503815ad.2.2026.05.15.16.55.30
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c82bb121cd6sm6596384a12.30.2026.05.15.16.56.23
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 15 May 2026 16:55:30 -0700 (PDT)
-Date: Sat, 16 May 2026 07:53:52 +0800
+        Fri, 15 May 2026 16:56:24 -0700 (PDT)
+Date: Sat, 16 May 2026 07:56:21 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
 Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
 	Joseph Qi <joseph.qi@linux.alibaba.com>, jiangyiwen <jiangyiwen@huawei.com>, 
 	Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@lists.linux.dev, LKML <linux-kernel@vger.kernel.org>
 Subject: Re: [PATCH] ocfs2: kill osb->system_file_mutex lock
-Message-ID: <ageuwl9o3nzktMrz@c73>
+Message-ID: <ageyiQPdXbsnyikV@c73>
 References: <934355dd-a0b1-4e53-93ac-0a7ae7458051@I-love.SAKURA.ne.jp>
  <831c4fc1-c89f-48bc-84c6-25b2cefc2b20@I-love.SAKURA.ne.jp>
  <agc8kA2wxC_7091p@c73>
+ <b0e9c4c2-9ea1-4d41-b8b2-5f2f6c15b80a@I-love.SAKURA.ne.jp>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -76,104 +77,26 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <agc8kA2wxC_7091p@c73>
+In-Reply-To: <b0e9c4c2-9ea1-4d41-b8b2-5f2f6c15b80a@I-love.SAKURA.ne.jp>
 
-On Fri, May 15, 2026 at 11:35:13PM +0800, Heming Zhao wrote:
-> On Thu, May 14, 2026 at 04:09:25PM +0900, Tetsuo Handa wrote:
-> > Hi Heming,
+On Sat, May 16, 2026 at 12:51:32AM +0900, Tetsuo Handa wrote:
+> On 2026/05/16 0:35, Heming Zhao wrote:
+> > Hi,
 > > 
-> > I would like to clarify why the expectation of "being called only once" is logically
-> > incorrect, reply to your concern regarding the reference count leak and explain why
-> > this patch is completely safe and sufficient.
-> > 
-> > 1. get_local_system_inode() can fail under memory pressure:
-> >    get_local_system_inode() allocates memory internally. Under heavy memory pressure,
-> >    this allocation can fail and return NULL. When this happens, the caller
-> >    ocfs2_get_system_file_inode() must fall back to calling _ocfs2_get_system_file_inode()
-> >    again to read the inode from disk. Therefore, the filesystem design must inherently
-> >    support multiple calls to _ocfs2_get_system_file_inode().
-> > 
-> > 2. Why cmpxchg() is sufficient and safe without the mutex:
-> >    The only thing the system_file_mutex is needed was to prevent a race where two
-> >    threads concurrently execute _ocfs2_get_system_file_inode(), obtain the SAME inode
-> >    pointer (since the underlying VFS iget_locked() returns the identical address for
-> >    the same slot), and both mistakenly invoke igrab() on it, leading to a reference
-> >    count leak.
-> > 
-> >    This patch perfectly solves that race condition by using cmpxchg() on the target
-> >    pointer array slot:
-> > 
-> >      * The thread that wins the cmpxchg() successfully initializes the slot with the
-> >        fetched inode and get the extra refcount because it is the first time to store
-> >        into the slot.
-> > 
-> >      * The thread that loses the cmpxchg() detects that another thread has already
-> >        initialized the slot with the exact same inode. The loser thread returns
-> >        without getting the extra refcount because it is not the first time to store
-> >        into the slot.
-> > 
-> >    Therefore, the reference counting contract is strictly and atomically maintained.
-> >    No references are leaked, and the array slot is never corrupted.
+> > The logic here is incorrect. The purpose of the refcount is to track how many
+> > consumers are using the inode.
 > 
-> Hi,
+> The igrab(inode) for the first time is for getting a refcount for the slot, isn't it?
+> The igrab(inode) for the subsequent times is for getting a refcount which is supposed to be dropped by the caller, isn't it?
+> _ocfs2_get_system_file_inode() always gets a refcount which is supposed to be dropped by the caller when it succeeds, doesn't it?
 > 
-> The logic here is incorrect. The purpose of the refcount is to track how many
-> consumers are using the inode.
+> So why do you want one more refcount?
 > 
-> In the original code, if two threads concurrently access ocfs2_get_system_file_inode()
-> while the inode is uninitialized, inode->i_count would ultimately be incremented
-> by 3. However, with your patch, i_count will only be incremented by 2.
-> 
-> To be more specific:
-> Your patch explicitly triggers a race condition: when the target local_system
-> inode is uninitialized and two threads enter simultaneously, Thread 1 wins the
-> cmpxchg() and increments the refcount before exiting. Thread 2, however, loses
-> the refcount increment simply because the atomic operation failed.
-> 
-> btw, The issue addressed in commit 43b10a20372d was that after two concurrent
-> threads returned, inode->i_count ended up being 4 when the correct value should
-> have been 3. With your patch, the value will end up being 2, which is insufficient.
 
-My above analysis contains a mistake.
-With the patch, the refcount is also 3. However, I don't think the code logic is
-correct.
+Hi,
 
-Before commit 43b10a20372d, the refcount was 4:
-Thread 1: _ocfs2_get_system_file_inode (refcount +1), "*arr = igrab(inode)" (refcount +1)
-Thread 2: does the same job as Thread 1.
-
-Current code logic, the refcount is 3:
-Thread 1: _ocfs2_get_system_file_inode (refcount +1), "*arr = igrab(inode)" (refcount +1)
-Thread 2: "inode = igrab(inode)" (gets inode from array, refcount +1)
-
-With the patch, the refcount is also 3:
-Thread 1: _ocfs2_get_system_file_inode (refcount +1), "*arr = igrab(inode)" (sets array, refcount +1)
-Thread 2: _ocfs2_get_system_file_inode (refcount +1)
-
-In theory, _ocfs2_get_system_file_inode() should only be called once after mount.
-The performance penalty in the current ocfs2_get_system_file_inode() comes from
-doing "inode = igrab(inode)" while holding the mutex lock.
+Could you please reply inline? your current reply style makes it very hard for
+others to follow. I made a mistake in the previous email, and wrote the analysis
+to continue my previous email.
 
 - Heming
-> 
-> In my opinion, the problem with the current code is that the scope of
-> mutex_lock(&osb->system_file_mutex) is too broad. This mutex only needs to be
-> held prior to calling _ocfs2_get_system_file_inode(). I previously highlighted
-> this point in my initial review comment on the patch.
-> 
-> Thanks,
-> Heming
-> 
-> > 
-> > 3. Standard filesystems do not use a global mutex for this:
-> >    Standard filesystems (like Ext4's ext4_get_journal_inode or XFS's
-> >    xfs_qm_init_quotainos) rely entirely on the VFS layer's internal hashing/locking (e.g.,
-> >    iget_locked) to serialize metadata/system inode lookups. OCFS2's system_file_mutex is a
-> >    redundant global lock that heavily pollutes the lock dependency graph, triggering
-> >    possible deadlock warnings that block us from testing and fixing genuine deadlocks.
-> > 
-> > Since the cmpxchg() approach guarantees atomic slot initialization + igrab(), the global
-> > mutex is completely redundant and should be removed.
-> > 
-> > Regards.
-> > 
