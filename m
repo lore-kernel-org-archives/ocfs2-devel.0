@@ -1,175 +1,196 @@
-Received: from mail-oo1-f77.google.com (mail-oo1-f77.google.com [209.85.161.77])
+Received: from mail-wm1-f49.google.com (mail-wm1-f49.google.com [209.85.128.49])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1DA418DB37
-	for <ocfs2-devel@lists.linux.dev>; Mon, 18 May 2026 02:46:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.77
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1CFE337B413
+	for <ocfs2-devel@lists.linux.dev>; Mon, 18 May 2026 02:52:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779072384; cv=none; b=O9zB+IpbY5LjirzRct2cidTYAofDoDPTULLP05pE0GZRs564fs8EwOQSYHl/OX84A0F+ghZbR47Z8rPZbHoprbscPWNFUY01jpXJZ8m3QWnbM6JsQ7G8BN/sWcXp9hpMkWcbBVJ1+09uwT3hsT6U9XUCn6SlqwwMvLIoPj4EiU0=
+	t=1779072746; cv=none; b=VukY3gq/Bre/whv4HzclcseW+hRPVFBMF94ltMVqBSDbBXA90oxfTTnIR1nFIte9Vf8m47ntFCQWUHrjQCc9IG2LgKCljWDAIXTVNrnjKvSNVCGQ8HrYD6lbgkqPKiaAjyzH++oU6MXKpRdYwdCXbdS8AkrJeJCRYqw2rB7D+NE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779072384; c=relaxed/simple;
-	bh=ud8xXrky1wvFUPz74rNqxzcRjNvoQHe5apS3cRdP1Yo=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=oIy4rDVdaenUuCZU+WGmG8SVMVc7kvp3Nm2CsfRDeqy9/zkJVzyPjlU4gIEg7OBP+hzKOZUtf/AzRh7PzIzoS+DEDoEDlIJbfrT+V71tGUz0m3YEAH9clrC3LVrl6cwouzFVbvk4H5exgPJekscmLSz0lsBBRVMFL9xok/QmRW8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.77
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f77.google.com with SMTP id 006d021491bc7-6967b799acdso3692024eaf.3
-        for <ocfs2-devel@lists.linux.dev>; Sun, 17 May 2026 19:46:22 -0700 (PDT)
+	s=arc-20240116; t=1779072746; c=relaxed/simple;
+	bh=srjcodAozv4JLuO7X9acfYWYMGPSwx6Uadd2oOcjSA0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=QSQiFgamXHQzjJYqFX0GfM3XlOjFdE0DCf+RHfYyDBgquU7XY4eODnGjZC3svjeiAlrUpGhdNH64fxtON5mdUbC764Cb4/FP0p9Zyg/GVDbcoysG1Dxk2kqPoT1vznTUetz8zyqINfGmr2bl7DD3YJTOLMWCLr6JKlJQoHRGUZc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=XkMutPQ6; arc=none smtp.client-ip=209.85.128.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="XkMutPQ6"
+Received: by mail-wm1-f49.google.com with SMTP id 5b1f17b1804b1-48e69e60063so817095e9.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 17 May 2026 19:52:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1779072743; x=1779677543; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=BJLlaxjhYndtoJyGrs9NNxoX5Vmo11cQYCIpaiSe9Hw=;
+        b=XkMutPQ69xDMGpcUvM7pBQgLjFkq/QJknc9juMl2aWR3AdBn/wdNYDGB3xhoPP8vgt
+         V5+CxmEYlMziJKNG3AX1Pty5vePTxcUrp7+2YrbOeHc2N9DCZ4wpemyAhe1cemLi0WuZ
+         eDj5ahnh81UUlvujS6AJDUT9l/na5oxUBvB5iQG9F+BfMnjrVTl8sGSQNRufgRppYBoZ
+         i67SGGMxnURiGhTjbUHyrdSzj4/oxfXWvTfcqVkeD0S+VP6zvKMSQR5o6kzGBa6xxBPV
+         5EMwnyChkIsHvHtbeX4hBMVOliL+bDT8f+xTjtnz3QN+dO9fIxcZe5VI3++O2u2L8dJO
+         fIwg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779072382; x=1779677182;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=HTgE6jE/F9EuHWmY+nDXPD9dvj7TdZUK/sLh8a4wvtQ=;
-        b=EEf7VELcAnOCv93cR2lmgWQCmg0hjqeeFVb+F604v9QX+P3jFPwSy9e+/sxe+1gY4U
-         Yns5XXbbNnTfmirKZMYozmlTK/rkiiBlIE74OHq3+GtgAowmJjWX5aaeXKVrGLocey4s
-         XSv9VK8dO3B8ceqK74yk+VbqLq5CdPjRc6a9CtP+ZhhQkf+xitJuRBBASC7b/S1y1Gnb
-         NFaXBQ/OZGeGIaIVbyadbYTpq5Uf2iT5B49qFeO2r75juUMy0x7B48xQRXGiK0OzV/i2
-         uyIU1j7NuYGtPj2ou2rKA9K/NHWLHe+ipPrdKJM7MsetpPOJ+h8ZiwJAlYgYWZRwl2MI
-         aobg==
-X-Forwarded-Encrypted: i=1; AFNElJ8Dm2OfzxOOUR5QYFC8AFPIiysu9H+PLvXMBns7yKXE98BgW+7wd2E/FbTavDNkltRmwAZSMuvTlR4lKQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzIMZQqQMhPirzpnufyKeTEZU/TjkywhxRH17dv33kQ29utNDle
-	gOo28E0SEX3+P07Gs3MVG6pa1r9Ks115ckUGIsmP5c4A+d+6P25nBrj1XwWgO59/aiHvHdEyYOM
-	SGzX39g2hmEP2G05OUAIibBmz0uKV/SrrfSpHzezdeXur1lXE1yvXNuF1yks=
+        d=1e100.net; s=20251104; t=1779072743; x=1779677543;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=BJLlaxjhYndtoJyGrs9NNxoX5Vmo11cQYCIpaiSe9Hw=;
+        b=iHl39yzYMRAe8n1WDJ1pT07Q5DJvKSj2fVjY/fSlY9yjZaOMFort+fD6YrcBIZq63h
+         K61izkUbIBIm2Ktnh4+jRrd7VFM1HeU2FxBmE2i1q4C3HQz9FnNQoU4G3HVxVAnKGtNe
+         kHhZANpYdiLkXcpFmTZThHc8IN0CTZxnJwBewiDwOKozAMebAUQvhbh33CQOmkWU0gIw
+         huPIO7pSH8Zzfb72SL+vh655d/bitnOqj4zHOC4pMQf5elSJiTiD76v/Js+tudCzhZRm
+         8TRYhRQQWeMra7l+0yKUWuoKYpGdFnxLIeV8mwyW9LK/ylEjkyPWC3jGyiL48W6DeBU1
+         2qAg==
+X-Forwarded-Encrypted: i=1; AFNElJ+1QqyRbeVNe6P0JvZgz/7WDSvHTsQ/ZooVxwtJEIzwfcc1iGNph+UcHXA7wLcFF8+LkE83ISL4NKfGag==@lists.linux.dev
+X-Gm-Message-State: AOJu0YylwZSK3BPPKEEGHmYfi/QyElXlcPfRYQd+oRJ8T3bTOGvTE02I
+	3bpWNcP8TZCHMKCthQ0apeWv3FGmLUQ9DgZ2EGn+f5fz0u66CkQ9Ephct8L8xTnGSO8=
+X-Gm-Gg: Acq92OFhZnCNqLdnQ78DJcyPmCaFA6U2JCVeDJT6MwiU54l+TRpxLQwOdkGZtJ4WBMx
+	NtXyA5fB/DhC86yhLnvU+SMENphHn/6ycUSOzgQ95hhIRtTOucRxSvzjpfL0ntgiGbno8HZEBXh
+	zSdCy2+yRhiuTJtGlFGezjQ8mLUCN7XnWBu7tzylFPQDFFRsYWCbsKkjSMcWyB01To9clg6rZEA
+	pyP27Dxma3ik0wvNzx2y9i7e6KwKTF5paoffgnqhInVTjB9GzaqU3Yrhx7giUhidvoJ4EPWIy5H
+	JO8W32zcN1CXxrEoXd/Y9x9b3N2POesFzfKO+xERlj7+ROke73pL/WVOHxtV+b+UqsQfrf1GTAN
+	QJMQ93ZB9MBPrs/FQ1zc0WLGJiNsZPMY/1Efdqgf4zaoFguos3EXoW86w7IxvIex1UGFTpdCh3J
+	8Z/cHLMxjYsm8B+HB7d/7S0Q==
+X-Received: by 2002:a05:600c:198d:b0:489:6c28:dbb4 with SMTP id 5b1f17b1804b1-48fe62f7cbbmr109725735e9.5.1779072743330;
+        Sun, 17 May 2026 19:52:23 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c82bb114a70sm14642994a12.22.2026.05.17.19.52.21
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 17 May 2026 19:52:22 -0700 (PDT)
+Date: Mon, 18 May 2026 10:52:19 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, jiangyiwen <jiangyiwen@huawei.com>, 
+	Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@lists.linux.dev, LKML <linux-kernel@vger.kernel.org>
+Subject: Re: [PATCH] ocfs2: kill osb->system_file_mutex lock
+Message-ID: <agp0sACmJl3tePyr@c73>
+References: <934355dd-a0b1-4e53-93ac-0a7ae7458051@I-love.SAKURA.ne.jp>
+ <831c4fc1-c89f-48bc-84c6-25b2cefc2b20@I-love.SAKURA.ne.jp>
+ <agc8kA2wxC_7091p@c73>
+ <ageuwl9o3nzktMrz@c73>
+ <fb0685c4-bcee-4c7b-8ac4-a1af702b8600@I-love.SAKURA.ne.jp>
+ <aghfx-XhwoE4fBYR@c73>
+ <670882aa-b637-4565-adf0-ddcd9d7a588b@I-love.SAKURA.ne.jp>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:168c:b0:696:62f6:a029 with SMTP id
- 006d021491bc7-69c9436772emr8833194eaf.32.1779072382070; Sun, 17 May 2026
- 19:46:22 -0700 (PDT)
-Date: Sun, 17 May 2026 19:46:22 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6a0a7d7e.050a0220.298be4.0004.GAE@google.com>
-Subject: [syzbot] [ocfs2?] WARNING in __ocfs2_decrease_refcount
-From: syzbot <syzbot+3ef989aae096b30f1663@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <670882aa-b637-4565-adf0-ddcd9d7a588b@I-love.SAKURA.ne.jp>
 
-Hello,
+On Sat, May 16, 2026 at 10:10:44PM +0900, Tetsuo Handa wrote:
+> On 2026/05/16 21:27, Heming Zhao wrote:
+> >>>> In my opinion, the problem with the current code is that the scope of
+> >>>> mutex_lock(&osb->system_file_mutex) is too broad. This mutex only needs to be
+> >>>> held prior to calling _ocfs2_get_system_file_inode(). I previously highlighted
+> >>>> this point in my initial review comment on the patch.
+> >>
+> >> If you meant
+> >>
+> >>  struct inode *ocfs2_get_system_file_inode(struct ocfs2_super *osb,
+> >>                                           int type,
+> >>                                           u32 slot)
+> >>  {
+> >>         struct inode *inode = NULL;
+> >>         struct inode **arr = NULL;
+> >>
+> >>         /* avoid the lookup if cached in local system file array */
+> >>         if (is_global_system_inode(type)) {
+> >>                 arr = &(osb->global_system_inodes[type]);
+> >>         } else
+> >>                 arr = get_local_system_inode(osb, type, slot);
+> >>
+> >> -       mutex_lock(&osb->system_file_mutex);
+> >>         if (arr && ((inode = *arr) != NULL)) {
+> >>                 /* get a ref in addition to the array ref */
+> >>                 inode = igrab(inode);
+> >>                 mutex_unlock(&osb->system_file_mutex);
+> >>                 BUG_ON(!inode);
+> >>
+> >>                 return inode;
+> >>         }
+> >>
+> >> +       mutex_lock(&osb->system_file_mutex);
+> >> +
+> >>         /* this gets one ref thru iget */
+> >>         inode = _ocfs2_get_system_file_inode(osb, type, slot);
+> >>
+> >>         /* add one more if putting into array for first time */
+> >>         if (arr && inode) {
+> >>                 *arr = igrab(inode);
+> >>                 BUG_ON(!*arr);
+> >>         }
+> >>         mutex_unlock(&osb->system_file_mutex);
+> >>         return inode;
+> >>  }
+> >>
+> > 
+> > Yes, this is what I expected.
+> > 
+> >> , that brings us back to before commit 43b10a20372d, for two threads can hit
+> >> the "*arr = igrab(inode)" line.
+> > 
+> > I don't think this bring us back, because igrab() uses a spinlock to protect the
+> > refcount.
+> 
+> You are missing the point. What is wrong with above change is that two threads can
+> sequentially enter into the "if (arr && inode) { }" block, for we are not checking
+> whether the slot is already NULL or not. The cmpxchg() is the magic that guarantees
+> that only one thread can enter into that block.
 
-syzbot found the following issue on:
+To avoid my code issue, the code should be:
 
-HEAD commit:    e1914add2799 Merge tag 'for-linus' of git://git.kernel.org..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=15d62196580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=7f195f6be48c12ec
-dashboard link: https://syzkaller.appspot.com/bug?extid=3ef989aae096b30f1663
-compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
+     mutex_lock(&osb->system_file_mutex);
 
-Unfortunately, I don't have any reproducer for this issue yet.
+     if (arr && !*arr) {
+         /* this gets one ref thru iget */
+         inode = _ocfs2_get_system_file_inode(osb, type, slot);
 
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-e1914add.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/cfc9d48b6e76/vmlinux-e1914add.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/e7ac48dd4788/bzImage-e1914add.xz
+         /* add one more if putting into array for first time */
+         if (inode) {
+             *arr = igrab(inode);
+             BUG_ON(!*arr);
+         }
+     } else if (arr && *arr) {
+	 /* get a ref in addition to the array ref */
+	 inode = igrab(*arr);
+	 BUG_ON(!inode);
+     }
+     mutex_unlock(&osb->system_file_mutex);
 
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+3ef989aae096b30f1663@syzkaller.appspotmail.com
+If apply this change, the code will look too complicated and hard to maintain.
+Regarding the removal of the mutex, your patch looks good to me now.
 
-------------[ cut here ]------------
-memset: detected buffer overflow: 384 byte write of buffer size 16
-WARNING: lib/string_helpers.c:1037 at __fortify_report+0x6b/0xa0 lib/string_helpers.c:1036, CPU#0: syz.0.0/5331
-Modules linked in:
-CPU: 0 UID: 0 PID: 5331 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-RIP: 0010:__fortify_report+0x89/0xa0 lib/string_helpers.c:1036
-Code: e8 7c 6b 7e fd 48 8d 3d 45 8f 87 0b 45 84 e4 49 8b 37 48 c7 c0 c0 0e 28 8c 48 c7 c1 e0 0e 28 8c 48 0f 44 c8 4c 89 f2 49 89 d8 <67> 48 0f b9 3a 5b 41 5c 41 5e 41 5f 5d c3 cc cc cc cc cc cc cc cc
-RSP: 0018:ffffc90003076848 EFLAGS: 00010202
-RAX: ffffffff8c280ec0 RBX: 0000000000000010 RCX: ffffffff8c280ee0
-RDX: 0000000000000180 RSI: ffffffff8c280d80 RDI: ffffffff903bc0c0
-RBP: 000000000000000f R08: 0000000000000010 R09: 1ffffffff2061b5e
-R10: dffffc0000000000 R11: fffffbfff2061b5f R12: 0000000000000001
-R13: 1ffff1100ab75510 R14: 0000000000000180 R15: ffffffff8c280bb8
-FS:  0000555562e72540(0000) GS:ffff88808c881000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000000000 CR3: 000000001fc6a000 CR4: 0000000000352ef0
-Call Trace:
- <TASK>
- __fortify_panic+0x9/0x10 lib/string_helpers.c:1043
- fortify_memset_chk include/linux/fortify-string.h:495 [inline]
- ocfs2_remove_refcount_extent fs/ocfs2/refcounttree.c:2134 [inline]
- ocfs2_decrease_refcount_rec fs/ocfs2/refcounttree.c:2203 [inline]
- __ocfs2_decrease_refcount+0x1990/0x19e0 fs/ocfs2/refcounttree.c:2249
- ocfs2_decrease_refcount+0x59c/0x7d0 fs/ocfs2/refcounttree.c:2312
- ocfs2_remove_btree_range+0x125b/0x1610 fs/ocfs2/alloc.c:5800
- ocfs2_commit_truncate+0xbb8/0x2310 fs/ocfs2/alloc.c:7383
- ocfs2_truncate_for_delete fs/ocfs2/inode.c:701 [inline]
- ocfs2_wipe_inode fs/ocfs2/inode.c:868 [inline]
- ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
- ocfs2_evict_inode+0x1023/0x43b0 fs/ocfs2/inode.c:1299
- evict+0x61e/0xb10 fs/inode.c:841
- ocfs2_dentry_iput+0x24d/0x390 fs/ocfs2/dcache.c:407
- __dentry_kill+0x1a2/0x690 fs/dcache.c:718
- finish_dput+0xc9/0x480 fs/dcache.c:927
- __fput+0x691/0xa60 fs/file_table.c:518
- task_work_run+0x1d9/0x270 kernel/task_work.c:233
- resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
- __exit_to_user_mode_loop kernel/entry/common.c:67 [inline]
- exit_to_user_mode_loop+0xf3/0x4d0 kernel/entry/common.c:98
- __exit_to_user_mode_prepare include/linux/irq-entry-common.h:207 [inline]
- syscall_exit_to_user_mode_prepare include/linux/irq-entry-common.h:238 [inline]
- syscall_exit_to_user_mode include/linux/entry-common.h:318 [inline]
- do_syscall_64+0x33e/0xf80 arch/x86/entry/syscall_64.c:100
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f402a59ce59
-Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fffc44472f8 EFLAGS: 00000246 ORIG_RAX: 00000000000001b4
-RAX: 0000000000000000 RBX: 00007f402a817da0 RCX: 00007f402a59ce59
-RDX: 0000000000000000 RSI: 000000000000001e RDI: 0000000000000003
-RBP: 00007f402a817da0 R08: 00007f402a816038 R09: 0000000000000000
-R10: 0000000000dcaba0 R11: 0000000000000246 R12: 00000000000156b7
-R13: 00007f402a81609c R14: 0000000000015685 R15: 00007f402a816090
- </TASK>
-----------------
-Code disassembly (best guess):
-   0:	e8 7c 6b 7e fd       	call   0xfd7e6b81
-   5:	48 8d 3d 45 8f 87 0b 	lea    0xb878f45(%rip),%rdi        # 0xb878f51
-   c:	45 84 e4             	test   %r12b,%r12b
-   f:	49 8b 37             	mov    (%r15),%rsi
-  12:	48 c7 c0 c0 0e 28 8c 	mov    $0xffffffff8c280ec0,%rax
-  19:	48 c7 c1 e0 0e 28 8c 	mov    $0xffffffff8c280ee0,%rcx
-  20:	48 0f 44 c8          	cmove  %rax,%rcx
-  24:	4c 89 f2             	mov    %r14,%rdx
-  27:	49 89 d8             	mov    %rbx,%r8
-* 2a:	67 48 0f b9 3a       	ud1    (%edx),%rdi <-- trapping instruction
-  2f:	5b                   	pop    %rbx
-  30:	41 5c                	pop    %r12
-  32:	41 5e                	pop    %r14
-  34:	41 5f                	pop    %r15
-  36:	5d                   	pop    %rbp
-  37:	c3                   	ret
-  38:	cc                   	int3
-  39:	cc                   	int3
-  3a:	cc                   	int3
-  3b:	cc                   	int3
-  3c:	cc                   	int3
-  3d:	cc                   	int3
-  3e:	cc                   	int3
-  3f:	cc                   	int3
+My new comment for your patch:
+Because this issue was triggered by syzbot testing Diogo Jahchan Koike
+<djahchankoike@gmail.com>'s patch for bug[1], I think it's better to removed the
+'Reported-by' and close' tags, and describe the history in commit log. 
+Current 'Reported-by' & 'close' tags are misleading.
 
+[1]: https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
 
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+Thanks,
+Heming
+> 
+> >>
+> >> Even if you also change the "if (arr && inode) {" check in order to make sure that
+> >> the second-reached thread won't again hit the "*arr = igrab(inode)" line when the
+> >> first-reached thread already hit the "*arr = igrab(inode)" line, the second-reached
+> >> thread is fully blocked by the first-reached thread. Not serializing two threads
+> >> allows these threads to return as quick as serializing these threads.
+> > 
+> > with the mutex protection removed, and relying on igrab()'s internal spinlock,
+> > the code logic is already correct for concurrency. 
+> > 
+> > there are two kinds of locks involved in this discussion: 
+> > - inode->i_lock: protects the inode's refcount (used by igrab())
+> > - osb->system_file_mutex: protects the array slot.
+> 
+> You are missing the point. The lock used inside igrab() is irrelevant.
+> The cmpxchg() is the lock that protects the array slot (in other words,
+> serializes two threads) without using the system_file_mutex lock.
+> 
