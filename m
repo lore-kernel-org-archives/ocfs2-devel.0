@@ -1,165 +1,175 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oo1-f77.google.com (mail-oo1-f77.google.com [209.85.161.77])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B492231A23
-	for <ocfs2-devel@lists.linux.dev>; Mon, 18 May 2026 01:38:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E1DA418DB37
+	for <ocfs2-devel@lists.linux.dev>; Mon, 18 May 2026 02:46:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.77
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779068323; cv=none; b=qH3S1wj5DVkAz5ie5IoELneCSEl7iSUr/fEmb5LgwLUK0rX/VmsnNyXDrAT75vPVAMEdiFwVM9m9YvKyI+aWIyHdr9LClzwXwHtcEjwhBOTju1drMkJotumPMTzgI9QMLoG+rcSczZV+Kbjac3qsDAS8NqmiFJ8Cr8bGBbCzoRs=
+	t=1779072384; cv=none; b=O9zB+IpbY5LjirzRct2cidTYAofDoDPTULLP05pE0GZRs564fs8EwOQSYHl/OX84A0F+ghZbR47Z8rPZbHoprbscPWNFUY01jpXJZ8m3QWnbM6JsQ7G8BN/sWcXp9hpMkWcbBVJ1+09uwT3hsT6U9XUCn6SlqwwMvLIoPj4EiU0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779068323; c=relaxed/simple;
-	bh=qg4sppiLXyw8H+8vGLaCG/p5asDVGT22b9mDjBpcKjg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=sNVpPs7Z/TmDlDZWrDRmFoXJE96Mz7ZUfjt+ipsKYMdiULZiTsgP07SMMYME+FEAPKVLs7jF9XJdQy0FjDxVnzvhA90l+ZH/svX6rlv8GcJO+HKvlB1XMSdHlmZai1Qd3lWAb2HG4oa2oeJr63L3FreWzXNHd36fSl3tBSbQkvs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=bFvFCjXt; arc=none smtp.client-ip=115.124.30.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="bFvFCjXt"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1779068319; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=SWIDsCGcp/zWFBuC85MvM1Rgn/v9xndqii9W0FaALG8=;
-	b=bFvFCjXtrLT/3p4nCcsCn6ZXCEzLquMyzvdAIBScQ3ukja0sVPXsAyQbV22Qazd8Ax7AyPF2d5SyZ/Kva59/b0k7x0McOo1wKtVU0j1vlF4NxJyuix4xx6PWBjWlvbL5Lk3nrvJcI1Tf1BK0NurwK4cWyaPXtFD4jkOy7LikoWE=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X32hiWi_1779068317;
-Received: from 30.221.129.172(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X32hiWi_1779068317 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 18 May 2026 09:38:38 +0800
-Message-ID: <c507ecb2-0d1f-49ab-b5b0-4d6f3216db8b@linux.alibaba.com>
-Date: Mon, 18 May 2026 09:38:37 +0800
+	s=arc-20240116; t=1779072384; c=relaxed/simple;
+	bh=ud8xXrky1wvFUPz74rNqxzcRjNvoQHe5apS3cRdP1Yo=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=oIy4rDVdaenUuCZU+WGmG8SVMVc7kvp3Nm2CsfRDeqy9/zkJVzyPjlU4gIEg7OBP+hzKOZUtf/AzRh7PzIzoS+DEDoEDlIJbfrT+V71tGUz0m3YEAH9clrC3LVrl6cwouzFVbvk4H5exgPJekscmLSz0lsBBRVMFL9xok/QmRW8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.77
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oo1-f77.google.com with SMTP id 006d021491bc7-6967b799acdso3692024eaf.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 17 May 2026 19:46:22 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779072382; x=1779677182;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=HTgE6jE/F9EuHWmY+nDXPD9dvj7TdZUK/sLh8a4wvtQ=;
+        b=EEf7VELcAnOCv93cR2lmgWQCmg0hjqeeFVb+F604v9QX+P3jFPwSy9e+/sxe+1gY4U
+         Yns5XXbbNnTfmirKZMYozmlTK/rkiiBlIE74OHq3+GtgAowmJjWX5aaeXKVrGLocey4s
+         XSv9VK8dO3B8ceqK74yk+VbqLq5CdPjRc6a9CtP+ZhhQkf+xitJuRBBASC7b/S1y1Gnb
+         NFaXBQ/OZGeGIaIVbyadbYTpq5Uf2iT5B49qFeO2r75juUMy0x7B48xQRXGiK0OzV/i2
+         uyIU1j7NuYGtPj2ou2rKA9K/NHWLHe+ipPrdKJM7MsetpPOJ+h8ZiwJAlYgYWZRwl2MI
+         aobg==
+X-Forwarded-Encrypted: i=1; AFNElJ8Dm2OfzxOOUR5QYFC8AFPIiysu9H+PLvXMBns7yKXE98BgW+7wd2E/FbTavDNkltRmwAZSMuvTlR4lKQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzIMZQqQMhPirzpnufyKeTEZU/TjkywhxRH17dv33kQ29utNDle
+	gOo28E0SEX3+P07Gs3MVG6pa1r9Ks115ckUGIsmP5c4A+d+6P25nBrj1XwWgO59/aiHvHdEyYOM
+	SGzX39g2hmEP2G05OUAIibBmz0uKV/SrrfSpHzezdeXur1lXE1yvXNuF1yks=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 3/3] ocfs2: reject regular files with non-zero i_size and
- zero i_clusters
-To: Michael Bommarito <michael.bommarito@gmail.com>,
- akpm <akpm@linux-foundation.org>
-Cc: ZhengYuan Huang <gality369@gmail.com>, ocfs2-devel@lists.linux.dev,
- linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-References: <20260517111015.3187935-1-michael.bommarito@gmail.com>
- <20260517111015.3187935-4-michael.bommarito@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260517111015.3187935-4-michael.bommarito@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6820:168c:b0:696:62f6:a029 with SMTP id
+ 006d021491bc7-69c9436772emr8833194eaf.32.1779072382070; Sun, 17 May 2026
+ 19:46:22 -0700 (PDT)
+Date: Sun, 17 May 2026 19:46:22 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6a0a7d7e.050a0220.298be4.0004.GAE@google.com>
+Subject: [syzbot] [ocfs2?] WARNING in __ocfs2_decrease_refcount
+From: syzbot <syzbot+3ef989aae096b30f1663@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    e1914add2799 Merge tag 'for-linus' of git://git.kernel.org..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=15d62196580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=7f195f6be48c12ec
+dashboard link: https://syzkaller.appspot.com/bug?extid=3ef989aae096b30f1663
+compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-e1914add.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/cfc9d48b6e76/vmlinux-e1914add.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/e7ac48dd4788/bzImage-e1914add.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+3ef989aae096b30f1663@syzkaller.appspotmail.com
+
+------------[ cut here ]------------
+memset: detected buffer overflow: 384 byte write of buffer size 16
+WARNING: lib/string_helpers.c:1037 at __fortify_report+0x6b/0xa0 lib/string_helpers.c:1036, CPU#0: syz.0.0/5331
+Modules linked in:
+CPU: 0 UID: 0 PID: 5331 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+RIP: 0010:__fortify_report+0x89/0xa0 lib/string_helpers.c:1036
+Code: e8 7c 6b 7e fd 48 8d 3d 45 8f 87 0b 45 84 e4 49 8b 37 48 c7 c0 c0 0e 28 8c 48 c7 c1 e0 0e 28 8c 48 0f 44 c8 4c 89 f2 49 89 d8 <67> 48 0f b9 3a 5b 41 5c 41 5e 41 5f 5d c3 cc cc cc cc cc cc cc cc
+RSP: 0018:ffffc90003076848 EFLAGS: 00010202
+RAX: ffffffff8c280ec0 RBX: 0000000000000010 RCX: ffffffff8c280ee0
+RDX: 0000000000000180 RSI: ffffffff8c280d80 RDI: ffffffff903bc0c0
+RBP: 000000000000000f R08: 0000000000000010 R09: 1ffffffff2061b5e
+R10: dffffc0000000000 R11: fffffbfff2061b5f R12: 0000000000000001
+R13: 1ffff1100ab75510 R14: 0000000000000180 R15: ffffffff8c280bb8
+FS:  0000555562e72540(0000) GS:ffff88808c881000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000000000000000 CR3: 000000001fc6a000 CR4: 0000000000352ef0
+Call Trace:
+ <TASK>
+ __fortify_panic+0x9/0x10 lib/string_helpers.c:1043
+ fortify_memset_chk include/linux/fortify-string.h:495 [inline]
+ ocfs2_remove_refcount_extent fs/ocfs2/refcounttree.c:2134 [inline]
+ ocfs2_decrease_refcount_rec fs/ocfs2/refcounttree.c:2203 [inline]
+ __ocfs2_decrease_refcount+0x1990/0x19e0 fs/ocfs2/refcounttree.c:2249
+ ocfs2_decrease_refcount+0x59c/0x7d0 fs/ocfs2/refcounttree.c:2312
+ ocfs2_remove_btree_range+0x125b/0x1610 fs/ocfs2/alloc.c:5800
+ ocfs2_commit_truncate+0xbb8/0x2310 fs/ocfs2/alloc.c:7383
+ ocfs2_truncate_for_delete fs/ocfs2/inode.c:701 [inline]
+ ocfs2_wipe_inode fs/ocfs2/inode.c:868 [inline]
+ ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+ ocfs2_evict_inode+0x1023/0x43b0 fs/ocfs2/inode.c:1299
+ evict+0x61e/0xb10 fs/inode.c:841
+ ocfs2_dentry_iput+0x24d/0x390 fs/ocfs2/dcache.c:407
+ __dentry_kill+0x1a2/0x690 fs/dcache.c:718
+ finish_dput+0xc9/0x480 fs/dcache.c:927
+ __fput+0x691/0xa60 fs/file_table.c:518
+ task_work_run+0x1d9/0x270 kernel/task_work.c:233
+ resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
+ __exit_to_user_mode_loop kernel/entry/common.c:67 [inline]
+ exit_to_user_mode_loop+0xf3/0x4d0 kernel/entry/common.c:98
+ __exit_to_user_mode_prepare include/linux/irq-entry-common.h:207 [inline]
+ syscall_exit_to_user_mode_prepare include/linux/irq-entry-common.h:238 [inline]
+ syscall_exit_to_user_mode include/linux/entry-common.h:318 [inline]
+ do_syscall_64+0x33e/0xf80 arch/x86/entry/syscall_64.c:100
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f402a59ce59
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fffc44472f8 EFLAGS: 00000246 ORIG_RAX: 00000000000001b4
+RAX: 0000000000000000 RBX: 00007f402a817da0 RCX: 00007f402a59ce59
+RDX: 0000000000000000 RSI: 000000000000001e RDI: 0000000000000003
+RBP: 00007f402a817da0 R08: 00007f402a816038 R09: 0000000000000000
+R10: 0000000000dcaba0 R11: 0000000000000246 R12: 00000000000156b7
+R13: 00007f402a81609c R14: 0000000000015685 R15: 00007f402a816090
+ </TASK>
+----------------
+Code disassembly (best guess):
+   0:	e8 7c 6b 7e fd       	call   0xfd7e6b81
+   5:	48 8d 3d 45 8f 87 0b 	lea    0xb878f45(%rip),%rdi        # 0xb878f51
+   c:	45 84 e4             	test   %r12b,%r12b
+   f:	49 8b 37             	mov    (%r15),%rsi
+  12:	48 c7 c0 c0 0e 28 8c 	mov    $0xffffffff8c280ec0,%rax
+  19:	48 c7 c1 e0 0e 28 8c 	mov    $0xffffffff8c280ee0,%rcx
+  20:	48 0f 44 c8          	cmove  %rax,%rcx
+  24:	4c 89 f2             	mov    %r14,%rdx
+  27:	49 89 d8             	mov    %rbx,%r8
+* 2a:	67 48 0f b9 3a       	ud1    (%edx),%rdi <-- trapping instruction
+  2f:	5b                   	pop    %rbx
+  30:	41 5c                	pop    %r12
+  32:	41 5e                	pop    %r14
+  34:	41 5f                	pop    %r15
+  36:	5d                   	pop    %rbp
+  37:	c3                   	ret
+  38:	cc                   	int3
+  39:	cc                   	int3
+  3a:	cc                   	int3
+  3b:	cc                   	int3
+  3c:	cc                   	int3
+  3d:	cc                   	int3
+  3e:	cc                   	int3
+  3f:	cc                   	int3
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 5/17/26 7:10 PM, Michael Bommarito wrote:
-> On a volume mounted WITHOUT OCFS2_FEATURE_INCOMPAT_SPARSE_ALLOC, a
-> regular file with non-zero i_size, zero i_clusters, and no
-> OCFS2_INLINE_DATA_FL flag is structurally malformed: the extent
-> map declares no allocated clusters yet the size header claims
-> the file has content.  ocfs2_populate_inode() copies i_size into
-> the in-core inode and dispatches to ocfs2_aops; subsequent reads
-> or truncates then operate on an inconsistent extent state.
-> 
-> This is the shape an attacker who keeps the rest of the extent
-> list intact (to satisfy the inline-data, refcount, chain-list,
-> and per-field validators already in this function) would produce
-> when forging only the inode header to publish a synthetic file
-> size on a victim node.  It is also the shape on-disk corruption
-> of the i_clusters field produces.  Reject early in the
-> validator.
-> 
-> The check is restricted to non-sparse volumes
-> (ocfs2_sparse_alloc() returns false).  On non-sparse mounts the
-> allocator path always grows clusters before i_size:
-> ocfs2_extend_file() takes the !sparse branch into
-> ocfs2_extend_no_holes(), which calls ocfs2_extend_allocation()
-> to journal new clusters first, and only then
-> ocfs2_simple_size_update() journals the larger i_size.  The
-> truncate path likewise lowers i_size in ocfs2_orphan_for_truncate()
-> and then frees clusters in ocfs2_commit_truncate(), which uses
-> ocfs2_clusters_for_bytes(new_i_size) as its new_highest_cpos:
-> when new_i_size > 0 the floor is at least one cluster, so the
-> on-disk dinode never legitimately exposes a non-inline regular
-> file with i_size > 0 and i_clusters == 0 on a non-sparse volume.
-> 
-> On sparse-alloc volumes the same shape is legitimate: an
-> ocfs2_extend_file() call goes through ocfs2_zero_extend() +
-> ocfs2_simple_size_update(), which grows i_size on its own
-> without changing i_clusters; a freshly truncate -s 1M of a
-> sparse regular file is therefore on-disk
-> (i_size = 1048576, i_clusters = 0).  The check therefore opts
-> out via ocfs2_sparse_alloc(OCFS2_SB(sb)).
-> 
-> System inodes (OCFS2_SYSTEM_FL) carry their own size and
-> cluster invariants validated by the allocator, journal, quota,
-> and truncate-log subsystems; skip them here.  The inline-data
-> fast path is filtered separately by its own dedicated branch
-> below: its well-formed case is exactly i_clusters == 0 with
-> i_size <= id_count.  Symlinks legitimately keep i_clusters ==
-> 0 with non-zero i_size (fast symlinks), so this check is
-> restricted to S_IFREG.
-> 
-> Fixes: b657c95c1108 ("ocfs2: Wrap inode block reads in a dedicated function.")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Michael Bommarito <michael.bommarito@gmail.com>
-> Assisted-by: Claude:claude-opus-4-7
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-> ---
->  fs/ocfs2/inode.c | 41 +++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 41 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 305e22cc9b1d9..c63d2ced6b338 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1571,6 +1571,47 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	/*
-> +	 * On a non-sparse volume, a regular file with non-zero i_size
-> +	 * and zero i_clusters that is not marked as inline data is
-> +	 * structurally malformed: the extent map declares no allocated
-> +	 * clusters yet the size header claims the file has content.
-> +	 * ocfs2_populate_inode() would still publish i_size to VFS and
-> +	 * leave the extent state inconsistent for any later read or
-> +	 * truncate.  This is the shape an attacker who keeps the rest
-> +	 * of the extent list intact (to satisfy the inline-data,
-> +	 * refcount, chain-list, and per-field validators above) would
-> +	 * produce when forging only the inode header to publish a
-> +	 * synthetic file size on a victim node.  It is also the shape
-> +	 * on-disk corruption of the i_clusters field produces.
-> +	 *
-> +	 * The check opts out on sparse-alloc volumes, where the
-> +	 * extend path (ocfs2_extend_file -> ocfs2_zero_extend ->
-> +	 * ocfs2_simple_size_update) legitimately grows i_size without
-> +	 * allocating clusters.  On non-sparse volumes the equivalent
-> +	 * path (ocfs2_extend_no_holes) journals clusters first and
-> +	 * i_size second, and truncate-down floors i_clusters at
-> +	 * ocfs2_clusters_for_bytes(new_i_size) which is >= 1 whenever
-> +	 * new_i_size > 0, so the rejected shape never appears on disk.
-> +	 *
-> +	 * Skip system inodes (OCFS2_SYSTEM_FL) and the inline-data
-> +	 * fast path (handled below).  Symlinks legitimately keep
-> +	 * i_clusters == 0 with non-zero i_size (fast symlinks), so
-> +	 * restrict to S_IFREG.
-> +	 */
-> +	if (!ocfs2_sparse_alloc(OCFS2_SB(sb)) &&
-> +	    S_ISREG(le16_to_cpu(di->i_mode)) &&
-> +	    !(le32_to_cpu(di->i_flags) & OCFS2_SYSTEM_FL) &&
-> +	    !(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) &&
-> +	    le64_to_cpu(di->i_size) != 0 &&
-> +	    le32_to_cpu(di->i_clusters) == 0) {
-> +		rc = ocfs2_error(sb,
-> +				 "Invalid dinode #%llu: regular file i_size %llu with i_clusters 0 and no inline-data flag on non-sparse volume\n",
-> +				 (unsigned long long)bh->b_blocknr,
-> +				 (unsigned long long)le64_to_cpu(di->i_size));
-> +		goto bail;
-> +	}
-> +
->  	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) {
->  		struct ocfs2_inline_data *data = &di->id2.i_data;
->  
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
 
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
