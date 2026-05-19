@@ -1,110 +1,97 @@
-Received: from mail-yw1-f173.google.com (mail-yw1-f173.google.com [209.85.128.173])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from cstnet.cn (smtp81.cstnet.cn [159.226.251.81])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD37A285CB4
-	for <ocfs2-devel@lists.linux.dev>; Tue, 19 May 2026 00:57:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.128.173
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779152238; cv=pass; b=VZg32yDLMMVa88F+5wfZSYmJsPnBIW9/2jyHmNDbKRlDV6CRrirANnzVoP0/BOxq+wdv9JuFi2QT4PRngs3Yol98qNsyfy0gpWxxIN+HClWzbksSLK3cj7NFYmN4kk1pEKT2iP/9OMcXTS3KCajqejFyau3Bov4dR5RZ228v+V0=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779152238; c=relaxed/simple;
-	bh=kPPc67NtrAWleEKVne4c/j/uzzgH1YApxWrhWKlymok=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=C0HldioPsSsJyZXePSdJ/MQUc1OGLdUOOHq8x/kvbq79tKb0LUqLdXDvgfNl5LOSc5Pp9eyFc9/n95XTqPOuVpUoCKaLmXMAsFum6N9cgCHTlKkqMtDrFgODLT5eAVDGvP3jNH0nyWDjp471F7T96WXHHVVKIwMZQKIRRrEBL4w=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=l2N/Nsu6; arc=pass smtp.client-ip=209.85.128.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="l2N/Nsu6"
-Received: by mail-yw1-f173.google.com with SMTP id 00721157ae682-7bd6f65c781so22395357b3.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 18 May 2026 17:57:17 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1779152237; cv=none;
-        d=google.com; s=arc-20240605;
-        b=Ecd7g9pe4OnNcKMxG0MzdbkcYXsu6Y9pUVc444kkIlL8E7X63DLpgfbTN6ko+oHLt9
-         m8y2XQipZR3NfuYQjkQyDDLKGSqg0gHced/gAAxveo+cnCpGRKgZKDXL3sX0NgWyJQiI
-         XuyZr9qZJ59A6Gd8zwRwclSQT+vOUqobbBV1TKrMuZs+krIBtuQ/hGb9TWn3AvP6l8D+
-         nk1F+RctGqsKqkb7XZO4pMexqXm9DqwcOavFb917lg3WAHOa03a9nEwDQ1+edBv6pSDg
-         JQu57O1Cp80jeIHstIUne3PL7dtJSgGYpWaVm9iHVlUHrq7e3d0U6Fh/Vk5oIZkG7sMb
-         A1BA==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=FD1oyzH3rlFKo++Lyr0jPFwyFy9e5n7p6nOd9rFVQA8=;
-        fh=16npAWBQUN2v+5qtrhB3NAE3SRagUVLcEuqAIE20FvU=;
-        b=QTIYyUTzTjbnj23iGkQUEDY42QPI6QRgJ6Yt2fic8mxalXWKxKeYfEmCQHDhcDUBnR
-         2iZyME9jiymCqsHhIbnR8NXZQDuZ2m2wsRiW72NDwxJqvlXrvTIocBHiXLDHR1xSFJtr
-         dodhdoe6rL3VT/yNYIl+J6rPL40YGv2NLr6U4okg9n1WECj+9qTs6gUeOZRbdytmQZGz
-         xj50xoCXY9l1MGQb5+mE25kYT0r7zm3D1TTe0qcbzeIdXUn0CZeT5qv4ih63VK9cE+zS
-         drmgcAdnbtiEwX0nIqsuo9pOenSR9z2dwiLwWgQQINTfJvXsNUBN7nUGrYDIg9pFlL9e
-         EFhQ==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1779152237; x=1779757037; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=FD1oyzH3rlFKo++Lyr0jPFwyFy9e5n7p6nOd9rFVQA8=;
-        b=l2N/Nsu6Kbpie69yjbiW5QpIP+TX8WWPJnUP4qDD/Bgm3mlIkgsU3eFxHLsTM71hb3
-         LbXVmrvKMxySGRSf1Wo4zujm6adtZd7WFwAvP7RVPB+BLYH22hl2IBVLGBMpQfW2YgG5
-         7lfTf4usdspz/4PkzkVUwHrcopOSZJ6wD4YqV400qHHZo4uusm+qmwPoFq4G5fO+mgro
-         lRf92wSoco0PN4TfX8gs0YjZvMMNDykT9ecda0IPdfiPKby5OqoWZQbK+Azpj6hE/yAo
-         8wqQVsQDuV/eW7oNW7D5N3vCskBYmfmU642uJ8ruzlYddJ6xGrSHw7mE9faNMYJz8kA/
-         UHkQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779152237; x=1779757037;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=FD1oyzH3rlFKo++Lyr0jPFwyFy9e5n7p6nOd9rFVQA8=;
-        b=s7H/MOcSdFmQa3aIxPjnESpBxs6rTAK8jlVPVDmmukzt1WS8OkPBbiwSH11Bpk4xnu
-         VO/gDGiGMn6rem2IaSu1i/97aOyTtoZ9p19TRLB1KkPrpLbGaWv5a5SwVrslUUF4nXtA
-         Zb0vB60pxmz9+SfkyuBYlVhXOxkJYyylWPcIROt2Pb+dC5Qtkcte/4GOw3Ny4aXVqbXR
-         8FNoFioiMnU5769ei1PkFRUbZPXu6FejnOc90+xgHtudFi4vF983ISrixvkPbacEZyKd
-         JPN887oIurdm32t8Oa34vdi0EZ44a6VWuQMaIbLaDskQGpYG7bP156yGOQnOtQfvC0ok
-         dq1w==
-X-Forwarded-Encrypted: i=1; AFNElJ9qjTzetGbmh9lzm9jSSp3J+zrPFMk9zsxpm7gxAmOU535gfekg0BL0gR1Tu+0gphTiZLEApBYHfKFqmw==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw+XTQHvrqnWrjb2/ZY9D4iBp8mzJnpqsz/V/JS9u6ojJk3ON0I
-	izcfe4KpqWHKbZRoYnriGvqapjE6i+SIBqvW2SUWlX2IQ57r/0FyBojR30gAuzGE+vxgPLi5p5I
-	JbtnBEB1QhwTPNKHWfA/97lxHepJ7KtU=
-X-Gm-Gg: Acq92OE61mh3j0TqPr/WvXN0Phwfrzl5VAWXPXpzjyGuvgPwkrt+uKppeG/kev9STjc
-	4S7X4oW4dv0n3PySoz+R/m2Am2axLeVkGpRBGTa3rqvZkQK5QBY01gN9cXNQeFeM9SCrm4qNvIB
-	W/Txfeh/FCCnTMGcT5y2O/eFjTT2ICkn5VwU3cWKh1pIgRWeO6wSbUZeYvqrG1XfqZ+QBmN1ls4
-	n54RRwjZh0vZBZE7wW73xZ/Z0gWyFU51tCyapZQ37OuE5T9i53XQeeeWtPJII3MHqieMgwWRopn
-	LEQyYey80gi2PzzhquY3DZMXiMfR7yj4M1O7YaKnBlnkVJc=
-X-Received: by 2002:a05:690c:c18:b0:7bd:8952:1322 with SMTP id
- 00721157ae682-7c7e88e8bb4mr180955027b3.27.1779152236685; Mon, 18 May 2026
- 17:57:16 -0700 (PDT)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DE8CA1A9FBD
+	for <ocfs2-devel@lists.linux.dev>; Tue, 19 May 2026 01:36:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.81
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1779154603; cv=none; b=HLrNUiNBUA1t+MIkWi4RjvZsx7CTEEXEfiQGUuLwvK1iqexXvtYkSnKSrXbrk0wYBbPZzcikEIjT79/TfAescryNBskZtfohcUrsQ+9EpZP4QFWoL2eOjvyojDa02HOCOrY6qVHI1tDaWEpXjmN16Vn9f5TVGSrAv3FEVECU1Vk=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1779154603; c=relaxed/simple;
+	bh=GwWvSd7YZR0iihWLdASextiH1h2VlPHWAKg39ZMUNWQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=luryHfK6rFJ5rAw+tiyt/kiXwgTcRUcsPstRIb4XENX40tHKUN5oT4zgU2l4QZkSgfJhqVb56EFk1dgdkTs5CoHhjkfp/0JVYaEZxgv6Xoba/QrcyDBdN20rdoUNoAvK+MrDmVAjMwIE7Un8/Pp2Dkb/wyGekBr8uPxn86PXsWU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn; spf=pass smtp.mailfrom=mails.ucas.ac.cn; arc=none smtp.client-ip=159.226.251.81
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mails.ucas.ac.cn
+Received: from fric.. (unknown [36.110.52.2])
+	by APP-03 (Coremail) with SMTP id rQCowABnTOOevgtqbyV5EQ--.8777S2;
+	Tue, 19 May 2026 09:36:30 +0800 (CST)
+From: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
+To: linux-kernel@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev
+Cc: Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
+Subject: [PATCH] ocfs2: fix NULL deref in ocfs2_wait_for_recovery after recovery_exit
+Date: Tue, 19 May 2026 01:36:29 +0000
+Message-Id: <20260519013629.1105967-1-xujiakai24@mails.ucas.ac.cn>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260517111015.3187935-1-michael.bommarito@gmail.com> <20260518144022.4d0d0056d304d5fd9607bc10@linux-foundation.org>
-In-Reply-To: <20260518144022.4d0d0056d304d5fd9607bc10@linux-foundation.org>
-From: Michael Bommarito <michael.bommarito@gmail.com>
-Date: Mon, 18 May 2026 20:57:05 -0400
-X-Gm-Features: AVHnY4Il8MSATFfQxeNIeO15MzMVRMDd8IMYQN5K7rcLoK7Kim8Dvf--x0za2Xw
-Message-ID: <CAJJ9bXwOQ+7sf5Js7nZwRtn7=8+GXv6bjqk0X-+27L1XAX6DMQ@mail.gmail.com>
-Subject: Re: [PATCH 0/3] ocfs2: harden inode validators against forged metadata
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>, 
-	Joel Becker <jlbec@evilplan.org>, ZhengYuan Huang <gality369@gmail.com>, ocfs2-devel@lists.linux.dev, 
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:rQCowABnTOOevgtqbyV5EQ--.8777S2
+X-Coremail-Antispam: 1UD129KBjvJXoW7ZryxZFy5tr47uF1fGr4xCrg_yoW8XrWxpr
+	srGrs3Ka4qqFyrAFn8XFy5XrWv93yjgFWDWr109w1a9F4rt39rZryUK3W8uFy5JFWqqayf
+	trs7t3y5Cw4jk3DanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDU0xBIdaVrnRJUUU9j14x267AKxVWUJVW8JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
+	rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
+	1l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
+	6F4UM28EF7xvwVC2z280aVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_Gr
+	1j6F4UJwAac4AC62xK8xCEY4vEwIxC4wAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40E
+	FcxC0VAKzVAqx4xG6I80ewAv7VC0I7IYx2IY67AKxVWUGVWUXwAv7VC2z280aVAFwI0_Jr
+	0_Gr1lOx8S6xCaFVCjc4AY6r1j6r4UM4x0Y48IcxkI7VAKI48JM4x0x7Aq67IIx4CEVc8v
+	x2IErcIFxwCY1x0262kKe7AKxVWUAVWUtwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7x
+	kEbVWUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E
+	67AF67kF1VAFwI0_JF0_Jw1lIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUJVWUCw
+	CI42IY6xIIjxv20xvEc7CjxVAFwI0_Jr0_Gr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1x
+	MIIF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Jr0_GrUvcSsGvf
+	C2KfnxnUUI43ZEXa7VUbVc_DUUUUU==
+X-CM-SenderInfo: 50xmxthndljko6pdxz3voxutnvoduhdfq/
 
-On Mon, May 18, 2026 at 5:40=E2=80=AFPM Andrew Morton <akpm@linux-foundatio=
-n.org> wrote:
-> Thanks.  Sashiko review might have found a few issues:
->         https://sashiko.dev/#/patchset/20260517111015.3187935-1-michael.b=
-ommarito@gmail.com
+In ocfs2_recovery_exit(), the recovery_map is freed via kfree() but
+osb->recovery_map is not set to NULL afterward. If ocfs2_wait_for_recovery()
+is called subsequently (e.g. during inode eviction in the dismount path or
+via a racing stat() syscall), ocfs2_recovery_completed() dereferences the
+stale pointer, leading to a NULL pointer dereference at rm->rm_used.
 
-Yes, I think patches 1 and 3 need a v2.  Sashiko found a sibling issue
-in patch 3, which is the most important part.
+Fix this by:
+1. Setting osb->recovery_map = NULL after kfree() in ocfs2_recovery_exit()
+2. Adding a NULL guard in ocfs2_recovery_completed() so that it safely
+   returns "recovery completed" when the map has been freed
 
-I'll send revisions later tonight.
+Fixes: 553abd046af6 ("ocfs2: Change the recovery map to an array of node numbers.")
+Signed-off-by: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
+---
+ fs/ocfs2/journal.c | 4 ++++
+ 1 file changed, 4 insertions(+)
 
-Thanks,
-Mike
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index f9bf3bac085d..5529a177f90e 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -243,6 +243,7 @@ void ocfs2_recovery_exit(struct ocfs2_super *osb)
+ 	/* XXX: Should we bug if there are dirty entries? */
+ 
+ 	kfree(rm);
++	osb->recovery_map = NULL;
+ }
+ 
+ static int __ocfs2_recovery_map_test(struct ocfs2_super *osb,
+@@ -1225,6 +1226,9 @@ static int ocfs2_recovery_completed(struct ocfs2_super *osb)
+ 	int empty;
+ 	struct ocfs2_recovery_map *rm = osb->recovery_map;
+ 
++	if (!rm)
++		return 1;
++
+ 	spin_lock(&osb->osb_lock);
+ 	empty = (rm->rm_used == 0);
+ 	spin_unlock(&osb->osb_lock);
+-- 
+2.34.1
+
