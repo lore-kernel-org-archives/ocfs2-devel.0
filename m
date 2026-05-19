@@ -1,139 +1,139 @@
-Received: from cstnet.cn (smtp81.cstnet.cn [159.226.251.81])
-	(using TLSv1.2 with cipher DHE-RSA-AES256-SHA (256/256 bits))
+Received: from mail-yw1-f177.google.com (mail-yw1-f177.google.com [209.85.128.177])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 261EF2E2DDD
-	for <ocfs2-devel@lists.linux.dev>; Tue, 19 May 2026 01:39:03 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=159.226.251.81
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7646480332
+	for <ocfs2-devel@lists.linux.dev>; Tue, 19 May 2026 11:04:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.177
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779154746; cv=none; b=Z6nC2zuHKL9k1uMHeRPU1ovW0cgJNBerNzaCoaxsWYR2xW9iwMfKs5gkElZkgA2waSMN8l5ztdq8v2BxUGq+oJ8P1BeGIRK6uX0gjjyI4tqm0P16t+1v9snN67Kc7W9pdZyFmOneVhd6RnT+C7H0S4HC4DAvWcct7E/azOXMxS0=
+	t=1779188666; cv=none; b=sWFAMenVnUXlgh99EzL8pu96uYO+FX0sgCKAJqjPfw2B4pnLFLXvM6H0zqECvZ+TF9K9bXhmq2pQK8HR9Js0CL1CvP9wOqrp/MXgSNuYP9MxRSOF50mHJqDFkQxUHuXdTUDghSMFK9YL7mb/Tne0eQLqYrcl4u3xMydaCaSM+1Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779154746; c=relaxed/simple;
-	bh=6jnondp19TSNklX5II9XmZPLOFFHyr1T17f8WqKrDNM=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=gyt+zJi80RNPAsazYlxx360SjN0EHtGSjq2QSdWuRYhKRy0jcKpUzlFHU8bCOIYYrQ5trsryRD1ngDqAiK80mtnjEFkWsX6p5+EeDj8HK5tt5gfHfiqj0O58HdeNuAIZWw9KPFsJbjxRRe88FhnMuTXM1Ge9u/rq/IPhJvvApbs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn; spf=pass smtp.mailfrom=mails.ucas.ac.cn; arc=none smtp.client-ip=159.226.251.81
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=mails.ucas.ac.cn
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mails.ucas.ac.cn
-Received: from fric.. (unknown [36.110.52.2])
-	by APP-03 (Coremail) with SMTP id rQCowABXPOMzvwtqyjV5EQ--.10885S2;
-	Tue, 19 May 2026 09:38:59 +0800 (CST)
-From: Jiakai Xu <xujiakai24@mails.ucas.ac.cn>
-To: xujiakai24@mails.ucas.ac.cn
-Cc: jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	linux-kernel@vger.kernel.org,
-	mark@fasheh.com,
-	ocfs2-devel@lists.linux.dev
-Subject: Re: [PATCH] ocfs2: fix NULL deref in ocfs2_wait_for_recovery after recovery_exit
-Date: Tue, 19 May 2026 01:38:59 +0000
-Message-Id: <20260519013859.1111967-1-xujiakai24@mails.ucas.ac.cn>
-X-Mailer: git-send-email 2.34.1
-In-Reply-To: <20260519013629.1105967-1-xujiakai24@mails.ucas.ac.cn>
-References: <20260519013629.1105967-1-xujiakai24@mails.ucas.ac.cn>
+	s=arc-20240116; t=1779188666; c=relaxed/simple;
+	bh=1WIhhqyimIG6xgGwMZqPr2KBtiPQ844g/owpCXhS4vM=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=nqMdU4L8rbbSjeulOFKL7xBrKfF8YR5bDk6vBPCTf17s4mJS39QO6fL5ZzYonSa8HaIuOr6lRk345Y47sz0Vkito9F7qymIdraNljXw09/ahyUJRe1yqVHGShtWd5SYS5Gjd4o1NzjONsIDuXoqWlU+yo2y/LSyrQ6km2AoiQ+8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=A3SVSxf7; arc=none smtp.client-ip=209.85.128.177
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="A3SVSxf7"
+Received: by mail-yw1-f177.google.com with SMTP id 00721157ae682-7bf14e33f5bso28528817b3.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 19 May 2026 04:04:24 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1779188664; x=1779793464; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=9WEPJj4wYvtkwkwfLE2DQUprbinqua7axfePI1DHQ9g=;
+        b=A3SVSxf7e8hFHRnCRY6T4mDKPRztpLfqNxtwUOEKli7YTrVjm3gHeVrN1sVZwReClI
+         pXupj9aJnMt5s3nc/I+H0RMtsmafGszmOrvYN5DPreqJ4DvC7tjhUZqAKBXrcgvOnOEf
+         yvJ9M2lCiIlkWINZc2A+tPGJt094P3wcWfDaAuUwNqt5fuFzWhAeWxsIurEFLiSrv6nH
+         FrU+24v50AinHDaPM14pUIg2YHTis9i7HHm0leFMIYgJ5PhV05ZxMW197Ch+xaIgrG7B
+         DC+Xo8bIRu8t3bHVOgJ0tdU7jq3DKwOumWCB+Cdvq4aFYsPR8/TIeYe5k0vGN0NTc70k
+         fjxQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779188664; x=1779793464;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=9WEPJj4wYvtkwkwfLE2DQUprbinqua7axfePI1DHQ9g=;
+        b=c5rHif3lIueESpyI96i2cA2pn2a5BOjnv2NLsgoY7gUw3PXizj4+nWAv6RuF/3xVl4
+         hyB0ih7ZAa+MBjj0nCgFEhvlASMCtGOZD3AliivUN5VH3VBD7YnJsbi8akyGJIL0Ux4u
+         ZO4DmZFDys3sDfOv1WmkZSoRa0ylvT4bFDdEeatxF7lXBt3AaFo7wOUCX7p7oNsTvZhp
+         7ckPCoTRyHfcwNUwF7vaPwDPH+ESnGGsFB+Bt1ep5m8lleCJPhgUvpm/VFsf8i+B3jvI
+         VyB/KwhVnzJjjnKs6SUWyq3lIct/rFiIPaj0KGGDmyjUTLDQwfq44JFtuKm6POjlgh3B
+         LLXg==
+X-Forwarded-Encrypted: i=1; AFNElJ82GsGMBACcPDfLgMV4yHvb4r07QER7/z8dvL8bSQ2SElXTWXrl81bb6pjKm/9vlXhZXFLJrOQuB6x34g==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwAr0r2K3okcj3dlFZzQkIs1FZ/G7soF1FL+4mrRcXK1pwCd0lC
+	B/iRBNZX3YHlzI7/V+l0MU8NNrxJl7w995UBOUB5sxpvI2343IEb0qng
+X-Gm-Gg: Acq92OE0Gg/nns6AEx0G5W4kqR949wlkPIh3tM6p4N62p9kZiCE0CeqWDy9lnq1VhGc
+	bwmrTavKL+OUagDx1tmoH9thui3OB4MflSrLwgLIdqoKYUGT4obb3OP/ZLJwUiQXYaTlwBdDbsm
+	OZgpc+uCtOz6Ht23EDI+/KGtU0urICwjw3AkOZAUo1EtirTceWcbZYSONxDDhqW/FdiKVWzmTaa
+	M7mOieS0jDXDQHkSfrNVznvesShaJqug8nyBGmv3aVUVzrfsb5WTCxeaWe3h92tGBrYGu5W0Qn4
+	lJujNtjrBePdpNvaCvNfhAfzRwQQDA55pfO1PLIfVzlJqg4iDroGp+D9k6uMh2Knh6O2KQw2Dn/
+	kevKc8DWKKBL9gbTPRxf6Vt3YN227gGnkdFQ4eah4Ktd0YdxDw/VSwWznCOZp7+t14J6G6zmD9O
+	BoNH0wr5/0QHVlOA6mQRCmQHVCgSQdm7eUCnDX8xhBokb3/lm14qJwDId+4OQdEjphdTKCTnzFH
+	vtVtEDtKt+ZMKEPxnwuIwnKoC1rUOU=
+X-Received: by 2002:a05:690c:c1a:b0:7ba:fdc5:17a3 with SMTP id 00721157ae682-7c95c6f978fmr196298607b3.43.1779188663775;
+        Tue, 19 May 2026 04:04:23 -0700 (PDT)
+Received: from server0 (c-68-48-65-54.hsd1.mi.comcast.net. [68.48.65.54])
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-7cc9bc0ccf7sm35206827b3.25.2026.05.19.04.04.22
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 19 May 2026 04:04:23 -0700 (PDT)
+From: Michael Bommarito <michael.bommarito@gmail.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>
+Cc: ZhengYuan Huang <gality369@gmail.com>,
+	ocfs2-devel@lists.linux.dev,
+	linux-fsdevel@vger.kernel.org,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH v2 0/3] ocfs2: harden inode validators against forged metadata
+Date: Tue, 19 May 2026 07:04:01 -0400
+Message-ID: <20260519110404.1803902-1-michael.bommarito@gmail.com>
+X-Mailer: git-send-email 2.53.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:rQCowABXPOMzvwtqyjV5EQ--.10885S2
-X-Coremail-Antispam: 1UD129KBjvJXoWxZr13GF17tryDAF1rKr18AFb_yoW7Jr4Upr
-	yjgr4DCF48XF18AF1UAry5Jr48uF47A3WUJwsrAr1rAF1jk3WDJr1DtrW8tFn8Jr15Zry7
-	twnxJws5tw1DAaUanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDU0xBIdaVrnRJUUU9014x267AKxVWUJVW8JwAFc2x0x2IEx4CE42xK8VAvwI8IcIk0
-	rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2AK02
-	1l84ACjcxK6xIIjxv20xvE14v26ryj6F1UM28EF7xvwVC0I7IYx2IY6xkF7I0E14v26r4j
-	6F4UM28EF7xvwVC2z280aVAFwI0_Gr1j6F4UJwA2z4x0Y4vEx4A2jsIEc7CjxVAFwI0_Gr
-	1j6F4UJwAac4AC62xK8xCEY4vEwIxC4wAS0I0E0xvYzxvE52x082IY62kv0487Mc02F40E
-	FcxC0VAKzVAqx4xG6I80ewAv7VC0I7IYx2IY67AKxVWUXVWUAwAv7VC2z280aVAFwI0_Jr
-	0_Gr1lOx8S6xCaFVCjc4AY6r1j6r4UM4x0Y48IcxkI7VAKI48JM4x0x7Aq67IIx4CEVc8v
-	x2IErcIFxwCY1x0262kKe7AKxVWUAVWUtwCF04k20xvY0x0EwIxGrwCFx2IqxVCFs4IE7x
-	kEbVWUJVW8JwC20s026c02F40E14v26r1j6r18MI8I3I0E7480Y4vE14v26r106r1rMI8E
-	67AF67kF1VAFwI0_JF0_Jw1lIxkGc2Ij64vIr41lIxAIcVC0I7IYx2IY67AKxVWUJVWUCw
-	CI42IY6xIIjxv20xvEc7CjxVAFwI0_Gr0_Cr1lIxAIcVCF04k26cxKx2IYs7xG6r1j6r1x
-	MIIF0xvEx4A2jsIE14v26r1j6r4UMIIF0xvEx4A2jsIEc7CjxVAFwI0_Gr0_Gr1UYxBIda
-	VFxhVjvjDU0xZFpf9x0JUhNVkUUUUU=
-X-CM-SenderInfo: 50xmxthndljko6pdxz3voxutnvoduhdfq/
+Content-Transfer-Encoding: 7bit
 
-This was found by fuzzing. Here is the report:
+This series adds three structural checks to OCFS2 dinode validation so
+malformed on-disk fields are rejected before ocfs2_populate_inode()
+copies them into the in-core inode.
 
-BUG: kernel NULL pointer dereference, address: 0000000000000000
-#PF: supervisor read access in kernel mode
-#PF: error_code(0x0000) - not-present page
-PGD 28fdd067 P4D 51bb2067 PUD 0 
-Oops: Oops: 0000 [#1] SMP NOPTI
-CPU: 0 UID: 0 PID: 216737 Comm: syz.2.26512 Not tainted 6.18.5 #1 PREEMPT(full) 
-Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.15.0-1 04/01/2014
-RIP: 0010:ocfs2_recovery_completed home/zzzrrll/tmp/linux/fs/ocfs2/journal.c:1234 [inline]
-RIP: 0010:ocfs2_wait_for_recovery+0x45/0x180 home/zzzrrll/tmp/linux/fs/ocfs2/journal.c:1242
-Code: 07 65 49 8b 07 48 89 44 24 28 e8 96 23 28 ff 2e 2e 2e 31 c0 49 8b ae 38 01 00 00 49 8d 9e c8 00 00 00 48 89 df e8 cb 45 41 03 <8b> 6d 00 31 ff 89 ee e8 af 27 28 ff 48 89 df e8 37 47 41 03 85 ed
-RSP: 0018:ffa000000e1bbb58 EFLAGS: 00010202
-RAX: 0000000000000000 RBX: ff1100002ac9a4c8 RCX: 0000000000000001
-RDX: ffa000001873b000 RSI: 0000000000000000 RDI: ff1100002ac9a4c8
-RBP: 0000000000000000 R08: ffffffff823b5a33 R09: ffa000000e1bbd70
-R10: 0000000000000002 R11: ffffffff823c6940 R12: 0000000000000000
-R13: ff1100002ac9a400 R14: ff1100002ac9a400 R15: ffffffff896a4020
-FS:  00007f74f0df8640(0000) GS:ff110000f4370000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000000000 CR3: 000000005177e000 CR4: 0000000000751ef0
-PKRU: 80000000
-Call Trace:
- <TASK>
- ocfs2_inode_lock_full_nested+0xec/0xca0 home/zzzrrll/tmp/linux/fs/ocfs2/dlmglue.c:2457
- ocfs2_inode_revalidate+0x90/0x300 home/zzzrrll/tmp/linux/fs/ocfs2/inode.c:1352
- ocfs2_getattr+0x49/0x180 home/zzzrrll/tmp/linux/fs/ocfs2/file.c:1316
- vfs_getattr_nosec+0x120/0x1b0 home/zzzrrll/tmp/linux/fs/stat.c:213
- vfs_getattr home/zzzrrll/tmp/linux/fs/stat.c:262 [inline]
- vfs_statx_path home/zzzrrll/tmp/linux/fs/stat.c:299 [inline]
- vfs_statx+0x116/0x240 home/zzzrrll/tmp/linux/fs/stat.c:356
- vfs_fstatat home/zzzrrll/tmp/linux/fs/stat.c:375 [inline]
- vfs_stat home/zzzrrll/tmp/linux/include/linux/fs.h:3593 [inline]
- __do_sys_newstat home/zzzrrll/tmp/linux/fs/stat.c:515 [inline]
- __se_sys_newstat+0x6a/0x240 home/zzzrrll/tmp/linux/fs/stat.c:509
- do_syscall_x64 home/zzzrrll/tmp/linux/arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0xc6/0xfa0 home/zzzrrll/tmp/linux/arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f74effae16d
-Code: 02 b8 ff ff ff ff c3 66 0f 1f 44 00 00 f3 0f 1e fa 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 a8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f74f0df7f98 EFLAGS: 00000246 ORIG_RAX: 0000000000000004
-RAX: ffffffffffffffda RBX: 00007f74f01f5fa0 RCX: 00007f74effae16d
-RDX: 0000000000000000 RSI: 0000200000002200 RDI: 00002000000021c0
-RBP: 00007f74f00480f0 R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007f74f01f6038 R14: 00007f74f01f5fa0 R15: 00007f74f0dd8000
- </TASK>
-Modules linked in:
-CR2: 0000000000000000
----[ end trace 0000000000000000 ]---
-RIP: 0010:ocfs2_recovery_completed home/zzzrrll/tmp/linux/fs/ocfs2/journal.c:1234 [inline]
-RIP: 0010:ocfs2_wait_for_recovery+0x45/0x180 home/zzzrrll/tmp/linux/fs/ocfs2/journal.c:1242
-Code: 07 65 49 8b 07 48 89 44 24 28 e8 96 23 28 ff 2e 2e 2e 31 c0 49 8b ae 38 01 00 00 49 8d 9e c8 00 00 00 48 89 df e8 cb 45 41 03 <8b> 6d 00 31 ff 89 ee e8 af 27 28 ff 48 89 df e8 37 47 41 03 85 ed
-RSP: 0018:ffa000000e1bbb58 EFLAGS: 00010202
-RAX: 0000000000000000 RBX: ff1100002ac9a4c8 RCX: 0000000000000001
-RDX: ffa000001873b000 RSI: 0000000000000000 RDI: ff1100002ac9a4c8
-RBP: 0000000000000000 R08: ffffffff823b5a33 R09: ffa000000e1bbd70
-R10: 0000000000000002 R11: ffffffff823c6940 R12: 0000000000000000
-R13: ff1100002ac9a400 R14: ff1100002ac9a400 R15: ffffffff896a4020
-FS:  00007f74f0df8640(0000) GS:ff110000f4370000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 0000000000000000 CR3: 000000005177e000 CR4: 0000000000751ef0
-PKRU: 80000000
-----------------
-Code disassembly (best guess), 1 bytes skipped:
-   0:	65 49 8b 07          	mov    %gs:(%r15),%rax
-   4:	48 89 44 24 28       	mov    %rax,0x28(%rsp)
-   9:	e8 96 23 28 ff       	call   0xff2823a4
-   e:	2e 2e 2e 31 c0       	cs cs cs xor %eax,%eax
-  13:	49 8b ae 38 01 00 00 	mov    0x138(%r14),%rbp
-  1a:	49 8d 9e c8 00 00 00 	lea    0xc8(%r14),%rbx
-  21:	48 89 df             	mov    %rbx,%rdi
-  24:	e8 cb 45 41 03       	call   0x34145f4
-* 29:	8b 6d 00             	mov    0x0(%rbp),%ebp <-- trapping instruction
-  2c:	31 ff                	xor    %edi,%edi
-  2e:	89 ee                	mov    %ebp,%esi
-  30:	e8 af 27 28 ff       	call   0xff2827e4
-  35:	48 89 df             	mov    %rbx,%rdi
-  38:	e8 37 47 41 03       	call   0x3414774
-  3d:	85 ed                	test   %ebp,%ebp
+The checks cover:
 
+  - i_mode values whose type bits do not name a canonical POSIX file
+    type;
+  - non-device dinodes whose id1.dev1.i_rdev field is non-zero; and
+  - non-inline dinodes that claim non-zero i_size while i_clusters is
+    zero, covering directories unconditionally and regular files on
+    non-sparse volumes.
+
+The normal read path reports these through ocfs2_error(), matching the
+existing suballoc-slot, inline-data, chain-list, and refcount checks.
+The online filecheck path uses the same structural predicates but keeps
+its own reporting contract, returning OCFS2_FILECHECK_ERR_INVALIDINO
+instead of calling ocfs2_error().
+
+Validation from v1 still applies to the unchanged reachability model.
+
+---
+
+Changes in v2:
+
+  - Patch 1 drops the tautological S_IFMT|07777 mask check and reuses
+    fs_umode_to_ftype() for the canonical file-type predicate.
+  - Patch 1 mirrors the i_mode check in the online filecheck path.
+  - Patch 2 factors the i_rdev cross-check into a shared predicate.
+  - Patch 2 mirrors the i_rdev check in the online filecheck path.
+  - Patch 3 factors the size/cluster invariant into a shared predicate.
+  - Patch 3 extends the zero-cluster rejection to non-inline
+    directories, while preserving the sparse regular-file carveout.
+  - Patch 3 mirrors the size/cluster check in the online filecheck path.
+  - Patches 1 and 3 add Link trailers to the Sashiko review Andrew
+    pointed out.
+
+Testing after v2:
+
+  - Replayed all three patches onto the original base, checked with
+    checkpatch --strict, and applied cleanly with git am.
+  - Rebuilt a fresh bzImage from the v2-applied tree.
+  - Booted that v2 kernel five times under QEMU: sparse regular-file
+    regression, non-sparse no-forge regression, forged non-canonical
+    i_mode, forged non-device i_rdev, and forged non-zero i_size with
+    zero i_clusters.
+  - The three forged dinodes were rejected by
+    ocfs2_validate_inode_block(); the two unforged regression cases
+    completed without validator errors.
+
+Michael Bommarito (3):
+  ocfs2: reject dinodes with non-canonical i_mode type
+  ocfs2: reject dinodes whose i_rdev disagrees with the file type
+  ocfs2: reject non-inline dinodes with i_size and zero i_clusters
+
+ fs/ocfs2/inode.c | 151 ++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 149 insertions(+), 2 deletions(-)
+
+-- 
+2.53.0
