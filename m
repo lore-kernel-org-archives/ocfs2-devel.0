@@ -1,60 +1,60 @@
-Received: from mail-pl1-f193.google.com (mail-pl1-f193.google.com [209.85.214.193])
+Received: from mail-pj1-f67.google.com (mail-pj1-f67.google.com [209.85.216.67])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CF931F0E34
-	for <ocfs2-devel@lists.linux.dev>; Sun, 24 May 2026 10:47:45 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.193
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2CBB32DF142
+	for <ocfs2-devel@lists.linux.dev>; Sun, 24 May 2026 11:07:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.67
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779619666; cv=none; b=Ti/asdRJziccZrUalUX2lCkuvCf3nkzjjCvlP8iDJUxkQiz8xlYdK89T7Gx5xAWN9o9Bj94N3HK31kNTcFmB8QhMtcVYwmZvSSne7mL+kTbUVcxO3z38SzS7h+ss/0ORqoG13tgtfmv41rbgnweTRjWC84zoRm9bQZwVzjzB4aM=
+	t=1779620877; cv=none; b=bxifLLwik95U+nXXOZD/VtJ7v3oquGtBN9uzeVVX7rJgpHtrQ9zh/My98jyuATv8amBjh5DC1wT6E8sajLXnBSRH32XGHk/gy7HjCs3khgQuxSJclBuv1NK1ksn82DsbaK7y2M2PjDekeXnFT89TTCPT2ZWr6QSsnH+IDRfnTls=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779619666; c=relaxed/simple;
-	bh=7kufMGHzg+Ivvc7YQW474zZbrY+DhwFXmQr4DNqm0K4=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=msvX+MsfkRJcH2I/xWUAo7Sq6RpG2n34C3jCJ48GHR/IhKzci5YW0QPH49il2gCtc5S1jDF2ImeDjULkvk0bvs0rVO0pptHWipJusXaTALzE2Sgd5LhuImuqTOnq1cmJMHqGdH+COPFg40I9xezp9oMcRtxE68GiivthfwZzRK4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Z+UnTjc1; arc=none smtp.client-ip=209.85.214.193
+	s=arc-20240116; t=1779620877; c=relaxed/simple;
+	bh=k2gMGD7pi/5B2rr4nutalEDpM7lkesvUPR00Gb+nx5o=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=FpS2mqDdfM07HduBP0xy6YMsJKG2SGGcerLbNd+B8EcGJBXCTeIpuoRSOwlwN5Byl0QlGEsKC38jUxgbUSY7rO0HMIOK6WbYYLGww4bF1crOZ4Hr+5Xx6L6SlpjnVWi2XoINuaj06aHGzS0TLXkbTwwAYu98X2mn/Id4tZZPUPk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=bhQDI4M+; arc=none smtp.client-ip=209.85.216.67
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Z+UnTjc1"
-Received: by mail-pl1-f193.google.com with SMTP id d9443c01a7336-2bea7176c72so25523345ad.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 24 May 2026 03:47:45 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="bhQDI4M+"
+Received: by mail-pj1-f67.google.com with SMTP id 98e67ed59e1d1-3660ab73adbso6206296a91.1
+        for <ocfs2-devel@lists.linux.dev>; Sun, 24 May 2026 04:07:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1779619664; x=1780224464; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1779620875; x=1780225675; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=gSTBs+CvpCoHZ9vOvjAYBeSJNzUYCx+7KaD800fiCWM=;
-        b=Z+UnTjc1BiCb0Ebnb3l+8kDuP10hc+ck7zxuhie9jOhJYbTpZZuJt5CkB1qPcI8SQp
-         BtoB6+OiDAKu2Qh3YNiXU00riWbOd/K/oBFT75PQS9c1+QeeI5Rlx4jwIFioZFUMpQUP
-         8ZiGOs2jRw9lgyow0GO68vtSa2GbBXalnEY6xVoi52AgfDqKR8hG+S9CJ4NFqnd3Nqv2
-         umQr59QbTJoYsuhGieiTfLn3xdRNEqOGZXRcY1BqVnJb9w0gpcqAh/GXljBVmMZW+8pD
-         bBHD9ufo+fBYqfUXYTxI+e7CQQPPjfqwoT5Qmfh0OdlCNZYb8HcPQGDplaRj8ApUe4+n
-         h2yA==
+        bh=TLZZ7iYZ+Pe7GSh59d0Mo5Ot4bh6bJXCTFg96+FHGFY=;
+        b=bhQDI4M+ipbgcDcwQ7PqPVdzRgkyiVTzbc1SW8hECJ7nmwnFCOf5Il29oizlaTtIJu
+         J5vo4rk5fghbO8WvMciNWyN5acz122Mh9y+EEMPiUpvkD9f5NbMMf+UJ2T3Z9nbj3Q/1
+         nf1vd56D0abYg/viJFNY2dDwiLoq96nUft0bt+6iUknLifl3R0hyz2fdXaX5SRqruIg1
+         XtUWorXp8DycdjZhGxt9qyy+36rtxwqQ28f6RhIZ7WXx5fs15rg8wGs1n3vl0HnXTHSb
+         li5eNS8pHTIWLH6OCZTl1l8oSyRWoZymg4MTWuzx5J0ZS7RNJHHdF42SLI82w7C7+se/
+         sMSg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779619664; x=1780224464;
+        d=1e100.net; s=20251104; t=1779620875; x=1780225675;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=gSTBs+CvpCoHZ9vOvjAYBeSJNzUYCx+7KaD800fiCWM=;
-        b=LnDf2/MODZY4P6pgGa2KEHfOmCqYwpw6HhrBtw19fERFNcyp/40oio3Qhm24rvROxd
-         3hCNbW9120hg8sUMU99JqXcpn2OIU29QEQY7hGnSUpCaWZb2j6IZX5xP5GdVuAUWuOG0
-         9ItvJ+KNdVnSpyJs9uPoU2pEtX9UXxOz+zB2jLHWfQQCU4InCLni2JQmcw5QgnorxPWr
-         Iq+WzjUGE6OsypsE1hBuQiScXs18dJpOvIEf3tHcCNiU3emht8NX4xAr2Wz07llyhY7l
-         PuqaeSwXIWEUHPF08/1aEy1w6h9i8rss1IvLRuh1wO2nUohbBStrlflAQ6V/OP03dz0J
-         cj/g==
-X-Gm-Message-State: AOJu0YyfIg4nDNbizj9Pa2k2MXQ1uzlA+7S7kN2W8k8kA/+VCk7koHTp
-	dKkI+n/+6SQBu+Ib/YMZl5IAnr4roeMP8SgPZDoPn1AIIr7acGF9u8Ly
-X-Gm-Gg: Acq92OHklZUZaMbKy6aFiQtAUrTd1HFZLNidtcIiYPy4X/PIflxIZz5heXl98NKCTu1
-	oVN/sbDz+7+eBLp4ZPDGCgC9tsMi2i74hrNvcORYOkt9Zmfo6EI0AWvx0it73jUFyhlegh1dZ85
-	1beCbaAvP/I4OO7P87aAZXrrTKcmV9FQzjjXA1pVL4GM2+sHLApR3BU+1NM9JriMDElKU/oI+h+
-	lXYAGptn13D5fxLaigmoGO1pDZ1W5rClXln8FAzRn4KgdpFeJ1xCc4xbiXVszSVMLY1uZ4H4HQg
-	iUsr8O3VflTCX7DHgcBDKDz5S8EJFY4EGS6V64QrC8wNBxOPsr6aLLIa7n0BI8G7iFkTBOeMdKA
-	6q0rlWQTzZ72Liwvk2T9wIYiRtAF7VLNRvCNsweHaPlZ1Cl7WB3Dvm0qmgSdsn76lNwVAXp+khA
-	SAeRar4x0eNYuCwk2asKuz3AIVeQrCIPs=
-X-Received: by 2002:a17:903:1a0d:b0:2b0:6e60:9582 with SMTP id d9443c01a7336-2beb06354bcmr116069275ad.18.1779619664357;
-        Sun, 24 May 2026 03:47:44 -0700 (PDT)
+        bh=TLZZ7iYZ+Pe7GSh59d0Mo5Ot4bh6bJXCTFg96+FHGFY=;
+        b=hEzKuWHaI09isfm2k9nRchB5MX6NXmIz9ygBJebmAC3n0HmxIRDvQ19Lcjs1TE/8hZ
+         oiDmBeocmPe7aj72omxZGkCgjS295ylu/LotnZacSOvkeXNIIsJDGVF/y2TVo1UUfp9M
+         Y4kQCJxxKBA8cmkXoJpWJ5+6DalLZfNtridaUwc1ip8vt9WCf8ygXSZmAbUGkoeCJbXV
+         FkV8q7M9cKrbZVCoo71pwT8k9H1XbhzQnIEsZVxdcISq1rYanGB4eepcooki3uCX6j7Y
+         YuDHmr0s93638zVBSYKPreuH9yA5+UP4NZ7iYe5kHB8UG6LtXw1oakcMWlivocCSWSpl
+         6w8g==
+X-Gm-Message-State: AOJu0YyMvNMzelDTt+xjoOHaB57WsjnCbsvm3qPq1MET5ataLr0gwMur
+	ZFDXq0xu4Uoi4xyrkpUsNi1Nryba0J1W0NfBLABFmaUGz3jJkSBM2afG
+X-Gm-Gg: Acq92OG1kOBJlpL/1ffti7qIuzCYszEU4IpGmB7H0QYyodPY9zGRKL+E5dt/Y9dLask
+	lsti76RGlxhuwcjspa0QI/JJbP8onWGcgae20k4ofVSDuMfQhK6kH89IaAmt9E3nzrkytx45j/3
+	6Ug/E+y6SyIvRYpbTeNfIBWqKFb7iAZvvBWe3KUz2yUPKONnBDoYZrPavNQwgPsQFJevzP6vuyN
+	YdXsMmbw2SkvnOTlvE++t/ZT946sspdl+7D9Vjr+rRoJe/S4SnyS0O3k0hv2NsG7cjB3hUAKA0k
+	C4mvwsLtVmcGIKysCi8EhKfpokJdQjVmbURLkgX/qaqhqGCog6mXkBPFops0b0HrNHVA2d0/Zc6
+	eH21+axOCndbwA37Z2VRdlQh1t73GyCD8LW6F3yd6L/HkZJYPv644mOfY6w+pPMTzo+z0O7BE0U
+	SK2NTtoiIJAe6kXwx3dsVazMJTruonhgI=
+X-Received: by 2002:a17:90b:560b:b0:35b:d795:cf5d with SMTP id 98e67ed59e1d1-36a6bb5b91dmr7671078a91.5.1779620875442;
+        Sun, 24 May 2026 04:07:55 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2beb58fd888sm66439715ad.73.2026.05.24.03.47.40
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-36a7265a400sm6576226a91.5.2026.05.24.04.07.52
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 24 May 2026 03:47:43 -0700 (PDT)
+        Sun, 24 May 2026 04:07:55 -0700 (PDT)
 From: Zhang Cen <rollkingzzc@gmail.com>
 To: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
@@ -63,9 +63,9 @@ Cc: ocfs2-devel@lists.linux.dev,
 	zerocling0077@gmail.com,
 	2045gemini@gmail.com,
 	Zhang Cen <rollkingzzc@gmail.com>
-Subject: [PATCH] ocfs2: rebase copied fsdlm LVB pointers in locking_state
-Date: Sun, 24 May 2026 18:47:38 +0800
-Message-Id: <20260524104738.1363926-1-rollkingzzc@gmail.com>
+Subject: [PATCH v2] ocfs2: rebase copied fsdlm LVB pointers in locking_state
+Date: Sun, 24 May 2026 19:07:49 +0800
+Message-Id: <20260524110749.1416771-1-rollkingzzc@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -101,43 +101,14 @@ Validation reproduced this kernel report:
 KASAN slab-use-after-free in ocfs2_dlm_seq_show+0x1bd/0x430
 RIP: 0033:0x7f8ec4b1e29d
 The buggy address belongs to the object at ffff88810a1e0800 which belongs
-to the cache kmalloc-1k of size 1024
-The buggy address is located 368 bytes inside of freed 1024-byte region
-[ffff88810a1e0800, ffff88810a1e0c00)
-Read of size 1
-Call trace:
-  dump_stack_lvl+0x66/0xa0 (?:?)
-  print_report+0xce/0x630 (?:?)
-  ocfs2_dlm_seq_show+0x1bd/0x430 (fs/ocfs2/dlmglue.c:2168)
-  srso_alias_return_thunk+0x5/0xfbef5 (?:?)
-  __virt_addr_valid+0x19f/0x330 (?:?)
-  kasan_report+0xe0/0x110 (?:?)
-  seq_read_iter+0x29d/0x790 (?:?)
-  seq_read+0x20a/0x280 (?:?)
-  find_held_lock+0x2b/0x80 (?:?)
-  rcu_read_unlock+0x18/0x70 (?:?)
-  full_proxy_read+0x9e/0xd0 (?:?)
-  vfs_read+0x12c/0x590 (?:?)
-  ksys_read+0xd2/0x170 (?:?)
-  do_user_addr_fault+0x65a/0x890 (?:?)
-  do_syscall_64+0x115/0x6a0 (arch/x86/entry/syscall_64.c:87)
-  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
-Freed by task stack:
-  kasan_save_stack+0x33/0x60 (?:?)
-  kasan_save_track+0x14/0x30 (?:?)
-  kasan_save_free_info+0x3b/0x60 (?:?)
-  __kasan_slab_free+0x5f/0x80 (?:?)
-  kfree+0x313/0x590 (?:?)
-  ocfs2_file_release+0x138/0x260 (fs/ocfs2/dlmglue.c:?)
-  __fput+0x1df/0x4b0 (?:?)
-  fput_close_sync+0xd2/0x170 (?:?)
-  __x64_sys_close+0x55/0x90 (?:?)
-  do_syscall_64+0x115/0x6a0 (arch/x86/entry/syscall_64.c:87)
-  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
 
+Fixes: cf4d8d75d8ab ("ocfs2: add fsdlm to stackglue")
 Assisted-by: Codex:gpt-5.5
 Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
 ---
+v2:
+Document the introducing fsdlm stackglue commit.
+
  fs/ocfs2/dlmglue.c | 17 +++++++++++++++++
  1 file changed, 17 insertions(+)
 
