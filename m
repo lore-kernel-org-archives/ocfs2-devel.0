@@ -1,182 +1,181 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f193.google.com (mail-pl1-f193.google.com [209.85.214.193])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF24038332B;
-	Sat, 23 May 2026 18:45:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3CF931F0E34
+	for <ocfs2-devel@lists.linux.dev>; Sun, 24 May 2026 10:47:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.193
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779561907; cv=none; b=tizpeiumBSd/q0HvoBwXJfSTqJYbAQFQ4Zs4QPSinbql+418lSgw8LucBtHEb1H84Ir+ki2isV/yH1ydNKVSOUGw+iFHidrIdOigcrC3HXcvUy51pWIBBBuphzHCDyerdKHKAiMPs1jyyFLogX+qD8CTr6xBPL+RRXma3tEXAiY=
+	t=1779619666; cv=none; b=Ti/asdRJziccZrUalUX2lCkuvCf3nkzjjCvlP8iDJUxkQiz8xlYdK89T7Gx5xAWN9o9Bj94N3HK31kNTcFmB8QhMtcVYwmZvSSne7mL+kTbUVcxO3z38SzS7h+ss/0ORqoG13tgtfmv41rbgnweTRjWC84zoRm9bQZwVzjzB4aM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779561907; c=relaxed/simple;
-	bh=0ivV9swcxQOE/E1jT3VgeiDHh0Guqzt2MvXKgSGoCAo=;
-	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=DT6YLDwEb+Fp8HQawxAJd0DttoarYlFvPOgfTFvDVYqiLF+wNWezfbfp61LNKqxbbH/qsI6PZgVUl41pYMKnkKgfkl5YwUQIT6hXqp9a6LL0WCnHLHXZJ+dyqhWGOKSFPZiyxenLLpb73Ay1WDRE3DAsHFge2Ed+DFzyv5/bXog=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=nE2vwrlP; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1779619666; c=relaxed/simple;
+	bh=7kufMGHzg+Ivvc7YQW474zZbrY+DhwFXmQr4DNqm0K4=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=msvX+MsfkRJcH2I/xWUAo7Sq6RpG2n34C3jCJ48GHR/IhKzci5YW0QPH49il2gCtc5S1jDF2ImeDjULkvk0bvs0rVO0pptHWipJusXaTALzE2Sgd5LhuImuqTOnq1cmJMHqGdH+COPFg40I9xezp9oMcRtxE68GiivthfwZzRK4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Z+UnTjc1; arc=none smtp.client-ip=209.85.214.193
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="nE2vwrlP"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id B1F701F000E9;
-	Sat, 23 May 2026 18:45:03 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1779561906;
-	bh=4dh8K34LhG53aOEAOW/tsKAjsIUkIq+EMsW/9iJuH2I=;
-	h=Subject:From:To:Cc:Date:In-Reply-To:References;
-	b=nE2vwrlPxRNPg5A8eCpfSlphnLWQfLvCcucuioz9piqQBl3LijnUwavPZbdK0byIH
-	 CA+rkdXQ00jMwFvj5DNVq4BTmhp+N+LiDCEoABq/qeiNoAIVmbw+n98zbOrj1XiEiW
-	 loO+oVYZWDN2VNsvW/pPG9LyaRLDOcYuKOzTpAJ8IKzKcfgO9YC1JhX1omhBja3Xuk
-	 jbH0qshIgnqFaDMhYBbEP/OMyD3MlTKR954P4ijq5QEJgfafK88HrcHwc9qqSLyBn/
-	 dTmbzhU2gR6KNo+FbHpuAGQ/l7Z9BpcJJ1KVMMJl5b19QHl/TDy5etWsTdKdEwUOdE
-	 EujK2bIZeShXQ==
-Message-ID: <c5cc403d7c4403bb55254922ae5385034394552d.camel@kernel.org>
-Subject: Re: [PATCH 07/17] NFSD: replace __get_free_page() with kmalloc() in
- nfsd_buffered_readdir()
-From: Jeff Layton <jlayton@kernel.org>
-To: "Mike Rapoport (Microsoft)" <rppt@kernel.org>, Jan Kara <jack@suse.com>,
-  Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph Qi
- <joseph.qi@linux.alibaba.com>,  Ryusuke Konishi
- <konishi.ryusuke@gmail.com>, Viacheslav Dubeyko <slava@dubeyko.com>, Trond
- Myklebust	 <trondmy@kernel.org>, Anna Schumaker <anna@kernel.org>, Chuck
- Lever	 <chuck.lever@oracle.com>, NeilBrown <neil@brown.name>, Olga
- Kornievskaia	 <okorniev@redhat.com>, Dai Ngo <Dai.Ngo@oracle.com>, Tom
- Talpey <tom@talpey.com>,  Alexander Viro <viro@zeniv.linux.org.uk>,
- Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,  Dave
- Kleikamp <shaggy@kernel.org>, Theodore Ts'o <tytso@mit.edu>, Miklos Szeredi
- <miklos@szeredi.hu>,  Andreas Hindborg <a.hindborg@kernel.org>, Breno
- Leitao <leitao@debian.org>, Kees Cook <kees@kernel.org>, "Tigran A.
- Aivazian" <aivazian.tigran@gmail.com>
-Cc: linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	ocfs2-devel@lists.linux.dev, linux-nilfs@vger.kernel.org, 
-	linux-nfs@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
-	linux-ext4@vger.kernel.org, linux-mm@kvack.org
-Date: Sat, 23 May 2026 14:45:01 -0400
-In-Reply-To: <20260523-b4-fs-v1-7-275e36a83f0e@kernel.org>
-References: <20260523-b4-fs-v1-0-275e36a83f0e@kernel.org>
-	 <20260523-b4-fs-v1-7-275e36a83f0e@kernel.org>
-Autocrypt: addr=jlayton@kernel.org; prefer-encrypt=mutual;
- keydata=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
- QZIQXVeAA+smfTT0tDrisj1U5x6ZB9b3nBg65kc=
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.60.1 (3.60.1-1.fc44) 
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Z+UnTjc1"
+Received: by mail-pl1-f193.google.com with SMTP id d9443c01a7336-2bea7176c72so25523345ad.0
+        for <ocfs2-devel@lists.linux.dev>; Sun, 24 May 2026 03:47:45 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1779619664; x=1780224464; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=gSTBs+CvpCoHZ9vOvjAYBeSJNzUYCx+7KaD800fiCWM=;
+        b=Z+UnTjc1BiCb0Ebnb3l+8kDuP10hc+ck7zxuhie9jOhJYbTpZZuJt5CkB1qPcI8SQp
+         BtoB6+OiDAKu2Qh3YNiXU00riWbOd/K/oBFT75PQS9c1+QeeI5Rlx4jwIFioZFUMpQUP
+         8ZiGOs2jRw9lgyow0GO68vtSa2GbBXalnEY6xVoi52AgfDqKR8hG+S9CJ4NFqnd3Nqv2
+         umQr59QbTJoYsuhGieiTfLn3xdRNEqOGZXRcY1BqVnJb9w0gpcqAh/GXljBVmMZW+8pD
+         bBHD9ufo+fBYqfUXYTxI+e7CQQPPjfqwoT5Qmfh0OdlCNZYb8HcPQGDplaRj8ApUe4+n
+         h2yA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779619664; x=1780224464;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=gSTBs+CvpCoHZ9vOvjAYBeSJNzUYCx+7KaD800fiCWM=;
+        b=LnDf2/MODZY4P6pgGa2KEHfOmCqYwpw6HhrBtw19fERFNcyp/40oio3Qhm24rvROxd
+         3hCNbW9120hg8sUMU99JqXcpn2OIU29QEQY7hGnSUpCaWZb2j6IZX5xP5GdVuAUWuOG0
+         9ItvJ+KNdVnSpyJs9uPoU2pEtX9UXxOz+zB2jLHWfQQCU4InCLni2JQmcw5QgnorxPWr
+         Iq+WzjUGE6OsypsE1hBuQiScXs18dJpOvIEf3tHcCNiU3emht8NX4xAr2Wz07llyhY7l
+         PuqaeSwXIWEUHPF08/1aEy1w6h9i8rss1IvLRuh1wO2nUohbBStrlflAQ6V/OP03dz0J
+         cj/g==
+X-Gm-Message-State: AOJu0YyfIg4nDNbizj9Pa2k2MXQ1uzlA+7S7kN2W8k8kA/+VCk7koHTp
+	dKkI+n/+6SQBu+Ib/YMZl5IAnr4roeMP8SgPZDoPn1AIIr7acGF9u8Ly
+X-Gm-Gg: Acq92OHklZUZaMbKy6aFiQtAUrTd1HFZLNidtcIiYPy4X/PIflxIZz5heXl98NKCTu1
+	oVN/sbDz+7+eBLp4ZPDGCgC9tsMi2i74hrNvcORYOkt9Zmfo6EI0AWvx0it73jUFyhlegh1dZ85
+	1beCbaAvP/I4OO7P87aAZXrrTKcmV9FQzjjXA1pVL4GM2+sHLApR3BU+1NM9JriMDElKU/oI+h+
+	lXYAGptn13D5fxLaigmoGO1pDZ1W5rClXln8FAzRn4KgdpFeJ1xCc4xbiXVszSVMLY1uZ4H4HQg
+	iUsr8O3VflTCX7DHgcBDKDz5S8EJFY4EGS6V64QrC8wNBxOPsr6aLLIa7n0BI8G7iFkTBOeMdKA
+	6q0rlWQTzZ72Liwvk2T9wIYiRtAF7VLNRvCNsweHaPlZ1Cl7WB3Dvm0qmgSdsn76lNwVAXp+khA
+	SAeRar4x0eNYuCwk2asKuz3AIVeQrCIPs=
+X-Received: by 2002:a17:903:1a0d:b0:2b0:6e60:9582 with SMTP id d9443c01a7336-2beb06354bcmr116069275ad.18.1779619664357;
+        Sun, 24 May 2026 03:47:44 -0700 (PDT)
+Received: from localhost ([111.228.63.84])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2beb58fd888sm66439715ad.73.2026.05.24.03.47.40
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sun, 24 May 2026 03:47:43 -0700 (PDT)
+From: Zhang Cen <rollkingzzc@gmail.com>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	zerocling0077@gmail.com,
+	2045gemini@gmail.com,
+	Zhang Cen <rollkingzzc@gmail.com>
+Subject: [PATCH] ocfs2: rebase copied fsdlm LVB pointers in locking_state
+Date: Sun, 24 May 2026 18:47:38 +0800
+Message-Id: <20260524104738.1363926-1-rollkingzzc@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 
-On Sat, 2026-05-23 at 20:54 +0300, Mike Rapoport (Microsoft) wrote:
-> nfsd_buffered_readdir() allocates a staging buffer with __get_free_page()=
-.
->=20
-> kmalloc() is a better API for such use and it also provides better
-> scalability and more debugging possibilities.
->=20
-> Replace use of __get_free_page() with kmalloc().
->=20
-> Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
-> ---
->  fs/nfsd/vfs.c | 4 ++--
->  1 file changed, 2 insertions(+), 2 deletions(-)
->=20
-> diff --git a/fs/nfsd/vfs.c b/fs/nfsd/vfs.c
-> index eafdf7b7890f..c99e54b23cd9 100644
-> --- a/fs/nfsd/vfs.c
-> +++ b/fs/nfsd/vfs.c
-> @@ -2407,7 +2407,7 @@ static __be32 nfsd_buffered_readdir(struct file *fi=
-le, struct svc_fh *fhp,
->  	loff_t offset;
->  	struct readdir_data buf =3D {
->  		.ctx.actor =3D nfsd_buffered_filldir,
-> -		.dirent =3D (void *)__get_free_page(GFP_KERNEL)
-> +		.dirent =3D kmalloc(PAGE_SIZE, GFP_KERNEL)
->  	};
-> =20
->  	if (!buf.dirent)
-> @@ -2458,7 +2458,7 @@ static __be32 nfsd_buffered_readdir(struct file *fi=
-le, struct svc_fh *fhp,
->  		offset =3D vfs_llseek(file, 0, SEEK_CUR);
->  	}
-> =20
-> -	free_page((unsigned long)(buf.dirent));
-> +	kfree((buf.dirent));
+value under ocfs2_dlm_tracking_lock and later formats that copy in
+ocfs2_dlm_seq_show(). That is fine for the inline fields, but the
+userspace fsdlm stack stores the LVB through lksb_fsdlm.sb_lvbptr. Once
+the iterator drops the tracking lock, a copied non-NULL sb_lvbptr still
+points into the original lockres owner, so teardown can free that
 
-nit: Don't need double parenthesis here
+Rebase the copied sb_lvbptr to the copied l_lksb before dumping the raw
+LVB. The seq snapshot already carries the inline LVB storage reserved in
+without borrowing the original lockres lifetime.
 
-> =20
->  	if (host_err)
->  		return nfserrno(host_err);
+The buggy scenario involves two paths, with each column showing the order
+within that path:
 
-The rest seems ok though.
+locking_state reader:                  lockres teardown:
+1. ocfs2_dlm_seq_start()/next()        1. file release or another owner
+   copies struct ocfs2_lock_res           teardown reaches
+2. ocfs2_dlm_seq_show() formats           ocfs2_lock_res_free()
+   the copied row                      2. the lockres is removed from the
+3. ocfs2_dlm_lvb() follows the            tracking list
+   copied sb_lvbptr                   3. the owner frees the original
+                                          lockres container
 
-Acked-by: Jeff Layton <jlayton@kernel.org>
+Validation reproduced this kernel report:
+KASAN slab-use-after-free in ocfs2_dlm_seq_show+0x1bd/0x430
+RIP: 0033:0x7f8ec4b1e29d
+The buggy address belongs to the object at ffff88810a1e0800 which belongs
+to the cache kmalloc-1k of size 1024
+The buggy address is located 368 bytes inside of freed 1024-byte region
+[ffff88810a1e0800, ffff88810a1e0c00)
+Read of size 1
+Call trace:
+  dump_stack_lvl+0x66/0xa0 (?:?)
+  print_report+0xce/0x630 (?:?)
+  ocfs2_dlm_seq_show+0x1bd/0x430 (fs/ocfs2/dlmglue.c:2168)
+  srso_alias_return_thunk+0x5/0xfbef5 (?:?)
+  __virt_addr_valid+0x19f/0x330 (?:?)
+  kasan_report+0xe0/0x110 (?:?)
+  seq_read_iter+0x29d/0x790 (?:?)
+  seq_read+0x20a/0x280 (?:?)
+  find_held_lock+0x2b/0x80 (?:?)
+  rcu_read_unlock+0x18/0x70 (?:?)
+  full_proxy_read+0x9e/0xd0 (?:?)
+  vfs_read+0x12c/0x590 (?:?)
+  ksys_read+0xd2/0x170 (?:?)
+  do_user_addr_fault+0x65a/0x890 (?:?)
+  do_syscall_64+0x115/0x6a0 (arch/x86/entry/syscall_64.c:87)
+  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+Freed by task stack:
+  kasan_save_stack+0x33/0x60 (?:?)
+  kasan_save_track+0x14/0x30 (?:?)
+  kasan_save_free_info+0x3b/0x60 (?:?)
+  __kasan_slab_free+0x5f/0x80 (?:?)
+  kfree+0x313/0x590 (?:?)
+  ocfs2_file_release+0x138/0x260 (fs/ocfs2/dlmglue.c:?)
+  __fput+0x1df/0x4b0 (?:?)
+  fput_close_sync+0xd2/0x170 (?:?)
+  __x64_sys_close+0x55/0x90 (?:?)
+  do_syscall_64+0x115/0x6a0 (arch/x86/entry/syscall_64.c:87)
+  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+
+Assisted-by: Codex:gpt-5.5
+Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
+---
+ fs/ocfs2/dlmglue.c | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 7283bb2c5a31..a23dd8f86c89 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -3134,6 +3134,22 @@ static void *ocfs2_dlm_seq_next(struct seq_file *m, void *v, loff_t *pos)
+  *	- Add last pr/ex unlock times and first lock wait time in usecs
+  */
+ #define OCFS2_DLM_DEBUG_STR_VERSION 4
++
++/*
++ * The debug iterator snapshots lockres by value, so a userspace-stack LVB
++ * pointer copied from the original lockres must be rebased to the copied
++ * lksb before the dump walks the raw bytes.
++ */
++static void ocfs2_dlm_seq_rebase_lvb(struct ocfs2_lock_res *lockres)
++{
++	if (!ocfs2_stack_supports_plocks())
++		return;
++
++	if (lockres->l_lksb.lksb_fsdlm.sb_lvbptr)
++		lockres->l_lksb.lksb_fsdlm.sb_lvbptr =
++			(char *)&lockres->l_lksb + sizeof(struct dlm_lksb);
++}
++
+ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ {
+ 	int i;
+@@ -3191,6 +3207,7 @@ static int ocfs2_dlm_seq_show(struct seq_file *m, void *v)
+ 		   lockres->l_blocking);
+ 
+ 	/* Dump the raw LVB */
++	ocfs2_dlm_seq_rebase_lvb(lockres);
+ 	lvb = ocfs2_dlm_lvb(&lockres->l_lksb);
+ 	for(i = 0; i < DLM_LVB_LEN; i++)
+ 		seq_printf(m, "0x%x\t", lvb[i]);
+-- 
+2.43.0
+
