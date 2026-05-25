@@ -1,81 +1,54 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B72262FFF8B;
-	Mon, 25 May 2026 17:55:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 93E9E26E6F3
+	for <ocfs2-devel@lists.linux.dev>; Mon, 25 May 2026 20:19:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779731752; cv=none; b=HJImi6lB7f3X7nfOtv4EeHQyOLnqgEfZYJlxZxglez3uVpfdmE8dcjP60rHPP7Px6HkNrOvAbUGLf8+iqA+PmwtgdTcON+GFYnzOoKFAT/SKMqL+C3IcvH738da4wm0aYak3RVEV0EHNP8A5wB2AkG/eTYh03a0g5z1pFNAWs3o=
+	t=1779740383; cv=none; b=LlYlNHWHxnhxl+e2MFtUHfxIkVVqLyvLvNK+X7f+TKgkzOgr5ZvD2JCYocK6r88MlevOO7QimaVnKdBHXqE2SfigzYyq9WOxN/RjZofbCMH9TGq7d6PZ8IWQvlHYtsbwyPhysReKS61BUckw97egaHJTpZf4T0j0f4CQr8m6oos=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779731752; c=relaxed/simple;
-	bh=5YL6HSkMXE8sg9IfrQO9LGoZdlBO3EtC4IxekeYbMaA=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=uHb4i1jFtfcki7R3FoMKlOD0E3oqFcZMONHfWgJtNjP5hCoyboX8yyU+ptY3dvfTsWmSkyhC2S6+W5GtJwI2XlPs6fDTJYordbiGw1aaRT9EafQwhUFS6rLDB5j7NE1x7ETzkWb1EKuKRDAYG87/g+iqTSi+ov54vPF2iztlyxg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=b0R5jvc3; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1779740383; c=relaxed/simple;
+	bh=qwiXIvhCiT7tndNwe+0F+dj1oWOl6U7QsUq7KV/MfBk=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=CDAeRvB8CjqXnGnTUSHEu5ViwlP8YNwBpF7LZvRQrSXYxlsRRJh4NVPpV+kA7qWucBbIu1rtkmtN9FgDP3/PskR2TGgzHfkq2jvzC8P8XLPsbgmTDkktbiuDEjNVawzEsVbGZaNpb8KvdBOgVAWAnSQTc4PJY7ReJRD4dlR7laY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=Pw5ZXcdB; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="b0R5jvc3"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=5YL6HSkMXE8sg9IfrQO9LGoZdlBO3EtC4IxekeYbMaA=; b=b0R5jvc3CRgQVq11325LstRMSF
-	oKrblBL52SG7Mz6mDBUW/VCNZ8uBa48sWIpmj+aRuCqaV96ZG/Ic5uQrXVPhUdvtGe7ow122bVaIA
-	g64TjlVIqJhmFIPhQ9wCX+ubNuU00b1Fk/phktSUzfKmvgsd/u/it9xu6ryC8NFJ8P8L+jQzq7Il9
-	5Fcvr4m7lX8njEgphrHxwGeZ8FFYx/Xu4BrbZv62N2oeayt3Hw7hBPI37P8QlLz3vlr2IuyQc45/N
-	JHeYVvUx9P7eOgJIhlxz42kjYZ7QlYPwj3MS8hyE/Lij4+DuMW47u5AhZAN8hmywk06dPCe0yGVYs
-	7c6BglcA==;
-Received: from willy by casper.infradead.org with local (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1wRZWY-0000000HaDk-1h3I;
-	Mon, 25 May 2026 17:55:34 +0000
-Date: Mon, 25 May 2026 18:55:34 +0100
-From: Matthew Wilcox <willy@infradead.org>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Jan Kara <jack@suse.cz>, "Mike Rapoport (Microsoft)" <rppt@kernel.org>,
-	Jan Kara <jack@suse.com>, Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Ryusuke Konishi <konishi.ryusuke@gmail.com>,
-	Viacheslav Dubeyko <slava@dubeyko.com>,
-	Trond Myklebust <trondmy@kernel.org>,
-	Anna Schumaker <anna@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Jeff Layton <jlayton@kernel.org>, NeilBrown <neil@brown.name>,
-	Olga Kornievskaia <okorniev@redhat.com>,
-	Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>,
-	Dave Kleikamp <shaggy@kernel.org>, Theodore Ts'o <tytso@mit.edu>,
-	Miklos Szeredi <miklos@szeredi.hu>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Breno Leitao <leitao@debian.org>, Kees Cook <kees@kernel.org>,
-	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
-	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev, linux-nilfs@vger.kernel.org,
-	linux-nfs@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
-	linux-ext4@vger.kernel.org, linux-mm@kvack.org
-Subject: Re: [PATCH 10/17] jbd2: replace __get_free_pages() with kmalloc()
-Message-ID: <ahSNFmwAA17pMy6o@casper.infradead.org>
-References: <20260523-b4-fs-v1-0-275e36a83f0e@kernel.org>
- <20260523-b4-fs-v1-10-275e36a83f0e@kernel.org>
- <2omm5gmnv2khshoxkrag5rusd3qzrsqyjgsef2syxgryrtg6vq@ao7oabqwebgo>
- <20260525182134.04045610@pumpkin>
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="Pw5ZXcdB"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id ECC221F000E9;
+	Mon, 25 May 2026 20:19:41 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1779740382;
+	bh=zAsTgrDqX97wWNwv+D82EzYEw+coM7LuQWBcgnIc0yo=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=Pw5ZXcdBd90pKY/v6HrD+Yt1k9Vf9IlAh+JN2TvmyChNWMQYGobxwVjpjLgwAZuDa
+	 wdnaXZ+UrxE1hHv4HLq5oWVbK1zxTnsiHkbWtMBIpTNQ9Ppw9+k5AAlnX33qqK2cWx
+	 LZyXvdixtNeTlmR1XxpfH+UmNHIzdqESjG+bfhcA=
+Date: Mon, 25 May 2026 13:19:41 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Zhang Cen <rollkingzzc@gmail.com>, ocfs2-devel@lists.linux.dev,
+ zerocling0077@gmail.com, 2045gemini@gmail.com, Mark Fasheh
+ <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
+Subject: Re: [PATCH] ocfs2: reject oversized group bitmap descriptors
+Message-Id: <20260525131941.479295e62c0b3a4d598a495c@linux-foundation.org>
+In-Reply-To: <cb815654-3702-4aa6-a43e-8a2215e66314@linux.alibaba.com>
+References: <20260524111248.1429884-1-rollkingzzc@gmail.com>
+	<cb815654-3702-4aa6-a43e-8a2215e66314@linux.alibaba.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260525182134.04045610@pumpkin>
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 7bit
 
-On Mon, May 25, 2026 at 06:21:34PM +0100, David Laight wrote:
-> Would kvalloc() be more appropriate here?
+On Mon, 25 May 2026 11:49:45 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
 
-no
+> > +	suballocator = le64_to_cpu(di->i_blkno) != OCFS2_SB(sb)->bitmap_blkno;
+> 
+> This seems can use !ocfs2_is_cluster_bitmap() helper instead.
+> 
 
-> Does __get_free_pages() return physically contiguous memory?
-
-yes
+Thanks.  So I'll await a v3 and shall take no action at this time?
