@@ -1,33 +1,33 @@
 Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BF5B8313273;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DDE603246ED;
 	Mon, 25 May 2026 17:19:44 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779729587; cv=none; b=ojoXI6/MomNMZUayzlQuSdZS9MCFt5Ny1oOqk7sQ4VpAJ0MqoNYvNvbTqmZDrrGTUgMkY3Z8sICYeJxDSJ8FKRmUyTyklueutq7DlTQIooPcE+2TdZs8kI/wXU20w3R9ievf9vDv7C3CYcbFejdwtFhgLCB/Mfd6b8KwoOUh2V0=
+	t=1779729587; cv=none; b=gQgixb8TjXs1ZECptEnkHyUt8Dv4k03A2fCgsrnFCscKaEz1WX3OQgQinQfn4pjEACpB+l/E41GsHmGDT60Rxu066GjN7cuTgFjo2yDmd/GRKwaRDP1PpF3DLg6z3nO/xX2pVxD4gui4HRgX5jFOSByldQcn4rc4JydXcLE7PuQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1779729587; c=relaxed/simple;
-	bh=UMFKMjRf3/71+wHDwCokaLnBN6/Y2/+8Lv26TAqWhsU=;
+	bh=0onKSKx5sqOS/9GrO4Ha0USb+CFk2J0Ty66cIylP8bE=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=dk2LbZHWdFTFk3II7JJkJNJWsFJ2BTMnO36rhGQIM3XXUyWQSMVXPbkn/0nPZ/rYvD7vfIVINFPukles6YSjyd+CsH+PvnLe7/JHMzjo9x4CuYc6SrGYXVgIkHDpGWoF35KXxnM33rQ17wZH/ISDiQmQtSoZplHTriWAAX1hpeQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=ncYTTwLL; arc=none smtp.client-ip=90.155.50.34
+	 MIME-Version; b=otmn4Xdbn11gqH2/KAkN81J7X6dL15RK5IXfzZgn89qGUtIMfn8joqZCy+ODRMJ+ovveFM0bvHJjB3lH6MTR9Xxi9Po7lOOX+lhJ0Lw8TkBaQblqaRGPJQ4pBoi39hkBl4aK0qNG2cNbhbh4nSphsCVotliguh1bajfp9HDiykw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=none smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=U7xhoEdh; arc=none smtp.client-ip=90.155.50.34
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
 Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="ncYTTwLL"
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="U7xhoEdh"
 DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
 	d=infradead.org; s=casper.20170209; h=Content-Transfer-Encoding:MIME-Version:
 	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
 	Content-Type:Content-ID:Content-Description;
-	bh=/dqSTzOK3wYb9sfU5a+ZubrylMJVr8TE59+VqXwCTxs=; b=ncYTTwLLvWeuf2PrRI3AR9hSXB
-	MwTbwtBz9qFmzlP+tisxWHhD2G4tl6VAiFc2A4f6vw7aIBYFIgGhRjLy0tgDP8wf2GnmYt8VY8Y04
-	KGnYmnuXalFRlSljMz0Tdwnz7i9HvqqM7JUIXnMG6ujeXMlDOOVOEkbRQLBHQhuIW1d8CnXgrpEhD
-	b738aDUqHEZz1N3Zdasmr1OZsvc1pf9/D42eaTEThlMEo51AfEop+8iuD61GCo2tdz+9EuSlxaSty
-	AC+2KmqNw3PGG3Z7dndaZKtdnjW7792x5Egc3JB/Gae+iRWbvajCIkZ/2ImIgVK0aEAhRXAmN6X0f
-	bl4qYOiw==;
+	bh=MNPGqK/LR1KG0M0SM2EZQce+KP8mWJzp/Eh2jkp/8qM=; b=U7xhoEdhA94iHFjo2tN4WaAQ2D
+	SGR7poa/0bb44ol5Vfotf1edVxoVJHzsI3eWaor/jdpUpGbBIBI13aV23TeFaphgCvzyENReOJ6AS
+	sW9h9rQ/hI4XVIYnslF/ZR1mpbBV2gvHq/QBt/AhG00306miqc+nCG4lZrnFxnjydh2gTIfsUA4d8
+	9RGbuu+MpiX4jEYuNwAXH5t7OWnb8YHGlHfbGmwqxcbXfVq5yULb1eCXixDMiVQsf3DDBf1pEU4zK
+	DI3cZ6fnqfUiuD49X45L78tXpkSblfyUJtH3alIhBq3kNxACFuaVSz7Ge+qMbmLiRWO6o5EAcGCAr
+	NgX9PXGA==;
 Received: from willy by casper.infradead.org with local (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1wRYxr-0000000HOBt-0O9U;
+	id 1wRYxr-0000000HOC1-1Ri8;
 	Mon, 25 May 2026 17:19:43 +0000
 From: "Matthew Wilcox (Oracle)" <willy@infradead.org>
 To: Jan Kara <jack@suse.cz>
@@ -36,9 +36,9 @@ Cc: "Matthew Wilcox (Oracle)" <willy@infradead.org>,
 	Christoph Hellwig <hch@infradead.org>,
 	linux-fsdevel@vger.kernel.org,
 	ocfs2-devel@lists.linux.dev
-Subject: [PATCH 19/34] ocfs2: Convert ocfs2_read_block to bh_submit()
-Date: Mon, 25 May 2026 18:19:12 +0100
-Message-ID: <20260525171931.4144395-20-willy@infradead.org>
+Subject: [PATCH 20/34] ocfs2: Convert ocfs2_read_blocks to bh_submit()
+Date: Mon, 25 May 2026 18:19:13 +0100
+Message-ID: <20260525171931.4144395-21-willy@infradead.org>
 X-Mailer: git-send-email 2.54.0
 In-Reply-To: <20260525171931.4144395-1-willy@infradead.org>
 References: <20260525171931.4144395-1-willy@infradead.org>
@@ -60,21 +60,23 @@ Cc: ocfs2-devel@lists.linux.dev
  1 file changed, 2 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index 3e42ca700db0..44a4fa3dfbc0 100644
+index 44a4fa3dfbc0..4d3f03f99a8a 100644
 --- a/fs/ocfs2/buffer_head_io.c
 +++ b/fs/ocfs2/buffer_head_io.c
-@@ -144,9 +144,8 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u64 block,
- #endif
+@@ -321,11 +321,10 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
+ 				continue;
+ 			}
+ 
+-			get_bh(bh); /* for end_buffer_read_sync() */
++			get_bh(bh); /* for bh_end_read() */
+ 			if (validate)
+ 				set_buffer_needs_validate(bh);
+-			bh->b_end_io = end_buffer_read_sync;
+-			submit_bh(REQ_OP_READ, bh);
++			bh_submit(bh, REQ_OP_READ, bh_end_read);
+ 			continue;
  		}
- 
--		get_bh(bh); /* for end_buffer_read_sync() */
--		bh->b_end_io = end_buffer_read_sync;
--		submit_bh(REQ_OP_READ, bh);
-+		get_bh(bh); /* for bh_end_read() */
-+		bh_submit(bh, REQ_OP_READ, bh_end_read);
  	}
- 
- read_failure:
 -- 
 2.47.3
 
