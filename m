@@ -1,178 +1,238 @@
-Received: from mail-pg1-f195.google.com (mail-pg1-f195.google.com [209.85.215.195])
+Received: from mail-ot1-f78.google.com (mail-ot1-f78.google.com [209.85.210.78])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72CE63ACF04
-	for <ocfs2-devel@lists.linux.dev>; Mon, 25 May 2026 07:06:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.195
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 825D12F1FD7
+	for <ocfs2-devel@lists.linux.dev>; Mon, 25 May 2026 15:38:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.78
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779692771; cv=none; b=jrfnyZ8xvGbm84OMKY1gKr4kGHBLMOyFtUNg8xGIGK8Tb0G87sUD2LeiZy8hdALV0xNjAI9K/sSqO54vZb53Miv80LW8zSZCMT/Cz+30umKKcvjhpBWsYZEK7dlJQ5GVWLqfcSILKJt7lz/uBXnvZWDjyjpf+kdcQZrCLzQr40I=
+	t=1779723516; cv=none; b=RwbcWyMAI/kbDx3L4MdcZKAsR/T6xxqhrLXDX/01Dg6lA1TPtsPvVvvYnItQbn4akjM6qtzhkSjhP3NBDgi5lYb1iTs4hGMmojUOTPXjJlDZ5ev4d3wbhzGbd6if3WmrtrXNrmXk161DJpom2VvOiRHjYTbE8bZfwbUyHpvHaU4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779692771; c=relaxed/simple;
-	bh=jqKRW6hgeAuhcRZTPSBO2sqnwYy2i8LVP7c9gvUoqJI=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=p/CXn+36vKRBcZI/5ssg490GjJOdv5rA0ng0KTbR1W9Hv1+mwxaD1g86p3w7hSC/QXZiurlBiqhCUcacX7U+uP7AeLhco+6ioEVG/okPOjKk4kYgjf8gcnz06QShaTHgiuDq36u1WSWx9mGXdG557U3cUhxZHst4RzHWRef2Omg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=aSXjPHfJ; arc=none smtp.client-ip=209.85.215.195
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="aSXjPHfJ"
-Received: by mail-pg1-f195.google.com with SMTP id 41be03b00d2f7-c80203b9d7bso3878977a12.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 25 May 2026 00:06:10 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1779692770; x=1780297570; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=oPfVtPRYnrjjg5ONu7Az8pjVeGEIUnFn6NlP1/E/r2U=;
-        b=aSXjPHfJs1d+Q9ojro252k8ZW/+LpQbeMOTx+D/t+CCL3JlGL+p8pXcF7LB6DLlobu
-         gz8X9Y+XUEE1No1KhOwj4rvAeD6+7kKmTbisXwKvYClqXortEv0ZY5zza5N66upjWscm
-         S8dQCKPeS/yDLxl1FfJSOiA2Lm8EKoKeXtsZVSZtLDm0L1IiROAO9bmvfOKTKURERzrU
-         h3hCtnTO5uJdnXthU2zrfpx3N9+VT0Ag9tWfzEB/8lcE/qfggMdEfDleKPkngV/SbXv9
-         lnL9iIfeqbfEPrAs6zOgv0AhD5g3TSUnj80ZsNA27WyZt+ZztjG7HmOGyImqph4NRTOk
-         3NuQ==
+	s=arc-20240116; t=1779723516; c=relaxed/simple;
+	bh=u+ohoAtMgz0kHpG867b7JhBcK4naD1MhhqbWC2DWyh8=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=TcNDgq7/RDLGipsk2zbOPPyVqXw9D8ALnhP2OTCk72lt766oZcNV1Em96RUDCHb4r3UnItCyhVsGVXLHe6+wqb4ahaJA21ckDm6hHnZWMTDasFzpvpMuZcFPYKzRHEGWvxmLgK1G2bCjOOkyY5HFwYy/tIRG8FKjShxY/AD85pM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.78
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f78.google.com with SMTP id 46e09a7af769-7e4de59797fso18185823a34.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 25 May 2026 08:38:34 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779692770; x=1780297570;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=oPfVtPRYnrjjg5ONu7Az8pjVeGEIUnFn6NlP1/E/r2U=;
-        b=fGTLqIHUVJR1KCB7BzyTBiF5nxF/MRGy4W0f1PRcbouPPgq2wrNpRP+KRwrn7qpADl
-         teggpq9SsINfAZBhnv4f/UUUBbVzii5+KVREmMJpCUqq7Ph1xv3JpglQSh0RftQyLkLf
-         NP5VxNGA97790zRs3qZ+1a7WfbtJ6ROuB0pGmFcDJvUKB4zYPLvMUGxvyksFUZYEtjCS
-         7XrmPsiHoZA9ZMt99iDJB7//ZCm2QiE5mlhiVrXmPV93KP6d/F58tL/PpA048Edrweak
-         MU0VWT+N2MiBagSjMSaG5XXnAoZOdCABOkJKhrNk2rUz0wGnqh7gUGDKY/3fj1oEOrSM
-         z81Q==
-X-Gm-Message-State: AOJu0YyLYltXfgl/g+tCfJt4hcDpOdAGD0LQMb4Ng3TqSdkye3p7ewwz
-	PFzq1yajWYm/ZDLq1ZWDtJb5I6JVJLtJDSotvGSFSsNdif2/Upa/5oD3
-X-Gm-Gg: Acq92OE/l+jEUqgzwpWfL/6dLyLxdmz1RPGYoKoUqT6mclvhLlqNm8fq1NYwfTTi6B0
-	25kGZE+sDf9JdKMh3TMwKd89DydoKWYWTXZqjTfFRu+nFGsMmmpK7jF6wEFpvoFz74CoostauCt
-	cLk1j2yM+KL5ZMUGw3flJjtDYaOkdhOe6Td6ZDM5W5BiXB0We9MRDlpxuS+V+56/FdYOmWp5cNB
-	mVTqfl+QyRyzcmZvM2lKPn+MLruFfJ5i518SuNjnwS9ISgIxa04QELZl5zOHtnb3Q0+abulygzR
-	sz/YL/orx+khSHjHM8DI3v7QYs1SDBolqPEW5Jz/Xx8nP415PYx9ZwWUsIC9eDJk/3G+TyaTux7
-	z2IxXxj97p2zpUUyT0+xJQ/lJPbP61Znh6A9lcpDs95j6QcbBqsaWGtr3bxMaqeJg7+sdpTniRw
-	HIDRXGQ+JdOzvL/BngsoYxKh/iqErEBdM=
-X-Received: by 2002:a05:6a20:a122:b0:3b3:2703:12b with SMTP id adf61e73a8af0-3b328c700aemr13222399637.3.1779692769710;
-        Mon, 25 May 2026 00:06:09 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c852054d788sm6859898a12.21.2026.05.25.00.06.06
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 25 May 2026 00:06:09 -0700 (PDT)
-From: Zhang Cen <rollkingzzc@gmail.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	zerocling0077@gmail.com,
-	2045gemini@gmail.com,
-	Zhang Cen <rollkingzzc@gmail.com>
-Subject: [PATCH] ocfs2: remove debugfs before shutting down recovery
-Date: Mon, 25 May 2026 15:06:04 +0800
-Message-Id: <20260525070604.360875-1-rollkingzzc@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        d=1e100.net; s=20251104; t=1779723513; x=1780328313;
+        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
+         :from:to:cc:subject:date:message-id:reply-to;
+        bh=ZWUSGTKTYHhltR1HvvRe3EqnHCLwEoRx5nQFSxIuvb0=;
+        b=lcM70kUyYJOFWKr3wM58rtyV9v1+tzcwg0jvSQYkFG11nX7ydD3pT4ZSQubTsaH5N0
+         AL03sfpx6JO4IuE1pPTwnnguOrgoxKLZ4OHHxCsASRWG3AADzCXEop4dZdoyEpYupQA5
+         oDSTbY8Rm7RWiYzdtAI36dUizDLbHMj9Brniua5yJ/Ge6HuPYu6jin9k6ts8ij7FHG61
+         /jNnkXj4ovMXsgRsGTHo1hef4f5KokXJ0ebOLN1Oo/rer+0s2vGAeSXbpcG06oCgPTWc
+         33rSb2x7ClgffzS1iwUHxaUGMvs9NDCeW/WKnpsOQtj1r2gV/DA2q7cePvDxPOySBvZi
+         JXZg==
+X-Forwarded-Encrypted: i=1; AFNElJ9iSZ7HYXfsY4BTnG2folvUgvhxfoY9O6uScDt/tIyp84yHhiwdSMwGptIOaNdeP51U/iPcGd2PmMeW5Q==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwH7AADiq5NJPe9LM/i3iNR8sj/VZlzk8Ng+X/yn7yMQEhlkCMu
+	PNbPmboMecjfxB63Qj718FqI4eVOPyZi/psmwhcbkW8dCeuESLyt7+YEnsynpKp0IhXt+aLoyhU
+	kZGTbJgkZvInZSJldFc6XYDaVHC2Kb3gCjJ+4aoijX2TGhZR+Q0ErcQCVMys=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6820:5618:10b0:69d:9111:3eeb with SMTP id
+ 006d021491bc7-69d91114387mr4392399eaf.20.1779723513414; Mon, 25 May 2026
+ 08:38:33 -0700 (PDT)
+Date: Mon, 25 May 2026 08:38:33 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6a146cf9.170a0220.22ae77.0008.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_del_inode_from_orphan (2)
+From: syzbot <syzbot+0cc53e247e48f3b60f4d@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-ocfs2_osb_debug_open() builds the per-mount fs_state snapshot by calling
-ocfs2_osb_dump(), which reads osb->recovery_map. During normal unmount,
-ocfs2_dismount_volume() currently calls ocfs2_recovery_exit() before it
-removes osb->osb_debug_root, so a concurrent fs_state open can still
-enter ocfs2_osb_dump() after the recovery map has been freed.
+Hello,
 
-operations, so moving it ahead of ocfs2_recovery_exit() closes the
-post-free/pre-remove window without changing the recovery-state logic.
-This also makes the normal unmount path match the existing mount-error
-state.
+syzbot found the following issue on:
 
-The buggy scenario involves two paths, with each column showing the
-order within that path:
+HEAD commit:    e7ae89a0c97c Linux 7.1-rc5
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=13d232a6580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=8d24a1331e060dda
+dashboard link: https://syzkaller.appspot.com/bug?extid=0cc53e247e48f3b60f4d
+compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
 
-1. Open the per-mount fs_state file      1. ocfs2_dismount_volume() starts
-2. ocfs2_osb_debug_open() calls          2. ocfs2_recovery_exit() frees
-   ocfs2_osb_dump()                         osb->recovery_map
-   osb->recovery_map                        runs later
+Unfortunately, I don't have any reproducer for this issue yet.
 
-Validation reproduced this kernel report:
-KASAN slab-use-after-free in ocfs2_osb_debug_open+0x478/0xaa0
-RIP: 0033:0x7f65fc97a001
-The buggy address belongs to the object at ffff8881049c3da0 which belongs
-to the cache kmalloc-8 of size 8
-The buggy address is located 0 bytes inside of freed 8-byte region
-[ffff8881049c3da0, ffff8881049c3da8)
-Read of size 4
-Call trace:
-  dump_stack_lvl+0x66/0xa0 (?:?)
-  print_report+0xd0/0x630 (?:?)
-  ocfs2_osb_debug_open+0x478/0xaa0 (fs/ocfs2/super.c:343)
-  srso_alias_return_thunk+0x5/0xfbef5 (?:?)
-  __virt_addr_valid+0x188/0x2f0 (?:?)
-  kasan_report+0xe4/0x120 (?:?)
-  full_proxy_open_regular+0x113/0x170 (?:?)
-  do_dentry_open+0x233/0x7f0 (?:?)
-  vfs_open+0x5a/0x1b0 (?:?)
-  security_inode_permission+0x19/0x60 (?:?)
-  path_openat+0x679/0x1540 (?:?)
-  kmem_cache_alloc_noprof+0x1ea/0x5f0 (?:?)
-  do_getname+0x2e/0x1d0 (?:?)
-  do_sys_openat2+0xa4/0x150 (?:?)
-  __x64_sys_openat+0xd0/0x140 (?:?)
-  do_syscall_64+0x10c/0x640 (arch/x86/entry/syscall_64.c:87)
-  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
-  do_file_open+0x190/0x2a0 (?:?)
-  __lock_acquire+0x42f/0x1a60 (?:?)
-  _raw_spin_unlock+0x23/0x40 (?:?)
-  alloc_fd+0x210/0x350 (?:?)
-  do_sys_openat2+0xce/0x150 (?:?)
-  irqentry_exit+0xac/0x6e0 (?:?)
-Freed by task stack:
-  kasan_save_stack+0x33/0x60 (?:?)
-  kasan_save_track+0x14/0x30 (?:?)
-  kasan_save_free_info+0x3b/0x60 (?:?)
-  __kasan_slab_free+0x5f/0x80 (?:?)
-  kfree+0x30f/0x580 (?:?)
-  ocfs2_dismount_volume+0x168/0x560 (fs/ocfs2/super.c:1868)
-  generic_shutdown_super+0xc3/0x220 (fs/ocfs2/super.c:?)
-  kill_block_super+0x29/0x60 (fs/ocfs2/super.c:?)
-  deactivate_locked_super+0x66/0xe0 (fs/ocfs2/super.c:?)
-  cleanup_mnt+0x13d/0x210 (?:?)
-  task_work_run+0xfa/0x170 (?:?)
-  exit_to_user_mode_loop+0xd6/0x430 (?:?)
-  do_syscall_64+0x3cb/0x640 (arch/x86/entry/syscall_64.c:87)
-  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/60848c96a4f9/disk-e7ae89a0.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/7c3d913edd61/vmlinux-e7ae89a0.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/fa9417a180e6/bzImage-e7ae89a0.xz
 
-Fixes: 5e7a3ed9f1a6 ("ocfs2: further debugfs cleanups")
-Assisted-by: Codex:gpt-5.5
-Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+0cc53e247e48f3b60f4d@syzkaller.appspotmail.com
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Tainted: G             L     
+------------------------------------------------------
+syz.0.2196/15247 is trying to acquire lock:
+ffff8880489941a0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ffff8880489941a0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2728
+
+but task is already holding lock:
+ffff8880489933a0 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ffff8880489933a0 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x16d/0x4840 fs/ocfs2/suballoc.c:882
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+       down_write+0x96/0x200 kernel/locking/rwsem.c:1625
+       inode_lock include/linux/fs.h:1029 [inline]
+       ocfs2_reserve_suballoc_bits+0x16d/0x4840 fs/ocfs2/suballoc.c:882
+       ocfs2_reserve_new_metadata_blocks+0x415/0x9a0 fs/ocfs2/suballoc.c:1078
+       ocfs2_mknod+0x10f3/0x2260 fs/ocfs2/namei.c:351
+       ocfs2_mkdir+0x181/0x460 fs/ocfs2/namei.c:660
+       vfs_mkdir+0x413/0x630 fs/namei.c:5261
+       filename_mkdirat+0x285/0x510 fs/namei.c:5294
+       __do_sys_mkdirat fs/namei.c:5315 [inline]
+       __se_sys_mkdirat+0x35/0x150 fs/namei.c:5312
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x15f/0x560 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #1 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+       down_write+0x96/0x200 kernel/locking/rwsem.c:1625
+       inode_lock include/linux/fs.h:1029 [inline]
+       ocfs2_remove_inode fs/ocfs2/inode.c:733 [inline]
+       ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+       ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+       ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
+       evict+0x61e/0xb10 fs/inode.c:841
+       ocfs2_dentry_iput+0x24d/0x390 fs/ocfs2/dcache.c:407
+       __dentry_kill+0x1a2/0x690 fs/dcache.c:718
+       finish_dput+0xc9/0x480 fs/dcache.c:927
+       __fput+0x691/0xa60 fs/file_table.c:518
+       task_work_run+0x1d9/0x270 kernel/task_work.c:233
+       resume_user_mode_work include/linux/resume_user_mode.h:50 [inline]
+       __exit_to_user_mode_loop kernel/entry/common.c:67 [inline]
+       exit_to_user_mode_loop+0xf3/0x4d0 kernel/entry/common.c:98
+       __exit_to_user_mode_prepare include/linux/irq-entry-common.h:207 [inline]
+       syscall_exit_to_user_mode_prepare include/linux/irq-entry-common.h:230 [inline]
+       syscall_exit_to_user_mode include/linux/entry-common.h:318 [inline]
+       do_syscall_64+0x33e/0x560 arch/x86/entry/syscall_64.c:100
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3165 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+       validate_chain kernel/locking/lockdep.c:3908 [inline]
+       __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
+       lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+       down_write+0x96/0x200 kernel/locking/rwsem.c:1625
+       inode_lock include/linux/fs.h:1029 [inline]
+       ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2728
+       ocfs2_dio_end_io_write fs/ocfs2/aops.c:2379 [inline]
+       ocfs2_dio_end_io+0xf9c/0x1370 fs/ocfs2/aops.c:2418
+       dio_complete+0x25b/0x790 fs/direct-io.c:281
+       __blockdev_direct_IO+0x2e5d/0x34e0 fs/direct-io.c:1303
+       ocfs2_direct_IO+0x251/0x2c0 fs/ocfs2/aops.c:2455
+       generic_file_direct_write+0x1db/0x3e0 mm/filemap.c:4259
+       __generic_file_write_iter+0x11d/0x230 mm/filemap.c:4428
+       ocfs2_file_write_iter+0x1663/0x1e70 fs/ocfs2/file.c:2476
+       new_sync_write fs/read_write.c:595 [inline]
+       vfs_write+0x61d/0xb90 fs/read_write.c:688
+       ksys_write+0x150/0x270 fs/read_write.c:740
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x15f/0x560 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE] --> &ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE] --> &ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]);
+                               lock(&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]);
+                               lock(&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]);
+  lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+
+ *** DEADLOCK ***
+
+4 locks held by syz.0.2196/15247:
+ #0: ffff888079d71cf0 (&f->f_pos_lock){+.+.}-{4:4}, at: fdget_pos+0x246/0x320 fs/file.c:1261
+ #1: ffff888050d30410 (sb_writers#26){.+.+}-{0:0}, at: file_start_write include/linux/fs.h:2724 [inline]
+ #1: ffff888050d30410 (sb_writers#26){.+.+}-{0:0}, at: vfs_write+0x227/0xb90 fs/read_write.c:684
+ #2: ffff88806b11eba0 (&sb->s_type->i_mutex_key#38){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ #2: ffff88806b11eba0 (&sb->s_type->i_mutex_key#38){+.+.}-{4:4}, at: ocfs2_file_write_iter+0x429/0x1e70 fs/ocfs2/file.c:2406
+ #3: ffff8880489933a0 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ #3: ffff8880489933a0 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x16d/0x4840 fs/ocfs2/suballoc.c:882
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 15247 Comm: syz.0.2196 Tainted: G             L      syzkaller #0 PREEMPT(full) 
+Tainted: [L]=SOFTLOCKUP
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 04/18/2026
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ print_circular_bug+0x2e1/0x300 kernel/locking/lockdep.c:2043
+ check_noncircular+0x12e/0x150 kernel/locking/lockdep.c:2175
+ check_prev_add kernel/locking/lockdep.c:3165 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+ validate_chain kernel/locking/lockdep.c:3908 [inline]
+ __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
+ lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+ down_write+0x96/0x200 kernel/locking/rwsem.c:1625
+ inode_lock include/linux/fs.h:1029 [inline]
+ ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2728
+ ocfs2_dio_end_io_write fs/ocfs2/aops.c:2379 [inline]
+ ocfs2_dio_end_io+0xf9c/0x1370 fs/ocfs2/aops.c:2418
+ dio_complete+0x25b/0x790 fs/direct-io.c:281
+ __blockdev_direct_IO+0x2e5d/0x34e0 fs/direct-io.c:1303
+ ocfs2_direct_IO+0x251/0x2c0 fs/ocfs2/aops.c:2455
+ generic_file_direct_write+0x1db/0x3e0 mm/filemap.c:4259
+ __generic_file_write_iter+0x11d/0x230 mm/filemap.c:4428
+ ocfs2_file_write_iter+0x1663/0x1e70 fs/ocfs2/file.c:2476
+ new_sync_write fs/read_write.c:595 [inline]
+ vfs_write+0x61d/0xb90 fs/read_write.c:688
+ ksys_write+0x150/0x270 fs/read_write.c:740
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x15f/0x560 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7efe9c19ce59
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007efe9d09b028 EFLAGS: 00000246 ORIG_RAX: 0000000000000001
+RAX: ffffffffffffffda RBX: 00007efe9c416090 RCX: 00007efe9c19ce59
+RDX: 00000000ffffffd7 RSI: 0000200000000000 RDI: 0000000000000004
+RBP: 00007efe9c232d6f R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007efe9c416128 R14: 00007efe9c416090 R15: 00007ffdb4582448
+ </TASK>
+
+
 ---
- fs/ocfs2/super.c | 6 +++---
- 1 file changed, 3 insertions(+), 3 deletions(-)
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index b875f01c9756..357f210b6a43 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1826,6 +1826,9 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 
- 	ocfs2_truncate_log_shutdown(osb);
- 
-+	ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
-+	debugfs_remove_recursive(osb->osb_debug_root);
-+
- 	/* This will disable recovery and flush any recovery work. */
- 	ocfs2_recovery_exit(osb);
- 
-@@ -1865,9 +1868,6 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 
- 	ocfs2_dlm_shutdown(osb, hangup_needed);
- 
--	ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
--	debugfs_remove_recursive(osb->osb_debug_root);
--
- 	if (hangup_needed)
- 		ocfs2_cluster_hangup(osb->uuid_str, strlen(osb->uuid_str));
- 
--- 
-2.43.0
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
