@@ -1,140 +1,163 @@
-Received: from forward502b.mail.yandex.net (forward502b.mail.yandex.net [178.154.239.146])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lf1-f43.google.com (mail-lf1-f43.google.com [209.85.167.43])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D125405860
-	for <ocfs2-devel@lists.linux.dev>; Wed, 27 May 2026 12:50:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.146
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779886262; cv=none; b=gTdaRGf/S8ExveKj2jP7I9Tyd7z1D1ETbKunDEGDhyFYpfab3KglswOdGHwaMtBsupPVU5WL+RXHRSlory+FVk42zSHoPE4H8sxlG+bnsAwesv+kT/ImskAxsVR9CpAn8Ch8JzJiKyhWuBLttC2IFJIktwwTllBeItoD+x+V7Z8=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779886262; c=relaxed/simple;
-	bh=5ScSXZL8Ax5+DIGA81DZc3FpMEu0aZKsA1liX1KTZ/8=;
-	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=bca1t6m1qkxqp3SsLJjEzTWdDnkzmbhhkzfNwcGfQALyfui0avwvsIIcfcuUN+rGbKXl118ctiiCjeKMsChno/gCSBPOUhc75qRTZI5IZoXpZ4oNFecrVMXVfu81dgdCpdbZk+m3DJ9dD9vSfUunBNhPGXccSVpGni2zYXuXX60=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=YmcUjc6k; arc=none smtp.client-ip=178.154.239.146
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 48CD43D648F
+	for <ocfs2-devel@lists.linux.dev>; Wed, 27 May 2026 16:02:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.167.43
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1779897760; cv=pass; b=fBENJgpQxIeK/Xh6p5mM0n05tWkHARtdeqZTSpmwPlQ5Rw3D7tfxX2gYSHqBkIeEiXcPGzANFZhqdq+v0VefZ07nfIEvF1KgGYGi0ngs1tKwkcOiUW/1JEkZkLxzohV0XsIXg3Du/psHFefpKIrqa+bD4nVbgSoKu07882Vk1Yk=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1779897760; c=relaxed/simple;
+	bh=AHt0+86vpId0YnypIvt+8kocwI6bTxlsvlDW/zwRB5c=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=eENRfpbxWwNoJCHDfaPR+UBkCO/xhpiKas5984ZRm7WoinmynBBGMVuRe/7qTAg+VhwK/1j7HtNZfbR3JhZFgrgGEo6HqCyJZwY+SJ7opaEGfttGsc1zI4tXENPhuroR9geb/X+YLtszHQLOOgfux2/n5r8QIAaEEjIK5GaRtgg=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=n6pSEdM5; arc=pass smtp.client-ip=209.85.167.43
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="YmcUjc6k"
-Received: from mail-nwsmtp-smtp-production-main-73.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-73.sas.yp-c.yandex.net [IPv6:2a02:6b8:c11:f85:0:640:673a:0])
-	by forward502b.mail.yandex.net (Yandex) with ESMTPS id 61618807B9;
-	Wed, 27 May 2026 15:50:50 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-73.sas.yp-c.yandex.net (smtp) with ESMTPSA id moYtiO1c2uQ0-SG5SwxQo;
-	Wed, 27 May 2026 15:50:49 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1779886249; bh=dSv4Vwsob7fJppWYDgtunQrpsNTGTtHP9QFJGHh2Vuc=;
-	h=References:Date:In-Reply-To:Cc:To:From:Subject:Message-ID;
-	b=YmcUjc6kOtSAJmeMObG4QFjhPw/f6Cudc1B0hxgKKM2gzoLb8OBX3//GvRFGj04gv
-	 X2clqiZB2kXyydKA+tH3lVKc0k5HYmlaksLyqd6q0W5Fc8R43Iojs5+QPrNkGliOWr
-	 shHOiuPLWxxtBL9uawBbwgHEF9YJNRWUQpDzUyto=
-Authentication-Results: mail-nwsmtp-smtp-production-main-73.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-Message-ID: <7e301d4d2d6ab3fe4b53a81c07af5ef0dc914a74.camel@yandex.ru>
-Subject: Re: On
- https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=775c17386a6fd
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>, Mark Fasheh
-	 <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-Date: Wed, 27 May 2026 15:50:18 +0300
-In-Reply-To: <db59e9fd-e7e0-4cd0-9dd6-a462e8c21676@linux.alibaba.com>
-References: <979042b0a8e9a70189c9195c81dfb9fa26f789ef.camel@yandex.ru>
-	 <66faed08-ed79-42ba-a605-3ec8465c89ca@linux.alibaba.com>
-	 <dd77ed3f10fafc5b9e412eeecb568bc03129051b.camel@yandex.ru>
-	 <db59e9fd-e7e0-4cd0-9dd6-a462e8c21676@linux.alibaba.com>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.60.1 (3.60.1-1.fc44) 
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="n6pSEdM5"
+Received: by mail-lf1-f43.google.com with SMTP id 2adb3069b0e04-5a40d02b58bso8071390e87.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 27 May 2026 09:02:38 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1779897756; cv=none;
+        d=google.com; s=arc-20240605;
+        b=Z1ZQ99EKIHVWv3DXyGi55BdldgANKnWMq2Mhs05sGAd4DxlfOqwl5tSz2rap3Ya3om
+         BU1vdP2VzHyy6GnTqr2kIxAnL3QTzSJL3bWVntgSzL5oc/5QYDaLztii0Oi8FQyXIX48
+         PSMKwm2O5vYT/9U/uMewzpFORlHmP/mfiwpp+fUvdgfrQkkmOdYIo4aXXOOedWsNSMi5
+         hOKTcrLDm6gWMCnQYpsgwFTu9LPincywls1FhxOqbJmaMhJtZULTWsOb7OVLVwfLMLNy
+         iXqUlLeXAbthggcDZU1/x1ZRBkkerM7lSwqTVoVi+wgnegb2SfH/PS+ppD+ROb2G0v9M
+         Tc/Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=z2Cy0T5Ytizh+1Br6nvrDriJnRVK9iMYXygh/HS+xaY=;
+        fh=+TyxIHAzkKSRDeBnOtTUl4nyb5djKk5riskVTwqxTtw=;
+        b=U4raoHhKDpp7r1g2Fc3P3DRHNU22vBXowOpQ+/MgZR+EMYZK43JnbUVCNa6rLFkCyJ
+         Gt5HbsgFTJCJYf5tMp7qIzytWNih6jhRY3VZiFNC+vmf/PHzYSfXfywOddNOqWKCI1PA
+         +5pb0rGnWZfoNu6rzKJPrPdUyxfbmLEN4nY56bMVkj2/7+HEuHgBd7m0XlEraffTKhQz
+         W8emhctivGDQPC9/4nHetpp1hJPbMDLS7ULjEgmlE9nWUbMAWgyq4qmHQgS0F1doN5Wn
+         kmmevRYQlTDgBQY7XXChr2dpEF5s6Vmveo602ibTwHQxymyzBYBNN24Cz8NsBKZ2jvGF
+         4hyg==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1779897756; x=1780502556; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=z2Cy0T5Ytizh+1Br6nvrDriJnRVK9iMYXygh/HS+xaY=;
+        b=n6pSEdM5ljcnl4IuOsfehaFwlzMtJ5mnwZeZr2gE6kD0lvdo8PD61f/R9r3J9ABvw6
+         haEHPnylH5idKKJax4SVjnjz0gCrbILecGY6JbJkkB4i8HptuiNuh8kHJzhdpAU2aNhv
+         KN5e/nXpnEjNTUcLqzMd1ri1F1Vxd3zQyHV4UQwInYt7PzPmwWHXTb03TaLOsEbNHo4O
+         0D7LkLrQH7Zb580JbmjUQ+/ONbKrPVtlMiB6HZlNglK4Hyw5TIlekjmahjmuW2MTiCfY
+         uTs8vQMZzTtQw93MTXqCYYGKBwLGDP7JNOWqgVntN8d+YvQF+jI0XJsIGXB2rUeFuPoF
+         4/dA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1779897756; x=1780502556;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=z2Cy0T5Ytizh+1Br6nvrDriJnRVK9iMYXygh/HS+xaY=;
+        b=Bq8M2b+/qvOim7KWxCAoJJ3ofRoaHaa+26jMB9eGRZCHXkv4xFx09hm9xkdm7k7TsJ
+         1P6w6EeyHZ97zV/fDLkFAtai30yqjITw5mPF+kxET6YrgWVNa3jN+sPFQ/OAhyb5GDP1
+         TK9mUzNecn7D9z+mev1Mu9GubexD1ioL8k5xlAcAaVqiUpuMEhhvv2puL+459hpIKgWv
+         iU3/gVR6avuU0HewHPwYOISbCVyzIj9NoB9JQeiUM88QZTdubv4q1ATkn/L4N2sp4nSW
+         GF1dBAODwxaTM6V+3T7ct17RnW1xuF6ap0QQ6yTWquB93026UH+cO/2qZTVCqFTMTJcG
+         Mqzw==
+X-Forwarded-Encrypted: i=1; AFNElJ+YKDoxiT1ikIthKyjRhEQ8STnN6mPI7TmOroXKviIAhDQX+zdRp6wr7Fy1Myod8iAtXphzTP8M+KYJrA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyDSv6SVlQv7iyh5mOO9FUDScTRJ2zj5wKz3v++PLkm2KCGFmfp
+	F7dabxtXWx2dBvnzh4O67B9ZUylIStmqaiL32R99/PL37JYh8ZAY/YsFwdkJPosH5h0ZoL1prKj
+	lHpWkx9wq05UwG4v91yBSG+HFk5kxAU0=
+X-Gm-Gg: Acq92OHa2I5POpJby3xWiHNolkJ6u0G+Ym/3sXc3az1+x2XSz5y5wLjt8Ev30s12PHJ
+	NmUIUMDzqP8nII3I5sgWkGcFKE8S4G12aUlzfGx7IZu/mn6z0AVakEzVRcA+9NBl8RMDa0vBjA8
+	7crmmItai3QnaXm5HlD2ZMrnaDqbLQmNjxg/dmYkjW+wqZJFltaqirWSlSztArUsA6H7fXByQDx
+	wG2hrY2JhYK3uzw70LlxS+A0mbHyce72uvo4IzhXTUC9131oLgp9RiNX6/e3YMbLgO+4+FlMKwE
+	4m+MZZSR
+X-Received: by 2002:a05:6512:1082:b0:5a8:96cf:c8c4 with SMTP id
+ 2adb3069b0e04-5aa3232a140mr8148267e87.15.1779897755653; Wed, 27 May 2026
+ 09:02:35 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+References: <20260523-b4-fs-v1-0-275e36a83f0e@kernel.org> <20260523-b4-fs-v1-4-275e36a83f0e@kernel.org>
+ <1bb537f6dc36b00788b613fb8f71579478418457.camel@redhat.com>
+In-Reply-To: <1bb537f6dc36b00788b613fb8f71579478418457.camel@redhat.com>
+From: Ryusuke Konishi <konishi.ryusuke@gmail.com>
+Date: Thu, 28 May 2026 01:02:19 +0900
+X-Gm-Features: AVHnY4KetSSI45sZ2YEgAEZTRsUQAA2DaTD5AcJyh7fDYB4FmiHhDhxOxGAj9DM
+Message-ID: <CAKFNMokr_mk8xhMQ7u8RGRd1XPQSSd_uVKXR=-ui5Zjk8AhfTw@mail.gmail.com>
+Subject: Re: [PATCH 04/17] nilfs2: replace get_zeroed_page() with kzalloc()
+To: "Mike Rapoport (Microsoft)" <rppt@kernel.org>
+Cc: Viacheslav Dubeyko <vdubeyko@redhat.com>, Jan Kara <jack@suse.com>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Viacheslav Dubeyko <slava@dubeyko.com>, Trond Myklebust <trondmy@kernel.org>, Anna Schumaker <anna@kernel.org>, 
+	Chuck Lever <chuck.lever@oracle.com>, Jeff Layton <jlayton@kernel.org>, NeilBrown <neil@brown.name>, 
+	Olga Kornievskaia <okorniev@redhat.com>, Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>, 
+	Dave Kleikamp <shaggy@kernel.org>, "Theodore Ts'o" <tytso@mit.edu>, Miklos Szeredi <miklos@szeredi.hu>, 
+	Andreas Hindborg <a.hindborg@kernel.org>, Breno Leitao <leitao@debian.org>, Kees Cook <kees@kernel.org>, 
+	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>, linux-kernel@vger.kernel.org, 
+	linux-fsdevel@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
+	linux-nilfs@vger.kernel.org, linux-nfs@vger.kernel.org, 
+	jfs-discussion@lists.sourceforge.net, linux-ext4@vger.kernel.org, 
+	linux-mm@kvack.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Wed, 2026-05-27 at 15:52 +0800, Joseph Qi wrote:
+On Tue, May 26, 2026 at 2:07=E2=80=AFAM Viacheslav Dubeyko wrote:
+>
+> On Sat, 2026-05-23 at 20:54 +0300, Mike Rapoport (Microsoft) wrote:
+> > nilfs_ioctl_wrap_copy() allocates a temporary buffer with
+> > get_zeroed_page().
+> >
+> > kzalloc() is a better API for such use and it also provides better
+> > scalability and more debugging possibilities.
+> >
+> > Replace use of get_zeroed_page() with kzalloc().
+> >
+> > Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
+> > ---
+> >  fs/nilfs2/ioctl.c | 4 ++--
+> >  1 file changed, 2 insertions(+), 2 deletions(-)
+> >
+> > diff --git a/fs/nilfs2/ioctl.c b/fs/nilfs2/ioctl.c
+> > index e0a606643e87..b73f2c5d10f0 100644
+> > --- a/fs/nilfs2/ioctl.c
+> > +++ b/fs/nilfs2/ioctl.c
+> > @@ -69,7 +69,7 @@ static int nilfs_ioctl_wrap_copy(struct the_nilfs *ni=
+lfs,
+> >       if (argv->v_index > ~(__u64)0 - argv->v_nmembs)
+> >               return -EINVAL;
+> >
+> > -     buf =3D (void *)get_zeroed_page(GFP_NOFS);
+> > +     buf =3D kzalloc(PAGE_SIZE, GFP_NOFS);
+> >       if (unlikely(!buf))
+> >               return -ENOMEM;
+> >       maxmembs =3D PAGE_SIZE / argv->v_size;
+> > @@ -107,7 +107,7 @@ static int nilfs_ioctl_wrap_copy(struct the_nilfs *=
+nilfs,
+> >       }
+> >       argv->v_nmembs =3D total;
+> >
+> > -     free_pages((unsigned long)buf, 0);
+> > +     kfree(buf);
+> >       return ret;
+> >  }
+> >
+>
+> Makes sense to me.
+>
+> Reviewed-by: Viacheslav Dubeyko <slava@dubeyko.com>
+>
+> Thanks,
+> Slava.
 
-> block was never added to the ocfs2 metadata cache because the first read =
-failed
+Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
 
-Hm. Did you ever try to run https://syzkaller.appspot.com/text?tag=3DReproC=
-&x=3D14a8f142580000?
-IIUC the following debug quirk shows that this is not true:
+This conversion looks reasonable and won't affect the behavior of the
+ioctls that use the modified function.
 
-diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index 701d27d908d4..77fbd9d1799f 100644
---- a/fs/ocfs2/buffer_head_io.c
-+++ b/fs/ocfs2/buffer_head_io.c
-@@ -187,6 +187,12 @@ int ocfs2_read_blocks_sync(struct ocfs2_super *osb, u6=
-4 block,
-        return status;
- }
-=20
-+enum ocfs2_validation_bits {
-+       BH_FailedValidation =3D BH_PrivateStart + 7,
-+};
-+
-+BUFFER_FNS(FailedValidation, failed_validation)
-+
- /* Caller must provide a bhs[] with all NULL or non-NULL entries, so it
-  * will be easier to handle read failure.
-  */
-@@ -380,16 +386,20 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, =
-u64 block, int nr,
-                                BUG_ON(buffer_jbd(bh));
-                                clear_buffer_needs_validate(bh);
-                                status =3D validate(sb, bh);
--                               if (status)
-+                               if (status) {
-+                                       set_buffer_failed_validation(bh);
-                                        goto read_failure;
-+                               }
-                        }
-                }
-=20
-                /* Always set the buffer in the cache, even if it was
-                 * a forced read, or read-ahead which hasn't yet
-                 * completed. */
--               if (bh)
-+               if (bh) {
-+                       BUG_ON(buffer_failed_validation(bh));
-                        ocfs2_set_buffer_uptodate(ci, bh);
-+               }
-        }
-        ocfs2_metadata_cache_io_unlock(ci);
-
-=3D=3D>
-
-executing program
-[   44.509473][ T5467] loop0: detected capacity change from 0 to 32768
-[   44.515278][ T5467] =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-[   44.515278][ T5467] WARNING: The mand mount option has been deprecated a=
-nd
-[   44.515278][ T5467]          and is ignored by this kernel. Remove the m=
-and
-[   44.515278][ T5467]          option from the mount to silence this warni=
-ng.
-[   44.515278][ T5467] =3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=
-=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D=3D
-[   44.536046][ T5467] JBD2: Ignoring recovery information on journal
-[   44.577220][ T5467] ocfs2: Mounting device (7,0) on (node local, slot 0)=
- with ordered data mode.
-[   44.611995][ T5467] (repro-30b53487d,5467,0):ocfs2_check_set_options:124=
-4 ERROR: Invalid heartbeat mount options
-[   44.621817][ T5467] loop0: detected capacity change from 32768 to 32767
-[   44.628016][ T5467] OCFS2: ERROR (device loop0): int ocfs2_validate_dx_r=
-oot(struct super_block *, struct buffer_head *): Dir Index Root # 74 has ba=
-d signature XDIR01
-[   44.629720][ T5467] On-disk corruption discovered. Please run fsck.ocfs2=
- once the filesystem is unmounted.
-[   44.630205][ T5467] OCFS2: File system is now read-only.
-[   44.631290][ T5467] (repro-30b53487d,5467,0):ocfs2_find_entry_dx:1065 ER=
-ROR: status =3D -30
-[   44.631898][ T5467] ------------[ cut here ]------------
-[   44.632168][ T5467] kernel BUG at fs/ocfs2/buffer_head_io.c:400!
-
-Dmitry
-
+Thanks,
+Ryusuke Konishi
