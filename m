@@ -1,71 +1,72 @@
-Received: from mail-pl1-f196.google.com (mail-pl1-f196.google.com [209.85.214.196])
+Received: from mail-pg1-f195.google.com (mail-pg1-f195.google.com [209.85.215.195])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 117EB3FF1A9
-	for <ocfs2-devel@lists.linux.dev>; Thu, 28 May 2026 15:12:57 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.196
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 94BC64028E9
+	for <ocfs2-devel@lists.linux.dev>; Thu, 28 May 2026 15:13:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.195
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779981178; cv=none; b=ED8dtaB8dONuggokhWQ94EVnK5+sap2BwWrCu2BVQbviJZ/XJ2pxCTgmNkcYs9oNaUv5b+0x5xy1scAwAY8cNDjJccI1w1aJ02raD2Vexwr8peCZI4WACcfAREc4oDhDoGvcZExFDmJLJ/qBfrLBGzEWHYJVaaSo3Y/CPstCiRQ=
+	t=1779981199; cv=none; b=JE4l3obz2JnYMGDZEuHVVkn6ZlnrDhGqHkFXT2Zo3GHj+c6+dd6mYdjCTvqsswHFygSlhlR/1gvXnURECavWdi+ArvIaIfkMbh7bCY4xapzHFNvRCFKSYtlPKF0e5YkVAkko6QQO9Z+h5RAiTMUHRspN0g0W+240idq8LG5C9yI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779981178; c=relaxed/simple;
-	bh=HDBiHdYCyIKy+OuWxPaBBwUmPAehH3pi/cLEU4sqbYM=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=r/c7VRHQbvE1qgfmZ5uW/GOIgvJaU0jcyZO/BippDzi8bZ8Ze5IYaV8D0rUP42WpUiEiVsHaAw4Wv0E3nCtZfQ3oBWiEzM3iec6EudBku+Z3/+06B6/Cc3hdN8hOOc2yjLobPDppTlrH9/b7sfdpt7WoTw58p0l4Ix1BbiRz0Wk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=mxHoiWjW; arc=none smtp.client-ip=209.85.214.196
+	s=arc-20240116; t=1779981199; c=relaxed/simple;
+	bh=cnrMv9pFINjlIDVxwMlibIQsjXF+MWcPnxVt7TCPaO4=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=f79mS/0lxrMBxjcW/r+xM+rBOYh/1kP+8zhgTlO0kHZYHmETvhgQu+A6Du4S1sQv7uVhEWRQT0dvoIgEgw5+ClpfLpy6JMBZY7+5uaQ4no4m0HrRSgs2pgHeinHQkX7KY+H2yGTka7BpO1yDcQ1Esa4G0yWdxP/RWld7eaQKGQM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=V1/jrkHj; arc=none smtp.client-ip=209.85.215.195
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="mxHoiWjW"
-Received: by mail-pl1-f196.google.com with SMTP id d9443c01a7336-2b9fcf7c91bso144606375ad.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 28 May 2026 08:12:57 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="V1/jrkHj"
+Received: by mail-pg1-f195.google.com with SMTP id 41be03b00d2f7-c801b30188dso5687037a12.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 28 May 2026 08:13:17 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1779981175; x=1780585975; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1779981158; x=1780585958; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=FY1oEZUaPSeQRzlw+wuEBoMpewNNBX067H9SykvETM8=;
-        b=mxHoiWjWRjGDyGkfujjgZmmzTIIpsJmFktul7IfqwwLrg7FfQqrp2KiRFteVpS+01P
-         79Z23kuUSYHxrExn+qDFqmQpHCRCCL+318T6mZzSLSaoW1n+VBzTLGfjOIDwbRxaHdGM
-         Hgd0Kz7yy1b9z83GtOqFz1JbfFHiizFoNzzpoPsaFuPhVOY4irQQ9liwRj0CIyoZXE80
-         rsUNxaJNIIOqpgo4oEZwmYhl/oXaDrbNjDHhGBffoAKm9qIMSe4MrqxDHEbkO354ygMR
-         7TWM+O5tmQUi2+glero1ZvCf70kvvLjOHQN5nyon2wd2MeSxQl/UH8lW/E3bTu3MdYFe
-         mNkg==
+        bh=lKyeZOhiIPY0gsvqQF5rr0FjC/35V41zMh9J4dscFOg=;
+        b=V1/jrkHjwN3AA56Yy0HmNWm0krODVNwLpR7UmeG8JdvXhfopm0DxWAwQRiMYkZdqwh
+         yTVIxxnssDUVJn+aQOEVyfoXRXTpyF/V9HmG4dXqIVgRuiw6o3pV07hHtNSvKFGbamBZ
+         egBAgLtfUnT0f1VQSznp8A+jT42/nhAiaY6a5CZ2uGYqid8bml9Azk0e11KVPPDQ5dar
+         dr7TXPGOoTGPd8jBxrKFeaWp7touwNiV6npERFqUDryl1w7d09r7O9wG8iTEJ4KmPAu7
+         kLJ73aydJH+4hAKkt07Dr244z4vHcYQcJsjlZl+646ZUGmfXH6K9p/R5bkS63xwaXdU8
+         wAgA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1779981175; x=1780585975;
+        d=1e100.net; s=20251104; t=1779981158; x=1780585958;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=FY1oEZUaPSeQRzlw+wuEBoMpewNNBX067H9SykvETM8=;
-        b=XYkt46bdkmdloYqTEp741MVHZP3yn3TVSGRslRr6T3SBg2oLpqwxqgkZyxStJO/jsN
-         aSxUlPyCE+ZM7A8koPMTeY/rbuZbXSFN9k0bpSxMk4Q0GzCOP/P9MMP78AsnR9XWS3b/
-         6PMhiYSYlq2O8Guh3y6/PchspndxOiZgjEtaC1enADv+IUu1ZMgsFsV9zRlZcOVezNhZ
-         p7tLvjqXKt5AcoBnqC19XyjCfQEKHshBtl1oQHnUdn3PXrNKMo5PzCIU8t05l91rsbUT
-         NwRrNhrlsw4GfErXh4KeVUnD61Ozfu6w0qBJ86ZNh1SjxTR7F5kzNxScaA3/Z8t4D7g/
-         Trfg==
-X-Gm-Message-State: AOJu0Yy2Itiy4MiJ2bp1JTLDsMZBflNCFuIoQiQByPtCVeX3bVdsNoll
-	q5kwPui40Wd77tc3Klhdkji5qvl5jCw1dMEQpUaH/XNtrOWbieCw5oyP
-X-Gm-Gg: Acq92OH167IzZ/Uk0O0qWEhF8cVty6cBLyK7RlRw9PLemKuYycPiif+wldd94jVXfHB
-	eDKr6FK1NNxh1NnO8VAS5Sjgq5If7JAZkcNYwc3ar7ljmqXF17obBNNFflDQKnmXGfTKy5rKTUD
-	aHo8mJ91wq60OEbyHLjaQp0uSZDEMy0wDA/pptXlzaP1VvwTaY1VRd06XEThOuQ2EkMMbY+RVa8
-	aOLRnDO5i4DfnriyZJKXpvVO7R5/uJ2cywDjroCMmR9Qz8gyZtYa0Nl4iX7opzHddhgsPDFS1N7
-	CcGWWtV8zO+KhI7sOEy2uPsbYEOLrIt8c9/oHBbcV0LS1caJacwVqLvWIawawLxt7lkuhy+SJnx
-	OXY3zXUXqs1IwNqaMjOI0Y6L6sK9spaTSE8dx0qIiz2jnvGkABcYzOGZYnyjwZfTcUzoFWY3l3i
-	pAwZGuSpSSica9ZjHbHHFssB3gjwQpBCj2hD4Z3v+gLg==
-X-Received: by 2002:a17:903:2c04:b0:2b2:549f:7d2b with SMTP id d9443c01a7336-2beb0596f55mr311852275ad.11.1779981174894;
-        Thu, 28 May 2026 08:12:54 -0700 (PDT)
+        bh=lKyeZOhiIPY0gsvqQF5rr0FjC/35V41zMh9J4dscFOg=;
+        b=MJfaSYwBZV9kbQTze2+PRN4Z0HDetQa+Z9Xo+VFe53ijG1P2YxvSDkyUPLU0kP7elk
+         0l482B2XA34DCgkBJWUnhmVJmyUXWlgn4ITA2X+dPrAUD0WT/LD1859pGjzqpYPQK0A6
+         6SPJCHODMTeSdxwEfVvQXplFlQZuLmsHcxufbi3O3SJr0qT1VSgNwRGRJk0iPDNI4ujo
+         dQsshpaUd3cYy501R6JohssZd5CSuvAuE0DjAS3x5Q53kOC7W7g1nORisdOMEan9MgiQ
+         585yX7CZFYfOl/IAdjh04qNyJIIAEBEV29Lb2vrljuK8clgFKJ9V7F5gv3m2LUpUO3BY
+         2J8Q==
+X-Gm-Message-State: AOJu0YyZQj0d1jNIlWgeNzv+ZuXaIrDTrv/jERVucLv1ivGsIJGqx5Ax
+	MH2GpPNCariKAexTQetLlXsQ3ZA9vdhiG8BEmkfVSq/77TB8JlCMIfy1
+X-Gm-Gg: Acq92OGQoLObSacvX2TgOAjKHqQhNmoOva+RpXn22GjoQHpQZRYAudo5zbcK9fmGK9P
+	khzdlZc7NACm15FbQQOcZtXdVtn3ZrguU0frSject6eKpTTdthQbF2pzD8LGS+w2xwN5rVh5fcI
+	k555NJMfojsHYihp0ii6SYu5NQYWA9ksIUEIObVdpWFGJ+poV9TZJPWaoKE555XOcPd0LmbAwKE
+	5E8zsPgdd+ggZRuPgpTbrRSXWEYFx37CV5oDNqvnbce7c8K6EMfpI9ukyutPdaKeZEsK14iQ/Jd
+	XHQmuWQEktD4pyY3o2RjZSNAa/iWAD5itqiVRmO4Fvj7EyeHhAdTkq02lyyZeLaVMXdpDyM3HCh
+	cdq/RKI+EsUgVEL7SVlRpO5HpanxacMyUI6n0BgJwsb7OgaoTwfidgLPUFXlQ43mmcnU6jDSCMK
+	RKJiiEUPLU8jx4vJJfFrp1HpezC+5WnPPHQ6ns3SwuMw==
+X-Received: by 2002:a05:6a21:618e:b0:3b2:864a:ed74 with SMTP id adf61e73a8af0-3b3293bb68amr30607340637.43.1779981157661;
+        Thu, 28 May 2026 08:12:37 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2beb58b2ea3sm187675705ad.43.2026.05.28.08.12.51
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c852054c8a0sm15459221a12.15.2026.05.28.08.12.34
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 28 May 2026 08:12:54 -0700 (PDT)
+        Thu, 28 May 2026 08:12:37 -0700 (PDT)
 From: Zhang Cen <rollkingzzc@gmail.com>
 To: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
 	zerocling0077@gmail.com,
 	2045gemini@gmail.com,
 	Zhang Cen <rollkingzzc@gmail.com>
-Subject: [PATCH] ocfs2: reject FITRIM ranges shorter than a cluster
-Date: Thu, 28 May 2026 23:12:47 +0800
-Message-Id: <20260528151247.361854-1-rollkingzzc@gmail.com>
+Subject: [PATCH] ocfs2: validate fast symlink target during inode read
+Date: Thu, 28 May 2026 23:12:30 +0800
+Message-Id: <20260528151230.361127-1-rollkingzzc@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -75,39 +76,94 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_trim_mainbm() trims the global bitmap in cluster units, but its
-too-short range validation only checks sb->s_blocksize.
+ocfs2_validate_inode_block() already rejects several inconsistent
+self-contained dinodes before they are exposed to the rest of the
+filesystem. Fast symlinks need the same treatment.
 
-On filesystems with a cluster size larger than the block size, a FITRIM
-range that is at least one block but shorter than one cluster is
-accepted and shifted down to len == 0. The later start + len - 1 and
-len -= ... arithmetic then underflows and can drive trimming past the
-requested range.
+A zero-cluster symlink is treated as a fast symlink and later read
+through page_get_link() and ocfs2_fast_symlink_read_folio(). That path
+uses strnlen() on the inline payload and then copies len + 1 bytes into
+the folio. If a corrupt dinode stores an i_size that does not fit the
+inline area or omits the terminating NUL at i_size, that copy reads past
+the end of the inode block buffer.
 
-Reject ranges shorter than s_clustersize instead. That preserves the
-existing -EINVAL behavior for requests that cannot discard even one
-allocation unit and keeps zero-cluster trims out of the group walk.
+Reject zero-cluster symlink dinodes whose i_size exceeds the inline
+fast-symlink capacity or whose inline payload is not NUL-terminated
+exactly at i_size when the inode block is validated. This keeps
+malformed fast symlinks from reaching the read path.
 
-Fixes: aa89762c5480 ("ocfs2: return EINVAL if the given range to discard is less than block size")
+Validation reproduced this kernel report:
+KASAN use-after-free in ocfs2_fast_symlink_read_folio+0x12c/0x1f0
+RIP: 0033:0x7f5c6d859aa7
+Read of size 3905
+Call trace:
+  dump_stack_lvl+0x66/0xa0 (?:?)
+  print_report+0xce/0x630 (?:?)
+  ocfs2_fast_symlink_read_folio+0x12c/0x1f0 (fs/ocfs2/inode.c:?)
+  srso_alias_return_thunk+0x5/0xfbef5 (?:?)
+  __virt_addr_valid+0x19f/0x330 (?:?)
+  kasan_report+0xe0/0x110 (?:?)
+  kasan_check_range+0x105/0x1b0 (?:?)
+  __asan_memcpy+0x23/0x60 (?:?)
+  filemap_read_folio+0x27/0xe0 (?:?)
+  filemap_read_folio+0x35/0xe0 (?:?)
+  do_read_cache_folio+0x138/0x230 (?:?)
+  __page_get_link+0x26/0x110 (?:?)
+  page_get_link+0x2e/0x70 (?:?)
+  vfs_readlink+0x15e/0x250 (?:?)
+  touch_atime+0x4d/0x370 (?:?)
+  do_readlinkat+0x186/0x200 (?:?)
+  do_user_addr_fault+0x65a/0x890 (?:?)
+  __x64_sys_readlink+0x46/0x60 (?:?)
+  do_syscall_64+0x115/0x6a0 (arch/x86/entry/syscall_64.c:87)
+  entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+
+Fixes: ea022dfb3c2a ("ocfs: simplify symlink handling")
 Assisted-by: Codex:gpt-5.5
 Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
 ---
- fs/ocfs2/alloc.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/ocfs2/inode.c | 24 +++++++++++++++++++++++-
+ 1 file changed, 23 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-index 6e5fd3f12a84..be09e766ac1f 100644
---- a/fs/ocfs2/alloc.c
-+++ b/fs/ocfs2/alloc.c
-@@ -7576,7 +7576,7 @@ int ocfs2_trim_mainbm(struct super_block *sb, struct fstrim_range *range)
- 	len = range->len >> osb->s_clustersize_bits;
- 	minlen = range->minlen >> osb->s_clustersize_bits;
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index a510a0eb1adc..e54a320f35f1 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1525,6 +1525,29 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		}
+ 	}
  
--	if (minlen >= osb->bitmap_cpg || range->len < sb->s_blocksize)
-+	if (minlen >= osb->bitmap_cpg || range->len < osb->s_clustersize)
- 		return -EINVAL;
- 
- 	trace_ocfs2_trim_mainbm(start, len, minlen);
++	if (S_ISLNK(le16_to_cpu(di->i_mode)) &&
++	    !le32_to_cpu(di->i_clusters)) {
++		int max_inline = ocfs2_fast_symlink_chars(sb);
++		u64 i_size = le64_to_cpu(di->i_size);
++
++		if (i_size >= max_inline) {
++			rc = ocfs2_error(sb,
++					 "Invalid dinode #%llu: fast symlink i_size %llu exceeds max %d\n",
++					 (unsigned long long)bh->b_blocknr,
++					 (unsigned long long)i_size,
++					 max_inline - 1);
++			goto bail;
++		}
++
++		if (strnlen((char *)di->id2.i_symlink, i_size + 1) != i_size) {
++			rc = ocfs2_error(sb,
++					 "Invalid dinode #%llu: fast symlink is not NUL-terminated at i_size %llu\n",
++					 (unsigned long long)bh->b_blocknr,
++					 (unsigned long long)i_size);
++			goto bail;
++		}
++	}
++
+ 	if (le32_to_cpu(di->i_flags) & OCFS2_CHAIN_FL) {
+ 		struct ocfs2_chain_list *cl = &di->id2.i_chain;
+ 		u16 bpc = 1 << (OCFS2_SB(sb)->s_clustersize_bits -
+@@ -1812,4 +1835,3 @@ const struct ocfs2_caching_operations ocfs2_inode_caching_ops = {
+ 	.co_io_lock		= ocfs2_inode_cache_io_lock,
+ 	.co_io_unlock		= ocfs2_inode_cache_io_unlock,
+ };
+-
 -- 
 2.43.0
 
