@@ -1,105 +1,108 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from forward500a.mail.yandex.net (forward500a.mail.yandex.net [178.154.239.80])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 141343E51EB;
-	Thu, 28 May 2026 11:54:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D56363BED23
+	for <ocfs2-devel@lists.linux.dev>; Thu, 28 May 2026 14:43:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1779969282; cv=none; b=JXZduv04OgVbBYvPgRo3Rq0PgTfHDkgPAO3LcsZ1aDAN5vg9tSa7pM7iY/ppx6QBLq7LXPa4pwY0bo4Y0/gtfSAenGMKMeJkZChMzpQ+OT0vdWrg0rJSdo8zlCJX/HIrkcJ5d3zQpzIAnfqmrNxZ4bkR8asec4nwYwc38a8PMCk=
+	t=1779979404; cv=none; b=EZaBd3yrrcmHzukOQq1ZJuEXjRDQZ5ocebRDHXq2ECmAlHzrVflFa3esFL6H2AB1LGKyir5bK2NRbLyNLtAHck7NrfrSqqghuOYzofAJvnOIqdWhJIWCEkGXEUbUkxX2Uz3Re+LwBVQI/1pmODYsph2GxNmmfoqKq/y/EveZI/Q=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1779969282; c=relaxed/simple;
-	bh=ScsMYDd6WsEnv9FNzT7n0og/oEPdvNPJUi0QVaePJA4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=L0zsx2UVH46G3tblTktwdM6kWT4WNUadmou5CDAy6f2uep7cJUg9FnR5Ad8QnuouejakLSLM6L7JU49xL371ENf0jvLR2qWofCOXjt7Bf0cUmQzZNqpSVmwYI/ESE1tvyDHuZhmNmfP+nBh0UaHSwgtmkj0hNvDIBO/FQYEUexU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=TqPvOn1B; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1779979404; c=relaxed/simple;
+	bh=nX7X5tL1FjCr3X7ZqZOz8DLinIJrC9StNoUZ2qXeifc=;
+	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:MIME-Version; b=Tdd9RNeLif+6pKYY62T+P7ooGQS2rjWlgjA5yiPxA/Eoz2Z068ozhVxbO1XXh6bcR17gkYZvURKRhfs1fgwYSjmBHDcBXzSd+fEvHsdzTXdmRCl1oCc5qLTH5ahDgJEegwd/G/aAMqPQl9Hgs2KOyXgyerM2ZiGYIt6laSb2M0I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=XzNpGjD5; arc=none smtp.client-ip=178.154.239.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="TqPvOn1B"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id DF9981F000E9;
-	Thu, 28 May 2026 11:54:33 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1779969280;
-	bh=EWDXgypc/7XooyW97XM8K/TWQykaNtrC+ELRkmzs9jk=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=TqPvOn1BLY5HNy2XQTNp3rfgM5ZSnWb9w1Q0sDdSCzMEBGniOisYaEaj4aSaabiQr
-	 3fGzjMMyHa5yCJBM2853gj6h8T0N96bHhz1EAA5vdbQxyl843T6c6tpX7fHy7kHkE4
-	 TSGhcKc+p44nhjR7V9dL4x0b7fHT2H5KhF/avwXCxwdOORgdrNGwavUotFkbxmk4f9
-	 q6Cq6bhzJ/4ALknDd8Dun5mIJgnpR4EpsPrG2WLPRRosJ42w6jhR4cn4b5HSdGWmGo
-	 +/575jOvQ5LEQneF/1h+zG077ZMa+AARJQc1HyC3YekgpottsIWdsviDnSgeaVEiiJ
-	 3tjInNdJYnPQA==
-Date: Thu, 28 May 2026 13:54:30 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Mike Rapoport <rppt@kernel.org>
-Cc: Jan Kara <jack@suse.cz>, Jan Kara <jack@suse.com>, 
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Ryusuke Konishi <konishi.ryusuke@gmail.com>, 
-	Viacheslav Dubeyko <slava@dubeyko.com>, Trond Myklebust <trondmy@kernel.org>, 
-	Anna Schumaker <anna@kernel.org>, Chuck Lever <chuck.lever@oracle.com>, 
-	Jeff Layton <jlayton@kernel.org>, NeilBrown <neil@brown.name>, 
-	Olga Kornievskaia <okorniev@redhat.com>, Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Dave Kleikamp <shaggy@kernel.org>, Theodore Ts'o <tytso@mit.edu>, 
-	Miklos Szeredi <miklos@szeredi.hu>, Andreas Hindborg <a.hindborg@kernel.org>, 
-	Breno Leitao <leitao@debian.org>, Kees Cook <kees@kernel.org>, 
-	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>, linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org, 
-	ocfs2-devel@lists.linux.dev, linux-nilfs@vger.kernel.org, linux-nfs@vger.kernel.org, 
-	jfs-discussion@lists.sourceforge.net, linux-ext4@vger.kernel.org, linux-mm@kvack.org
-Subject: Re: [PATCH 14/17] fs/namespace: use __getname() to allocate mntpath
- buffer
-Message-ID: <20260528-geregelt-unsozial-apathisch-c8b484e0932e@brauner>
-References: <20260523-b4-fs-v1-0-275e36a83f0e@kernel.org>
- <20260523-b4-fs-v1-14-275e36a83f0e@kernel.org>
- <lwnrjpmzbv6swapmnmb5jki3xxxzqsxuks5vykniwhakvhqh7i@rhff3qrwfnoj>
- <ahVisehwQGXEoM0g@kernel.org>
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="XzNpGjD5"
+Received: from mail-nwsmtp-smtp-production-main-72.iva.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-72.iva.yp-c.yandex.net [IPv6:2a02:6b8:c0c:8c98:0:640:a7fd:0])
+	by forward500a.mail.yandex.net (Yandex) with ESMTPS id B7C23C1884;
+	Thu, 28 May 2026 17:43:11 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-72.iva.yp-c.yandex.net (smtp) with ESMTPSA id 9hbn9dFfhuQ0-tsBmhNuN;
+	Thu, 28 May 2026 17:43:11 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1779979391; bh=gcwLubaLNw5xagnRhDizA4slvBOGbdXhEF9FtmYXRzw=;
+	h=References:Date:In-Reply-To:Cc:To:From:Subject:Message-ID;
+	b=XzNpGjD5HMhLJEVtkXniFEr5Z/ysuAom1LDXf5bqimF4kNrqI131yE8DL3qXlKJKw
+	 Xhg2ObNPvR7M/3iMJMXmAzFmX8q72c6xwddtaKbgkUu6hjplXofmCvJ5pexFTxSqbF
+	 wUBM/pQJWMJjz9CUryJelNhLRo5v2FZlNIqPyhSk=
+Authentication-Results: mail-nwsmtp-smtp-production-main-72.iva.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <e2032b0aeb857bc8f0c73bbd85a7917d94fd9005.camel@yandex.ru>
+Subject: Re: On
+ https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id=775c17386a6fd
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>, Mark Fasheh
+	 <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
+Date: Thu, 28 May 2026 17:42:39 +0300
+In-Reply-To: <db59e9fd-e7e0-4cd0-9dd6-a462e8c21676@linux.alibaba.com>
+References: <979042b0a8e9a70189c9195c81dfb9fa26f789ef.camel@yandex.ru>
+	 <66faed08-ed79-42ba-a605-3ec8465c89ca@linux.alibaba.com>
+	 <dd77ed3f10fafc5b9e412eeecb568bc03129051b.camel@yandex.ru>
+	 <db59e9fd-e7e0-4cd0-9dd6-a462e8c21676@linux.alibaba.com>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.60.1 (3.60.1-1.fc44) 
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <ahVisehwQGXEoM0g@kernel.org>
 
-On Tue, May 26, 2026 at 12:06:57PM +0300, Mike Rapoport wrote:
-> On Mon, May 25, 2026 at 06:22:13PM +0200, Jan Kara wrote:
-> > On Sat 23-05-26 20:54:26, Mike Rapoport (Microsoft) wrote:
-> > > mnt_warn_timestamp_expiry() allocates memory for a path with
-> > > __get_free_page() although there is a dedicated helper for allocation of
-> > > file paths: __getname().
-> > > 
-> > > Replace __get_free_page() for allocation of a path buffer with __getname().
-> > > 
-> > > Signed-off-by: Mike Rapoport (Microsoft) <rppt@kernel.org>
-> > > ---
-> > >  fs/namespace.c | 4 ++--
-> > >  1 file changed, 2 insertions(+), 2 deletions(-)
-> > > 
-> > > diff --git a/fs/namespace.c b/fs/namespace.c
-> > > index fe919abd2f01..2ed9cd846a81 100644
-> > > --- a/fs/namespace.c
-> > > +++ b/fs/namespace.c
-> > > @@ -3303,7 +3303,7 @@ static void mnt_warn_timestamp_expiry(const struct path *mountpoint,
-> > >  	   (ktime_get_real_seconds() + TIME_UPTIME_SEC_MAX > sb->s_time_max)) {
-> > >  		char *buf, *mntpath;
-> > >  
-> > > -		buf = (char *)__get_free_page(GFP_KERNEL);
-> > > +		buf = __getname();
-> > 
-> > Fair but d_path() below should then get PATH_MAX and not PAGE_SIZE.
-> 
-> Ack.
->  
-> > >  		if (buf)
-> > >  			mntpath = d_path(mountpoint, buf, PAGE_SIZE);
-> > >  		else
-> > > @@ -3319,7 +3319,7 @@ static void mnt_warn_timestamp_expiry(const struct path *mountpoint,
-> > >  
-> > >  		sb->s_iflags |= SB_I_TS_EXPIRY_WARNED;
-> > >  		if (buf)
-> > > -			free_page((unsigned long)buf);
-> > > +			__putname(buf);
-> > 
-> > And __putname() is fine with NULL so no need for the if (buf) check here.
-> 
-> Will fix.
+On Wed, 2026-05-27 at 15:52 +0800, Joseph Qi wrote:
 
-I've folded this myself.
+> ocfs2_validate_dx_root() returns -EROFS
+> ocfs2_read_blocks() goto read_failure =E2=86=92 put_bh, bhs[0]=3DNULL, re=
+turn -EROFS
+> ocfs2_read_block() returns -EROFS
+> ocfs2_read_dx_root() returns -EROFS
+> ocfs2_find_entry_dx() goto out, returns -EROFS
+>=20
+> On a second read of the same block, ocfs2_buffer_uptodate(ci, bh)
+> returns false (block was never added to the ocfs2 metadata cache because
+> the first read failed), so the block is re-read from disk and
+> re-validated =E2=80=94 failing again.
+>=20
+> Am I missing something?
+
+It seems that I've got the point. In ocfs2_read_blocks(), it's wrong
+to assume that non-NULL BH returned by sb_getblk() is exclusively
+owned by the caller and so put_bh() always drops b_count from 1 to 0.
+If it is not so, BH remains on hold and likely to be returned by the
+next call to sb_getblk() unchanged - that is, with BH_Uptodate bit set
+even if it has failed validation previously. So BH_Uptodate should be
+cleared immediately after validate() callback has detected some data
+inconsistency, regardless of what may happens next with that BH:
+
+diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
+index 701d27d908d4..6114299b121e 100644
+--- a/fs/ocfs2/buffer_head_io.c
++++ b/fs/ocfs2/buffer_head_io.c
+@@ -350,8 +350,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u6=
+4 block, int nr,
+ 						wait_on_buffer(bh);
+ 					put_bh(bh);
+ 					bhs[i] =3D NULL;
+-				} else if (bh && buffer_uptodate(bh)) {
+-					clear_buffer_uptodate(bh);
+ 				}
+ 				continue;
+ 			}
+@@ -380,8 +378,11 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u=
+64 block, int nr,
+ 				BUG_ON(buffer_jbd(bh));
+ 				clear_buffer_needs_validate(bh);
+ 				status =3D validate(sb, bh);
+-				if (status)
++				if (status) {
++					if (buffer_uptodate(bh))
++						clear_buffer_uptodate(bh);
+ 					goto read_failure;
++				}
+ 			}
+ 		}
+=20
+Dmitry
