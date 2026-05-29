@@ -1,105 +1,160 @@
-Received: from forward103d.mail.yandex.net (forward103d.mail.yandex.net [178.154.239.214])
+Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 90965360751
-	for <ocfs2-devel@lists.linux.dev>; Fri, 29 May 2026 09:44:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.214
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 65C7D35E1C3
+	for <ocfs2-devel@lists.linux.dev>; Fri, 29 May 2026 10:12:05 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780047854; cv=none; b=PoCwjZ6yGRAD+gz+k6wWOwDdgV4+e/Oqh7T1+ilErWaLQgMIwI+n3C5SjzIaLJDoqvySMeYSDoORYm3oZChKpYZ8lfB/l5AGxHHQlm3FxZD7QwH3GFV3RUIATUoPoUt7+DhFOnWe3nVYPFQofcTaxSxwsVg3+qsSd/fC5y5kAQs=
+	t=1780049529; cv=none; b=PBMVNNoJv3xe5eHxepjkvWz1yMRnek/v2dD61Cobd96lV5I670T2701SM4S/PStY2JrUSeabb72E2oGQBCxc/K8buoIoPwXWSq+I1M7v6rs7GnpgLtuNv1/nPwp3Y+pOhUQ5hvruwQb0bPWX0QOfO5Ie5vUk2YnsA+IJEbvRxYk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780047854; c=relaxed/simple;
-	bh=Gxyd3tvIfETeB2bBOroBq/t+j3pGkf2Em6zza1TMmgM=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=A5ewKh33MlrzMO98sqhMhKJuddrRrZXRSb8KKMPxszpUZ4Fq48D689Vxf8QrCGrFfID+gUtFLklM83166SKaaKEPQQDyqRsHBafgHcEbuW5ybRjZktbU+02CxQGU8y0FEHZJiKjDsK51S11eKqcLQJVXPLvMlL5mLYYa2BLBGRY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=KVMD4AHe; arc=none smtp.client-ip=178.154.239.214
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1780049529; c=relaxed/simple;
+	bh=w/fPZc8VZYOg5IBXFIIIuw4jjGwRXjAGRosx1Obg8r8=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=FLYsvaqe2XyRqDu3CTapMiUX99z/taFmTOkpW7i6TtPVDyJbd4Q7hu/xXPQEi+Lcq7dfWQG+WYzgU3ez+6oyGQVaTmYv/jMkSkBSCP8MvtOX9m3ToojktRbYIJOq/KI9Z03iI8ao5GKpuGYdKjewKhtnr6dAzcJGPSfJ9Ir3XZg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=wHBX6tZv; arc=none smtp.client-ip=115.124.30.113
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="KVMD4AHe"
-Received: from mail-nwsmtp-smtp-production-main-77.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-77.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:7ba3:0:640:5ad4:0])
-	by forward103d.mail.yandex.net (Yandex) with ESMTPS id 8E6C0C0058;
-	Fri, 29 May 2026 12:44:01 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-77.klg.yp-c.yandex.net (smtp) with ESMTPSA id whX9YAChH8c0-ewJe6OyR;
-	Fri, 29 May 2026 12:44:00 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1780047840; bh=krACrAE8r+bphz7LiUcnGYn/6lOLEIt11tUu1vJmBIc=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=KVMD4AHeZs8BgQZ3Tve2uoN+WyfGkbIMxkLlOPx+s4/hnKTUonJaqOCfQ8ZmGTcT3
-	 rsYZMYs+rpp1FzDgofGLZAaQ/bNJKsdXZxUvD4kYgKb413l2wy02q8ljXFPTcFSgLo
-	 f0yr7ltq5exO8O0UGitmaGy1DA9NLCj67bZ4gq0k=
-Authentication-Results: mail-nwsmtp-smtp-production-main-77.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Joel Becker <jlbec@evilplan.org>,
-	Mark Fasheh <mark@fasheh.com>,
-	Changwei Ge <ge.changwei@h3c.com>,
-	ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+caacd220635a9cc3bac9@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: fix buffer head management in ocfs2_read_blocks()
-Date: Fri, 29 May 2026 12:41:28 +0300
-Message-ID: <20260529094128.494293-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.54.0
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="wHBX6tZv"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1780049523; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=7fd2Y8Ql9k72hSwi04NGSL/jCuVf0ona1HA/C8TxvGE=;
+	b=wHBX6tZvfr/0CrZhnEttFu5MR/cahmy4rFVg5eM4u/1DnGBR5bnL+RW+e26RY4rvWBNQQFpIZ6i36Zg2R4sB8Jmqbdl+XszeCGSsCDzm0wrIyAfD/xUhBoMH9CLdMNpO6kX1zxyDuN0c5/Bzh77I4VleDjNLZNwbqeTmnTsk9+k=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R211e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X3p0tiO_1780049522;
+Received: from 30.221.145.52(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X3p0tiO_1780049522 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 29 May 2026 18:12:02 +0800
+Message-ID: <0d12ccb1-72ce-4ee0-ad3d-fe7af5ba1ca4@linux.alibaba.com>
+Date: Fri, 29 May 2026 18:12:01 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [BUG] ocfs2: NULL osb->journal deref via ocfs2_checkpoint_inode
+ on unmount
+To: Farhad Alemi <farhad.alemi@berkeley.edu>
+Cc: falemi@asu.edu, Tiffany Bao <tbao@asu.edu>, Mark Fasheh
+ <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ ocfs2-devel@lists.linux.dev, linux-fsdevel@vger.kernel.org,
+ linux-kernel@vger.kernel.org
+References: <CA+0ovCjF9enBdtPGJ-b=ewXnZBV0QmjThaOrvhOx0KavCFft5Q@mail.gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <CA+0ovCjF9enBdtPGJ-b=ewXnZBV0QmjThaOrvhOx0KavCFft5Q@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-In 'ocfs2_read_blocks()', caller should't assume that buffer head
-returned by 'sb_getblk()' is exclusively owned and so 'put_bh()'
-always drops b_count from 1 to 0. If it is not so, buffer head
-remains on hold and likely to be returned by the next call to
-'sb_getblk()' unchanged - that is, with BH_Uptodate bit set even
-if it has failed validation previously, thus allowing to insert
-that buffer head into OCFS2 metadata cache and submit it to upper
-layers. To avoid such a scenario, BH_Uptodate should be cleared
-immediately after 'validate()' callback has detected some data
-inconsistency.
 
-Reported-by: syzbot+caacd220635a9cc3bac9@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=caacd220635a9cc3bac9
-Fixes: cf76c78595ca ("ocfs2: don't put and assigning null to bh allocated outside")
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
-After introducing the series started with 775c17386a6fd ("ocfs2:
-validate dx_root extent list fields during block read"), reproducer
-from https://syzkaller.appspot.com/bug?extid=30b53487d00b4f7f0922
-has started to trigger KASAN use-after-free again, and this patch
-should fix this as well.
----
- fs/ocfs2/buffer_head_io.c | 7 ++++---
- 1 file changed, 4 insertions(+), 3 deletions(-)
 
-diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index 701d27d908d4..6114299b121e 100644
---- a/fs/ocfs2/buffer_head_io.c
-+++ b/fs/ocfs2/buffer_head_io.c
-@@ -350,8 +350,6 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 						wait_on_buffer(bh);
- 					put_bh(bh);
- 					bhs[i] = NULL;
--				} else if (bh && buffer_uptodate(bh)) {
--					clear_buffer_uptodate(bh);
- 				}
- 				continue;
- 			}
-@@ -380,8 +378,11 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 				BUG_ON(buffer_jbd(bh));
- 				clear_buffer_needs_validate(bh);
- 				status = validate(sb, bh);
--				if (status)
-+				if (status) {
-+					if (buffer_uptodate(bh))
-+						clear_buffer_uptodate(bh);
- 					goto read_failure;
-+				}
- 			}
- 		}
- 
--- 
-2.54.0
+On 5/29/26 1:39 PM, Farhad Alemi wrote:
+> Hello Joseph, Mark, Joel, and the ocfs2 team,
+> 
+> I am reporting a KASAN null-ptr-deref GPF in the ocfs2 unmount path
+> found by syzkaller as part of research at the SEFCOM Lab at ASU.
+> 
+> Summary:
+> During unmount, ocfs2_clear_inode() calls ocfs2_checkpoint_inode()
+> without checking that osb->journal is still live. At
+> fs/ocfs2/inode.c:1223-1224:
+> 
+>   if (!(oi->ip_flags & OCFS2_INODE_DELETED))
+>           ocfs2_checkpoint_inode(inode);
+> 
+> ocfs2_checkpoint_inode() (fs/ocfs2/journal.h:192) reaches
+> ocfs2_ci_fully_checkpointed() (fs/ocfs2/journal.h:91), which loads
+> osb->journal and dereferences it:
+> 
+>   struct ocfs2_journal *journal =
+>           OCFS2_SB(ocfs2_metadata_cache_get_super(ci))->journal;
+>   spin_lock(&trans_inc_lock);
+>   ret = time_after(journal->j_trans_id, ci->ci_last_trans);   <-- :98
+> 
+> On the unmount-side slot-info eviction, ocfs2_journal_shutdown() has
+> already set osb->journal = NULL (fs/ocfs2/journal.c:1130) before
+> ocfs2_delete_osb() evicts the slot inodes, so the journal->j_trans_id
+> load at journal.h:98 faults. The KASAN range is [0x70, 0x77] (see
+> crash-report.txt); the RIP chain is:
+> 
+>   ocfs2_ci_fully_checkpointed fs/ocfs2/journal.h:98 [inline]
+>   ocfs2_checkpoint_inode fs/ocfs2/journal.h:199 [inline]
+>   ocfs2_clear_inode fs/ocfs2/inode.c:1224 [inline]
+>   ocfs2_evict_inode+0x244c/0x43c0 fs/ocfs2/inode.c:1303
+> 
+> Observed on:
+> - Linux v7.1-rc3-200-g70eda68668d1-dirty,
+>   x86_64, QEMU Q35
+> - KASAN enabled
+> - The only local dirty file in my tree is
+>   drivers/tty/serial/serial_core.c, a ttyS0 console guard for the
+>   fuzzing harness, unrelated to fs/ocfs2/.
+> - Source inspection of linus/master at commit e8c2f9fdadee
+>   (v7.1-rc4-754-ge8c2f9fdadee) shows the structure is unchanged:
+>   ocfs2_clear_inode() at fs/ocfs2/inode.c:1223-1224 still calls
+>   ocfs2_checkpoint_inode() with no osb->journal check, and
+>   ocfs2_ci_fully_checkpointed() at fs/ocfs2/journal.h:98 still
+>   dereferences journal->j_trans_id unconditionally. As no reproducer
+>   is available for this seed, I have not re-run it against e8c2f9fdadee.
+> 
+> Impact:
+> An ocfs2 unmount kills the kernel with a GPF / KASAN null-ptr-deref.
+> The full Oops header, register dump, and call trace are in
+> crash-report.txt.
+> 
+> Expected behavior:
+> Either ocfs2_clear_inode() should skip ocfs2_checkpoint_inode() when
+> osb->journal is NULL (the same shape as the existing guard at
+> fs/ocfs2/inode.c:1286), or ocfs2_ci_fully_checkpointed() should treat
+> a NULL journal as "fully checkpointed".
+> 
+> Reproducer:
+> A standalone .syz or C reproducer was not produced for this seed; the
+> crash fired during automated ocfs2 mount/unmount fuzzing. The console
+> report is attached as crash-report.txt.
+> 
+> Novelty check:
+> I searched the syzbot dashboard's upstream open, fixed, stable, and
+> invalid (per-subsystem ocfs2) namespaces; the Android dashboard; the
+> marc.info linux-fsdevel archive; and lore, for
+> "ocfs2_ci_fully_checkpointed", "ocfs2_checkpoint_inode",
+> "ocfs2_clear_inode" + journal, and "ocfs2_evict_inode" + GPF. I did
+> not find a prior report of this specific dereference.
+> 
+> There are three closely related syzbot reports, all titled by the
+> outer frame:
+> "general protection fault in ocfs2_evict_inode" (id 9d4aa7d1...),
+> "general protection fault in ocfs2_clear_inode" (id 9eca3ca3...),
+> and "...ocfs2_clear_inode (2)" (id 9e34a0dc...). They share this
+> unmount slot-info eviction reach path but fault at offset 0x8 of the
+> NULL pointer (KASAN range [0x8, 0xf]); this crash faults at offset
+> 0x70, inside ocfs2_ci_fully_checkpointed() at journal.h:98 (the
+> journal->j_trans_id read) -- a distinct dereference site. Commit
+> f46e8ef8bb7b ("ocfs2: prevent release journal inode after journal
+> shutdown", first in v6.17-rc5) added an osb->journal guard before the
+> jbd2_journal_release_jbd_inode() call at fs/ocfs2/inode.c:1286, but
+> the earlier ocfs2_checkpoint_inode() call in the same
+> ocfs2_clear_inode() is not guarded.
+> 
+> 
+> I appreciate your time and consideration, and I'm grateful for your
+> work on this subsystem. I'd be glad to test any candidate patches.
+> 
+A simple fix, please have a try:
+
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index 6397170f302f..f8b3b2a3d630 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -196,6 +196,9 @@ static inline void ocfs2_checkpoint_inode(struct inode *inode)
+        if (ocfs2_mount_local(osb))
+                return;
+
++       if (!osb->journal)
++               return;
++
+        if (!ocfs2_ci_fully_checkpointed(INODE_CACHE(inode))) {
+                /* WARNING: This only kicks off a single
+                 * checkpoint. If someone races you and adds more
 
