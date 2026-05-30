@@ -1,155 +1,88 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BAAC93955D3
-	for <ocfs2-devel@lists.linux.dev>; Sat, 30 May 2026 11:48:23 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0096B3C1977
+	for <ocfs2-devel@lists.linux.dev>; Sat, 30 May 2026 13:13:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780141704; cv=none; b=lywJ6Eiontq+h7BMcYNjgO9GNPZQmwE/XZ1tssy9KkZkiGDOcwYaRRgIeHLKKgdok3ALXzqN6Q0IWqF59i0e9OljGxVtgYOmw0fob906Sqa7Oc020Z0tI2gX6sd4VLojS/owFGjB2cIK4hOId0i/p5F9jo/8hPPwx7XtDrzxoh8=
+	t=1780146792; cv=none; b=toA4FlXEXe54QR9ZVa8l2Xq+4TJj0sVro6AXfgYwr6qFsA+OOxImZoKGgWUvqROrqDIyyX16wKcSx7ErpnYdGHCWOj4yCmYIMfOUs1f7G7iFHXkOhnKT2o6/k7KNSjlmh+CwfqCEhXh4dBBU4Ae56hDQ25AE095wSRHY/YRedBA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780141704; c=relaxed/simple;
-	bh=FjxBNl2xkptGqrMJszfLJiZjFxcBPEr8gub2rJsmQow=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=IihlvdgXmYx6fcOPOu2lNQtgQdRqAvsvdYx/zIR+frHg9NAWQHJdXRY6NaU3TUup5TKxEyunYz4sZ5tBt0Ls0eTJ8eV9RSGc4ktwTq8F+DbJ5dGeqE5f3rcwMnHTVosCzmTtcDlGFsfl9KgSgKAL6BzHcdkqsJIvDHuayNJGhWQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=izaOIBTP; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=/lo38H2z; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=izaOIBTP; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=/lo38H2z; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1780146792; c=relaxed/simple;
+	bh=AIK7xEmSGqqsESN5wDb9BJNsyx7oaKf+g4VQlNSWK2s=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=DsBCFsKzmIvI75lASQb1cRM+AecbGTkcmfQjh6m/rtKA00xFiW6Dff9O6h3lUeB84bezVVrMyyq9OxFjjxJQYJpm5XaHr47ZGtGQezr9EA/4mztxZKkbFSsgTY5cFdUJ+m3753AYBQM6MKsLaMgXCgmcY70aEqDFaJoMEevOfjc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Nc2fRodG; arc=none smtp.client-ip=115.124.30.119
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="izaOIBTP";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="/lo38H2z";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="izaOIBTP";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="/lo38H2z"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 0E1146B882;
-	Sat, 30 May 2026 11:48:22 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1780141702; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=/v3yYmt7UmxyVhW2DlTy4iw3l/qGlYFUIClMSiQ2o5Y=;
-	b=izaOIBTPeVIZr3kZKUz/ki/AX9C0hYT1l0qgyuPN3JFZvjdljOtQ2vwB6olYWceDK3RkYM
-	OaZIYPQQ9Ss9h364VU46ZyFPkDgBLO7/qCZ7idXuYClFRtQQZ0WgdP4qSJieomVn7Z7SlH
-	sRCr+CyPRCwaG/W7Iozbyfo+SIMsvew=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1780141702;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=/v3yYmt7UmxyVhW2DlTy4iw3l/qGlYFUIClMSiQ2o5Y=;
-	b=/lo38H2zZdmPaNkUFR4ibzbvROPIfMDw/N659jdV7AUnTk5GhxZ5a/AuITaLqzQMtvoWh7
-	6k7LzWMFBXEIKBCg==
-Authentication-Results: smtp-out1.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1780141702; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=/v3yYmt7UmxyVhW2DlTy4iw3l/qGlYFUIClMSiQ2o5Y=;
-	b=izaOIBTPeVIZr3kZKUz/ki/AX9C0hYT1l0qgyuPN3JFZvjdljOtQ2vwB6olYWceDK3RkYM
-	OaZIYPQQ9Ss9h364VU46ZyFPkDgBLO7/qCZ7idXuYClFRtQQZ0WgdP4qSJieomVn7Z7SlH
-	sRCr+CyPRCwaG/W7Iozbyfo+SIMsvew=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1780141702;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=/v3yYmt7UmxyVhW2DlTy4iw3l/qGlYFUIClMSiQ2o5Y=;
-	b=/lo38H2zZdmPaNkUFR4ibzbvROPIfMDw/N659jdV7AUnTk5GhxZ5a/AuITaLqzQMtvoWh7
-	6k7LzWMFBXEIKBCg==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 06152779A7;
-	Sat, 30 May 2026 11:48:22 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id pQB7AYbOGmpDQgAAD6G6ig
-	(envelope-from <jack@suse.cz>); Sat, 30 May 2026 11:48:22 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id B5F75A0EBD; Sat, 30 May 2026 13:48:21 +0200 (CEST)
-Date: Sat, 30 May 2026 13:48:21 +0200
-From: Jan Kara <jack@suse.cz>
-To: "Matthew Wilcox (Oracle)" <willy@infradead.org>
-Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
-	Christoph Hellwig <hch@infradead.org>, linux-fsdevel@vger.kernel.org, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev
-Subject: Re: [PATCH v2 18/34] ocfs2: Convert ocfs2_write_block to bh_submit()
-Message-ID: <kcvfunuvb3wktycww7q6overcbox5rsikb33up2t6qwsycrmw2@zvnvimdl6rgh>
-References: <20260528173150.1093780-1-willy@infradead.org>
- <20260528173150.1093780-19-willy@infradead.org>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Nc2fRodG"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1780146780; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=DgCCYSrTKdcpRRHmuBMlUSSYFww9WmOzkE1N8a+s83E=;
+	b=Nc2fRodG3Q5+FfRSAAIoMHYUnNwbfC2cyiO6L6PUIscZZA6kmuuV7NLFcvclgU5I1jJVyxUAD3AmBQVaD3tsefiV52p5BS6bduPd24ekhXxHDEk8r6mMynscEA+ABySsO8A2bmimvzHF0pLLuwIaxKI7AtGAAdVypY7YZJbsMdU=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R531e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X3rijx0_1780146778;
+Received: from 30.134.110.188(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X3rijx0_1780146778 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Sat, 30 May 2026 21:12:58 +0800
+Message-ID: <6a966a6a-1a9a-489d-97e1-8bb7c3f8414b@linux.alibaba.com>
+Date: Sat, 30 May 2026 21:12:58 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260528173150.1093780-19-willy@infradead.org>
-X-Spam-Flag: NO
-X-Spam-Score: -3.80
-X-Spam-Level: 
-X-Spamd-Result: default: False [-3.80 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	ARC_NA(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	MISSING_XM_UA(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	FUZZY_RATELIMITED(0.00)[rspamd.com];
-	RCVD_COUNT_THREE(0.00)[3];
-	TO_DN_SOME(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	RCPT_COUNT_SEVEN(0.00)[7];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	RCVD_TLS_LAST(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[infradead.org:email,suse.com:email,imap1.dmz-prg2.suse.org:helo,alibaba.com:email,linux.dev:email,suse.cz:email]
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: reject FITRIM ranges shorter than a cluster
+To: Zhang Cen <rollkingzzc@gmail.com>, akpm <akpm@linux-foundation.org>
+Cc: ocfs2-devel@lists.linux.dev, zerocling0077@gmail.com,
+ 2045gemini@gmail.com, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+References: <20260528151247.361854-1-rollkingzzc@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260528151247.361854-1-rollkingzzc@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Thu 28-05-26 18:31:31, Matthew Wilcox (Oracle) wrote:
-> Avoid an extra indirect function call and changing the buffer
-> refcount by using bh_submit() instead of submit_bh().
+
+
+On 5/28/26 11:12 PM, Zhang Cen wrote:
+> ocfs2_trim_mainbm() trims the global bitmap in cluster units, but its
+> too-short range validation only checks sb->s_blocksize.
 > 
-> Signed-off-by: Matthew Wilcox (Oracle) <willy@infradead.org>
-> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Cc: ocfs2-devel@lists.linux.dev
+> On filesystems with a cluster size larger than the block size, a FITRIM
+> range that is at least one block but shorter than one cluster is
+> accepted and shifted down to len == 0. The later start + len - 1 and
+> len -= ... arithmetic then underflows and can drive trimming past the
+> requested range.
+> 
+> Reject ranges shorter than s_clustersize instead. That preserves the
+> existing -EINVAL behavior for requests that cannot discard even one
+> allocation unit and keeps zero-cluster trims out of the group walk.
+> 
+> Fixes: aa89762c5480 ("ocfs2: return EINVAL if the given range to discard is less than block size")
+> Assisted-by: Codex:gpt-5.5
+> Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
 
-Looks good. Feel free to add:
-
-Reviewed-by: Jan Kara <jack@suse.cz>
-
-								Honza
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
 > ---
->  fs/ocfs2/buffer_head_io.c | 4 +---
->  1 file changed, 1 insertion(+), 3 deletions(-)
+>  fs/ocfs2/alloc.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-> index 701d27d908d4..714daa4bbda2 100644
-> --- a/fs/ocfs2/buffer_head_io.c
-> +++ b/fs/ocfs2/buffer_head_io.c
-> @@ -62,9 +62,7 @@ int ocfs2_write_block(struct ocfs2_super *osb, struct buffer_head *bh,
->  	/* remove from dirty list before I/O. */
->  	clear_buffer_dirty(bh);
+> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
+> index 6e5fd3f12a84..be09e766ac1f 100644
+> --- a/fs/ocfs2/alloc.c
+> +++ b/fs/ocfs2/alloc.c
+> @@ -7576,7 +7576,7 @@ int ocfs2_trim_mainbm(struct super_block *sb, struct fstrim_range *range)
+>  	len = range->len >> osb->s_clustersize_bits;
+>  	minlen = range->minlen >> osb->s_clustersize_bits;
 >  
-> -	get_bh(bh); /* for end_buffer_write_sync() */
-> -	bh->b_end_io = end_buffer_write_sync;
-> -	submit_bh(REQ_OP_WRITE, bh);
-> +	bh_submit(bh, REQ_OP_WRITE, bh_end_write);
+> -	if (minlen >= osb->bitmap_cpg || range->len < sb->s_blocksize)
+> +	if (minlen >= osb->bitmap_cpg || range->len < osb->s_clustersize)
+>  		return -EINVAL;
 >  
->  	wait_on_buffer(bh);
->  
-> -- 
-> 2.47.3
-> 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+>  	trace_ocfs2_trim_mainbm(start, len, minlen);
+
