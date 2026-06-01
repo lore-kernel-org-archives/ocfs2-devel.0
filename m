@@ -1,179 +1,202 @@
-Received: from zeniv.linux.org.uk (zeniv.linux.org.uk [62.89.141.173])
+Received: from flow-b3-smtp.messagingengine.com (flow-b3-smtp.messagingengine.com [202.12.124.138])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9DF029CE1;
-	Mon,  1 Jun 2026 18:21:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=62.89.141.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0236E3ECBC7
+	for <ocfs2-devel@lists.linux.dev>; Mon,  1 Jun 2026 18:44:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.138
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780338101; cv=none; b=MOSiai82NA8kIK5aUehZi/cT70Jg+QqgzAV/7Q234I0NHpu0I/1NSw6WRG02fndx8g8T/IZW0jEvqJb5o7YOdvdnLiNtXqq4/SM2Rfv0WV47k/u/MKqFV3LktR54GC2ca0rC6Tb9DnOYr5g1hH/Ieleu7AX2c8BmU5d6VKCgjQk=
+	t=1780339482; cv=none; b=NidV5iChRtJZAC6sd8e0eJN2Ziv+C7Iezh1PIZQAMq8xKr36StwvFmKbHCqzRGL6+Hsz+Uamrgz+qk0KthyloatSTA4cjQC+YYoq8sRdKFqdGGkSoprJoPta79y+o2XDxHFxq7nnoV3RJFKhIZFOxvcN/ctw5xBZSKQ/T7irPAA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780338101; c=relaxed/simple;
-	bh=a3HJssRy+/uLhln8hZlM847mxZpyftYSRi0JLbatPHc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=sHvd5l3FT91Xxn/L1ZNIuxM06NiZuUyn7cvMe+Crd6woysLGFpNKEgy4OftjTXeg9xXoWzjPFo6yU5+x3kWNGKEPLrWk7pv41f93GmAgoE/vfcjJ32T3plAfGuq6rH5Hif7Zx89DMx2xKelnfrEQbnOn1GkEoJuQLZJT2cHklxQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=evilplan.org; spf=none smtp.mailfrom=ftp.linux.org.uk; dkim=fail (0-bit key) header.d=infradead.org header.i=@infradead.org header.b=bSzJ7NW/ reason="key not found in DNS"; arc=none smtp.client-ip=62.89.141.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=evilplan.org
-Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=ftp.linux.org.uk
+	s=arc-20240116; t=1780339482; c=relaxed/simple;
+	bh=gqJyzY/r7WScL2JfTTv5i/w2OOf08Dju+G/LmqlTt6w=;
+	h=Date:From:To:Subject:Message-ID:MIME-Version:Content-Type:
+	 Content-Disposition; b=Gg2sAAYre2WAQ/HWljmyv5GKsHZ8w6QKl1o0EFWT0/boG6ZBvYQ1C/+YDFDoNEEMBKDuAQbg8j0sqqrI9jpzfOsVjn1JbEgTKki8qiCpWz9Wxii5UYCLVT9C9ST0rY9YL/9sOPj+WIFgc2lbbxBQpWMlxCKLN2Jyd2R10AAU3Y0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org; spf=pass smtp.mailfrom=fastmail.org; dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b=Oe8IsZQP; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=bg0mcSQu; arc=none smtp.client-ip=202.12.124.138
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fastmail.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=fail reason="key not found in DNS" (0-bit key) header.d=infradead.org header.i=@infradead.org header.b="bSzJ7NW/"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=zeniv-20220401; h=Sender:In-Reply-To:Content-Type:
-	MIME-Version:References:Message-ID:Subject:Cc:To:From:Date:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=owqG3vqrdJjMWEFJrPdAcx7VvAnC8jHqS4x0Q1jAvhg=; b=bSzJ7NW/HjiAy0+xIWNZoYWhAh
-	OigUmUFE7Ade8qpChlOJiuP9LIczsIiylPiW1fBhbrstfaKWYuO2jTiv2v2sbb2xm6sB9sX+4APjt
-	go5vzkevw9X10cDI93xeA9e9ysRn4LdmS4sXMx7PR7Ho+w+ofvQ+q7wNUI1Svi14EWmuodD2c3ZRn
-	9W7RHL2ws23H6CNDP7ZM1gjC1VsqR4AyUxsySqT5hYIY5Qo4zrt6JbRXMc3fkKIjTB7jcnfGXdV8B
-	dUa47BieSuRsM7IpUOlLdC1cesFNzEcnNkv/oznTSdvqbD70VstDEcY6jPNfVDJ8ZA7LidNIYaIMZ
-	MItS2aew==;
-Received: from jlbec by zeniv.linux.org.uk with local (Exim 4.99.2 #2 (Red Hat Linux))
-	id 1wU7Gc-00000003YqP-0wwv;
-	Mon, 01 Jun 2026 18:21:38 +0000
-Date: Mon, 1 Jun 2026 11:21:34 -0700
-From: Joel Becker <jlbec@evilplan.org>
-To: Michael Bommarito <michael.bommarito@gmail.com>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>,
-	ZhengYuan Huang <gality369@gmail.com>, ocfs2-devel@lists.linux.dev,
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v2 2/3] ocfs2: reject dinodes whose i_rdev disagrees with
- the file type
-Message-ID: <ah3NruJW0S1ASobq@google.com>
-Mail-Followup-To: Michael Bommarito <michael.bommarito@gmail.com>,
+	dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b="Oe8IsZQP";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="bg0mcSQu"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailflow.stl.internal (Postfix) with ESMTP id BA20C13008CF;
+	Mon,  1 Jun 2026 14:44:37 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-04.internal (MEProxy); Mon, 01 Jun 2026 14:44:38 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=fastmail.org; h=
+	cc:content-transfer-encoding:content-type:content-type:date:date
+	:from:from:in-reply-to:message-id:mime-version:reply-to:subject
+	:subject:to:to; s=fm1; t=1780339477; x=1780343077; bh=ALDwtMFyGJ
+	wzai8kKXQaDi+hhWyW8dXcwRJELpOZoJo=; b=Oe8IsZQPVB7S2hVyGs+H1SpKPY
+	THHexB8K1F6ml+bcI+nNbAdsHzhqYNhQ4Q/ce09O+GWIFDjktU7X4o1xfNn82dwG
+	zDIrTEPW4dROaw88RnM4y0hkvL7zk1scQ4Vks50M2J4/PS7VhVYbJBuWB8LMO9eI
+	QosE51Nh9CTFUxIKWMeZDFrRfvLYx8GnBaNrrP7bDUY9DjyLrT31Q7aJaC8UfSYw
+	jUjlN/55o+xxKbY2C5KJDojejQMjBTSsXp39k+0Zu+J2ElqBdcVj9t2Hiy2u7KIT
+	fbJ1zvlWUj82+W26AxlSFazHzeOCgaWlVdsq1EiIzfK9K30GlCQjF4hybIcg==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:content-transfer-encoding:content-type
+	:content-type:date:date:feedback-id:feedback-id:from:from
+	:in-reply-to:message-id:mime-version:reply-to:subject:subject:to
+	:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=
+	1780339477; x=1780343077; bh=ALDwtMFyGJwzai8kKXQaDi+hhWyW8dXcwRJ
+	ELpOZoJo=; b=bg0mcSQu4p7r6liIvbHqJucF8ubUmAg1xyDcFLER6kibEmzTuSp
+	ea8apO4iUxpyVl3JC1a7+CODgwmAtIhvGFjy8UDTFPej3feMovtU23j+DksXnbPX
+	pFfcckG3r87YuYrMR0wDcRH4fV3bp+5mkm4pQ5X0aSIpTtL2fUOvagrKswrZ6t+i
+	rz192F5reVyVYc41GbJ+L4PGXsjOC+80Ji1XKIiJgPR7X5gcuta882+pROpQmbuu
+	1SnI96tSkWPCe59mVntkYGzkEDYMUaMMSU7axmWMRFXnYCBHX++XF9fwiHkaniUn
+	jdpfw7fYQ1rw8wi7PNWwQfhOYjEBVIbTaTQ==
+X-ME-Sender: <xms:FNMdauphgdrS0Egy7mW1Ke3O9LpiyA4fwi6jZn6blTKYGMAT0_1R0g>
+    <xme:FNMdallGw3pXUzTi-9GwiDDxPIdhxgFkJ0hUsftOHXlm8PEVrG9d4NiwUvsB-3AWR
+    NrzkChah5eZZY0AIbVoAIZeMaj8tfximYP0LPVey2gXjvGZPNg3p0I>
+X-ME-Received: <xmr:FNMdauwxnhTMq2ImAgk9SIIafV8b0KUjEB9gonhgpRSyW6pzg7furVs4bvU>
+X-ME-Proxy-Cause: dmFkZTFEmPPdPpuQj+EUc6lNCVvXlDczVOBjz0ebpJn8KVbWb2dloKw4Xlpz5wTK2AGefU
+    Flr1sxCYB9zmci/BgnPEKhqnwReMcxxjA9LtdK6CHOM8LruaYxxZuCAV4C3ANdbI6Kbjyl
+    0K6ICGMNOtul8AN2vu40MljGzO8ZJZ7fTPU9YHXcGOVUZkVybcyj4XDERBVootXQUhmt+0
+    EjF/JNh6ZaIW9WUE/asALuy8od8lSTRH2FCl7yrfwgQ+7iqZQZX9WQ+m3TjqPgv9qTgPUJ
+    YGBCzH+JN5TOa1M3TslSNgIq7zhjNbgt6GdqAzzRsGK0OVcvxeMR7Frv0GML745JSZ65EN
+    e6tdRLyoyaXv3/8QxD7JTB+7h5sdKe1uVzyvwEJLW9RQ1ogJv8xOTZXjMumAbSDodJ2X9e
+    KIc4NAdeQa37y/L/L5A2Typ/rlPilzYS9KM0pS/ZkNU+KInMXtzKUprbyRINBSMoJdU9+8
+    LLh2nNZrRQT5EoYHKwiq5IMgcwVXtZnu1x6H3tO0z7n58A/igKXfDcgLHEMKf661EsRBEr
+    FDzMgx3pDad5yZ9EE+BjN9RXCd/6quPe39EIL+yOwkMQG8K0gu0boSfaccd9dNFk6OkMeN
+    JurRs0aTEvrhSH6/y8N7TpqbmMiauAgJbgd8QW0MzEdNb1TD7R7I37nM7MCA
+X-ME-Proxy: <xmx:FNMdat-KNo38c0u9MmV5KKKjtwmLReTDbAHW-f-gvMheom5E71BRqg>
+    <xmx:FNMdaqLVVNHdM6nLVnupgb0yEMsc55retxU5jN4HtTgF3c3xDAC0Fw>
+    <xmx:FNMdarfxU6o2x-KXuATRtxK2n-Cij-jby1x4pH79TjJcy3t59Jqf6w>
+    <xmx:FNMdah8kEt6K9TetNh0CMCFyniQ3dWqs97_k13sBWmC8eEfuuruLEQ>
+    <xmx:FdMdagWF53tZYvCHn-EVxS_E6C2flWA3znQuiSzEaSL7lVX-u_9-Swsp>
+Feedback-ID: ib53e4b78:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Mon,
+ 1 Jun 2026 14:44:36 -0400 (EDT)
+Date: Mon, 1 Jun 2026 13:44:33 -0500
+From: Ian Bridges <icb@fastmail.org>
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	ZhengYuan Huang <gality369@gmail.com>, ocfs2-devel@lists.linux.dev,
-	linux-fsdevel@vger.kernel.org, linux-kernel@vger.kernel.org
-References: <20260519110404.1803902-1-michael.bommarito@gmail.com>
- <20260519110404.1803902-3-michael.bommarito@gmail.com>
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: fix out-of-bounds write in
+ ocfs2_remove_refcount_extent
+Message-ID: <ah3TESOsEO9j_JLU@dev>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
+Content-Type: text/plain; charset=utf-8
 Content-Disposition: inline
-In-Reply-To: <20260519110404.1803902-3-michael.bommarito@gmail.com>
-X-Burt-Line: Trees are cool.
-X-Red-Smith: Ninety feet between bases is perhaps as close as man has ever
- come to perfection.
-Sender: Joel Becker <jlbec@ftp.linux.org.uk>
+Content-Transfer-Encoding: 8bit
 
-On Tue, May 19, 2026 at 07:04:03AM -0400, Michael Bommarito wrote:
-> id1.dev1.i_rdev is the device-number arm of the ocfs2_dinode id1 union.
-> It is only meaningful for character and block device inodes. For any
-> other user-visible file type the on-disk value must be zero.
-> 
-> ocfs2_populate_inode() currently copies id1.dev1.i_rdev into
-> inode->i_rdev before the S_IFMT switch decides whether the inode is a
-> special file. A non-device inode with a non-zero i_rdev can therefore
-> publish stale or attacker-controlled device state into the in-core inode.
-> 
-> System inodes legitimately use other arms of the same union, so keep
-> the cross-check restricted to non-system inodes. Factor that predicate
-> into a helper and use it in both the normal validator and online
-> filecheck path; filecheck reports the malformed dinode through
-> OCFS2_FILECHECK_ERR_INVALIDINO instead of ocfs2_error().
-> 
-> Fixes: b657c95c1108 ("ocfs2: Wrap inode block reads in a dedicated function.")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Michael Bommarito <michael.bommarito@gmail.com>
-> Assisted-by: Claude:claude-opus-4-7
+[BUG]
+Unlinking a refcounted file whose refcount tree has leaf blocks
+triggers a fortify panic due to an out-of-bounds write.
 
-Reviewed-by: Joel Becker <jlbec@evilplan.org>
+[CAUSE]
+When the last leaf block is removed from a refcount tree,
+ocfs2_remove_refcount_extent() converts the root back to leaf mode
+with a bulk memset on &rb->rf_records. rf_records sits in an anonymous
+union with rf_list. rf_list.l_tree_depth aliases rf_records.rl_count,
+and is 0 for a single-level tree. With rl_count equal to 0, the memset
+writes past the 16-byte declared size of rf_records, which the fortify
+checker catches.
 
-> ---
->  fs/ocfs2/inode.c | 55 ++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 55 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index e149ccbdc03ce..992980ea98046 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -72,6 +72,16 @@ static bool ocfs2_valid_inode_mode(umode_t mode)
->  	return fs_umode_to_ftype(mode) != FT_UNKNOWN;
->  }
->  
-> +static bool ocfs2_dinode_has_unexpected_rdev(struct ocfs2_dinode *di)
-> +{
-> +	umode_t mode = le16_to_cpu(di->i_mode);
-> +
-> +	if (le32_to_cpu(di->i_flags) & OCFS2_SYSTEM_FL)
-> +		return false;
-> +
-> +	return !S_ISCHR(mode) && !S_ISBLK(mode) && di->id1.dev1.i_rdev != 0;
-> +}
-> +
->  void ocfs2_set_inode_flags(struct inode *inode)
->  {
->  	unsigned int flags = OCFS2_I(inode)->ip_attr;
-> @@ -1518,6 +1528,41 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	/*
-> +	 * id1.dev1.i_rdev is the device-number arm of the id1 union and
-> +	 * is only meaningful for character and block device inodes.  For
-> +	 * any other regular user-visible file type the on-disk value
-> +	 * must be zero.  ocfs2_populate_inode() currently runs
-> +	 *
-> +	 *     inode->i_rdev = huge_decode_dev(le64_to_cpu(fe->id1.dev1.i_rdev));
-> +	 *
-> +	 * unconditionally, before the S_IFMT switch decides whether the
-> +	 * inode is a special file.  As a result, an i_rdev value present
-> +	 * on a non-device inode is silently published into the in-core
-> +	 * inode; a subsequent forced re-read or in-core mode mutation
-> +	 * (cluster peer with raw write access to the shared LUN,
-> +	 * on-disk corruption, or a separately forged dinode) can then
-> +	 * expose the attacker-controlled device number to
-> +	 * init_special_inode() without ever showing an unusual i_mode
-> +	 * at validation time.
-> +	 *
-> +	 * System inodes (OCFS2_SYSTEM_FL) legitimately use the bitmap1
-> +	 * and journal1 arms of the same union (allocator i_used /
-> +	 * i_total counters and the journal ij_flags /
-> +	 * ij_recovery_generation pair); those bytes are not an i_rdev
-> +	 * and must not be checked here.  Restrict the cross-check to
-> +	 * non-system inodes, which is the full attacker-controllable
-> +	 * surface.
-> +	 */
-> +	if (ocfs2_dinode_has_unexpected_rdev(di)) {
-> +		rc = ocfs2_error(sb,
-> +				 "Invalid dinode #%llu: non-device mode 0%o with i_rdev %llu\n",
-> +				 (unsigned long long)bh->b_blocknr,
-> +				 le16_to_cpu(di->i_mode),
-> +				 (unsigned long long)le64_to_cpu(di->id1.dev1.i_rdev));
-> +		goto bail;
-> +	}
-> +
->  	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) {
->  		struct ocfs2_inline_data *data = &di->id2.i_data;
->  
-> @@ -1657,6 +1702,16 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
->  		     (unsigned long long)bh->b_blocknr,
->  		     le16_to_cpu(di->i_mode));
->  		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> +		goto bail;
-> +	}
-> +
-> +	if (ocfs2_dinode_has_unexpected_rdev(di)) {
-> +		mlog(ML_ERROR,
-> +		     "Filecheck: invalid dinode #%llu: non-device mode 0%o with i_rdev %llu\n",
-> +		     (unsigned long long)bh->b_blocknr,
-> +		     le16_to_cpu(di->i_mode),
-> +		     (unsigned long long)le64_to_cpu(di->id1.dev1.i_rdev));
-> +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
->  	}
->  
->  bail:
-> -- 
-> 2.53.0
+[FIX]
+Replace the bulk memset on &rb->rf_records with a correctly-bounded
+memset on rl_recs[] alone, after setting rl_count to the correct value.
 
+Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
+Reported-by: syzbot+3ef989aae096b30f1663@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=3ef989aae096b30f1663
+Signed-off-by: Ian Bridges <icb@fastmail.org>
+---
+This patch contains a proposed fix for a crash reported by syzbot
+in __ocfs2_decrease_refcount().
+
+The file names and offsets in this description are from commit
+7cb1c5b32a2bfde961fff8d5204526b609bcb30a from this repo:
+git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging.git
+
+I also have a small test harness that reproduces the original panic,
+which I can make available as well.
+
+The Bug
+
+The ocfs2_refcount_list structure (fs/ocfs2/ocfs2_fs.h:935) contains
+two fields relevant to this bug: rl_count, the maximum number of
+refcount record slots, and rl_used, the number of occupied slots. The
+flexible array member rl_recs is annotated __counted_by_le(rl_count)
+(fs/ocfs2/ocfs2_fs.h:942), which instructs the compiler to use
+rl_count as the runtime bound for __builtin_dynamic_object_size
+queries on rl_recs when CONFIG_FORTIFY_SOURCE is enabled.
+
+ocfs2_remove_refcount_extent() (fs/ocfs2/refcounttree.c:2066) is
+called when the last refcount record is removed from a leaf block. If
+that leaf was also the last one, the root is converted back from tree
+mode to leaf mode. The restore path (fs/ocfs2/refcounttree.c:2131–2137)
+zeros the header fields and resets the on-disk record area with a memset
+on &rb->rf_records (fs/ocfs2/refcounttree.c:2134).
+
+This is an out-of-bounds write of the rf_records struct member.
+rf_records and rf_list share the same memory in an anonymous union; the
+first field of rf_list, l_tree_depth, occupies the same bytes as
+rf_records.rl_count. A refcount tree is always single-level, so
+l_tree_depth is 0, which means rl_count reads as 0 at the memset call
+site. The declared size of rf_records is therefore 16 bytes (the fixed
+header with zero record slots), but the memset writes the full remainder
+of the block (past the end of the struct member).
+
+Here is a step-by-step breakdown of how the crash is triggered by
+unlinking a refcounted file:
+
+0. Inode eviction calls through to ocfs2_commit_truncate()
+(fs/ocfs2/alloc.c:7241), which calls ocfs2_remove_btree_range()
+(fs/ocfs2/alloc.c:5714) for each extent range. Because the extents
+are refcounted, ocfs2_decrease_refcount() (fs/ocfs2/alloc.c:5800)
+is called to decrement the reference count for each cluster.
+1. For each cluster whose reference count reaches zero,
+ocfs2_decrease_refcount_rec() (fs/ocfs2/refcounttree.c:2158)
+removes the corresponding record from the leaf block.
+2. When the last record is removed from a leaf block, rl_used reaches
+0 and ocfs2_remove_refcount_extent() (fs/ocfs2/refcounttree.c:2203)
+is called to detach it from the tree root's extent list.
+3. If that was the last leaf, the root has no remaining extents and
+the restore-to-leaf-mode path at fs/ocfs2/refcounttree.c:2125 is
+entered.
+4. The memset at fs/ocfs2/refcounttree.c:2134 writes past the
+16-byte declared size of rf_records. The fortify checker reads
+rl_count, which is 0 because it aliases l_tree_depth in the union,
+and fires.
+
+The Proposed Fix
+
+Replace the bulk memset on &rb->rf_records with explicit initialisation
+of each header field of ocfs2_refcount_list, followed by a
+correctly-bounded memset on rl_recs[] alone. rl_count is set before the
+memset so that the fortify checker can read it at runtime to verify the
+write against the declared array size.
+
+ fs/ocfs2/refcounttree.c | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+index 8eee5be4d1ed..7323bde70caa 100644
+--- a/fs/ocfs2/refcounttree.c
++++ b/fs/ocfs2/refcounttree.c
+@@ -2131,10 +2131,15 @@ static int ocfs2_remove_refcount_extent(handle_t *handle,
+ 		rb->rf_flags = 0;
+ 		rb->rf_parent = 0;
+ 		rb->rf_cpos = 0;
+-		memset(&rb->rf_records, 0, sb->s_blocksize -
+-		       offsetof(struct ocfs2_refcount_block, rf_records));
++		rb->rf_records.rl_used = 0;
++		rb->rf_records.rl_reserved2 = 0;
++		rb->rf_records.rl_reserved1 = 0;
++		/* rl_count determines the memset size and fortify object size. */
+ 		rb->rf_records.rl_count =
+ 				cpu_to_le16(ocfs2_refcount_recs_per_rb(sb));
++		memset(rb->rf_records.rl_recs, 0,
++		       le16_to_cpu(rb->rf_records.rl_count) *
++		       sizeof(*rb->rf_records.rl_recs));
+ 	}
+ 
+ 	ocfs2_journal_dirty(handle, ref_root_bh);
 -- 
+2.47.3
 
-"Nearly all men can stand adversity, but if you really want to
- test a man's character, give him power."
-	- Abraham Lincoln
-
-			http://www.jlbec.org/
-			jlbec@evilplan.org
