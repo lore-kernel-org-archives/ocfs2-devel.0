@@ -1,86 +1,87 @@
-Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
+Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6E463306752
-	for <ocfs2-devel@lists.linux.dev>; Mon,  1 Jun 2026 12:09:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 55D0B369D6D
+	for <ocfs2-devel@lists.linux.dev>; Mon,  1 Jun 2026 12:16:22 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780315749; cv=none; b=YnfQOlBAcnKcUYcvapSEG0uQs25T3W45SvF4SESDDbd0sqWsopBCAFWlxKheckXSPOUtlBm6LHa1hOqP2KJnY03DXgQ7ABPyDUsqIaoiFNSdJU5Gmh/MxjRp+xdU4V13ABfoxReLCYT/v3iB0Li8/KSKWGwceWYMvFC9hwVCKsU=
+	t=1780316185; cv=none; b=YPdp61sL7c5VggXwiKob3QhqKs6NfMvTJapoHiOXT32UxatHb4ZXh47Whb+LNoNaTqcjcLd8WyfeQEa6oubZBGMEbZjG4qZuVLqtayuwldw2Myk5Ggs9KkPGC9CMuoUXKn43NzbD8kIKjM7uYK+IFOwX6mBvOfx1rPZtaXCuYjQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780315749; c=relaxed/simple;
-	bh=SQO/4HZn/1CiEgn8BRIjlfZmocSemxqWAHB/yibBGGY=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
-	 In-Reply-To:Content-Type; b=oN9Fg+z37B5f2ySsG0ZBScu9W3uFliapxiG2fAPiR+UNjXYyLFA0wIgUqVNQUlvpvwn/+SP16SUFkmy8FBM2fXUHN2thIflLhXHL1VH8KcHPS+9Tf8Mwk1vj4xC2xuyDO3BIRypbHj2GfinwU9qIkNX0v6MkIe05jjAcnp4IyaM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ZDdKDrmX; arc=none smtp.client-ip=115.124.30.110
+	s=arc-20240116; t=1780316185; c=relaxed/simple;
+	bh=Wl9SPVp/U9kRBGvvfgUE/sqcpqQZizeY1e2C9XyOyHk=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=aDxHp4N/E27I9xichtxXG30zmoIHdywL8krvmcfrkuTJye3GUCBLkc0O6HzqjWHQ4CCs/OHsEwq8NBjPvKR/O7ekXWMBo4S5AxOCRuSpPMBw6cFWhly9DGYv4rT0UGd8reS+y4qtySLZXcX3T1GarQGNpEMNoNPOM9EuDYDCDL0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=t36J8J6+; arc=none smtp.client-ip=115.124.30.133
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ZDdKDrmX"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="t36J8J6+"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1780315738; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=EKwpKXjwzV6UmvqL60oz044Di1MmnS40sQ95MxY8qfA=;
-	b=ZDdKDrmXtvBWycWnHDRwXNFH+XvRBXFB76ycAXPSfEoMxyYQyqYWV8+GIrnM/duJvhshY0NJGw0c3D3LK3pZlx2de+03dumwFxN2oOK8vlZ/THk/e7Eg2eWFpI+6scSb15G581XpHNCjzIxQdT3UensESNSl/dnGEaeVkZb/hQw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R531e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=2;SR=0;TI=SMTPD_---0X4.HjJS_1780315735;
-Received: from 30.134.110.188(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X4.HjJS_1780315735 cluster:ay36)
+	t=1780316179; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=QFk2SP9bJAhzH8EQK/tTrhTt4JRpzPGWw9un4dl9lPc=;
+	b=t36J8J6+N5e6dzd2CtIVqy1JMzQQ8bqL58CVFSscYUjkdRoxlVSJnxlLRdxgjithHYVhG1F8tuT4V0Y42Ac23gVbI8So3jpPJa/UAtqrrxUpHh7E/S5Sb+buRBnnlHGRRKqX0O95dGRzRMEem+UBRtOhiu5HfIU+qBXnen4EKDY=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X4-wEix_1780316178;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X4-wEix_1780316178 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 01 Jun 2026 20:08:55 +0800
-Message-ID: <af66a30f-304d-4d29-919b-e7465b0229f7@linux.alibaba.com>
-Date: Mon, 1 Jun 2026 20:08:55 +0800
+          Mon, 01 Jun 2026 20:16:18 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>,
+	Ginger <ginger.jzllee@gmail.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: fix race between ocfs2_control_install_private() and ocfs2_control_release()
+Date: Mon,  1 Jun 2026 20:16:18 +0800
+Message-Id: <20260601121618.1263346-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [bug report] Potential atomicity bug in fs/ocfs2/stack_user.c,
- between ocfs2_control_release() and ocfs2_control_install_private()
-To: Ginger <ginger.jzllee@gmail.com>
-References: <CAGp+u1bveavhtNyW3eCRcDdPCy6-2e5ZyC4bhTtE83n_VW8kQw@mail.gmail.com>
-Cc: "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <CAGp+u1bveavhtNyW3eCRcDdPCy6-2e5ZyC4bhTtE83n_VW8kQw@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-In normal o2cb operation a single ocfs2_controld daemon holds one fd, so
-two concurrent valid opens are atypical.
-But nothing in the code enforces single-open, so the race is genuinely
-reachable.
-I'll send a patch to fix it. Thanks.
+Move atomic_inc(&ocfs2_control_opened) and the handshake state update
+inside ocfs2_control_lock to close a race window where
+ocfs2_control_release() can observe ocfs2_control_opened dropping to
+zero (resetting ocfs2_control_this_node and running_proto) while
+ocfs2_control_install_private() is about to bump the counter and mark
+the connection valid.
 
-On 6/1/26 5:18 PM, Ginger wrote:
-> Dear Linux kernel maintainers,
-> 
-> My research-based static analyzer found a potential atomicity bug
-> within the 'fs/ocfs2' subsystem, more specifically, in
-> 'fs/ocfs2/stack_user.c'.
-> 
-> This potential issue is present as of git commit
-> eb3f4b7426cfd2b79d65b7d37155480b32259a11 of the mainline kernel.
-> 
-> Potential concurrent triggering executions:
-> T0:
-> ocfs2_control_release
->      --> mutex_lock(&ocfs2_control_lock);
->      --> atomic_dec_and_test(&ocfs2_control_opened)
->      --> mutex_unlock(&ocfs2_control_lock);
-> 
-> T1:
-> ocfs2_control_install_private
->     --> mutex_unlock(&ocfs2_control_lock);
->     --> atomic_inc(&ocfs2_control_opened);
-> 
-> The atomic_inc to 'ocfs2_control_opened' in 'ocfs2_control_install_private'
-> is not protected by 'ocfs2_control_lock'.
-> Therefore, it might be possible for T0 to clear ocfs2's global state after
-> 'atomic_dec_and_test' gets zeroed atomic values, while T1 blindly increments
-> the atomic value.
-> 
-> Please kindly check at your convenience. Thank you for your time and
-> consideration.
-> 
-> Best regards,
-> Ginger
+Fixes: 3cfd4ab6b6b4 ("ocfs2: Add the local node id to the handshake.")
+Reported-by: Ginger <ginger@gmail.com>
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/stack_user.c | 10 +++-------
+ 1 file changed, 3 insertions(+), 7 deletions(-)
+
+diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+index 5803f1dee679..91e19d33847c 100644
+--- a/fs/ocfs2/stack_user.c
++++ b/fs/ocfs2/stack_user.c
+@@ -327,18 +327,14 @@ static int ocfs2_control_install_private(struct file *file)
+ 		ocfs2_control_this_node = p->op_this_node;
+ 		running_proto.pv_major = p->op_proto.pv_major;
+ 		running_proto.pv_minor = p->op_proto.pv_minor;
+-	}
+-
+-out_unlock:
+-	mutex_unlock(&ocfs2_control_lock);
+-
+-	if (!rc && set_p) {
+-		/* We set the global values successfully */
+ 		atomic_inc(&ocfs2_control_opened);
+ 		ocfs2_control_set_handshake_state(file,
+ 					OCFS2_CONTROL_HANDSHAKE_VALID);
+ 	}
+ 
++out_unlock:
++	mutex_unlock(&ocfs2_control_lock);
++
+ 	return rc;
+ }
+ 
+-- 
+2.39.3
 
