@@ -1,169 +1,129 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f49.google.com (mail-wr1-f49.google.com [209.85.221.49])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C8C52356777
-	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Jun 2026 02:18:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 195D0303A0D
+	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Jun 2026 04:19:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.49
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780366705; cv=none; b=NzU2s5rvATLrEd8pnJO+I/MZG/gK5BgmR1o7tM2F5Bz1NNOHdJoX/4sejFTPdCc1UiotMzkM5DB/0V6fAZbRDqHYLMvJhD7y1xip7bMtxBvsGwDaE9vCv1sl6Zb6wxmIuZCIgyQVyPgZZfZ3uIoDV7fhOBaKoIy9WEVzPBHTAIs=
+	t=1780373947; cv=none; b=cXSeLdKzr+f/SGg32r7vEExupIZb6Qmx3CqAGG/+PA3+rei11jQz1yiXpv+NEWtrcH63oTQBimTyd97sAiG98mFSfRfJLKX9t9f2IsoYctCh5xXStMV99oZmypJasOAQlsqaqT0zAmRlG+BT3szxj4Magfiw6MHPmncpmgJFAD8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780366705; c=relaxed/simple;
-	bh=5T2wDKOdW2HbLJbw9Fuq67U1R2pG+jqWQduUzI4ZreU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
-	 In-Reply-To:Content-Type; b=VoAFBpaE1SijoKSzlpgn83BUeVv7IRDiN4tg3ntxWxJt4E+I9I6HOwX+B9fuQex+YMM+UC5MFHpsJgyjQRE8M4kSq1+GrzhWMfpyV/WFN9LKOan6Ro1QtlOPocIpJ8iu6ht4ITNaB8F/fUWgsgeTZWDIAtLxU1wjbyu830qu5Qw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=RjfP/zXB; arc=none smtp.client-ip=115.124.30.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1780373947; c=relaxed/simple;
+	bh=D2tkcdqQevHKnm7iyZrvFSN0FryfucMDfN1jJHoaB2Y=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=LDwV0VkP+uUvUjtZP3umb3G6J/+piAy+hM8RWKJZ5V3cWF2jYKF1WiMxOWq/h6EEdpN80wtKl9q2FS6oxK4kuDdQoySw24Oz6ChvWMFUVaU23EyX3oy5ZYaNm491Q8LGUEaTc2gpITk0YQUoCKL+fjvytsWKSTZrO2Zh77m8T9c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=SelqA7pP; arc=none smtp.client-ip=209.85.221.49
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="RjfP/zXB"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1780366695; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=9bDBeMgWCG5X2Z0ZLEs6sFz90iFIP1LtxBCqcG2hN2A=;
-	b=RjfP/zXB2Xt4bQp05KMN44YdTWTtShqcyM+t9ZpmIyyGe+LsoJ+84q+9EoBToEhvDKxnBO5DCvV9XdxbrORqlYWHv8Dlll0WzG9y8UApYSIESG4TmXdbmsi3vBN+QmjYKzTMeiOjWRa4MeqIYlnlH6ev99MWL9cE8GS+a+zyZno=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R501e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X42YrvM_1780366693;
-Received: from 30.221.145.10(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X42YrvM_1780366693 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 02 Jun 2026 10:18:14 +0800
-Message-ID: <cd5b155f-a580-4103-b87f-6d9eb3dc9b5f@linux.alibaba.com>
-Date: Tue, 2 Jun 2026 10:18:12 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="SelqA7pP"
+Received: by mail-wr1-f49.google.com with SMTP id ffacd0b85a97d-45ef57256d8so368453f8f.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 01 Jun 2026 21:19:04 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1780373943; x=1780978743; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=GQIJYgqXVDOV+QlU5wqTYbdRma5//XsEXiIIBLD54Ts=;
+        b=SelqA7pPs7724iNeJ7aO6XBht1l9Ce2N2iXrK7drRL0d7hdrYeygSlMPgW+utZfBc7
+         23r+ELAIjv3dWLjqnN3o3vR1DGM5IOJ9YTr1JXu+Rzw8juMOLD1eBEOKvjHtvf6C1mXW
+         PLpKSs7BZjoH/TDCAviRI4/BikfVchFZgQeXV3BxyIgqiLMkhk1Qvpi3KeptdtE9/9RI
+         953UErSWTO4bCr0NZgZK/Ig8OYIK3X5NaxrSPGYufOMBWSVNwyu/h7/zkfeRgjMidWz8
+         X/50VoOZIorPJqbkuZdzSel2P8YLFVc/xUCqSH8+4SLxuYHtk/PIA/e64rFGldV46H5s
+         OsDg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1780373943; x=1780978743;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=GQIJYgqXVDOV+QlU5wqTYbdRma5//XsEXiIIBLD54Ts=;
+        b=YYL34CIS2rnA0/riMCjgSlwlDZJZNhFyTzUHKC48dD9Vk7HFS+zrfRG/4mBJPvuDaw
+         IdkRjAizXOcSVRodlVbM6FZAMQxUTK7N8JzWHYF9H/FNnEquHOhfLht8IWhoHKiWktzS
+         8mZ6lh8wllCf3l/MkSngQ/VTFRiYKZitkObivmpI3xnfd/CLHEfIjwBQQW4l5kejZ4w+
+         +qXxE3rrkhrRBrdjlJwo2njGCMZkKRKE4d9hbsaXtcGn5JYLnxD8mv7tAFys6p/Y9Pi4
+         IM+880eDoI+WXL2ZJkhuztNeh/wFJhPWdsCd63UHhLndckyJnLPj7Q4bTAAZxwfQJNjQ
+         uXYg==
+X-Forwarded-Encrypted: i=1; AFNElJ83vNYLWbS0TJvIyIR/HkpKSPxMqpPJ9TpPWD09tpK8jxDzpRXMjqDC4FsK0XaekE31v9b8RhHUMszhmg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzsRdXb4o2QYDodupxBwqX4UfsVRAnTuE0cDIW3tqwfybylOu4I
+	j4Qob0iO4Bhy02/fdSv7H3IYte7YM3UE1Id8fD8A7pzUSw0SZSrzaGjN6PMCykmt2bUZ4ddUg8D
+	s3mK/Wpg=
+X-Gm-Gg: Acq92OF0o6GX0GNQu1Ti2Iwca83Yty8L9Dsr+kHfcZPEL+BiBzxvP4wrE4yU/nOCxNT
+	4SlDoNlIhL4Hk/duiI+sojrvZRbgDjjqw5Xk9aLVYmkDBzPzo1pfnr1Yr7Q9StN6FicRY8QFpyn
+	JG6jjlZeUxAHfZ9auwxNeO5+q6JgPZJGHQFUh/ueSr6gkEOzpdzhD6RF4s/dzOg43OCskjkp3y/
+	OyRh/HcH92jY06stfH4J4c0/NT10trdc8+JbsC9Y19AgwfwfpHXcnlaJxLDjPv7A/hkpXRz35F/
+	xCGx3ozgoOFlts0UwsVTTarFYMViv/85AyKU4kxPQ0iaYp5UQFysEjrO/IpTM0NEu7dRNzfbdCm
+	1Y1C586oCIClxaj8YwsbIW0jPfRcZdt2EE0sbgbox/ztL68o13YvTsv8hNBZZS0SisBaysEHXtL
+	meUZTYMUEtqCmDSlAicDWKrM1RMGMYhP5u
+X-Received: by 2002:a05:600c:3f1b:b0:490:4175:4bf4 with SMTP id 5b1f17b1804b1-490a2997abfmr129013035e9.8.1780373943479;
+        Mon, 01 Jun 2026 21:19:03 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-36dd91aec9csm1166430a91.6.2026.06.01.21.19.02
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 01 Jun 2026 21:19:02 -0700 (PDT)
+Date: Tue, 2 Jun 2026 12:18:59 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Ginger <ginger.jzllee@gmail.com>, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] ocfs2: fix race between ocfs2_control_install_private()
+ and ocfs2_control_release()
+Message-ID: <ah5ZMguK4Pzh1DfX@p15>
+References: <20260601121618.1263346-1-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix out-of-bounds write in
- ocfs2_remove_refcount_extent
-To: Ian Bridges <icb@fastmail.org>, akpm <akpm@linux-foundation.org>
-References: <ah3TESOsEO9j_JLU@dev>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <ah3TESOsEO9j_JLU@dev>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260601121618.1263346-1-joseph.qi@linux.alibaba.com>
 
-
-
-On 6/2/26 2:44 AM, Ian Bridges wrote:
-> [BUG]
-> Unlinking a refcounted file whose refcount tree has leaf blocks
-> triggers a fortify panic due to an out-of-bounds write.
+On Mon, Jun 01, 2026 at 08:16:18PM +0800, Joseph Qi wrote:
+> Move atomic_inc(&ocfs2_control_opened) and the handshake state update
+> inside ocfs2_control_lock to close a race window where
+> ocfs2_control_release() can observe ocfs2_control_opened dropping to
+> zero (resetting ocfs2_control_this_node and running_proto) while
+> ocfs2_control_install_private() is about to bump the counter and mark
+> the connection valid.
 > 
-> [CAUSE]
-> When the last leaf block is removed from a refcount tree,
-> ocfs2_remove_refcount_extent() converts the root back to leaf mode
-> with a bulk memset on &rb->rf_records. rf_records sits in an anonymous
-> union with rf_list. rf_list.l_tree_depth aliases rf_records.rl_count,
-> and is 0 for a single-level tree. With rl_count equal to 0, the memset
-> writes past the 16-byte declared size of rf_records, which the fortify
-> checker catches.
-> 
-> [FIX]
-> Replace the bulk memset on &rb->rf_records with a correctly-bounded
-> memset on rl_recs[] alone, after setting rl_count to the correct value.
-> 
-> Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
-> Reported-by: syzbot+3ef989aae096b30f1663@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=3ef989aae096b30f1663
-> Signed-off-by: Ian Bridges <icb@fastmail.org>
+> Fixes: 3cfd4ab6b6b4 ("ocfs2: Add the local node id to the handshake.")
+> Reported-by: Ginger <ginger@gmail.com>
 
-Looks good.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+The code looks good to me, but above email address is not valid.
+The correct should be: <ginger.jzllee@gmail.com>
 
+- Heming
+
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
-> This patch contains a proposed fix for a crash reported by syzbot
-> in __ocfs2_decrease_refcount().
+>  fs/ocfs2/stack_user.c | 10 +++-------
+>  1 file changed, 3 insertions(+), 7 deletions(-)
 > 
-> The file names and offsets in this description are from commit
-> 7cb1c5b32a2bfde961fff8d5204526b609bcb30a from this repo:
-> git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging.git
-> 
-> I also have a small test harness that reproduces the original panic,
-> which I can make available as well.
-> 
-> The Bug
-> 
-> The ocfs2_refcount_list structure (fs/ocfs2/ocfs2_fs.h:935) contains
-> two fields relevant to this bug: rl_count, the maximum number of
-> refcount record slots, and rl_used, the number of occupied slots. The
-> flexible array member rl_recs is annotated __counted_by_le(rl_count)
-> (fs/ocfs2/ocfs2_fs.h:942), which instructs the compiler to use
-> rl_count as the runtime bound for __builtin_dynamic_object_size
-> queries on rl_recs when CONFIG_FORTIFY_SOURCE is enabled.
-> 
-> ocfs2_remove_refcount_extent() (fs/ocfs2/refcounttree.c:2066) is
-> called when the last refcount record is removed from a leaf block. If
-> that leaf was also the last one, the root is converted back from tree
-> mode to leaf mode. The restore path (fs/ocfs2/refcounttree.c:2131–2137)
-> zeros the header fields and resets the on-disk record area with a memset
-> on &rb->rf_records (fs/ocfs2/refcounttree.c:2134).
-> 
-> This is an out-of-bounds write of the rf_records struct member.
-> rf_records and rf_list share the same memory in an anonymous union; the
-> first field of rf_list, l_tree_depth, occupies the same bytes as
-> rf_records.rl_count. A refcount tree is always single-level, so
-> l_tree_depth is 0, which means rl_count reads as 0 at the memset call
-> site. The declared size of rf_records is therefore 16 bytes (the fixed
-> header with zero record slots), but the memset writes the full remainder
-> of the block (past the end of the struct member).
-> 
-> Here is a step-by-step breakdown of how the crash is triggered by
-> unlinking a refcounted file:
-> 
-> 0. Inode eviction calls through to ocfs2_commit_truncate()
-> (fs/ocfs2/alloc.c:7241), which calls ocfs2_remove_btree_range()
-> (fs/ocfs2/alloc.c:5714) for each extent range. Because the extents
-> are refcounted, ocfs2_decrease_refcount() (fs/ocfs2/alloc.c:5800)
-> is called to decrement the reference count for each cluster.
-> 1. For each cluster whose reference count reaches zero,
-> ocfs2_decrease_refcount_rec() (fs/ocfs2/refcounttree.c:2158)
-> removes the corresponding record from the leaf block.
-> 2. When the last record is removed from a leaf block, rl_used reaches
-> 0 and ocfs2_remove_refcount_extent() (fs/ocfs2/refcounttree.c:2203)
-> is called to detach it from the tree root's extent list.
-> 3. If that was the last leaf, the root has no remaining extents and
-> the restore-to-leaf-mode path at fs/ocfs2/refcounttree.c:2125 is
-> entered.
-> 4. The memset at fs/ocfs2/refcounttree.c:2134 writes past the
-> 16-byte declared size of rf_records. The fortify checker reads
-> rl_count, which is 0 because it aliases l_tree_depth in the union,
-> and fires.
-> 
-> The Proposed Fix
-> 
-> Replace the bulk memset on &rb->rf_records with explicit initialisation
-> of each header field of ocfs2_refcount_list, followed by a
-> correctly-bounded memset on rl_recs[] alone. rl_count is set before the
-> memset so that the fortify checker can read it at runtime to verify the
-> write against the declared array size.
-> 
->  fs/ocfs2/refcounttree.c | 9 +++++++--
->  1 file changed, 7 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 8eee5be4d1ed..7323bde70caa 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -2131,10 +2131,15 @@ static int ocfs2_remove_refcount_extent(handle_t *handle,
->  		rb->rf_flags = 0;
->  		rb->rf_parent = 0;
->  		rb->rf_cpos = 0;
-> -		memset(&rb->rf_records, 0, sb->s_blocksize -
-> -		       offsetof(struct ocfs2_refcount_block, rf_records));
-> +		rb->rf_records.rl_used = 0;
-> +		rb->rf_records.rl_reserved2 = 0;
-> +		rb->rf_records.rl_reserved1 = 0;
-> +		/* rl_count determines the memset size and fortify object size. */
->  		rb->rf_records.rl_count =
->  				cpu_to_le16(ocfs2_refcount_recs_per_rb(sb));
-> +		memset(rb->rf_records.rl_recs, 0,
-> +		       le16_to_cpu(rb->rf_records.rl_count) *
-> +		       sizeof(*rb->rf_records.rl_recs));
+> diff --git a/fs/ocfs2/stack_user.c b/fs/ocfs2/stack_user.c
+> index 5803f1dee679..91e19d33847c 100644
+> --- a/fs/ocfs2/stack_user.c
+> +++ b/fs/ocfs2/stack_user.c
+> @@ -327,18 +327,14 @@ static int ocfs2_control_install_private(struct file *file)
+>  		ocfs2_control_this_node = p->op_this_node;
+>  		running_proto.pv_major = p->op_proto.pv_major;
+>  		running_proto.pv_minor = p->op_proto.pv_minor;
+> -	}
+> -
+> -out_unlock:
+> -	mutex_unlock(&ocfs2_control_lock);
+> -
+> -	if (!rc && set_p) {
+> -		/* We set the global values successfully */
+>  		atomic_inc(&ocfs2_control_opened);
+>  		ocfs2_control_set_handshake_state(file,
+>  					OCFS2_CONTROL_HANDSHAKE_VALID);
 >  	}
 >  
->  	ocfs2_journal_dirty(handle, ref_root_bh);
-
+> +out_unlock:
+> +	mutex_unlock(&ocfs2_control_lock);
+> +
+>  	return rc;
+>  }
+>  
+> -- 
+> 2.39.3
+> 
