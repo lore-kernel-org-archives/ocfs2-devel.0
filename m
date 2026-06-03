@@ -1,179 +1,275 @@
-Received: from mail-oa1-f77.google.com (mail-oa1-f77.google.com [209.85.160.77])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from flow-b6-smtp.messagingengine.com (flow-b6-smtp.messagingengine.com [202.12.124.141])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 782D8364E81
-	for <ocfs2-devel@lists.linux.dev>; Tue,  2 Jun 2026 16:22:28 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.77
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9A8EF4611FC
+	for <ocfs2-devel@lists.linux.dev>; Wed,  3 Jun 2026 12:38:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780417350; cv=none; b=uEYGaHKNVt8GqfzCw9LgFzLBCQYLC9FsDb2JyN8Gpma96NCQk7Iu7LLUMaryOZpc/eTYHEmW+1W142nOqb3Yq2vkWiUYBXvzD8T/9nHarsJZ6Ba/AlZI7aCK+kQRQMrzFBZXrfrfM0b/GwHKoOGfZaboYf6AO2BFKcxNHIyJOrA=
+	t=1780490330; cv=none; b=ChEHFFKYOOF8lYmOtkJY93dyw9Hj6rawrCgHfobsUt+59RO+nlBzWDrkTzu7eCfTRboCHwiZvuxxk+DZKxfrWWIKBRgLn+Ba76hmg7AgCO8aaWfIcJJBbglt+dS2E5s+baEWAHawMLXh8vFmwddLENoeplWilIUMyMEzXuJZypU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780417350; c=relaxed/simple;
-	bh=xoduBMW0/n1pTJFKTKGR353VPfeLH4b45K6FPvhDBw8=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=OF+zQ+0FIfb8tqUlfBJGJCtBvrW3P13O544tqzbygg0LL+DQ1XARBL/kn9QseWkc59daGFVBdDJYSLxeI57EF2MA5Mwk1/LtYjAp9bRDu+gdsbBncOmClCIsgMOqDsplgQK9jiMKAuEiGN3R85FK7+JB5dJYNTHKNxETJf2uGfc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.160.77
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oa1-f77.google.com with SMTP id 586e51a60fabf-43ccdfac598so4385502fac.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 02 Jun 2026 09:22:28 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1780417347; x=1781022147;
-        h=to:from:subject:message-id:date:mime-version:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=DRaHAoTRMG3LM3ghtp91tt6+4AN5BoFGpeAZZZZOjnw=;
-        b=RJSvnZtfzcqUE3oysyYebp6TwAcBWlYH3ZkDGnCtzdUu1X/amA4XxePqln85nhq2eP
-         kco1Uo859xVTLCziZMmdZln/HPOxBKims6m826sRZUdPgk0VOXolKV6ROywBtkUHhnIj
-         DNVZC2yCZZ+fWzRAs3WvhQlWbePFlISzxeRgFBukfCEyffc1n7j2QJPpCAN4mOUiv4nF
-         nC4Upmom+SpsGyaabGV7MPoSkFX/vRCEh00FxwhOrzZGZCgYCPQESdk0OekNLYtrgFf/
-         Ov3MZU+t/oOl40J9qOQL2Ktt32yegOEJuQOUXJTGylAxpYqlmUGDi5GwiN3oEt7HWYF6
-         jtrw==
-X-Forwarded-Encrypted: i=1; AFNElJ9cDxhmHFIvMeH5h9J6v0EA8iqmgTyCk6dle52fY9/0JYFwOGlTsUCcunX9NsoJU+r5fxmEvdaExIpibw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzLpLs0XC5vb7/cx03X466dWbrohQic9ysEKzcJtXctq/AV9J7J
-	YpjHEvrcrmnJwOtDGMpgzT/E3cT+FOUkk7iS0aGxMw1X8gmeJAOmyGzVR2eMcgXhRfRl3f3x0Sa
-	M5ZXXT6E5lsgRUXHyPNPkPBhLsuj9YjS4+lGlHQ1f+uoypo3LTqSy3RR8yDE=
+	s=arc-20240116; t=1780490330; c=relaxed/simple;
+	bh=rhOrhGqrLtKL5FbvAwzt50Am28EYyxK/hjYwT71VFKs=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=dQJe1ZqDMnYmkdA3zqAIRuHHwN8AA7Pul4/tWrjOW4U9NWOGVuQorE2mg9Tvuqe96l1/Jic9wVYMdQNtbk+iJd6irz5GrL54b7pprusb2Kf3194jPe0EbNQx34UV6TGpxVu17OKj1TozBM44R0dsOt0gjthaqvKHOBAIHZ2OZIk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org; spf=pass smtp.mailfrom=fastmail.org; dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b=W/NSKjlh; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=HhwVYQor; arc=none smtp.client-ip=202.12.124.141
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fastmail.org
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b="W/NSKjlh";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="HhwVYQor"
+Received: from phl-compute-04.internal (phl-compute-04.internal [10.202.2.44])
+	by mailflow.stl.internal (Postfix) with ESMTP id 830301300193;
+	Wed,  3 Jun 2026 08:38:43 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-04.internal (MEProxy); Wed, 03 Jun 2026 08:38:43 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=fastmail.org; h=
+	cc:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to; s=fm1; t=1780490323;
+	 x=1780493923; bh=NMF7kKc2gK1n4Tzh1GbjI74wVDHa55vUP/SItIqGRwk=; b=
+	W/NSKjlhmmLyEl0a86NBo1O8N4jPRcWGjsks/eSinztqgWaVIYMiRnUpCZIumzkb
+	1A1Yy1P7OzXHXNp4/3pDPnycvsqOpuOOorVZLyRMGsDge4WwNClhfYo82Gfove3T
+	wwfxarGEqAzgJS7DOBly36ACBLSIDkJAhht4tEeXYSjhggSu1AcI7U4urz7KTNqV
+	wWRjpuSbZ9yHqBgMCmotKuS8kjAosevB9AwaCF3b7gTdJJ081LlU876Q0u99xDGi
+	AJYWH2SL7mFny25npwPkD3SFCIgnrmyIsjVatRY/JpewDQYMqj55ad5U8xmu9A/K
+	WLNn0TPqu/jCZhi4yixkDQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:in-reply-to:message-id:mime-version
+	:references:reply-to:subject:subject:to:to:x-me-proxy
+	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1780490323; x=
+	1780493923; bh=NMF7kKc2gK1n4Tzh1GbjI74wVDHa55vUP/SItIqGRwk=; b=H
+	hwVYQorO7PirS/5/Nmymj7p+Zg+emFdxmI1OP5O/47Kl7thOyfOYzyLT/rEvMd+D
+	zxTc8oUXGyp+VR6J1yWlcA+OGp8xY0b0cqZsBNFd/AIM9EBxmD9bW9dEuC/DgfeW
+	C+McOiARHdogPBMpKWiG1KMhJ0Gc8SgGgWp591iKsQ9GM/AWfPMAI+FFNHBynmuG
+	0t3655Wtdn5pMVoRW95xTZ5SgvpcBxmtMGX0VlUPDGoYAbP+9QkiapUIufwAqgp5
+	+Yw8u6kqR1nYkSgUkxBPj+l5+J2syhq1/lcuca8DG4g+6Z9HfACjPZL/UgWr1aMQ
+	M5nvMmBD7LfYXBIxzB0mw==
+X-ME-Sender: <xms:UiAgaqw5J8UdnpvM8hY_wW1f8qgazOlvhdhmW-2Vu5tWrZNO0HpOUw>
+    <xme:UiAgaoga4oBqas0774Pz3HeIB3chDRVNAJHA9SwyEY1KX6Zhw2vkcL9YUO6Li8lCA
+    1t5_DL08fr_2MEwqS0EeE4bdu1vSorbop05CsfiMuBMZaknZ5tdA9g>
+X-ME-Received: <xmr:UiAgaulXv1Sdc45TIK4-UFXl7zhl9borBNGwKochryzqHy2lv9R_p1_CDqw>
+X-ME-Proxy-Cause: dmFkZTFDcJKQYwpKPf1/fLpnMfucWfCBviGJMl7aEFmOcyqKJ+Xisv5hQYrdah+0yEKpJv
+    iX8cJu5aHaDAMPsxfBnwoNKDi95OKl5NpnUmPAfBqr0EOmk9eKSMBp5EVuCRzHwLEzKxe6
+    PjTvcJqNUBWfrOOmKiUusPSo47ADkJNMl/wVFrpzIXdnvzO2JMRNEz0U77023P3vyYfhP2
+    3RY1FoSL8BaTeHnmPkEkP2JaCEzmYSTE8JRH3Ct8L/RVxw6bAkQM/WRonfAABix/sQSs2+
+    4weAFcYUQsStImzdm+u5M0e2tph3NIl3NWT7CnjojZbI8Pnt7GKLlTgXbdtnDj8cc0Z2Im
+    +0go2yLK9wXxDWuQNXPmzinEzVbius2ukXvqDrcb12MJ2QEkZ9NuNHe1fBhmKVnyL6Lzq/
+    +PEW/AuVe0OzZ5NjvPwS/avc4hQ8ecSiK8caDlL02zb469ViWdlD2v6KWBI1m0ET1a2eNG
+    NQXDzQz5ulC0A1F4jiZbt8NCijGgf73ePnmFFzX+F2N8iAkwLzTGV1CvFFkXxhacLepApx
+    EUZ5Y6FRAs5Kw7+uGDC4R0TdZhRqfQsWbFmNBBG/LERLBQkJnJB/n+BfDuCzIspfYK2/AH
+    HhK9fU4B9Do1Es1c4XQ28gYVguDnjdR6aHovHuTX4FE6c6OTI9MTXrOZUoSA
+X-ME-Proxy: <xmx:UiAgamgy76WwYiK-_AMHDhYAba9PVFqgq0sxc9ujxqoCTwqP47ak2w>
+    <xmx:UiAgaq26tn28zMnllnCUbej9UlSQYFSCVCvgNY8LMUD_j6OSz2Gt0g>
+    <xmx:UiAganJJTiJdegWgfzwNOXC6_YOU_-O7R_dQIIz4WZV5C22UXWEREg>
+    <xmx:UiAgaiwNRPYhJZqFKOHouR-q4XvSbeJFguDTHopsp3klwFowO9FPhQ>
+    <xmx:UyAgahKgWXygFNs3J4kOTuB1Uq8iCDhyTNOE7-qNr36QeK9YHEYrIISc>
+Feedback-ID: ib53e4b78:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Wed,
+ 3 Jun 2026 08:38:42 -0400 (EDT)
+Date: Wed, 3 Jun 2026 07:38:39 -0500
+From: Ian Bridges <icb@fastmail.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH] ocfs2: fix UBSAN array-index-out-of-bounds in
+ ocfs2_sum_rightmost_rec
+Message-ID: <aiAgT5EvkkCsc6Dl@dev>
+References: <ah2ljwKRw-Xsi4Ga@dev>
+ <ef679c1c-c8cb-45d4-9624-2bc6346e4415@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:134a:b0:69d:ef3c:7e34 with SMTP id
- 006d021491bc7-69e4678fc46mr268821eaf.0.1780417347476; Tue, 02 Jun 2026
- 09:22:27 -0700 (PDT)
-Date: Tue, 02 Jun 2026 09:22:27 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6a1f0343.c1435f33.112120.04c5.GAE@google.com>
-Subject: [syzbot] [ocfs2?] general protection fault in ocfs2_assure_trans_credits
- (2)
-From: syzbot <syzbot+e9c15ff790cea6a0cfae@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <ef679c1c-c8cb-45d4-9624-2bc6346e4415@linux.alibaba.com>
 
-Hello,
+On Tue, Jun 02, 2026 at 09:46:56AM +0800, Joseph Qi wrote:
+> 
+> 
+> On 6/1/26 11:30 PM, Ian Bridges wrote:
+> > [BUG]
+> > On-disk corruption setting l_next_free_rec to 0 in an inode's inline
+> > extent list triggers a UBSAN panic on the next write to that file.
+> > 
+> > [CAUSE]
+> > ocfs2_sum_rightmost_rec() computes
+> > i = le16_to_cpu(el->l_next_free_rec) - 1
+> > and accesses el->l_recs[i] without validating i. When l_next_free_rec
+> > is 0, i becomes -1; when l_next_free_rec exceeds l_count, i falls
+> > past the end of the array. Either case violates the
+> > __counted_by_le(l_count) annotation on l_recs[] and triggers UBSAN.
+> > 
+> > [FIX]
+> > Read l_count once into a local variable to eliminate a TOCTOU between
+> > the bounds check and the __counted_by_le-generated check at the array
+> > access. Validate i against both bounds before dereferencing l_recs[].
+> > On an out-of-bounds index call ocfs2_error() since both cases indicate
+> > filesystem corruption.
+> > 
+> > Update the signature to accept a struct ocfs2_caching_info *ci and
+> > return int, with the cluster sum returned through a u32 out-parameter.
+> > Update both callers to pass et->et_ci and propagate the error.
+> > 
+> > Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
+> > Reported-by: syzbot+be16e33db01e6644db7a@syzkaller.appspotmail.com
+> > Closes: https://syzkaller.appspot.com/bug?extid=be16e33db01e6644db7a
+> > Signed-off-by: Ian Bridges <icb@fastmail.org>
+> > ---
+> > This patch contains a proposed fix for a crash reported by syzbot
+> > in ocfs2_grow_tree().
+> > 
+> > The file names and offsets in this description are from commit
+> > 7cb1c5b32a2bfde961fff8d5204526b609bcb30a from this repo:
+> > git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging.git
+> > 
+> > I also have a small test harness that reproduces the original panic,
+> > which I can make available as well.
+> > 
+> > The Bug
+> > 
+> > The ocfs2_extent_list structure (fs/ocfs2/ocfs2_fs.h:458) contains
+> > two fields relevant to this bug: l_count, the total number of extent
+> > record slots in the list, and l_next_free_rec, the index of the next
+> > unused slot. The extent record array l_recs is annotated
+> > __counted_by_le(l_count) (fs/ocfs2/ocfs2_fs.h:472), which instructs
+> > UBSAN to bounds-check every access to l_recs against l_count.
+> > 
+> > ocfs2_sum_rightmost_rec() (fs/ocfs2/alloc.c:1106) is a helper used
+> > by both ocfs2_add_branch() and ocfs2_shift_tree_depth() to compute
+> > the logical cluster position just past the rightmost occupied extent
+> > record. It derives the index of that record as:
+> > 
+> > i = le16_to_cpu(el->l_next_free_rec) - 1;  /* alloc.c:1110 */
+> > 
+> > and then accesses el->l_recs[i] (fs/ocfs2/alloc.c:1112) without
+> > first checking that i is a valid index. This is the root cause of
+> > the bug.
+> > 
+> > The syzbot report shows index -1 at the crash site, which means
+> > l_next_free_rec was 0 at the point of the crash. The crash occurs
+> > inside ocfs2_shift_tree_depth() (fs/ocfs2/alloc.c:1375), which is
+> > reached when ocfs2_find_branch_target() returns 1. That return value
+> > is only produced when l_next_free_rec equals l_count
+> > (fs/ocfs2/alloc.c:1530). Since l_next_free_rec is 0, l_count must
+> > also be 0 for this condition to hold.
+> > 
+> > The normal inode read path, ocfs2_validate_inode_block()
+> > (fs/ocfs2/inode.c:1423), does not validate the inline extent list
+> > fields l_count or l_next_free_rec. A filesystem image with these
+> > fields set to 0 in an inode's inline extent list therefore passes
+> > read-time validation without error.
+> > 
+> 
+> So why not move the check into ocfs2_validate_inode_block()?
+> Seems that is the right place to do this kind of work.
+> 
+> Thanks,
+> Joseph
 
-syzbot found the following issue on:
+When I wrote the patch, I tried to place the check as close to the use
+to prevent potential TOCTOU issues. However, after reviewing the code
+again, I do thing ofcs2_validate_inode_block() is the correct location
+for check. I will work on resubmitting an updated patch.
 
-HEAD commit:    6f3ed7fec72f Merge tag 'for-7.1/dm-fixes-3' of git://git.k..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=10fbe441580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=b4166e8ea5fbf7e3
-dashboard link: https://syzkaller.appspot.com/bug?extid=e9c15ff790cea6a0cfae
-compiler:       Debian clang version 21.1.8 (++20251221033036+2078da43e25a-1~exp1~20251221153213.50), Debian LLD 21.1.8
+Ian
 
-Unfortunately, I don't have any reproducer for this issue yet.
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-6f3ed7fe.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/3810c8d15f8e/vmlinux-6f3ed7fe.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/e1a03916d507/bzImage-6f3ed7fe.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+e9c15ff790cea6a0cfae@syzkaller.appspotmail.com
-
-(syz.0.0,5328,0):ocfs2_extend_trans:457 ERROR: status = -30
-(syz.0.0,5328,0):ocfs2_try_to_merge_extent:3826 ERROR: status = -30
-Oops: general protection fault, probably for non-canonical address 0xdffffc0000000000: 0000 [#1] SMP KASAN NOPTI
-KASAN: null-ptr-deref in range [0x0000000000000000-0x0000000000000007]
-CPU: 0 UID: 0 PID: 5328 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-RIP: 0010:jbd2_handle_buffer_credits include/linux/jbd2.h:-1 [inline]
-RIP: 0010:ocfs2_assure_trans_credits+0x7d/0x370 fs/ocfs2/journal.c:476
-Code: 4c 89 f0 48 c1 e8 03 42 80 3c 28 00 74 08 4c 89 f7 e8 67 a9 6b fe 4d 8b 3e eb 08 e8 5d c5 fe fd 4d 89 f7 4c 89 f8 48 c1 e8 03 <42> 80 3c 28 00 74 08 4c 89 ff e8 44 a9 6b fe 4d 8b 3f 49 8d 7e 10
-RSP: 0018:ffffc9000df36c88 EFLAGS: 00010246
-RAX: 0000000000000000 RBX: 000000000000000a RCX: 0000000000100000
-RDX: ffffc90020001000 RSI: 000000000001bbb3 RDI: 000000000001bbb4
-RBP: 0000000000000000 R08: ffff88801f8bca80 R09: 0000000000000006
-R10: 00000000fffffffc R11: 0000000000000002 R12: 0000000000000001
-R13: dffffc0000000000 R14: ffff88805584b9a0 R15: 0000000000000000
-FS:  00007f40eb90b6c0(0000) GS:ffff88808c891000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007fc50904de9c CR3: 000000001faf7000 CR4: 0000000000352ef0
-Call Trace:
- <TASK>
- ocfs2_dio_end_io_write fs/ocfs2/aops.c:2334 [inline]
- ocfs2_dio_end_io+0x7d2/0x1370 fs/ocfs2/aops.c:2418
- dio_complete+0x25b/0x790 fs/direct-io.c:281
- __blockdev_direct_IO+0x2e5d/0x34e0 fs/direct-io.c:1303
- ocfs2_direct_IO+0x251/0x2c0 fs/ocfs2/aops.c:2455
- generic_file_direct_write+0x1db/0x3e0 mm/filemap.c:4259
- __generic_file_write_iter+0x11d/0x230 mm/filemap.c:4428
- ocfs2_file_write_iter+0x1663/0x1e70 fs/ocfs2/file.c:2476
- iter_file_splice_write+0x9a1/0x10f0 fs/splice.c:736
- do_splice_from fs/splice.c:936 [inline]
- direct_splice_actor+0x101/0x160 fs/splice.c:1159
- splice_direct_to_actor+0x53a/0xc70 fs/splice.c:1103
- do_splice_direct_actor fs/splice.c:1202 [inline]
- do_splice_direct+0x195/0x290 fs/splice.c:1228
- do_sendfile+0x535/0x7d0 fs/read_write.c:1372
- __do_sys_sendfile64 fs/read_write.c:1433 [inline]
- __se_sys_sendfile64+0x144/0x1a0 fs/read_write.c:1419
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f40ea99ce59
-Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f40eb90afe8 EFLAGS: 00000246 ORIG_RAX: 0000000000000028
-RAX: ffffffffffffffda RBX: 00007f40eac16090 RCX: 00007f40ea99ce59
-RDX: 0000000000000000 RSI: 000000000000000a RDI: 0000000000000009
-RBP: 00007f40eaa32d6f R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000020fffe82 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007f40eac16128 R14: 00007f40eac16090 R15: 00007fffd1b83c38
- </TASK>
-Modules linked in:
----[ end trace 0000000000000000 ]---
-RIP: 0010:jbd2_handle_buffer_credits include/linux/jbd2.h:-1 [inline]
-RIP: 0010:ocfs2_assure_trans_credits+0x7d/0x370 fs/ocfs2/journal.c:476
-Code: 4c 89 f0 48 c1 e8 03 42 80 3c 28 00 74 08 4c 89 f7 e8 67 a9 6b fe 4d 8b 3e eb 08 e8 5d c5 fe fd 4d 89 f7 4c 89 f8 48 c1 e8 03 <42> 80 3c 28 00 74 08 4c 89 ff e8 44 a9 6b fe 4d 8b 3f 49 8d 7e 10
-RSP: 0018:ffffc9000df36c88 EFLAGS: 00010246
-RAX: 0000000000000000 RBX: 000000000000000a RCX: 0000000000100000
-RDX: ffffc90020001000 RSI: 000000000001bbb3 RDI: 000000000001bbb4
-RBP: 0000000000000000 R08: ffff88801f8bca80 R09: 0000000000000006
-R10: 00000000fffffffc R11: 0000000000000002 R12: 0000000000000001
-R13: dffffc0000000000 R14: ffff88805584b9a0 R15: 0000000000000000
-FS:  00007f40eb90b6c0(0000) GS:ffff88808c891000(0000) knlGS:0000000000000000
-CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-CR2: 00007fd362a6f000 CR3: 000000001faf7000 CR4: 0000000000352ef0
-----------------
-Code disassembly (best guess):
-   0:	4c 89 f0             	mov    %r14,%rax
-   3:	48 c1 e8 03          	shr    $0x3,%rax
-   7:	42 80 3c 28 00       	cmpb   $0x0,(%rax,%r13,1)
-   c:	74 08                	je     0x16
-   e:	4c 89 f7             	mov    %r14,%rdi
-  11:	e8 67 a9 6b fe       	call   0xfe6ba97d
-  16:	4d 8b 3e             	mov    (%r14),%r15
-  19:	eb 08                	jmp    0x23
-  1b:	e8 5d c5 fe fd       	call   0xfdfec57d
-  20:	4d 89 f7             	mov    %r14,%r15
-  23:	4c 89 f8             	mov    %r15,%rax
-  26:	48 c1 e8 03          	shr    $0x3,%rax
-* 2a:	42 80 3c 28 00       	cmpb   $0x0,(%rax,%r13,1) <-- trapping instruction
-  2f:	74 08                	je     0x39
-  31:	4c 89 ff             	mov    %r15,%rdi
-  34:	e8 44 a9 6b fe       	call   0xfe6ba97d
-  39:	4d 8b 3f             	mov    (%r15),%r15
-  3c:	49 8d 7e 10          	lea    0x10(%r14),%rdi
-
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
+> 
+> > The syzbot console log shows a separate validation error at mount
+> > time — "Invalid dinode #17058: Corrupt state (nlink = 0 or mode =
+> > 0)" — indicating that the mounted filesystem contained at least one
+> > other corrupted inode. No reproducer was available in the report, so
+> > the exact mechanism by which the corruption was introduced is not
+> > known.
+> > 
+> > Here is a breakdown of how the crash is triggered:
+> > 
+> > 1. A write syscall eventually calls into ocfs2_insert_extent() to
+> > record the newly allocated cluster in the inode's extent tree.
+> > 
+> > 2. ocfs2_insert_extent() determines that the extent tree has no room
+> > for a new record and calls ocfs2_grow_tree() (fs/ocfs2/alloc.c:1550).
+> > 
+> > 3. ocfs2_grow_tree() calls ocfs2_find_branch_target()
+> > (fs/ocfs2/alloc.c:1561) to walk the tree and find a node with a
+> > free slot. Because l_tree_depth is 0, the traversal loop
+> > (fs/ocfs2/alloc.c:1491) does not execute. At
+> > fs/ocfs2/alloc.c:1530, the condition
+> > 
+> > el->l_next_free_rec == el->l_count   /* 0 == 0 */
+> > 
+> > evaluates to true, so the function returns 1, indicating the tree
+> > must grow by shifting its depth.
+> > 
+> > 4. Back in ocfs2_grow_tree(), shift is 1, so ocfs2_shift_tree_depth()
+> > is called (fs/ocfs2/alloc.c:1581).
+> > 
+> > 5. ocfs2_shift_tree_depth() (fs/ocfs2/alloc.c:1375) allocates a new
+> > extent block and copies the root extent list into it. At
+> > fs/ocfs2/alloc.c:1420, it sets:
+> > 
+> > eb_el->l_next_free_rec = root_el->l_next_free_rec;  /* = 0 */
+> > 
+> > The copy loop at fs/ocfs2/alloc.c:1421 runs zero iterations since
+> > l_next_free_rec is 0, so eb_el is left with an empty extent list.
+> > 
+> > 6. ocfs2_shift_tree_depth() then calls
+> > ocfs2_sum_rightmost_rec(eb_el) (fs/ocfs2/alloc.c:1433) to determine
+> > the cluster count for the new root record.
+> > 
+> > 7. Inside ocfs2_sum_rightmost_rec(), i is computed as:
+> > 
+> > i = le16_to_cpu(eb_el->l_next_free_rec) - 1 = 0 - 1 = -1
+> > 
+> > The subsequent access to el->l_recs[-1] (fs/ocfs2/alloc.c:1112)
+> > violates the __counted_by_le(l_count) annotation on l_recs[]
+> > (fs/ocfs2/ocfs2_fs.h:472). __counted_by_le is a macro defined in
+> > include/linux/compiler_types.h that expands to __counted_by, which
+> > is the GCC/Clang attribute UBSAN uses for array bounds checking. The
+> > UBSAN error message reports __counted_by rather than __counted_by_le
+> > because the check is performed against the expanded attribute. This
+> > triggers a UBSAN array-index-out-of-bounds panic.
+> > 
+> > The Proposed Fix
+> > 
+> > The fix modifies ocfs2_sum_rightmost_rec() with three changes.
+> > 
+> > First, l_count is read once into a local variable before the bounds
+> > check. The __counted_by_le(l_count) annotation causes the compiler
+> > to emit a separate read of el->l_count at the array access site for
+> > the UBSAN check. Without the local variable, there are two
+> > independent reads of l_count — one for the guard and one at the
+> > array access site, where __counted_by_le causes the compiler to
+> > re-read it for the UBSAN check — creating a TOCTOU between them.
+> > Reading l_count once before the guard reduces this window to the
+> > minimum.
+> > 
+> > Second, the index is checked against both bounds before dereferencing
+> > l_recs[]. Both checks are sound: i < 0 compares against the constant
+> > 0, requiring no trust in any on-disk value; i >= count checks the
+> > invariant l_next_free_rec <= l_count, which holds on any valid
+> > filesystem independent of the actual field values. Neither check can
+> > fire on a valid extent list. Corruption that keeps l_next_free_rec
+> > within [1, l_count] will pass the check and produce an incorrect
+> > result, but this is pre-existing behaviour — not a regression — and
+> > cannot be avoided without an external ground truth for l_count, which
+> > I do not believe exists for the inode's inline extent list.
+> > 
+> > Third, on an out-of-bounds index, ocfs2_error() is called rather than
+> > silently returning a usable value.
+> > 
+> > To accommodate these changes the function signature is updated: a
+> > struct ocfs2_caching_info *ci parameter is added for superblock
+> > access, the return type changes from u32 to int, the cluster sum is
+> > returned via a new u32 out-parameter, and the inline qualifier is
+> > removed since the function is no longer a trivial helper. Both
+> > callers, ocfs2_add_branch() and ocfs2_shift_tree_depth(), already
+> > have status variables and bail labels, and are updated to pass
+> > et->et_ci, check the return value, and propagate any error up their
+> > respective call chains.
