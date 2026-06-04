@@ -1,91 +1,97 @@
-Received: from forward206b.mail.yandex.net (forward206b.mail.yandex.net [178.154.239.151])
+Received: from outgoing.mit.edu (outgoing-auth-1.mit.edu [18.9.28.11])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8115142EEA1
-	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Jun 2026 12:02:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.151
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EB19E480351
+	for <ocfs2-devel@lists.linux.dev>; Thu,  4 Jun 2026 14:07:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=18.9.28.11
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780574534; cv=none; b=LSNuRQhOEYms8Po0Owm89P51yYiLVKOLNNsv5JGJ6rqnEcQfPq9SUbqdJPQvumNr0Utrp48IPwsMSuHDTHmXnVxkWGV4ikp6i5IOhNPJYHv9TVqQuiYlTlIQfNlcDQBfwHCV+EdY/MsXar8B+fOsZI6W30/EG5pjbx70z8PsoF0=
+	t=1780582086; cv=none; b=uiPq1fxEETxVVV0N8HfekGU+gSNj/PsbB9VxR0wiJ04aodJi+UiPPlesTmP+YmaAnGc1iRx4v0Hh8Yao3tDKJeh/BonJRjMmQUVHn1QFxeOI6wMWVbJhsYs3visglxx5DGD4TdwbIM6il4inE4eDlwS7Kwmb9lNf35jCZ1Cpm/A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780574534; c=relaxed/simple;
-	bh=jHUt6clrzq3U7Z5EuBPVQgP1+Gw2SAV9zXunaz5B3A8=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=iiRgkCC1ux0b5GoADbizrPrR8DpMAKA5l5tP3GfTLIMwEuxS35NmFhr0GHYQ+fj0J9tz4K4nYOv0sQaS6QQMNJbXbTj6lvxxu0jssVegPwZiyMc73tmlNYUXPk/Az6lx1VYIp8S+P85+ONIvJXlKts+cnD8Kaa0Cb+C90kZH97w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=hDzPMDBf; arc=none smtp.client-ip=178.154.239.151
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1780582086; c=relaxed/simple;
+	bh=mvIP8ngdXo4jA96Ea8p105NJqwzP24HZicHRCFQ/FdQ=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=kvY7aMKoCXdunZrOOk6R78Zffs82dguxnoK/C19UYoRmZPqbfoiCb/+5IRhWFwIqEzV6izsCePnNmPANI+EAHtZ+v9pIptM6MpCwp6kdG5H0rFlYxsuUnX+afhKgRrioijmRGvwlClBUYAdSaOW+aWr8C4H+llhWN/U5KzgfaCE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=mit.edu; spf=pass smtp.mailfrom=mit.edu; dkim=pass (2048-bit key) header.d=mit.edu header.i=@mit.edu header.b=mb/IBx2t; arc=none smtp.client-ip=18.9.28.11
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=mit.edu
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=mit.edu
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="hDzPMDBf"
-Received: from forward101b.mail.yandex.net (forward101b.mail.yandex.net [IPv6:2a02:6b8:c02:900:1:45:d181:d101])
-	by forward206b.mail.yandex.net (Yandex) with ESMTPS id 8845D82ED6
-	for <ocfs2-devel@lists.linux.dev>; Thu, 04 Jun 2026 15:01:59 +0300 (MSK)
-Received: from mail-nwsmtp-smtp-production-canary-88.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-canary-88.sas.yp-c.yandex.net [IPv6:2a02:6b8:c1c:2e1d:0:640:64e7:0])
-	by forward101b.mail.yandex.net (Yandex) with ESMTPS id 08D2DC0019;
-	Thu, 04 Jun 2026 15:01:50 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-canary-88.sas.yp-c.yandex.net (smtp) with ESMTPSA id l1gOs6Ac8Cg0-g4YLMsTR;
-	Thu, 04 Jun 2026 15:01:49 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1780574509; bh=G5IW7VPtJElyPruarUmp54VYttxOOnaux8WpI1nX2l4=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=hDzPMDBfxSx6FrJfice+f3/1f0Blr3KEM0IHU/9gw+NH4I5sposuQ7f0Qbwq3N1kE
-	 kpt8ivqCotPxw0G8bAyoIbV/Jj/tGPwY5T5/JByRposoKuRlX79kiOfDkjxqsfuahu
-	 ajW8Dlm4PUquGOKce2cvV3ha9ovFNFcIFy1O7eR8=
-Authentication-Results: mail-nwsmtp-smtp-production-canary-88.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Joel Becker <jlbec@evilplan.org>,
-	Mark Fasheh <mark@fasheh.com>,
-	ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>,
-	syzbot+5bdd4953bc58c8fbd6eb@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: reject orphaned dinodes with non-zero link count
-Date: Thu,  4 Jun 2026 14:59:19 +0300
-Message-ID: <20260604115919.536337-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.54.0
+	dkim=pass (2048-bit key) header.d=mit.edu header.i=@mit.edu header.b="mb/IBx2t"
+Received: from macsyma.thunk.org (pool-173-48-113-247.bstnma.fios.verizon.net [173.48.113.247])
+	(authenticated bits=0)
+        (User authenticated as tytso@ATHENA.MIT.EDU)
+	by outgoing.mit.edu (8.14.7/8.12.4) with ESMTP id 654E6rvL025698
+	(version=TLSv1/SSLv3 cipher=DHE-RSA-AES256-GCM-SHA384 bits=256 verify=NOT);
+	Thu, 4 Jun 2026 10:06:54 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=mit.edu; s=outgoing;
+	t=1780582020; bh=5s99V2F+cdxC+MwrT27Mau0Uu2siNBpgurBs08PszHI=;
+	h=Date:From:Subject:Message-ID:MIME-Version:Content-Type;
+	b=mb/IBx2t4Epn1180cTZPKExA+5u946+tIwlV31jpfDtN0UiOTyD0Hl31IYSdo6HEC
+	 kuQbQnyc5edecobCL5JrbpcyK5pHbtgHcD/Jc8TQWSO1qBkfNL95JoWIgDAs8IGKBt
+	 uBG9CP9x40IWHSEnEPklfmc8Uei3gfqs9m/dTJEFJODXZ6nVP3b/R8vroBVkUEW1Gq
+	 tr4zxnTzkZEmmCDYotcI+GORmTAykiAacHUlAIw/6Z/bI4lAyVeYWvg7XuwidEXkQe
+	 60NEfoN/RFaTuY9hSDI9GhFLE2N+msS6oWqaHWyRFqJPqBnGuLGlZsZ0vrl0RBcYOl
+	 I/KRqdjz9TCRQ==
+Received: by macsyma.thunk.org (Postfix, from userid 15806)
+	id ED63E37A6B9; Thu,  4 Jun 2026 10:05:52 -0400 (EDT)
+Date: Thu, 4 Jun 2026 10:05:52 -0400
+From: "Theodore Tso" <tytso@mit.edu>
+To: Mike Rapoport <rppt@kernel.org>
+Cc: Jan Kara <jack@suse.com>, Mark Fasheh <mark@fasheh.com>,
+        Joel Becker <jlbec@evilplan.org>,
+        Joseph Qi <joseph.qi@linux.alibaba.com>,
+        Ryusuke Konishi <konishi.ryusuke@gmail.com>,
+        Viacheslav Dubeyko <slava@dubeyko.com>,
+        Trond Myklebust <trondmy@kernel.org>, Anna Schumaker <anna@kernel.org>,
+        Chuck Lever <chuck.lever@oracle.com>, Jeff Layton <jlayton@kernel.org>,
+        NeilBrown <neil@brown.name>, Olga Kornievskaia <okorniev@redhat.com>,
+        Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>,
+        Alexander Viro <viro@zeniv.linux.org.uk>,
+        Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
+        Dave Kleikamp <shaggy@kernel.org>, Miklos Szeredi <miklos@szeredi.hu>,
+        Andreas Hindborg <a.hindborg@kernel.org>,
+        Breno Leitao <leitao@debian.org>, Kees Cook <kees@kernel.org>,
+        "Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
+        linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
+        ocfs2-devel@lists.linux.dev, linux-nilfs@vger.kernel.org,
+        linux-nfs@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
+        linux-ext4@vger.kernel.org, linux-mm@kvack.org
+Subject: Re: [PATCH 10/17] jbd2: replace __get_free_pages() with kmalloc()
+Message-ID: <ximvn6jwgtam665a4droqkp73o55kwvd5uukyidwjesmysobth@oe7rigpsjfkz>
+References: <20260523-b4-fs-v1-0-275e36a83f0e@kernel.org>
+ <20260523-b4-fs-v1-10-275e36a83f0e@kernel.org>
+ <yfzx3jgzwesernofl7mzixa2mhjfii5v3o7yapghtmozixrpfu@6bsh7iixyiov>
+ <aiEX4UTxEnBTjVKo@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <aiEX4UTxEnBTjVKo@kernel.org>
 
-Since non-zero link count for an orphaned inode most likely
-means that on-disk inode data is corrupted, reject such an
-inodes in 'ocfs2_validate_inode_block()'.
+On Thu, Jun 04, 2026 at 09:14:57AM +0300, Mike Rapoport wrote:
+> There's no memory overhead when order == 1.
+> As for the CPU overhead, the difference for the fast path allocations is
+> not measurable and for the slow path it is anyway determined by the amount
+> of reclaim involved rather than by what allocator is used.
 
-Reported-by: syzbot+5bdd4953bc58c8fbd6eb@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=5bdd4953bc58c8fbd6eb
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
----
-I'm quite sure about Closes: but was unable to test this using syzbot due to
-"FATAL: kernel too old" issues (most likely caused by the kernel vs. glibc
-mismatch) like https://syzkaller.appspot.com/x/log.txt?x=13f51bec580000.
----
- fs/ocfs2/inode.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+Thanks for confirming!
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index a510a0eb1adc..d483e0c61d12 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1477,6 +1477,15 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		goto bail;
- 	}
- 
-+	if ((le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
-+	    ocfs2_read_links_count(di)) {
-+		rc = ocfs2_error(sb,
-+				 "Invalid dinode #%llu: orphaned with %u links\n",
-+				 (unsigned long long)bh->b_blocknr,
-+				 ocfs2_read_links_count(di));
-+		goto bail;
-+	}
-+
- 	if (le32_to_cpu(di->i_fs_generation) !=
- 	    OCFS2_SB(sb)->fs_generation) {
- 		rc = ocfs2_error(sb,
--- 
-2.54.0
+> Larger allocations (> PAGE_SIZE * 2) go straight to the page allocator.
 
+Another question: Today, we can either use kmalloc() (or
+__get_free_pages, previously) or vmalloc().  Is there a way a file
+system can say, "give me physically contiguous pages if possible, but
+if it's too hard --- with some TBD to specify what 'too hard' means or
+can be specified --- fall back to a vmalloc-style approach, with the
+page table / TLB overhead that this might imply"?
+
+I suppose we could do it with kmalloc() with some flags which to
+prevent forced reclaim / compaction, and if that fails, then fall back
+to vmalloc().  Is there a better way?
+
+Thanks,
+
+					- Ted
