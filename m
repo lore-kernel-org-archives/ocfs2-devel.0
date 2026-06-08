@@ -1,88 +1,139 @@
-Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8FD0399350;
-	Fri,  5 Jun 2026 20:54:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B63313ACEE2
+	for <ocfs2-devel@lists.linux.dev>; Mon,  8 Jun 2026 09:27:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780692884; cv=none; b=mEShW/No5mQo8HIX+45SbW5GZ/uhAtIJzrSuoz4x9ixXBs5b4Nl6yLU6wrL8hAAEsgkFLPjYlAcFkbxTQfmDyLRgCl7fpgX0LwmiYPhjWE9SX1BduxpfJDEQmkimJKs2wJnvNwvs+dBvpABzNlRu3OYsVCH/D6PYK/41mZK0vLc=
+	t=1780910862; cv=none; b=SazE8wRYoisYARGHhfHK9fWHgKADxd6uXnC26bMMSPVKeZjs//TgqRlvu+tOz0LqmRQ6EGxfYsq7QqQX+QV3hszduG+5OPHrIX6YcjK6jwWh8X7L7mQZeHiPG8/CVzFrcZvK/p40N2iGpl3Dky156NglrSNMnZGugcmf+l4mWMY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780692884; c=relaxed/simple;
-	bh=REFUUJ8WiDUOgpm5NHfNfrpQLNUOkx1fl/MSn7byJEc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=uwmYYr7tykCdyNR54g4Zbn3gvszwJOc3LYfWaIhJacZGT3equiAOWOC3FaHZNZpUEaVtMLs4+h+8iZlcAy2kInDvxNxYzjsnlZzjd46VdZtJCxnW2mbqAF0pTrqdyqwOKi4BPNAA3c0XAPtJaqcuIOyiIOfYDHxhqxWEfnWhV14=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=UZ1qkrzd; arc=none smtp.client-ip=90.155.50.34
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
+	s=arc-20240116; t=1780910862; c=relaxed/simple;
+	bh=YbuaucBFlyVpiPEizwTgM8J3SETDH/DxmgJWihs/xuA=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
+	 In-Reply-To:Content-Type; b=V+qBkdF5kSE+HKaUUA79Ybl0GZv7O++W4dUWYMTZN9YJr066DahIO5gJalIlCK/rr1eZKMlXyjRuRcWFaHAbT2MZHBXAIRsaTMASnPHvXLvr+gwcPvq6qBPxekai5Np5rZwQGISusJDjpOxjUpfkN6dzP9n3GpvBp94VOfkIbds=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=e3WZQF0L; arc=none smtp.client-ip=115.124.30.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="UZ1qkrzd"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
-	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
-	Content-Transfer-Encoding:Content-ID:Content-Description;
-	bh=SslXJgntqwAF+9YvM5v4vsv0Li+nQ5gtHKqQFx2cM1A=; b=UZ1qkrzdC51ngjCGktqDZVzAX2
-	yCgvXyiXhpjykmca6pMQJXHGguhKJPRzJ364f1c/mnaeEzzSaowVSzfQ94vYrYzqhXNSxrryIa7zs
-	16S0wmjlm0Aav5EmuHod9r5x0B5GizEKl/JaFwQi7Yd9GVDHC/GtRGuRKh4qVD/pHkFohjKOlqKOi
-	+4SSsD36n9k4YNzD0qmKnIRjHbIIGur6bX5XGX4B6X2hsRANAvdnWhOgjY/5n0HVxYE5Gz2/OnQTW
-	dGv8AEBr8EA83RLg0MtKLN6+OOUF/iGsdtsg+RQZJS6GF0Ayzg8CHHjS87XB58oAAQrXChIH8HZo7
-	gSGo2feA==;
-Received: from willy by casper.infradead.org with local (Exim 4.99.1 #2 (Red Hat Linux))
-	id 1wVbYd-00000008a7T-0bWz;
-	Fri, 05 Jun 2026 20:54:23 +0000
-Date: Fri, 5 Jun 2026 21:54:23 +0100
-From: Matthew Wilcox <willy@infradead.org>
-To: David Laight <david.laight.linux@gmail.com>
-Cc: Theodore Tso <tytso@mit.edu>, Mike Rapoport <rppt@kernel.org>,
-	Jan Kara <jack@suse.com>, Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Ryusuke Konishi <konishi.ryusuke@gmail.com>,
-	Viacheslav Dubeyko <slava@dubeyko.com>,
-	Trond Myklebust <trondmy@kernel.org>,
-	Anna Schumaker <anna@kernel.org>,
-	Chuck Lever <chuck.lever@oracle.com>,
-	Jeff Layton <jlayton@kernel.org>, NeilBrown <neil@brown.name>,
-	Olga Kornievskaia <okorniev@redhat.com>,
-	Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>,
-	Dave Kleikamp <shaggy@kernel.org>,
-	Miklos Szeredi <miklos@szeredi.hu>,
-	Andreas Hindborg <a.hindborg@kernel.org>,
-	Breno Leitao <leitao@debian.org>, Kees Cook <kees@kernel.org>,
-	"Tigran A. Aivazian" <aivazian.tigran@gmail.com>,
-	linux-kernel@vger.kernel.org, linux-fsdevel@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev, linux-nilfs@vger.kernel.org,
-	linux-nfs@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
-	linux-ext4@vger.kernel.org, linux-mm@kvack.org
-Subject: Re: [PATCH 10/17] jbd2: replace __get_free_pages() with kmalloc()
-Message-ID: <aiM3f08bsBM8gD8y@casper.infradead.org>
-References: <20260523-b4-fs-v1-0-275e36a83f0e@kernel.org>
- <20260523-b4-fs-v1-10-275e36a83f0e@kernel.org>
- <yfzx3jgzwesernofl7mzixa2mhjfii5v3o7yapghtmozixrpfu@6bsh7iixyiov>
- <aiEX4UTxEnBTjVKo@kernel.org>
- <ximvn6jwgtam665a4droqkp73o55kwvd5uukyidwjesmysobth@oe7rigpsjfkz>
- <20260605093332.7b067876@pumpkin>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="e3WZQF0L"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1780910851; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=CI33oDIcOHMyCjWzO6mFvuBkNKd4/lauWCfYu2v0UBU=;
+	b=e3WZQF0LBLzVmTNMOrCSE9ajiNZ0ICw/WuPolM8FYD9F4sOr/nTy2ueVjYXVL/nw6iXaK4MG4J2PCJakqrtN+PeD2nAv7bmdMCnzs4aMwv+OiitOCvREcJiRcHevsIKCu7rtfDOsojti+EDg0fvE9NvPHGxPRsyv4GjjW299Lls=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R201e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X4N-Xvq_1780910848;
+Received: from 30.221.145.187(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X4N-Xvq_1780910848 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Mon, 08 Jun 2026 17:27:28 +0800
+Message-ID: <ae0343a8-2056-4f7f-8bdd-7e2b979fb8b3@linux.alibaba.com>
+Date: Mon, 8 Jun 2026 17:27:26 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260605093332.7b067876@pumpkin>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: fix UBSAN array-index-out-of-bounds in
+ ocfs2_sum_rightmost_rec
+To: Ian Bridges <icb@fastmail.org>
+References: <aiLNd9gAuCC5u2jf@dev>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <aiLNd9gAuCC5u2jf@dev>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Fri, Jun 05, 2026 at 09:33:32AM +0100, David Laight wrote:
-> On Thu, 4 Jun 2026 10:05:52 -0400
-> "Theodore Tso" <tytso@mit.edu> wrote:
-> 
-> ...
-> > I suppose we could do it with kmalloc() with some flags which to
-> > prevent forced reclaim / compaction, and if that fails, then fall back
-> > to vmalloc().  Is there a better way?
-> 
-> There is already kvalloc().
-> I'm not sure how hard that tries to get kmalloc() to succeed.
 
-Please don't try to help.
+
+On 6/5/26 9:21 PM, Ian Bridges wrote:
+> [BUG]
+> On-disk corruption setting l_next_free_rec to 0 in an inode's inline
+> extent list triggers a UBSAN panic on the next write to that file.
+
+Replace 'inline extent list' here to 'embedded extent list'.
+Since 'inline' always means inline data and may cause confuse.
+
+> 
+> [CAUSE]
+> ocfs2_sum_rightmost_rec() computes
+> i = le16_to_cpu(el->l_next_free_rec) - 1
+> and accesses el->l_recs[i] without validating i. When l_next_free_rec
+> is 0, i becomes -1; when l_next_free_rec exceeds l_count, i falls
+> past the end of the array. Either case violates the
+> __counted_by_le(l_count) annotation on l_recs[] and triggers UBSAN.
+> 
+> [FIX]
+> Validate the inode's inline extent list when the inode is read, in
+> ocfs2_validate_inode_block(): l_count must be non-zero and no larger
+> than the inode block can hold, and l_next_free_rec must not exceed
+> l_count. A corrupt list is rejected at read time, before the b-tree
+> code can index l_recs[] out of bounds.
+> 
+> Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
+
+IMO, commit 2f26f58df041 just expose it as UBSAN. Before it, accessing
+l_recs[-1] was silent undefined behavior.
+So I don't think it is the right blame commit. Since the logic was
+introduced long time ago, so I'd rather just mark it as
+"Cc: stable@vger.kernel.org" with no "Fixes" tag.
+
+> Reported-by: syzbot+be16e33db01e6644db7a@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=be16e33db01e6644db7a
+> Signed-off-by: Ian Bridges <icb@fastmail.org>
+> ---
+> Changes in v2:
+>  - Reject the corrupt inode at read time by validating its inline extent
+>    list (l_count, l_next_free_rec) in ocfs2_validate_inode_block().
+> 
+> v1: https://lore.kernel.org/all/ah2ljwKRw-Xsi4Ga@dev/
+> 
+>  fs/ocfs2/inode.c | 32 ++++++++++++++++++++++++++++++++
+>  1 file changed, 32 insertions(+)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index a510a0eb1adc..aff95efd78e7 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1559,6 +1559,38 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		goto bail;
+>  	}
+>  
+> +	if (ocfs2_dinode_has_extents(di)) {
+> +		struct ocfs2_extent_list *el = &di->id2.i_list;
+> +		u16 count = le16_to_cpu(el->l_count);
+> +		u16 next_free = le16_to_cpu(el->l_next_free_rec);
+> +
+> +		if (count == 0) {
+> +			rc = ocfs2_error(sb,
+> +					 "Invalid dinode %llu: extent list l_count is zero\n",
+> +					 (unsigned long long)bh->b_blocknr);
+> +			goto bail;
+> +		}
+> +		/*
+> +		 * The exact capacity depends on i_xattr_inline_size, another
+> +		 * unvalidated on-disk field. Inline xattrs only shrink the
+> +		 * list, so the no-xattr maximum is a safe upper bound that a
+> +		 * valid l_count never exceeds.
+> +		 */
+> +		if (count > ocfs2_extent_recs_per_inode(sb)) {
+> +			rc = ocfs2_error(sb,
+> +					 "Invalid dinode %llu: extent list l_count %u exceeds max %u\n",
+> +					 (unsigned long long)bh->b_blocknr, count,
+> +					 ocfs2_extent_recs_per_inode(sb));
+> +			goto bail;
+> +		}
+> +		if (next_free > count) {
+> +			rc = ocfs2_error(sb,
+> +					 "Invalid dinode %llu: extent list l_next_free_rec %u exceeds l_count %u\n",
+> +					 (unsigned long long)bh->b_blocknr, next_free, count);
+> +			goto bail;
+> +		}
+> +	}
+> +
+>  	rc = 0;
+>  
+>  bail:
+
