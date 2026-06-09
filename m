@@ -1,174 +1,265 @@
-Received: from flow-b1-smtp.messagingengine.com (flow-b1-smtp.messagingengine.com [202.12.124.136])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oa1-f80.google.com (mail-oa1-f80.google.com [209.85.160.80])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44EBD3358DA
-	for <ocfs2-devel@lists.linux.dev>; Mon,  8 Jun 2026 21:15:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.136
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A5FF73CAE9B
+	for <ocfs2-devel@lists.linux.dev>; Tue,  9 Jun 2026 21:26:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.160.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1780953337; cv=none; b=QbumY1jHrQ6Zw+V0OXY3hhrpIA9cBCxAJ+aRMvoQQxWbenqQ9K/wM+68nIDFN6ZH806xTNWFtlZm+xVxUXFHg2LjI8bz7GqU3zS6Qp+hjdew+VmXANA0VawGv+ZlZMDpvKBbxVcPW9hM7ZJ4AiPgbk0DSfC6uRdvge4nq7ORUf8=
+	t=1781040389; cv=none; b=ub9QFdfI+V0a8fsUbG4tGy6vJsfJsdVlqR/88sEhhv+2ijX+b/nZmDhD0N+W8Qb6kZZ4nygaVYJUjSVViyBVppdbpmEm9j+p+/hehE9zfE11yqVi2RviMG8NeMD82MGPa3Ea7L+if5c2b3G3EZzsMRTUk8LXL6eJL0PlnXv+yWA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1780953337; c=relaxed/simple;
-	bh=x6Mb3FawFz2KhFBo1P4mAQjxv0hbgQ2eJpawsrgcSTY=;
-	h=Date:From:To:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=BhXUjWrd6nTNLixc1d6R9IfRNUYptITsJ5sVpjH2uOQNoSv7s4/jtqjqWz6dp9u7/K7bORLzUcL+Q/e9T6g1DL9UNetW1KdWzr8YDi98jJIU3IM31fVqoiBLltV/1iFy0+Q0I11KLnoycDq/DbV2H7agsj9tpby3OyftYct/0rY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org; spf=pass smtp.mailfrom=fastmail.org; dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b=l06Yj0T6; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=Vm6nNbPy; arc=none smtp.client-ip=202.12.124.136
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fastmail.org
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b="l06Yj0T6";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="Vm6nNbPy"
-Received: from phl-compute-10.internal (phl-compute-10.internal [10.202.2.50])
-	by mailflow.stl.internal (Postfix) with ESMTP id 7A4BB13002DB;
-	Mon,  8 Jun 2026 17:15:33 -0400 (EDT)
-Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-10.internal (MEProxy); Mon, 08 Jun 2026 17:15:33 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=fastmail.org; h=
-	cc:content-type:content-type:date:date:from:from:in-reply-to
-	:in-reply-to:message-id:mime-version:references:reply-to:subject
-	:subject:to:to; s=fm1; t=1780953333; x=1780956933; bh=8BPGNj4AfU
-	ZP44/EZPSKVMlh26YEvrBXQmS3pwzCgD4=; b=l06Yj0T6Le/hNW++/rd8HgjBca
-	opNvF4q3EEYejaw1XLVPpPVzc+yaQJrEUMZy+Ljuyq6JkrZGcZVMeJXX4uA/3Y37
-	4OjnATtJx85p2VlSLQs7u2FjU7dovUDg+nnoEt5wdD8ZwIrCoZp9ryOxJNcrgObk
-	2EiwJ9GBrXCTK9t6+BT4UidpJycqS0VIiR2Iz6I8Ns1o+0iK7TU9cvKqfiizzkxh
-	twq2eJe61jNFyp4G2+2jce0uGGSc/Ge2v1+qb4UvlK/7VNU82GAo12dwdLlokKvl
-	vWQIWldjJAfE9DOTBGEjjqKrGSPf7YWfo2IL22D4Nb9WVD05Xpv+VCHzhotA==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:content-type:content-type:date:date
-	:feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
-	:message-id:mime-version:references:reply-to:subject:subject:to
-	:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=
-	1780953333; x=1780956933; bh=8BPGNj4AfUZP44/EZPSKVMlh26YEvrBXQmS
-	3pwzCgD4=; b=Vm6nNbPy3ufaaKvwOFfoi1Lxp0cr7+D6oMaNQSdtWu7e6iOTKP0
-	wKs1RiwNSJCCzp9u+MKViach8GFA192p2h3IAn2l9/6zIAz1TUkVwOCUe9oy/yX4
-	WTnvxYMLTJ21OJVQWTIKQb/fxNIvTafDBeD91qi+xpiYYShmpR+xPNb5iNvjJ3oS
-	CcbmsUNawAoOgdHLqzgEpZX+s3MOW1UgiL6V88kK23rkZCn3u77peccJnaekI3oc
-	we/tNsRZCQb7t76IU9FkyZYC5q54xm8YBy/UkCdL8mcYoKV2S0BprHqQrKahawYn
-	o/Jb6rS6vZCuXU2H9VKdxgQgJ5B5vq493Bg==
-X-ME-Sender: <xms:9DAnaiYZLH3q0FP1lDLSCHKc3MLNd9xqRwn-vsD9xj4zMnEslTFowA>
-    <xme:9DAnauUyYxHiSgqdC1FTOVRzdNlWIGfgUHTv9yfNCk_z4wBKAAjnO4bTp-0rGxcMw
-    eSLK5etg3tQxzbMqzalq5pM2BGvzlo5E9q-WzxFQGQ3IautHpTbZnXQ>
-X-ME-Received: <xmr:9DAnaoixS15oMIDO8fPjSPCoihrPKKcRJ1KPzgvH5W4Oq_jYFxYu7vEH-QU>
-X-ME-Proxy-Cause: dmFkZTGtwFja+dwjDkQRH/YCauWPXxfECR6zOtN5Yp40d4LYhuNvuhU+QPVghxu++2G4Q9
-    Xhsf2HaQLwqHFhLSnmRtG/jHLz7cjbSq7W3uO/QREuYVW2CiXICy3w3ZOfdltpUZ5roVQA
-    2qZ8whx4TOcYc3aGfEPIeT5Cndq3qX3u0+4gKYBpb5QdOdD6vnA5/pZjXH8YFl47aBmIcj
-    qsMsjA3rF3J54RI0rnKgoGJeZjWxaLOaQEgVz7DofvCuFXFn/t1WoAKzfRa/5d7Xd9RdpV
-    seWpJeVIzDKCAoKIHnwz+YSA8V9VMTlxQ68y7Xg8qZnKyu2ojs5B/b83VDkcviyXh0ULfC
-    /oXYiAp7FhyHG+4fz/CU6wjpEcO+xPMjVaSqyKz2/zxfa/dg6+bP74KgB4FLXfCONgwhpP
-    GiuJlPBfZQgn1EtsfZPUOuRYBfrzblmLPOnd/KOGnQWUwSqpvyyYtwXljG9OZ2PCnOf6Gy
-    tlexmc8GG4Gi769Y7UW6zBjkHCp3ztbxxQ7/D8DJ1zm1nUO50oFmFYttIHD4faOh7OYDiU
-    xnVb4kvdVqOMi1sr8zRCOS8sKWvPL/LL0zovLGxEZkvfbyU708ARu1K9btTnfK6uYk1cop
-    75EqXQfBwEb0IMQIC+mggUQUfTpqyExzOIzmUsXaTm5mxt0boapQqhWr/okg
-X-ME-Proxy: <xmx:9DAnaksIjLgfMfYkpOrfj6I8GwjQ7R3R6cl-CKlxMpXkQNXgWsQZtg>
-    <xmx:9DAnap5E-loqvc1kzoGXv4bOSvGF49QBEL4CglNkY1M-wRScEYfMSA>
-    <xmx:9DAnagObyr_jtr3bVCHUXnA3hy6YOBfOl1Hg6rRKU8XWRN9TNIb1tQ>
-    <xmx:9DAnanuBwpcCOxbmVpjhMQuyWiWfyH3pAfzUfbF5aaB9zfPGZoD-Ew>
-    <xmx:9TAnamGt0yPGY_X586gXBmNHgIJHMafmLg0pOn3o9j6s_9CDtqQsvmkX>
-Feedback-ID: ib53e4b78:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Mon,
- 8 Jun 2026 17:15:31 -0400 (EDT)
-Date: Mon, 8 Jun 2026 16:15:30 -0500
-From: Ian Bridges <icb@fastmail.org>
-To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v3] ocfs2: fix UBSAN array-index-out-of-bounds in
- ocfs2_sum_rightmost_rec
-Message-ID: <aicw8tIeGplAyxSr@dev>
-References: <aibMhhAH-swS38i0@dev>
+	s=arc-20240116; t=1781040389; c=relaxed/simple;
+	bh=jwFXNhSWqpaBrPJ+vIm4/2BwUKOciGxznJnCDNvAjmM=;
+	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
+	 Content-Type; b=t1i0nPdGHa/r/kroZ2Q+oz4Kg8tt0uPUhxi+0F10a82Xste1LBqKcVbntIAclNrRgL0N84h96Up2yeLj0o2flXFuibBZ/ZzhsGSBZB8uOdyDwqhdLQklUYFlXZHrTkUUmUFcuSrptPZ31a35mNgDsj7Wp+gjf1rDj9L16PS8gxg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.160.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oa1-f80.google.com with SMTP id 586e51a60fabf-43cce86b0c4so9532280fac.3
+        for <ocfs2-devel@lists.linux.dev>; Tue, 09 Jun 2026 14:26:27 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1781040387; x=1781645187;
+        h=to:from:subject:message-id:in-reply-to:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to;
+        bh=e6filxemhl2Zfw261M1uKHJMLW9xktwLRLrcx+rGOgo=;
+        b=Hk7HRbJhWtc0TAPbbLooSFqNV32pvv78zHq/GkiBdSX8B2lcClkuMK9VkYmr4ZEu9B
+         9KRJ/XzYZDkq42FwgItIv+s7/ov/SR8dmMLk4JYTh2QvQr67UPz7894toAUiUm8ZPxJS
+         iJX7UoAu9AlGwhJS/uU2fIBTGz49fZrRw23xfNu712F5hytwhhhHudaD/GbKkfSSYhlc
+         TW1KyxcYSTdfPSoLTb8J5QXGSFRrh7KT7mkWVXJw38HpIbMsYkHyUjSEICJZO02tS9cz
+         2w2o35UNjOcoJuUo4cOo6bOQq0FfqAccDAga3kyD0jQSiwOyprpQx5vBjhqOW+9FtpwW
+         l0VA==
+X-Forwarded-Encrypted: i=1; AFNElJ+Zn/iVeUOKSzNyc/xm9Ys+2Bu7ltpaFgNNtKASPewtSFTqgLGc+xg6a9R3ytv6lU11H7grF/r+7KghBA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwzOFm91lmplRbT+TJiwqwtHj8JAJq67oX3o8KHlTtPkH2dwxpB
+	O0bJwDDVquWvyaMYANLPMkuRS9q5dUCc2CMkbA8o/B0GbB/+3yebh4DlaYzARBzOuFcCENRX4lO
+	C/CxNRdaEJzequrRM2TEWvRGykPE37vWTpWdYo0g4tFAZaoWCvPDNI92/2/E=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aibMhhAH-swS38i0@dev>
+X-Received: by 2002:a05:6820:1c8f:b0:69d:fee4:2381 with SMTP id
+ 006d021491bc7-69eacaacdbemr2777849eaf.55.1781040386791; Tue, 09 Jun 2026
+ 14:26:26 -0700 (PDT)
+Date: Tue, 09 Jun 2026 14:26:26 -0700
+In-Reply-To: <678e8256.050a0220.303755.0081.GAE@google.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6a288502.39669fcc.33b062.00a5.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] possible deadlock in ocfs2_remove_inode (2)
+From: syzbot <syzbot+ddde294b94666bb51266@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-On Mon, Jun 08, 2026 at 09:07:05AM -0500, Ian Bridges wrote:
-> [BUG]
-> On-disk corruption setting l_next_free_rec to 0 in an inode's inline
-> extent list triggers an UBSAN panic on the next write to that file.
->
+syzbot has found a reproducer for the following issue on:
 
-I misread the recommendation on the previous patch review regarding
-"inline" vs "embedded". I will release a v4 with the correct
-terminology.
+HEAD commit:    2d3090a8aeb5 Merge tag 'v7.1-p5' of git://git.kernel.org/p..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=13d090ae580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=f9e42545d0c4344f
+dashboard link: https://syzkaller.appspot.com/bug?extid=ddde294b94666bb51266
+compiler:       gcc (Debian 14.2.0-19) 14.2.0, GNU ld (GNU Binutils for Debian) 2.44
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=157bb0ae580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15c4e0ae580000
 
-Ian
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/a3b55b39a1ae/disk-2d3090a8.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/e28dc81f5c8b/vmlinux-2d3090a8.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/979afa9a8a33/bzImage-2d3090a8.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/9da69034f0c7/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=11c4e0ae580000)
 
-> [CAUSE]
-> ocfs2_sum_rightmost_rec() computes
-> i = le16_to_cpu(el->l_next_free_rec) - 1
-> and accesses el->l_recs[i] without validating i. When l_next_free_rec
-> is 0, i becomes -1; when l_next_free_rec exceeds l_count, i falls
-> past the end of the array. Either case violates the
-> __counted_by_le(l_count) annotation on l_recs[] and triggers UBSAN.
-> 
-> [FIX]
-> Validate the inode's inline extent list when the inode is read, in
-> ocfs2_validate_inode_block(): l_count must be non-zero and no larger
-> than the inode block can hold, and l_next_free_rec must not exceed
-> l_count. A corrupt list is rejected at read time, before the b-tree
-> code can index l_recs[] out of bounds.
-> 
-> Reported-by: syzbot+be16e33db01e6644db7a@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=be16e33db01e6644db7a
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Ian Bridges <icb@fastmail.org>
-> ---
-> Changes in v3:
->  - Update commit message to use "inline" instead of "embedded"
->  - CC stable@vger.kernel.org
->  
-> v2: https://lore.kernel.org/all/aiLNd9gAuCC5u2jf@dev/
-> 
->  fs/ocfs2/inode.c | 32 ++++++++++++++++++++++++++++++++
->  1 file changed, 32 insertions(+)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index a510a0eb1adc..aff95efd78e7 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1559,6 +1559,38 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	if (ocfs2_dinode_has_extents(di)) {
-> +		struct ocfs2_extent_list *el = &di->id2.i_list;
-> +		u16 count = le16_to_cpu(el->l_count);
-> +		u16 next_free = le16_to_cpu(el->l_next_free_rec);
-> +
-> +		if (count == 0) {
-> +			rc = ocfs2_error(sb,
-> +					 "Invalid dinode %llu: extent list l_count is zero\n",
-> +					 (unsigned long long)bh->b_blocknr);
-> +			goto bail;
-> +		}
-> +		/*
-> +		 * The exact capacity depends on i_xattr_inline_size, another
-> +		 * unvalidated on-disk field. Inline xattrs only shrink the
-> +		 * list, so the no-xattr maximum is a safe upper bound that a
-> +		 * valid l_count never exceeds.
-> +		 */
-> +		if (count > ocfs2_extent_recs_per_inode(sb)) {
-> +			rc = ocfs2_error(sb,
-> +					 "Invalid dinode %llu: extent list l_count %u exceeds max %u\n",
-> +					 (unsigned long long)bh->b_blocknr, count,
-> +					 ocfs2_extent_recs_per_inode(sb));
-> +			goto bail;
-> +		}
-> +		if (next_free > count) {
-> +			rc = ocfs2_error(sb,
-> +					 "Invalid dinode %llu: extent list l_next_free_rec %u exceeds l_count %u\n",
-> +					 (unsigned long long)bh->b_blocknr, next_free, count);
-> +			goto bail;
-> +		}
-> +	}
-> +
->  	rc = 0;
->  
->  bail:
-> -- 
-> 2.47.3
-> 
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+ddde294b94666bb51266@syzkaller.appspotmail.com
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Not tainted
+------------------------------------------------------
+syz-executor/5782 is trying to acquire lock:
+ffff8880712c6ba0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ffff8880712c6ba0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_remove_inode+0x15b/0x860 fs/ocfs2/inode.c:733
+
+but task is already holding lock:
+ffff88805a4f89a0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ffff88805a4f89a0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_wipe_inode+0x2ce/0x1250 fs/ocfs2/inode.c:854
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
+       down_write+0x8b/0x1f0 kernel/locking/rwsem.c:1625
+       inode_lock include/linux/fs.h:1029 [inline]
+       ocfs2_del_inode_from_orphan+0x112/0x700 fs/ocfs2/namei.c:2728
+       ocfs2_dio_end_io_write+0x711/0x1130 fs/ocfs2/aops.c:2379
+       ocfs2_dio_end_io+0x136/0x2c0 fs/ocfs2/aops.c:2418
+       dio_complete+0x224/0x950 fs/direct-io.c:281
+       __blockdev_direct_IO+0x2a2d/0x33d0 fs/direct-io.c:1303
+       ocfs2_direct_IO+0x263/0x360 fs/ocfs2/aops.c:2455
+       generic_file_direct_write+0x198/0x410 mm/filemap.c:4259
+       __generic_file_write_iter+0x11b/0x240 mm/filemap.c:4428
+       ocfs2_file_write_iter+0xdbb/0x2240 fs/ocfs2/file.c:2476
+       iter_file_splice_write+0x830/0x10a0 fs/splice.c:736
+       do_splice_from fs/splice.c:936 [inline]
+       direct_splice_actor+0x192/0x6c0 fs/splice.c:1159
+       splice_direct_to_actor+0x345/0xa30 fs/splice.c:1103
+       do_splice_direct_actor fs/splice.c:1202 [inline]
+       do_splice_direct+0x174/0x240 fs/splice.c:1228
+       do_sendfile+0xadc/0xe20 fs/read_write.c:1372
+       __do_sys_sendfile64 fs/read_write.c:1433 [inline]
+       __se_sys_sendfile64 fs/read_write.c:1419 [inline]
+       __x64_sys_sendfile64+0x1d8/0x220 fs/read_write.c:1419
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x115/0x870 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #1 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+       down_write+0x8b/0x1f0 kernel/locking/rwsem.c:1625
+       inode_lock include/linux/fs.h:1029 [inline]
+       ocfs2_reserve_suballoc_bits+0x11c/0x4b50 fs/ocfs2/suballoc.c:882
+       ocfs2_reserve_new_metadata_blocks+0x506/0xbe0 fs/ocfs2/suballoc.c:1078
+       ocfs2_mknod+0xead/0x27b0 fs/ocfs2/namei.c:351
+       ocfs2_create+0xf4/0x450 fs/ocfs2/namei.c:677
+       lookup_open.isra.0+0xc47/0x11b0 fs/namei.c:4511
+       open_last_lookups fs/namei.c:4611 [inline]
+       path_openat+0x2291/0x31a0 fs/namei.c:4855
+       do_file_open+0x20e/0x430 fs/namei.c:4887
+       do_sys_openat2+0x10d/0x1e0 fs/open.c:1364
+       do_sys_open fs/open.c:1370 [inline]
+       __do_sys_openat fs/open.c:1386 [inline]
+       __se_sys_openat fs/open.c:1381 [inline]
+       __x64_sys_openat+0x12d/0x210 fs/open.c:1381
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x115/0x870 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3165 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+       validate_chain kernel/locking/lockdep.c:3908 [inline]
+       __lock_acquire+0x14b8/0x2630 kernel/locking/lockdep.c:5237
+       lock_acquire kernel/locking/lockdep.c:5868 [inline]
+       lock_acquire+0x1b1/0x370 kernel/locking/lockdep.c:5825
+       down_write+0x8b/0x1f0 kernel/locking/rwsem.c:1625
+       inode_lock include/linux/fs.h:1029 [inline]
+       ocfs2_remove_inode+0x15b/0x860 fs/ocfs2/inode.c:733
+       ocfs2_wipe_inode+0x6dd/0x1250 fs/ocfs2/inode.c:896
+       ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+       ocfs2_evict_inode+0x7f9/0x1550 fs/ocfs2/inode.c:1299
+       evict+0x3c2/0xad0 fs/inode.c:841
+       iput_final fs/inode.c:1960 [inline]
+       iput.part.0+0x605/0xf50 fs/inode.c:2009
+       iput+0x35/0x40 fs/inode.c:1975
+       d_delete_notify include/linux/fsnotify.h:377 [inline]
+       vfs_rmdir fs/namei.c:5389 [inline]
+       vfs_rmdir+0x5c8/0x8a0 fs/namei.c:5349
+       filename_rmdir+0x31a/0x5c0 fs/namei.c:5431
+       __do_sys_unlinkat fs/namei.c:5606 [inline]
+       __se_sys_unlinkat fs/namei.c:5599 [inline]
+       __x64_sys_unlinkat+0xf5/0x130 fs/namei.c:5599
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x115/0x870 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE] --> &ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE] --> &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+                               lock(&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]);
+                               lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+  lock(&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]);
+
+ *** DEADLOCK ***
+
+4 locks held by syz-executor/5782:
+ #0: ffff888037c18410 (sb_writers#12){.+.+}-{0:0}, at: filename_rmdir+0x1ff/0x5c0 fs/namei.c:5420
+ #1: ffff8880712c25a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1074 [inline]
+ #1: ffff8880712c25a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2914 [inline]
+ #1: ffff8880712c25a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2938 [inline]
+ #1: ffff8880712c25a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: filename_rmdir+0x258/0x5c0 fs/namei.c:5424
+ #2: ffff8880355b8bc0 (&osb->nfs_sync_rwlock){.+.+}-{4:4}, at: ocfs2_nfs_sync_lock+0xe4/0x2e0 fs/ocfs2/dlmglue.c:2875
+ #3: ffff88805a4f89a0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1029 [inline]
+ #3: ffff88805a4f89a0 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_wipe_inode+0x2ce/0x1250 fs/ocfs2/inode.c:854
+
+stack backtrace:
+CPU: 1 UID: 0 PID: 5782 Comm: syz-executor Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 04/18/2026
+Call Trace:
+ <TASK>
+ __dump_stack lib/dump_stack.c:94 [inline]
+ dump_stack_lvl+0x100/0x190 lib/dump_stack.c:120
+ print_circular_bug.cold+0x178/0x1c7 kernel/locking/lockdep.c:2043
+ check_noncircular+0x146/0x160 kernel/locking/lockdep.c:2175
+ check_prev_add kernel/locking/lockdep.c:3165 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+ validate_chain kernel/locking/lockdep.c:3908 [inline]
+ __lock_acquire+0x14b8/0x2630 kernel/locking/lockdep.c:5237
+ lock_acquire kernel/locking/lockdep.c:5868 [inline]
+ lock_acquire+0x1b1/0x370 kernel/locking/lockdep.c:5825
+ down_write+0x8b/0x1f0 kernel/locking/rwsem.c:1625
+ inode_lock include/linux/fs.h:1029 [inline]
+ ocfs2_remove_inode+0x15b/0x860 fs/ocfs2/inode.c:733
+ ocfs2_wipe_inode+0x6dd/0x1250 fs/ocfs2/inode.c:896
+ ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+ ocfs2_evict_inode+0x7f9/0x1550 fs/ocfs2/inode.c:1299
+ evict+0x3c2/0xad0 fs/inode.c:841
+ iput_final fs/inode.c:1960 [inline]
+ iput.part.0+0x605/0xf50 fs/inode.c:2009
+ iput+0x35/0x40 fs/inode.c:1975
+ d_delete_notify include/linux/fsnotify.h:377 [inline]
+ vfs_rmdir fs/namei.c:5389 [inline]
+ vfs_rmdir+0x5c8/0x8a0 fs/namei.c:5349
+ filename_rmdir+0x31a/0x5c0 fs/namei.c:5431
+ __do_sys_unlinkat fs/namei.c:5606 [inline]
+ __se_sys_unlinkat fs/namei.c:5599 [inline]
+ __x64_sys_unlinkat+0xf5/0x130 fs/namei.c:5599
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x115/0x870 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f7319b9bf77
+Code: 77 01 c3 48 c7 c2 e8 ff ff ff f7 d8 64 89 02 b8 ff ff ff ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 40 00 b8 07 01 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fffc0104e08 EFLAGS: 00000207 ORIG_RAX: 0000000000000107
+RAX: ffffffffffffffda RBX: 0000000000000065 RCX: 00007f7319b9bf77
+RDX: 0000000000000200 RSI: 00007fffc0105fb0 RDI: 00000000ffffff9c
+RBP: 00007f7319c321ca R08: 0000000000018550 R09: 0000000000000001
+R10: 0000000000000000 R11: 0000000000000207 R12: 00007fffc0105fb0
+R13: 00007f7319c321ca R14: 000000000001aa05 R15: 00007fffc0108170
+ </TASK>
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+ocfs2: Unmounting device (7,0) on (node local)
+
+
+---
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
