@@ -1,130 +1,130 @@
-Received: from mail-ed1-f73.google.com (mail-ed1-f73.google.com [209.85.208.73])
+Received: from mail-qk1-f170.google.com (mail-qk1-f170.google.com [209.85.222.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AFE813F0743
-	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Jun 2026 15:03:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.73
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3FF3E3314C4
+	for <ocfs2-devel@lists.linux.dev>; Thu, 11 Jun 2026 21:35:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.222.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781190236; cv=none; b=g15OtMQyTeoDJZOtqo2wbOohnNSWUABxYIdMKd1vQEDGchVnC8xw/y9eXQjlZVRj3sYVxpVaUQqLf7d4FfDCoY+MwlNyaK2f+cf5cIxRtxO5lxG+lPowAamqfu6ujVQgXWzuOy9Mr3n/6G6khi1N5NO8TtnsAEGo8H6/D2vEpGc=
+	t=1781213716; cv=none; b=F4SyXE+hDqoQ3j1+I71snN0DJz3WMswyzhpyi6kkNiRlJEbk2Uy5+tNyaEEv7/HSe6c8BFSXFPNdvgxQJ51qRo3O4lF7xwv1nL6Mi7LtxDTlmJZ7OdNKtKlPpixng/dMju2N6RGbTI3NDU8l5UL+/dSlLgU321/VJjslZXjNdw8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781190236; c=relaxed/simple;
-	bh=y5kJ3kajCoxBcBNJkGi0XXQnfZ1wt2bycaMh1e6fLdk=;
-	h=Date:Mime-Version:Message-ID:Subject:From:To:Cc:Content-Type; b=tD5VmUHsuPU+Kw5opVB9fTOBUdaSm8Spy4BscaG0Mxl4WblOThf8eyMWzidhHKPwT5RgQIP7bwMVV3fB4Ub+T3i1uUUgf5RGSxkZgJ9AoEWnp8l52trmMlelrQ/U0b9R8c571yYXFkGlWC6V7ApjyYRC1tP1e0otq8CXGabEgZ0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=flex--elver.bounces.google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=hokLnOXQ; arc=none smtp.client-ip=209.85.208.73
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=flex--elver.bounces.google.com
+	s=arc-20240116; t=1781213716; c=relaxed/simple;
+	bh=hCyXATFj3Ov2wP2Dil8MM6YMgb5iJIzEMzEDy0jTzog=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=lBJ7xXzpH86jN4yT0xgdCxszw1ogieFBfq6+i9DTUIzjJ+WCC1kVgf8ym+oga0QIKndHrk2hE0UPIFE891gPfOm2DPDRBCbqtov0busekF97NYl3PlYglVT3FnY0mvV31IeLOglRY5A8pHAHFDm2UUF6qdlHHm2cvBSQM28b/GQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=openai.com; spf=pass smtp.mailfrom=openai.com; dkim=pass (1024-bit key) header.d=openai.com header.i=@openai.com header.b=YQJ5AtDV; arc=none smtp.client-ip=209.85.222.170
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=openai.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=openai.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="hokLnOXQ"
-Received: by mail-ed1-f73.google.com with SMTP id 4fb4d7f45d1cf-68d233bf9easo10647182a12.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 11 Jun 2026 08:03:54 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=openai.com header.i=@openai.com header.b="YQJ5AtDV"
+Received: by mail-qk1-f170.google.com with SMTP id af79cd13be357-9158643e538so32294085a.1
+        for <ocfs2-devel@lists.linux.dev>; Thu, 11 Jun 2026 14:35:15 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1781190233; x=1781795033; darn=lists.linux.dev;
-        h=cc:to:from:subject:message-id:mime-version:date:from:to:cc:subject
-         :date:message-id:reply-to;
-        bh=6AH75jGOvlDPieViObPquY80uZlC/VLdOtypjuV705E=;
-        b=hokLnOXQ23csh6PufJl6Xv+jLW4zgSr4NcxVOllt6etQK3oLy0xhB20/49Qd4tkADp
-         A2QxPTW3FpzNOSk/DUCbdvHwAFfHHc3LvRvg5D62tdnOv0qcpgaYpEyao8A0WuEv4Ur+
-         K+mtEKbeAkuoJ68QqM7wNB6KmHftNA5LAE969E+Upa9yGZ0tClN0Lo39MhyMl1ZXfSuq
-         N5ohr+thVFa2ZV2+hy14eaKysMJoJf0Xza6mFXcvABYdkCviNtO2Ai8ZtdN+9aW3ZNLV
-         FKv+kLXm6mGWq+BPy3TfhtNgifwj+7eC261k2Z9S0M3u9NNllAStIzY0TgiN9gaX3UJd
-         XKjw==
+        d=openai.com; s=google; t=1781213714; x=1781818514; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=FyL7MLnyi7BSEFK2/5LnuQPeRqNUYzr49gk95R0WT30=;
+        b=YQJ5AtDV+ywwTnMYe/0RHoouSsJ7i+rr7j/34O2Nnk4k6RDWbC+eZSN93KTaz/mVq3
+         /Sn8pm7akfyf60h0NquZEWhoojEPXx3PdEIVcyI0busIiEWc/3KOeGAfmhAZKBLQppCQ
+         qFknzo+KxrHiMDteYLaoG6+tGZcLD/cHOOqLw=
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781190233; x=1781795033;
-        h=cc:to:from:subject:message-id:mime-version:date:x-gm-message-state
-         :from:to:cc:subject:date:message-id:reply-to;
-        bh=6AH75jGOvlDPieViObPquY80uZlC/VLdOtypjuV705E=;
-        b=bZgoaB1WoiCi88qEXjsRG8fiUNQ+YuFIwch7pMHBh5BEnF61XVNMLKZhKCNuFLKdgG
-         5RagUhyTYM+UDblxutPi+hRkEOM98m8W2vO2eCKXE3uJdUD+5kpK1KQg5Be/kS35oD5E
-         yTpfXf684sqSRO69Vp+jK0Ef7pPU1KJMrm2xUJbnv3qKvcRO1mgUNZdWNrp5bU/jGw2l
-         I3PUj97moKN8KtYG1nmGGOR/8NJnAVcYcg9eYB2JcKOjBRNgrdDqrvsLNUesC4Z6zb1X
-         u1CwbogFvFxwxovRVSG6vMbEfozOMfVDTnTK0msNrxVdgFc9xcyug/OQp2cSjuJZi4Ae
-         3LSQ==
-X-Forwarded-Encrypted: i=1; AFNElJ+ckKFFW6wPyK+V9bLA9kCpgKxQosGmbdmja3EyKzRkJc7wulne1G5xSLzbTM32c8qN2S647PTOv7Zh6g==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzOccG4hUsA6TFpbQzAdGxIVDDSaMrm847VkwpOCAOPZxy/60Y9
-	1SOSuOwANMrkVfyc6Cr+o8hf35f0PzHEGKW+mBoqSuX2GDZy+LzdhZofeJ/cuzqoyJLJwn04Orl
-	HlQ==
-X-Received: from edb11.prod.google.com ([2002:a05:6402:238b:b0:67c:c486:8c03])
- (user=elver job=prod-delivery.src-stubby-dispatcher) by 2002:a05:6402:40d0:b0:68c:d4e:3a46
- with SMTP id 4fb4d7f45d1cf-6930e273a26mr1724640a12.8.1781190232863; Thu, 11
- Jun 2026 08:03:52 -0700 (PDT)
-Date: Thu, 11 Jun 2026 17:01:50 +0200
+        d=1e100.net; s=20251104; t=1781213714; x=1781818514;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=FyL7MLnyi7BSEFK2/5LnuQPeRqNUYzr49gk95R0WT30=;
+        b=XJXIZWOf5DbEjBQEAQdUUFFW+RcXXbuAlTh/b6O/YjQiN9xAFlXnjKnnFTJ+u0G0sk
+         bVVzTRNbfi1vkM0/orrGojZdU0kFMHBMyuQdLEeakTZ/Rv1VJcYrm8veNseFBXu0Xxga
+         9pXYQv2kL/RtEzwqjL4rW8p1P2sLI8XNCRSg+jZ4aK7y/f6oyLs2CY0D/tmEvZ2gVhtJ
+         Pdew36n+30utd2tpPP0oIGxqqQF/RGdjNHWYpp3E5iqc4oLB/NAKIx+6jUErzJvyeWBk
+         sTdwrg2qy+lyExFhgcEv/3k+RoPDW5tHINk1OMhXQ7ku6M/Dt+xfs5ICh8NuFK1jmmUr
+         BboA==
+X-Gm-Message-State: AOJu0YyOXW+GVbalwmipkLlWlk+D2FpMnkECR57kSaTGDwiL2HMKs3pt
+	KREoMsuPDT0LE1jSBCdYL+0lhNa9DCsKj6xjNHwp/g0+srNEV4tee5KD5UHZLzkY9IOTpULI5Jg
+	HD4gMFYc=
+X-Gm-Gg: Acq92OHjrxUA4QFN83F8aSiFq+2LPXLAzDErFHCFivo6SHfnvg9CLgH+51/1pmVVHiX
+	RfIubiNFKmhkP6RsDpZNZ2kAL4GXvRw/2ZZqqlNhqY9XvabZPmw8t/dJYzxJAstI0ZeSZXg6XeG
+	dtCOnYX0+QTIHSB0UjuPA0f6fQkMjuKj9UgdVbrBD+GMdCE5OdPz27D8aKjmdjQEYg2KDiKJDcl
+	tmgWjWwsBtxkUjbEmBShKKcQOPYaV+uv4QX0pdhrc6DIJp9kSzAmCoXxG45vvuw51a+/YYl6X6J
+	nryMYn3WFFNi8mAChMAgmQHKEf0hNs/bNYtDFR7pRUJSi1nQM9+zpZDUO1YBbtD8IlZ+gdVUhMS
+	LqxtRmXUsIxvB27TUn3a9ZZEheGQi0XLSB/lCQNU0aeYR/wQat4i5c12bCNSyH+Yr14T77PccS1
+	r+VmjCEka84QmIFVowDxuLHMBv0eipZrBuE0O9d4vBs15m520sEXTsB5D2S+RgSS0ilrNdg0/kX
+	H0Jh8QXnLL4QcWX80/vtwMI98tmoJFYFVc=
+X-Received: by 2002:a05:620a:8017:b0:915:89d4:df0f with SMTP id af79cd13be357-9160ac96084mr730469185a.2.1781213714230;
+        Thu, 11 Jun 2026 14:35:14 -0700 (PDT)
+Received: from com-75606.node.ndb.openai.org ([209.249.37.146])
+        by smtp.gmail.com with ESMTPSA id af79cd13be357-9161a061028sm27194985a.42.2026.06.11.14.35.13
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Thu, 11 Jun 2026 14:35:13 -0700 (PDT)
+From: Kyle Zeng <kylebot@openai.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: linux-kernel@vger.kernel.org,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	outbounddisclosures@openai.com,
+	Kyle Zeng <kylebot@openai.com>,
+	stable@vger.kernel.org
+Subject: [PATCH] ocfs2: avoid moving extents to occupied clusters
+Date: Thu, 11 Jun 2026 14:35:10 -0700
+Message-ID: <20260611213510.16956-1-kylebot@openai.com>
+X-Mailer: git-send-email 2.54.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-X-Mailer: git-send-email 2.54.0.1099.g489fc7bff1-goog
-Message-ID: <20260611150341.3964327-1-elver@google.com>
-Subject: [PATCH] ocfs2: fix orphan inode disk leak in ocfs2_dio_end_io() on
- I/O error
-From: Marco Elver <elver@google.com>
-To: elver@google.com
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, kasan-dev@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 
-When an extending direct I/O write or a direct I/O write racing with an
-unlink is initiated, ocfs2_direct_IO() places the user inode into the
-system orphan directory and sets the OCFS2_DIO_ORPHANED_FL flag to
-ensure defined behavior and crash consistency.
+For non-auto OCFS2_IOC_MOVE_EXT operations, userspace supplies a
+physical me_goal.  ocfs2_move_extent() initializes new_phys_cpos from
+that goal and expects ocfs2_probe_alloc_group() to replace it with a
+free run in the target block group.
 
-However, if the direct I/O request encounters an error or gets
-asynchronous cancellation (bytes <= 0), the VFS completion hook
-ocfs2_dio_end_io() bypasses ocfs2_dio_end_io_write() entirely and
-executes ocfs2_dio_free_write_ctx().  This completely omits the teardown
-of the orphan entry, leaking the user inode in the orphan directory and
-leaving the OCFS2_DIO_ORPHANED_FL disk flag set.
+The probe currently leaves *phys_cpos unchanged if the scan reaches the
+end of the group without finding a free run.  An occupied goal at the
+last bit can therefore survive the probe and be passed to
+__ocfs2_move_extent(), which copies file data into a cluster still owned
+by another inode before the bitmap is updated.
 
-Because the OCFS2_DIO_ORPHANED_FL flag remains active, subsequent VFS
-final inode eviction (ocfs2_delete_inode) observes the flag, assumes a
-direct I/O write is actively in progress, and refuses to wipe the inode.
-This results in an irrecoverable disk storage and resource leak that can
-only be reclaimed if the cluster unmounts or crashes.
+When the probe does find a free run, it also subtracts move_len from the
+ending bit.  The start of an N-bit run ending at i is i - N + 1, so the
+current calculation can report the bit immediately before the free run.
 
-Fix this by ensuring that ocfs2_dio_end_io() inspects dw_orphaned even
-when an I/O error occurs, and executes ocfs2_del_inode_from_orphan() to
-liberate the inode before destroying the in-memory write context.
+Clear *phys_cpos before scanning and use the correct free-run start.
+Callers already treat a zero result as -ENOSPC, so failed probes no
+longer continue with an occupied caller-controlled goal.
 
-Fixes: 5040f8df56fb ("ocfs2: free up write context when direct IO failed")
-Assisted-by: Antigravity:Gemini
-Signed-off-by: Marco Elver <elver@google.com>
+Fixes: e6b5859cccfa ("Ocfs2/move_extents: helper to probe a proper region to move in an alloc group.")
+Fixes: 236b9254f8d1 ("ocfs2: fix non-auto defrag path not working issue")
+Cc: stable@vger.kernel.org
+Assisted-by: Codex:gpt-5.5
+Signed-off-by: Kyle Zeng <kylebot@openai.com>
 ---
- fs/ocfs2/aops.c | 17 +++++++++++++++--
- 1 file changed, 15 insertions(+), 2 deletions(-)
+ fs/ocfs2/move_extents.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 4acdbb70882c..ad3f2057e26e 100644
---- a/fs/ocfs2/aops.c
-+++ b/fs/ocfs2/aops.c
-@@ -2419,11 +2419,24 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
- 		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
- 				 (long long)bytes);
- 	if (private) {
--		if (bytes > 0)
-+		if (bytes > 0) {
- 			ret = ocfs2_dio_end_io_write(inode, private, offset,
- 						     bytes);
--		else
-+		} else {
-+			struct ocfs2_dio_write_ctxt *dwc = private;
-+
-+			if (dwc->dw_orphaned) {
-+				struct buffer_head *di_bh = NULL;
-+
-+				if (ocfs2_inode_lock(inode, &di_bh, 1) == 0) {
-+					ocfs2_del_inode_from_orphan(OCFS2_SB(inode->i_sb),
-+								    inode, di_bh, 0, 0);
-+					ocfs2_inode_unlock(inode, 1);
-+					brelse(di_bh);
-+				}
-+			}
- 			ocfs2_dio_free_write_ctx(inode, private);
-+		}
- 	}
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index c53de4439d93..ad1678ee7cc4 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -534,6 +534,8 @@ static void ocfs2_probe_alloc_group(struct inode *inode, struct buffer_head *bh,
+ 	u32 base_cpos = ocfs2_blocks_to_clusters(inode->i_sb,
+ 						 le64_to_cpu(gd->bg_blkno));
  
- 	ocfs2_iocb_clear_rw_locked(iocb);
++	*phys_cpos = 0;
++
+ 	for (i = base_bit; i < le16_to_cpu(gd->bg_bits); i++) {
+ 
+ 		used = ocfs2_test_bit(i, (unsigned long *)gd->bg_bitmap);
+@@ -555,7 +557,7 @@ static void ocfs2_probe_alloc_group(struct inode *inode, struct buffer_head *bh,
+ 			last_free_bits++;
+ 
+ 		if (last_free_bits == move_len) {
+-			i -= move_len;
++			i = i - move_len + 1;
+ 			*goal_bit = i;
+ 			*phys_cpos = base_cpos + i;
+ 			break;
 -- 
-2.54.0.1099.g489fc7bff1-goog
+2.51.0
 
