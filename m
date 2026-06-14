@@ -1,271 +1,215 @@
-Received: from flow-a7-smtp.messagingengine.com (flow-a7-smtp.messagingengine.com [103.168.172.142])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lj1-f193.google.com (mail-lj1-f193.google.com [209.85.208.193])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C777E73463
-	for <ocfs2-devel@lists.linux.dev>; Sat, 13 Jun 2026 13:31:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.142
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781357519; cv=none; b=RAUO6nUU8h3JuivJLiAGjP/akri0K1XoTxBpRYWkFlULKRcJxJao9OvP+GQeONEkWZHFGsSw8p46N9E0U8LDcbnBCj+5OAocdmpsFhouLh53zkDs5In7lhRy4Uo7jYLQH5M63xpfBych/wPTcJ0+SAh9uq6mkOUeT8Kj8SMOWGA=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781357519; c=relaxed/simple;
-	bh=EQu9InT6bP+A7eCeYVG+Sx/uWu7aVbp3dAR8iqxc1JQ=;
-	h=Date:From:To:Subject:Message-ID:MIME-Version:Content-Type:
-	 Content-Disposition; b=YpxchQkTK/7pyCDwiupsZKylGAC87q7PmviwvfGPAdX3nU0fRdysCszl5hc9DOPzVzcrzJlg5rk89690u0x4W7CtJrhfCHXdFCIzveQ5bWQy0Sj4fNu6fW5x8jwVbiTo8Jn1WSPeZbr0JsJTEIcVszOXzHdQkMU1FNICBWHJj30=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org; spf=pass smtp.mailfrom=fastmail.org; dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b=hAWuZm6Q; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=EWH0vzDn; arc=none smtp.client-ip=103.168.172.142
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fastmail.org
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DEE07260D
+	for <ocfs2-devel@lists.linux.dev>; Sun, 14 Jun 2026 01:32:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.193
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1781400750; cv=pass; b=X2aL6MCCKp9jiCd9Pev4TIujxCOAonwhjXpGtu7Rppy1sdUAtFMAOqzt+2wv8fSAW/TEHycnmdo29tOYWO0AzO9yzm4ZAQ/HtMD0LaxtIEyqUxgde9JiRWxtKC0aRJK6UVDR6EpDo4B5Q8Bx3MonGwZoTf03Wlrcf6PbFLbdcCg=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1781400750; c=relaxed/simple;
+	bh=PLHv8n+5Z5dmP6+ukjwnit+rXrig202sb4I/heW4PJI=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=hUo9hMh3aca7CQC/G64NHsBKSkAsltAYMaYkPM4IENS9v7gGGlUIwZbcIcaQL5AMJP6i2p6HhChhD0VvFCTfXNPHbjzIVAnlgT1l6YNKEAEWE/fiCYpwhjL9BcbXHYQTCScnvF1kyhjJNSy2xC3cJPghQKV7rAUym8k3dW4xfGM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=qWj0ozBY; arc=pass smtp.client-ip=209.85.208.193
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b="hAWuZm6Q";
-	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="EWH0vzDn"
-Received: from phl-compute-01.internal (phl-compute-01.internal [10.202.2.41])
-	by mailflow.phl.internal (Postfix) with ESMTP id E53E51380079;
-	Sat, 13 Jun 2026 09:31:55 -0400 (EDT)
-Received: from phl-frontend-03 ([10.202.2.162])
-  by phl-compute-01.internal (MEProxy); Sat, 13 Jun 2026 09:31:55 -0400
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=fastmail.org; h=
-	cc:content-type:content-type:date:date:from:from:in-reply-to
-	:message-id:mime-version:reply-to:subject:subject:to:to; s=fm1;
-	 t=1781357515; x=1781361115; bh=94CgoBBrDZnGnjc9WDHUFo0i+VLFgjMe
-	uyZJF6iUVts=; b=hAWuZm6Q6lwzr3krzMsZQMSYKBitE+Z1IrsMvrXQ7f3bRjUu
-	KCESHwhZGR8R7TqARSwu4Br/LkhfeqlVkbUF1nGeAnNCGbY5yW3Qa9pgsKBikzJH
-	N/p3jXTRfK/kUFp6ueaq03QxdQuv+ptgDSHJQdbhHne7ZOqSUVAT9e4wjPWCP6Ch
-	01OrcLWSQNTa1D7FfJk66LvhVkPICZ4N1ZrvGasKmK4huOyEGU9L6Bx7f0WNbbFZ
-	tLb3Fmi/oQlK79lWjCM717VspMV0XkGHRM1Ki++pnXFzhbH25XY5cUT3twq9Be0X
-	C6odrdrA34ssVvBJmJ3AyIUpok1Lq/iNpIuMQg==
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
-	messagingengine.com; h=cc:content-type:content-type:date:date
-	:feedback-id:feedback-id:from:from:in-reply-to:message-id
-	:mime-version:reply-to:subject:subject:to:to:x-me-proxy
-	:x-me-sender:x-me-sender:x-sasl-enc; s=fm1; t=1781357515; x=
-	1781361115; bh=94CgoBBrDZnGnjc9WDHUFo0i+VLFgjMeuyZJF6iUVts=; b=E
-	WH0vzDnNayxgjPRmJvlPqBCyD40r4rcgUM2g5Z4v8lck0JXl4eSPqUP407ZqZg95
-	ZXlqe9ew0TgAxts7ED5iIIRQPrTKgoCD1yXJ4LNVHV3ydEfmY4Lc18HOkY9IfsdV
-	srinyOeTIVpN4+gnFB2vsbO/d+jgFg4fj1I9wLj8Q9QT+LrNTw1jAdzPkIPULRPk
-	q4ZYzTqZqgTlQ0FeYFHtiiYbi2J7OWbpxKkJReFeRSDVGgqmWGWcC9voNuVBUpmM
-	zXmy5ZUPyEzyzY1FHUuvqmuFloBs952stTXJepmkjnEFZCklh4vbg7dAXfz6Wkw7
-	ermaGIBpUA9v88CdmryLg==
-X-ME-Sender: <xms:y1stamQSvvVFAW2oQGBX_SczQ5CESf0nwuysEABpGrVikpUntKrchA>
-    <xme:y1staksGoBZ0dOHQkfAv9N_gJa-Z4xI_xAiHkPn55J6N4qN3dkkBwYWYu307sr0Re
-    WpvdwFgUscNXXbBvcNcu6aYg5GmAgrVKijHnwZxWs14O9UOFvvjNMA>
-X-ME-Received: <xmr:y1stavZXJ5VxexUfGLw_3UMuJcFjr30yBQoSi2OzvLPmlxVVJIorvx0K7p8>
-X-ME-Proxy-Cause: dmFkZTEweCc+svDwM6N47jqDgbPbaY4k7DK6LR8jSANChfAjd1U3wyrulBhNPJp6qpoJCu
-    AIr/+1MFF3yI+4sRToC7MrqEKLIBBocGCLP32lVox+mHxt4MBdVAEmAwT9UOXAA9imYu5m
-    70tmZOOrcfSeU8KDWDQ8hPSSqy1Iv2YIMFpf6QKCfGWR3+tEC20DvcJ4aBYsxpvfyz2rEm
-    NYEa7DYLJntkroMsMha6fHyOoob0+9/Yz0Ad85JtRDHuaVquIcyFRyvV/8IiO6/AmPgOqB
-    84s0Pd6IPw3CvmadRAWPstabo555oRjXYYMSHxSxu/Uyh7cIPhrcMBalvSPiTtocf1dLI9
-    O3t6Uidb3YRY2EBLYM+6TXq1K25zP5yA6peXsPSyngQEAvz3okDnB19ZuCAwx6469pFvj7
-    wBn8O4CQAm7b5mgSeQGGm4mKP2U/BAQHqtu40AYZWCmacokCrJPfrym5yg6E/bxGAqqYcu
-    dQ+OcfCTiQR/NmPRFbxyn/vQ8X5t2VpSBqVizZ5uEyNhvFZv50yr0l6KBKBTFAxq+viAAw
-    RkjvVDIM5XLX+XyChehHYasxwCosUszUbZ2TsEBPnvorNCyJ7F7DiCzTqRPJigwqayfQ9y
-    FDU03hmYVmINxbKP/oZ2viyAsKGbdfd4eZidgLNARjDbvrrjuBv9NgjHjqHQ
-X-ME-Proxy: <xmx:y1staiG5AD3Sp4oMOMWM8Hk8A9-XD63yBIAJGA9LL38eYynUcZ4-4g>
-    <xmx:y1starzT0TCwVzZhJTFmchBVB3V3LWYZd-r0M9-J2l151e_9lYhwVQ>
-    <xmx:y1stasl-z2qPgy445ogbCEEzEzPB_aAUYKpwymTkemM2c-R1UTRlFQ>
-    <xmx:y1staslgA3w5LJPioiF2oDD__QWhm8EtlWcGQBozZNqltxSbSvyL0A>
-    <xmx:y1stai96GUKYmc0djQsZlEy2f6qStOY8ltMF2OAtVkyisbz2lvaySXUd>
-Feedback-ID: ib53e4b78:Fastmail
-Received: by mail.messagingengine.com (Postfix) with ESMTPA; Sat,
- 13 Jun 2026 09:31:55 -0400 (EDT)
-Date: Sat, 13 Jun 2026 08:31:53 -0500
-From: Ian Bridges <icb@fastmail.org>
-To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: [PATCH] ocfs2: fix out-of-bounds read in
- ocfs2_duplicate_inline_data()
-Message-ID: <ai1byUgMNULbZuLs@dev>
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="qWj0ozBY"
+Received: by mail-lj1-f193.google.com with SMTP id 38308e7fff4ca-39677c80386so21414211fa.3
+        for <ocfs2-devel@lists.linux.dev>; Sat, 13 Jun 2026 18:32:28 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1781400746; cv=none;
+        d=google.com; s=arc-20240605;
+        b=gnWcPOIZT/1Iom+caKOWWiLVh3jtDcRJl44AVjW0LNLDLs9/sbPj5fWCpJnjZpRjSU
+         uViyP5PvncsNZfnmUPIG1ypXq6DKoEmp1KMaQYtWKwbvS+NaMNyHimGhLC1RhnqDl38N
+         fdJBGxb16pPaEtuc68pa4Ua3Ap7RhQm/XvNDgkjshrScH9ajw+h4uaqmZ+44Hq7/zJsp
+         rco7G6+svCJnMq4fXaZvnogmkYd62UuNqZC4UZgh4CpoOtQMk5vJSeEXEbyD5TX4E2xm
+         J7ndP0FaNc1GLjtj7V6OzH5IXITJxQ78C12y3oUBgQZW37J84RiDFVftZgd47NNX5+7u
+         KgCA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=91nTbIu/HnaoiadjBQ7jCH85zB1cun3V2wKVVVY4Rak=;
+        fh=03m5+eNLbtApDDs/duJGc/Fv/6ndu0DyInaK//2Ww8I=;
+        b=QqjbkxaHXbEbm0/INgz7WH+m2v68XLuxA68DXoGPL3ZdSJ3pRtL3XopL4F7/7P3Lwq
+         ni1si3jGi/qM1v8GQJJMnfNaKq/w07hIvCyT1I1PLWKam+H0eiQLcx1skrsMEN1olDJH
+         Y08O+TxPnXKvzcsf1Gfj7T/cpBdhIjgAqwrbw/l3Gs/KEE6GB9tdzNSDhRIuH6KQzJjO
+         xjbUU0Ctew1fkHhJh2GTk2Kvi+WvA8a0hd1X6NGhsd7m7uGBUI66c7SGJkupqlLdCfZg
+         Fb1XEVfjrSQ5ZfaexatBoQpDsff25nP1WpD5zk9p2apOw+O4uGcJ/CKeKjPUZyivSkFb
+         Yf+Q==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1781400746; x=1782005546; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=91nTbIu/HnaoiadjBQ7jCH85zB1cun3V2wKVVVY4Rak=;
+        b=qWj0ozBYqvs4dnPofIelwxIM6r9AFMMmxtkljcBgVVxPEO7SSMW5GlyATjYEuRQZJC
+         U7ERwpmxMKvBOVG+QcKQJeHxy70tHAMFQzl5DFK5cYpeSwWXXjf8R9Hbym6nssiFD6NB
+         hGyPWnwkukDG4+s+SprNKUGUzGd8oNusc/psMaea4Vulhg9OuqQ8//g+BtRQmW/bOxsn
+         rUztJjWD+e87VsUc6o8u0s7WiLgx6e1M5IyV4FdlhoGDqvop76FLWifvnOuiub0qd/K/
+         TGycxflzEOPSJz5wS4zcTMTnk89nJtuvz4l3jqUQ9wmje+gfYI6EeWT2eNA04nGkSaC0
+         PU+Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1781400746; x=1782005546;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=91nTbIu/HnaoiadjBQ7jCH85zB1cun3V2wKVVVY4Rak=;
+        b=PWQdrB9c1xW4M2j1vEi7tvyDAST6DG3gBm0huNabHCwFNFAqmfxs7lGTpuMhvf4TLX
+         zEyH3mxd//zE/nrQOy9AlFXw6Ofc5G2Xn+Qheax1+LW4IdSsv8m7NXX8hZLHv2Bo6aPZ
+         p41MDZKHco/eliKLWRBRkJIyCH8Vl51tNKwjVHj5IN5c1aKCVYUlABIV+dADXbpYqN3Q
+         wp7SxT39uDOp/eDnTJwvimEqhYZNX+t4/RejPuLfi9q/lO4RiwBFRNvHRr+yBoDMhTYx
+         oUO/UoGebyqbWrWMwx/Wme0ChYKndOMDHIKfoD3/arTFKoMKk+JFkehJRbdwJUBVt/te
+         4Crw==
+X-Gm-Message-State: AOJu0Yw9g8NYdt0m7781ApwwFSR5WLxF2cg50YC2EN9K6db3bUgucc55
+	9A6VJeEBfSwA0ikGnneapD7w2wao5wSIscjAgNjcxtxA7Hz4xAoYs9/T18361HRmuNWna5UuEGp
+	mq1hsVZvdSv2PaIYd1tiqJI3qPPX6FMY=
+X-Gm-Gg: Acq92OENudjVFHMDs2sQhafDJdsqhdk6ZTmNZs/iExE90OrtIc3+FwvSSPl03DjQXvz
+	NNy3mFM3yNwxl2/vsC9TXsRVT98ODWxB0l7OL7RSQv00Myf7XkGrgJsS8IIfi62M1L/E95XweJC
+	+cVov/j545uzlOPborzzW7qkrlQD7+fT3GMXA4OkxzWgNpyb1Hvg1O5WBiscU7N3seCDzIZLuFF
+	o226f3qH95uU05TK6uAKGZ8SeKMyi7JYjEFIW3K2pdt57Jvps4Muul8EUFoclz3zxsKk+/nQTyX
+	SC9SpP5OUg==
+X-Received: by 2002:a05:651c:1511:b0:38b:f632:e0fc with SMTP id
+ 38308e7fff4ca-3992af7cea4mr27065041fa.1.1781400746084; Sat, 13 Jun 2026
+ 18:32:26 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
+References: <20260525070604.360875-1-rollkingzzc@gmail.com>
+In-Reply-To: <20260525070604.360875-1-rollkingzzc@gmail.com>
+From: Cen Zhang <rollkingzzc@gmail.com>
+Date: Sun, 14 Jun 2026 09:32:14 +0800
+X-Gm-Features: AVVi8Cf1yljSrWRTGPYbP-yKSajqBBd0rN-AIjBfx86a0xQZejYFFLZGh4Ct9QM
+Message-ID: <CAB7XQsEKUD_xHCQ0kZeW-cLx5U3G_CvoqDG3XO6RtNBq5ZbmDA@mail.gmail.com>
+Subject: Re: [PATCH] ocfs2: remove debugfs before shutting down recovery
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev, zerocling0077@gmail.com, 2045gemini@gmail.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-[BUG]
-copy_file_range() (or reflink) of an inline-data file can read and write
-out of bounds in ocfs2_duplicate_inline_data() when the source inode's
-on-disk id_count exceeds the inline-data capacity. KASAN reports a
-use-after-free read past the end of the inode block buffer.
+Hi all,
 
-[CAUSE]
-ocfs2_duplicate_inline_data() copies the source inline area with a
-memcpy() whose length is le16_to_cpu() of the on-disk id_count, taken
-straight from the source inode buffer with no bounds check. The inline
-capacity is at most ocfs2_max_inline_data_with_xattr() (3896 bytes for a
-4K block); a larger id_count overruns the 4096-byte source and target
-inode blocks into the adjacent page. ocfs2_validate_inode_block() already
-bounds id_count, but it only runs on a disk read; an inode buffer that
-was validated and then mutated in the block-device page cache (for
-example by a concurrent LOOP_SET_STATUS invalidating the loop bdev) stays
-up-to-date and is consumed without re-validation.
+Just a gentle ping on this series.
 
-[FIX]
-Bound the source id_count against ocfs2_max_inline_data_with_xattr() in
-ocfs2_duplicate_inline_data() before the memcpy, and return an error via
-ocfs2_error() if it is too large.
+I would appreciate any feedback or guidance on whether further changes
+are needed.
 
-Fixes: 2f48d593b6ce ("ocfs2: duplicate inline data properly during reflink.")
-Reported-by: syzbot+e400b192d6ca035354ee@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=e400b192d6ca035354ee
-Cc: stable@vger.kernel.org
-Signed-off-by: Ian Bridges <icb@fastmail.org>
----
-This patch contains a proposed fix for a crash reported by syzbot
-in ocfs2_duplicate_inline_data().
+Thanks for your time and review.
 
-The file names and offsets in this description are from commit
-7cb1c5b32a2bfde961fff8d5204526b609bcb30a from this repo:
-git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging.git
+Best regards,
+Zhang Cen
 
-I also have a small test harness that reproduces the original crash
-deterministically, which I can make available as well.
-
-The Bug
-
-OCFS2 stores the data of a small file directly inside the inode block,
-in the space that would otherwise hold the extent list (the inline-data
-feature). The on-disk container is struct ocfs2_inline_data
-(fs/ocfs2/ocfs2_fs.h:652):
-
-    __le16  id_count;
-    __le16  id_reserved0;
-    __le32  id_reserved1;
-    __u8    id_data[] __counted_by_le(id_count);
-
-id_count is the capacity of the inline area, not the used length; it is
-set at creation to ocfs2_max_inline_data_with_xattr()
-(fs/ocfs2/namei.c:589). For a 4K block that capacity is
-4096 - offsetof(struct ocfs2_dinode, id2.i_data.id_data) = 3896 bytes,
-less any inline-xattr reservation (fs/ocfs2/ocfs2_fs.h:1252).
-
-When copy_file_range() (or FICLONE) targets two files on the same ocfs2
-mount and the source is inline, ocfs2 copies the inline bytes directly in
-ocfs2_duplicate_inline_data() (fs/ocfs2/refcounttree.c:3918). It memcpys
-the source id_data array into the target's, using le16_to_cpu() of the
-source id_count as the copy length (fs/ocfs2/refcounttree.c:3946).
-
-id_count is taken straight from the source inode buffer as the copy
-length, with no bounds check. If it exceeds the 3896-byte capacity the
-memcpy runs off the end of the source inode block, and because the same
-count is the write length, off the end of the target block too. Both are
-4096-byte buffers, so the access spills into the adjacent page. syzbot's
-report is the read side: "Read of size 8483 ..." in
-ocfs2_duplicate_inline_data, 8483 being the bad id_count.
-
-How it is reached:
-
-1. With both files on the same super block, vfs_copy_file_range()
-   (fs/read_write.c:1554) has no copy_file_range method to call and falls
-   back to ocfs2's remap_file_range method, ocfs2_remap_file_range()
-   (fs/ocfs2/file.c:2701), with REMAP_FILE_CAN_SHORTEN
-   (fs/read_write.c:1599). An over-long copy length is clamped to the
-   source i_size.
-
-2. ocfs2_remap_file_range() calls ocfs2_reflink_inodes_lock()
-   (fs/ocfs2/refcounttree.c:4698), which takes the inode cluster lock via
-   ocfs2_inode_lock_nested() (fs/ocfs2/refcounttree.c:4743), yielding the
-   source inode buffer s_bh, then calls ocfs2_reflink_remap_blocks()
-   (fs/ocfs2/refcounttree.c:4599).
-
-3. For a whole-file copy of an inline source
-   (fs/ocfs2/refcounttree.c:4622) it takes the inline fast path:
-   ocfs2_duplicate_inline_data(s_inode, s_bh, ...)
-   (fs/ocfs2/refcounttree.c:4625), which runs the memcpy above. A corrupt
-   id_count of 8483 overruns the buffers and KASAN reports the
-   out-of-bounds read into the freed neighbouring page.
-
-The bad id_count is not present on disk in a freshly read inode.
-ocfs2_validate_inode_block() (fs/ocfs2/inode.c:1423) already rejects an
-id_count larger than ocfs2_max_inline_data_with_xattr() at read time
-(fs/ocfs2/inode.c:1508, added by 7bc5da4842be for the write-side sibling
-of this bug), and that check is in the crashing kernel. The bad value
-instead reaches s_bh through a buffer that was validated once and then
-mutated underneath ocfs2.
-
-The fs is on a loop device; while the copy runs, the test harness issues
-LOOP_SET_STATUS with a changed lo_offset/lo_sizelimit. loop_set_status()
-(drivers/block/loop.c:1227) then calls invalidate_bdev()
-(drivers/block/loop.c:1246), dropping the loop bdev pages that back
-ocfs2's cached inode buffer. When the page is refilled from the
-offset-shifted backing it holds neighboring garbage, and the inline fast
-path reads that id_count without re-validating. (The report's "page last
-freed by loop_set_status" is this same churn.) The test harness produces the
-state deterministically by writing an oversized id_count straight into the
-loop device's page cache at the inode's offset, then issuing the copy.
-
-The Proposed Fix
-
-The fix adds the bound check to ocfs2_duplicate_inline_data() itself,
-before the memcpy. If the source id_count exceeds
-ocfs2_max_inline_data_with_xattr() for the source inode, the inode is
-corrupt, so report it with ocfs2_error() and return. id_count is read
-once into a local used for both the check and the copy, so the value
-cannot change between them.
-
-The natural instinct, and what the write-side sibling 7bc5da4842be did,
-is to reject the value at read time in ocfs2_validate_inode_block(). That
-is right for corruption already present on disk when the inode is read,
-but it does not stop this bug.
-
-ocfs2_validate_inode_block() does not run on every use of a buffer; it
-runs at most once, as the post-I/O callback of a disk read.
-ocfs2_read_blocks() (fs/ocfs2/buffer_head_io.c:193) goes to disk only
-when the buffer is not already up-to-date (fs/ocfs2/buffer_head_io.c:271);
-only that path sets NeedsValidate (fs/ocfs2/buffer_head_io.c:327-328),
-and the callback runs only when that flag is set
-(fs/ocfs2/buffer_head_io.c:376-382). An already up-to-date buffer is
-returned with no I/O and no validation. The validator therefore checks
-the bytes when read from disk, not when used.
-
-Because of this, the patch checks the invariant where the value is consumed
-(the memcpy site), the only place that sees the live bytes. Putting it in
-ocfs2_duplicate_inline_data() also covers both callers
-(fs/ocfs2/refcounttree.c:4107 and :4625) and bounds both the source read
-and the target write, since one count drives both.
-
- fs/ocfs2/refcounttree.c | 17 +++++++++++++++--
- 1 file changed, 15 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 8eee5be4d1ed..eb3ddcaaa049 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -3925,9 +3925,23 @@ static int ocfs2_duplicate_inline_data(struct inode *s_inode,
- 	struct ocfs2_super *osb = OCFS2_SB(s_inode->i_sb);
- 	struct ocfs2_dinode *s_di = (struct ocfs2_dinode *)s_bh->b_data;
- 	struct ocfs2_dinode *t_di = (struct ocfs2_dinode *)t_bh->b_data;
-+	u16 id_count = le16_to_cpu(s_di->id2.i_data.id_count);
- 
- 	BUG_ON(!(OCFS2_I(s_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
- 
-+	/*
-+	 * id_count was validated by ocfs2_validate_inode_block() when the inode
-+	 * was read, but the cached buffer can be modified afterward, so re-check
-+	 * it before the memcpy.
-+	 */
-+	if (id_count > ocfs2_max_inline_data_with_xattr(s_inode->i_sb, s_di)) {
-+		ret = ocfs2_error(s_inode->i_sb,
-+				  "Inode %llu has invalid inline data id_count %u\n",
-+				  (unsigned long long)OCFS2_I(s_inode)->ip_blkno,
-+				  id_count);
-+		goto out;
-+	}
-+
- 	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
- 	if (IS_ERR(handle)) {
- 		ret = PTR_ERR(handle);
-@@ -3943,8 +3957,7 @@ static int ocfs2_duplicate_inline_data(struct inode *s_inode,
- 	}
- 
- 	t_di->id2.i_data.id_count = s_di->id2.i_data.id_count;
--	memcpy(t_di->id2.i_data.id_data, s_di->id2.i_data.id_data,
--	       le16_to_cpu(s_di->id2.i_data.id_count));
-+	memcpy(t_di->id2.i_data.id_data, s_di->id2.i_data.id_data, id_count);
- 	spin_lock(&OCFS2_I(t_inode)->ip_lock);
- 	OCFS2_I(t_inode)->ip_dyn_features |= OCFS2_INLINE_DATA_FL;
- 	t_di->i_dyn_features = cpu_to_le16(OCFS2_I(t_inode)->ip_dyn_features);
--- 
-2.47.3
-
+Zhang Cen <rollkingzzc@gmail.com> =E4=BA=8E2026=E5=B9=B45=E6=9C=8825=E6=97=
+=A5=E5=91=A8=E4=B8=80 15:06=E5=86=99=E9=81=93=EF=BC=9A
+>
+> ocfs2_osb_debug_open() builds the per-mount fs_state snapshot by calling
+> ocfs2_osb_dump(), which reads osb->recovery_map. During normal unmount,
+> ocfs2_dismount_volume() currently calls ocfs2_recovery_exit() before it
+> removes osb->osb_debug_root, so a concurrent fs_state open can still
+> enter ocfs2_osb_dump() after the recovery map has been freed.
+>
+> operations, so moving it ahead of ocfs2_recovery_exit() closes the
+> post-free/pre-remove window without changing the recovery-state logic.
+> This also makes the normal unmount path match the existing mount-error
+> state.
+>
+> The buggy scenario involves two paths, with each column showing the
+> order within that path:
+>
+> 1. Open the per-mount fs_state file      1. ocfs2_dismount_volume() start=
+s
+> 2. ocfs2_osb_debug_open() calls          2. ocfs2_recovery_exit() frees
+>    ocfs2_osb_dump()                         osb->recovery_map
+>    osb->recovery_map                        runs later
+>
+> Validation reproduced this kernel report:
+> KASAN slab-use-after-free in ocfs2_osb_debug_open+0x478/0xaa0
+> RIP: 0033:0x7f65fc97a001
+> The buggy address belongs to the object at ffff8881049c3da0 which belongs
+> to the cache kmalloc-8 of size 8
+> The buggy address is located 0 bytes inside of freed 8-byte region
+> [ffff8881049c3da0, ffff8881049c3da8)
+> Read of size 4
+> Call trace:
+>   dump_stack_lvl+0x66/0xa0 (?:?)
+>   print_report+0xd0/0x630 (?:?)
+>   ocfs2_osb_debug_open+0x478/0xaa0 (fs/ocfs2/super.c:343)
+>   srso_alias_return_thunk+0x5/0xfbef5 (?:?)
+>   __virt_addr_valid+0x188/0x2f0 (?:?)
+>   kasan_report+0xe4/0x120 (?:?)
+>   full_proxy_open_regular+0x113/0x170 (?:?)
+>   do_dentry_open+0x233/0x7f0 (?:?)
+>   vfs_open+0x5a/0x1b0 (?:?)
+>   security_inode_permission+0x19/0x60 (?:?)
+>   path_openat+0x679/0x1540 (?:?)
+>   kmem_cache_alloc_noprof+0x1ea/0x5f0 (?:?)
+>   do_getname+0x2e/0x1d0 (?:?)
+>   do_sys_openat2+0xa4/0x150 (?:?)
+>   __x64_sys_openat+0xd0/0x140 (?:?)
+>   do_syscall_64+0x10c/0x640 (arch/x86/entry/syscall_64.c:87)
+>   entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+>   do_file_open+0x190/0x2a0 (?:?)
+>   __lock_acquire+0x42f/0x1a60 (?:?)
+>   _raw_spin_unlock+0x23/0x40 (?:?)
+>   alloc_fd+0x210/0x350 (?:?)
+>   do_sys_openat2+0xce/0x150 (?:?)
+>   irqentry_exit+0xac/0x6e0 (?:?)
+> Freed by task stack:
+>   kasan_save_stack+0x33/0x60 (?:?)
+>   kasan_save_track+0x14/0x30 (?:?)
+>   kasan_save_free_info+0x3b/0x60 (?:?)
+>   __kasan_slab_free+0x5f/0x80 (?:?)
+>   kfree+0x30f/0x580 (?:?)
+>   ocfs2_dismount_volume+0x168/0x560 (fs/ocfs2/super.c:1868)
+>   generic_shutdown_super+0xc3/0x220 (fs/ocfs2/super.c:?)
+>   kill_block_super+0x29/0x60 (fs/ocfs2/super.c:?)
+>   deactivate_locked_super+0x66/0xe0 (fs/ocfs2/super.c:?)
+>   cleanup_mnt+0x13d/0x210 (?:?)
+>   task_work_run+0xfa/0x170 (?:?)
+>   exit_to_user_mode_loop+0xd6/0x430 (?:?)
+>   do_syscall_64+0x3cb/0x640 (arch/x86/entry/syscall_64.c:87)
+>   entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+>
+> Fixes: 5e7a3ed9f1a6 ("ocfs2: further debugfs cleanups")
+> Assisted-by: Codex:gpt-5.5
+> Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
+> ---
+>  fs/ocfs2/super.c | 6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index b875f01c9756..357f210b6a43 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1826,6 +1826,9 @@ static void ocfs2_dismount_volume(struct super_bloc=
+k *sb, int mnt_err)
+>
+>         ocfs2_truncate_log_shutdown(osb);
+>
+> +       ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
+> +       debugfs_remove_recursive(osb->osb_debug_root);
+> +
+>         /* This will disable recovery and flush any recovery work. */
+>         ocfs2_recovery_exit(osb);
+>
+> @@ -1865,9 +1868,6 @@ static void ocfs2_dismount_volume(struct super_bloc=
+k *sb, int mnt_err)
+>
+>         ocfs2_dlm_shutdown(osb, hangup_needed);
+>
+> -       ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
+> -       debugfs_remove_recursive(osb->osb_debug_root);
+> -
+>         if (hangup_needed)
+>                 ocfs2_cluster_hangup(osb->uuid_str, strlen(osb->uuid_str)=
+);
+>
+> --
+> 2.43.0
+>
