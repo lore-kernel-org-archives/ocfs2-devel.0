@@ -1,92 +1,92 @@
 Received: from mail-lj1-f193.google.com (mail-lj1-f193.google.com [209.85.208.193])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7DEE07260D
-	for <ocfs2-devel@lists.linux.dev>; Sun, 14 Jun 2026 01:32:28 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4B0AD7260D
+	for <ocfs2-devel@lists.linux.dev>; Sun, 14 Jun 2026 01:33:02 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.193
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781400750; cv=pass; b=X2aL6MCCKp9jiCd9Pev4TIujxCOAonwhjXpGtu7Rppy1sdUAtFMAOqzt+2wv8fSAW/TEHycnmdo29tOYWO0AzO9yzm4ZAQ/HtMD0LaxtIEyqUxgde9JiRWxtKC0aRJK6UVDR6EpDo4B5Q8Bx3MonGwZoTf03Wlrcf6PbFLbdcCg=
+	t=1781400783; cv=pass; b=BOMpkMZfkadyd/SueWWVwK3m61FXwIegzn1zOiFq9SkkeVp/PylZlN12SSJb+Mi1Uk0lFy4cU0IeEFhe1/h5YEiWMfBcyi+UlC8fnKo5yS70c5GoOULvIPR/cSand8/gVVmGeP+ccSkhXfWxYzPyfLKrkmCiDe8BP60QCmK0ul8=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781400750; c=relaxed/simple;
-	bh=PLHv8n+5Z5dmP6+ukjwnit+rXrig202sb4I/heW4PJI=;
+	s=arc-20240116; t=1781400783; c=relaxed/simple;
+	bh=1KCDUnl8pw/eN5Yiv3AWp5ArcgVeaSevnIrsoUQ/5co=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=hUo9hMh3aca7CQC/G64NHsBKSkAsltAYMaYkPM4IENS9v7gGGlUIwZbcIcaQL5AMJP6i2p6HhChhD0VvFCTfXNPHbjzIVAnlgT1l6YNKEAEWE/fiCYpwhjL9BcbXHYQTCScnvF1kyhjJNSy2xC3cJPghQKV7rAUym8k3dW4xfGM=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=qWj0ozBY; arc=pass smtp.client-ip=209.85.208.193
+	 To:Cc:Content-Type; b=RYZRzt1Zjid+3HQPIXdVlWvcP6WmjWOcKxVReR3XkbGVbxB77Q3ynxnkE6aQGfrcwQOiRFcDTq1Zz6GGV2azYAkG3Q5RtDgZIi7bOVugeYe6orHTovkRUBdXWYWfhmw15G5RQIfiMXTrK5SibazqEfhqhqB/lEzz7HOcGozDiaA=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=FEeNS41r; arc=pass smtp.client-ip=209.85.208.193
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="qWj0ozBY"
-Received: by mail-lj1-f193.google.com with SMTP id 38308e7fff4ca-39677c80386so21414211fa.3
-        for <ocfs2-devel@lists.linux.dev>; Sat, 13 Jun 2026 18:32:28 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1781400746; cv=none;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="FEeNS41r"
+Received: by mail-lj1-f193.google.com with SMTP id 38308e7fff4ca-3967724bed1so24793071fa.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 13 Jun 2026 18:33:02 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1781400780; cv=none;
         d=google.com; s=arc-20240605;
-        b=gnWcPOIZT/1Iom+caKOWWiLVh3jtDcRJl44AVjW0LNLDLs9/sbPj5fWCpJnjZpRjSU
-         uViyP5PvncsNZfnmUPIG1ypXq6DKoEmp1KMaQYtWKwbvS+NaMNyHimGhLC1RhnqDl38N
-         fdJBGxb16pPaEtuc68pa4Ua3Ap7RhQm/XvNDgkjshrScH9ajw+h4uaqmZ+44Hq7/zJsp
-         rco7G6+svCJnMq4fXaZvnogmkYd62UuNqZC4UZgh4CpoOtQMk5vJSeEXEbyD5TX4E2xm
-         J7ndP0FaNc1GLjtj7V6OzH5IXITJxQ78C12y3oUBgQZW37J84RiDFVftZgd47NNX5+7u
-         KgCA==
+        b=MsI1a93dEWx5TLhrLzTtWiJErqLmCiWrniNYFcCm7VzcQAnVjAuPQQEM83nzm6FANU
+         EOcBicjkkYTUNlkfpcSX5E45PkCWd8Olpczo+sQXjRqABL2/vCMzVU7+aQJwds/1WuwB
+         8ZqRKAgzo8vTG0Afrjkd53ztu3WOVQd5d6Q9mR1ns0+wqjH+hMNJDpEJM3mJY9VIbkg5
+         u3paOrXrPjo0cyX3ogPtK6mofn8CmsXGI8B8AhH+l2Fk5LBrRl0fV+FBaqahR1lDy/2+
+         9qaHzOV7QHCt4zhpSNA1x/jKKzo2d4TTTugd9wjDyTvEg2alebLpd7AA2/akd/h6wW5+
+         ZK7w==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:dkim-signature;
-        bh=91nTbIu/HnaoiadjBQ7jCH85zB1cun3V2wKVVVY4Rak=;
+        bh=tGNwxXgvPBrU30+ol/pmAdDTdpdT4DGWuuV7B8A0X4U=;
         fh=03m5+eNLbtApDDs/duJGc/Fv/6ndu0DyInaK//2Ww8I=;
-        b=QqjbkxaHXbEbm0/INgz7WH+m2v68XLuxA68DXoGPL3ZdSJ3pRtL3XopL4F7/7P3Lwq
-         ni1si3jGi/qM1v8GQJJMnfNaKq/w07hIvCyT1I1PLWKam+H0eiQLcx1skrsMEN1olDJH
-         Y08O+TxPnXKvzcsf1Gfj7T/cpBdhIjgAqwrbw/l3Gs/KEE6GB9tdzNSDhRIuH6KQzJjO
-         xjbUU0Ctew1fkHhJh2GTk2Kvi+WvA8a0hd1X6NGhsd7m7uGBUI66c7SGJkupqlLdCfZg
-         Fb1XEVfjrSQ5ZfaexatBoQpDsff25nP1WpD5zk9p2apOw+O4uGcJ/CKeKjPUZyivSkFb
-         Yf+Q==;
+        b=OEhzd+eddW1xU52Gvy3CL/dFnbwSxx0ruHUApJTJpnCXtugXveLwQROjrgxku0zSeA
+         rSdl5tNp9hQmrVuZQCL2kW7Luwxr7NJDrNacYDFsJqA5UTxAf9n4TFpBPAml/SN2c2uM
+         dtmuyVK4+4zn3s8Wn0E7/zPioiC8XHLUT2ZiqYfiqQN5bF/rfueQ7kdJEwAIl9IPxu4m
+         Hg/wznqXwa7UOKEn/q5ipPNvwW0TnmSLO3+VvFadcE/q0jTt7RAWlkpTQ+C1iJRv0INz
+         jOE+ibzlvEFmgivUTYKoROwNtDJ+Lvf4HdufcOC2mc66gH4PRdzawGHCgXvn1TBuLVX7
+         jEPg==;
         darn=lists.linux.dev
 ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1781400746; x=1782005546; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1781400780; x=1782005580; darn=lists.linux.dev;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=91nTbIu/HnaoiadjBQ7jCH85zB1cun3V2wKVVVY4Rak=;
-        b=qWj0ozBYqvs4dnPofIelwxIM6r9AFMMmxtkljcBgVVxPEO7SSMW5GlyATjYEuRQZJC
-         U7ERwpmxMKvBOVG+QcKQJeHxy70tHAMFQzl5DFK5cYpeSwWXXjf8R9Hbym6nssiFD6NB
-         hGyPWnwkukDG4+s+SprNKUGUzGd8oNusc/psMaea4Vulhg9OuqQ8//g+BtRQmW/bOxsn
-         rUztJjWD+e87VsUc6o8u0s7WiLgx6e1M5IyV4FdlhoGDqvop76FLWifvnOuiub0qd/K/
-         TGycxflzEOPSJz5wS4zcTMTnk89nJtuvz4l3jqUQ9wmje+gfYI6EeWT2eNA04nGkSaC0
-         PU+Q==
+        bh=tGNwxXgvPBrU30+ol/pmAdDTdpdT4DGWuuV7B8A0X4U=;
+        b=FEeNS41rrfzFTYdPGDQ6E/XhXDAoEKQ3Pydn38uPhixrjBFuDllr3XJS6FGt4qakeZ
+         y46MHnAquK1vI4T+jhqdnPkFVwtfhXm5CNwSEkNZSdJpps1O5wgE/4jm3cAmhFxB2C03
+         JfPtjsFz0LtQJtLPReEke5wV6/8ckhIvUQGU0p+ccFu6bQKMeaxc+M5P/ujr6yGB3xVr
+         cm0H6Opj2RAFOYwN8hWKz3v8U4NezsnzBI3E6F5SD3Srn501wX/QqQAV/apAamSz1dWR
+         XUyPXBW09B1gXT/d2t5csHP9iWIs+TWTJiyqD79r4IoKRL38m/XSPa5QpQkpqIsbC7Jf
+         CQog==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781400746; x=1782005546;
+        d=1e100.net; s=20251104; t=1781400780; x=1782005580;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=91nTbIu/HnaoiadjBQ7jCH85zB1cun3V2wKVVVY4Rak=;
-        b=PWQdrB9c1xW4M2j1vEi7tvyDAST6DG3gBm0huNabHCwFNFAqmfxs7lGTpuMhvf4TLX
-         zEyH3mxd//zE/nrQOy9AlFXw6Ofc5G2Xn+Qheax1+LW4IdSsv8m7NXX8hZLHv2Bo6aPZ
-         p41MDZKHco/eliKLWRBRkJIyCH8Vl51tNKwjVHj5IN5c1aKCVYUlABIV+dADXbpYqN3Q
-         wp7SxT39uDOp/eDnTJwvimEqhYZNX+t4/RejPuLfi9q/lO4RiwBFRNvHRr+yBoDMhTYx
-         oUO/UoGebyqbWrWMwx/Wme0ChYKndOMDHIKfoD3/arTFKoMKk+JFkehJRbdwJUBVt/te
-         4Crw==
-X-Gm-Message-State: AOJu0Yw9g8NYdt0m7781ApwwFSR5WLxF2cg50YC2EN9K6db3bUgucc55
-	9A6VJeEBfSwA0ikGnneapD7w2wao5wSIscjAgNjcxtxA7Hz4xAoYs9/T18361HRmuNWna5UuEGp
-	mq1hsVZvdSv2PaIYd1tiqJI3qPPX6FMY=
-X-Gm-Gg: Acq92OENudjVFHMDs2sQhafDJdsqhdk6ZTmNZs/iExE90OrtIc3+FwvSSPl03DjQXvz
-	NNy3mFM3yNwxl2/vsC9TXsRVT98ODWxB0l7OL7RSQv00Myf7XkGrgJsS8IIfi62M1L/E95XweJC
-	+cVov/j545uzlOPborzzW7qkrlQD7+fT3GMXA4OkxzWgNpyb1Hvg1O5WBiscU7N3seCDzIZLuFF
-	o226f3qH95uU05TK6uAKGZ8SeKMyi7JYjEFIW3K2pdt57Jvps4Muul8EUFoclz3zxsKk+/nQTyX
-	SC9SpP5OUg==
-X-Received: by 2002:a05:651c:1511:b0:38b:f632:e0fc with SMTP id
- 38308e7fff4ca-3992af7cea4mr27065041fa.1.1781400746084; Sat, 13 Jun 2026
- 18:32:26 -0700 (PDT)
+        bh=tGNwxXgvPBrU30+ol/pmAdDTdpdT4DGWuuV7B8A0X4U=;
+        b=qRlneJWli8qxn+6Q7uR0zbM3M1Sf+KF3ehXzxAMXSRV3HiaCwBaKuHnqa9DTNiGH8s
+         wT9C5JVRH/CqgUf1gFkh18pXm+NepTEKCtV68rNBV2I7bS0W1XkHV1s0WUf5D7V4gtN/
+         NmBEcnFVII2kx2sneW0r0zomfcO7ftvgSbELenlRlSuad12Yz0miE+00Z+MsYYvsjQwC
+         +8XKOzXF/lqQ8LR3FMAX/Ah5zrLrTELibADAsqZVqW3nDsA0uTNH5lO+my3sj1vjxftZ
+         soihWK+zHRM8FSnEyx6xIHFXjfmMzrlNR4kAjPBXrD6ERmBkqqHv6lAk61l6v5pvOMSX
+         ehaQ==
+X-Gm-Message-State: AOJu0YwIEErwEYesm6sIpSgBfQULn1Donj19Djb7N+iu+uYPTUAmBtXo
+	AiDwxNEGKJ7yvQqx8Afbi8CvuuVYTKPgU6nGUIFHsQ3aJ9Sfbyck7S9sTIilYKOab5JY38D8p7j
+	T6RVK03NydWMELmxWHJRuxCFZXIjkxvqgHwSKCLOVOmOxIH8=
+X-Gm-Gg: Acq92OF38lzE2L8rv6ESXyF/dzg+KoMVxBCQWlecd7fXe2r5WH3+srPuuieW3eXiIUD
+	oYNlrHFYnt3y5WJQZwh219JksUKjPC0d+irZdv4Dt3EYQ9C33/6CZcPNG4ir+AZsA7xm/TBOcOA
+	ZuNeJ44XKZFeh+/QtcSaQQlpNQfAz+CgnhYRaZjhLLbrdZTkZxkuMfNoLPDytex0dAEdqXfVpBw
+	xazar+t+ISskic3qIyXefxaKsRX9q1eUa+7uplUo9+tADl2tINoEtfCLcQNWeElPxu3pZgCgX0U
+	qlWQD2DaCVk2KOZTHD7wCJwFn44HSIO8QhdyS7Zj6XkgAWmpF1mwKy+pMaGtE+WRUFs=
+X-Received: by 2002:a2e:a98d:0:b0:396:76f9:ac7c with SMTP id
+ 38308e7fff4ca-3993558708bmr13525671fa.1.1781400780187; Sat, 13 Jun 2026
+ 18:33:00 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260525070604.360875-1-rollkingzzc@gmail.com>
-In-Reply-To: <20260525070604.360875-1-rollkingzzc@gmail.com>
+References: <20260526034040.3602377-1-rollkingzzc@gmail.com>
+In-Reply-To: <20260526034040.3602377-1-rollkingzzc@gmail.com>
 From: Cen Zhang <rollkingzzc@gmail.com>
-Date: Sun, 14 Jun 2026 09:32:14 +0800
-X-Gm-Features: AVVi8Cf1yljSrWRTGPYbP-yKSajqBBd0rN-AIjBfx86a0xQZejYFFLZGh4Ct9QM
-Message-ID: <CAB7XQsEKUD_xHCQ0kZeW-cLx5U3G_CvoqDG3XO6RtNBq5ZbmDA@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: remove debugfs before shutting down recovery
+Date: Sun, 14 Jun 2026 09:32:48 +0800
+X-Gm-Features: AVVi8Cfa7hDYgmoCvpcbQx14VOmYVMCee-SnKKQmyblZDLdBgv6ljmjlqn4Qhj4
+Message-ID: <CAB7XQsH2TcdhX93+HMkaxCWkLPeN_OQs=CF16M=_bDLqUgDqsg@mail.gmail.com>
+Subject: Re: [PATCH v2 0/2] ocfs2: validate xattr metadata bounds
 To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
 	Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: ocfs2-devel@lists.linux.dev, zerocling0077@gmail.com, 2045gemini@gmail.com
@@ -105,111 +105,32 @@ Thanks for your time and review.
 Best regards,
 Zhang Cen
 
-Zhang Cen <rollkingzzc@gmail.com> =E4=BA=8E2026=E5=B9=B45=E6=9C=8825=E6=97=
-=A5=E5=91=A8=E4=B8=80 15:06=E5=86=99=E9=81=93=EF=BC=9A
+Zhang Cen <rollkingzzc@gmail.com> =E4=BA=8E2026=E5=B9=B45=E6=9C=8826=E6=97=
+=A5=E5=91=A8=E4=BA=8C 11:40=E5=86=99=E9=81=93=EF=BC=9A
 >
-> ocfs2_osb_debug_open() builds the per-mount fs_state snapshot by calling
-> ocfs2_osb_dump(), which reads osb->recovery_map. During normal unmount,
-> ocfs2_dismount_volume() currently calls ocfs2_recovery_exit() before it
-> removes osb->osb_debug_root, so a concurrent fs_state open can still
-> enter ocfs2_osb_dump() after the recovery map has been freed.
+> Hi,
 >
-> operations, so moving it ahead of ocfs2_recovery_exit() closes the
-> post-free/pre-remove window without changing the recovery-state logic.
-> This also makes the normal unmount path match the existing mount-error
-> state.
+> This small series rejects corrupted OCFS2 xattr metadata before the
+> getxattr and listxattr paths walk filesystem-controlled inline, external
+> block, or indexed bucket storage.
 >
-> The buggy scenario involves two paths, with each column showing the
-> order within that path:
+> Patch 1 validates the inline xattr header placement and entry count
+> before ocfs2_xattr_ibody_get() parses it. Patch 2 builds on that helper
+> and validates listxattr entry counts and name ranges against the storage
+> that backs each walk.
 >
-> 1. Open the per-mount fs_state file      1. ocfs2_dismount_volume() start=
-s
-> 2. ocfs2_osb_debug_open() calls          2. ocfs2_recovery_exit() frees
->    ocfs2_osb_dump()                         osb->recovery_map
->    osb->recovery_map                        runs later
+> Both issues were reproduced with crafted OCFS2 images under KASAN.
 >
-> Validation reproduced this kernel report:
-> KASAN slab-use-after-free in ocfs2_osb_debug_open+0x478/0xaa0
-> RIP: 0033:0x7f65fc97a001
-> The buggy address belongs to the object at ffff8881049c3da0 which belongs
-> to the cache kmalloc-8 of size 8
-> The buggy address is located 0 bytes inside of freed 8-byte region
-> [ffff8881049c3da0, ffff8881049c3da8)
-> Read of size 4
-> Call trace:
->   dump_stack_lvl+0x66/0xa0 (?:?)
->   print_report+0xd0/0x630 (?:?)
->   ocfs2_osb_debug_open+0x478/0xaa0 (fs/ocfs2/super.c:343)
->   srso_alias_return_thunk+0x5/0xfbef5 (?:?)
->   __virt_addr_valid+0x188/0x2f0 (?:?)
->   kasan_report+0xe4/0x120 (?:?)
->   full_proxy_open_regular+0x113/0x170 (?:?)
->   do_dentry_open+0x233/0x7f0 (?:?)
->   vfs_open+0x5a/0x1b0 (?:?)
->   security_inode_permission+0x19/0x60 (?:?)
->   path_openat+0x679/0x1540 (?:?)
->   kmem_cache_alloc_noprof+0x1ea/0x5f0 (?:?)
->   do_getname+0x2e/0x1d0 (?:?)
->   do_sys_openat2+0xa4/0x150 (?:?)
->   __x64_sys_openat+0xd0/0x140 (?:?)
->   do_syscall_64+0x10c/0x640 (arch/x86/entry/syscall_64.c:87)
->   entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
->   do_file_open+0x190/0x2a0 (?:?)
->   __lock_acquire+0x42f/0x1a60 (?:?)
->   _raw_spin_unlock+0x23/0x40 (?:?)
->   alloc_fd+0x210/0x350 (?:?)
->   do_sys_openat2+0xce/0x150 (?:?)
->   irqentry_exit+0xac/0x6e0 (?:?)
-> Freed by task stack:
->   kasan_save_stack+0x33/0x60 (?:?)
->   kasan_save_track+0x14/0x30 (?:?)
->   kasan_save_free_info+0x3b/0x60 (?:?)
->   __kasan_slab_free+0x5f/0x80 (?:?)
->   kfree+0x30f/0x580 (?:?)
->   ocfs2_dismount_volume+0x168/0x560 (fs/ocfs2/super.c:1868)
->   generic_shutdown_super+0xc3/0x220 (fs/ocfs2/super.c:?)
->   kill_block_super+0x29/0x60 (fs/ocfs2/super.c:?)
->   deactivate_locked_super+0x66/0xe0 (fs/ocfs2/super.c:?)
->   cleanup_mnt+0x13d/0x210 (?:?)
->   task_work_run+0xfa/0x170 (?:?)
->   exit_to_user_mode_loop+0xd6/0x430 (?:?)
->   do_syscall_64+0x3cb/0x640 (arch/x86/entry/syscall_64.c:87)
->   entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+> v2:
+> - Resend as a proper two-patch series. The previous send was malformed
+>   by the transport and appeared as a single combined email.
 >
-> Fixes: 5e7a3ed9f1a6 ("ocfs2: further debugfs cleanups")
-> Assisted-by: Codex:gpt-5.5
-> Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
-> ---
->  fs/ocfs2/super.c | 6 +++---
->  1 file changed, 3 insertions(+), 3 deletions(-)
+> Zhang Cen (2):
+>   ocfs2: validate inline xattr metadata in ocfs2_xattr_ibody_get
+>   ocfs2: validate listxattr entry bounds
 >
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index b875f01c9756..357f210b6a43 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1826,6 +1826,9 @@ static void ocfs2_dismount_volume(struct super_bloc=
-k *sb, int mnt_err)
->
->         ocfs2_truncate_log_shutdown(osb);
->
-> +       ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
-> +       debugfs_remove_recursive(osb->osb_debug_root);
-> +
->         /* This will disable recovery and flush any recovery work. */
->         ocfs2_recovery_exit(osb);
->
-> @@ -1865,9 +1868,6 @@ static void ocfs2_dismount_volume(struct super_bloc=
-k *sb, int mnt_err)
->
->         ocfs2_dlm_shutdown(osb, hangup_needed);
->
-> -       ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
-> -       debugfs_remove_recursive(osb->osb_debug_root);
-> -
->         if (hangup_needed)
->                 ocfs2_cluster_hangup(osb->uuid_str, strlen(osb->uuid_str)=
-);
+>  fs/ocfs2/xattr.c | 122 +++++++++++++++++++++++++++++++++++++++--------
+>  1 file changed, 101 insertions(+), 21 deletions(-)
 >
 > --
 > 2.43.0
->
