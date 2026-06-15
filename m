@@ -1,72 +1,74 @@
-Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
+Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 937483BE148
-	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 07:32:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0B91400E0A
+	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 15:09:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781508766; cv=none; b=a1kPKGz8fbVeil5ix0PZY9fYfi/8LnNgTh6O/Z+TAilRTqzp/rrJNdwO2nDbTChmQtqxSuFUEhkGktFwg+NyuHeFueeEQ4PMtVxgmKB67zy4ojTIpVH+H/jt7vJcK47+7shpf75/PIH40x/8TXGkhD48DBaS/JJXUB3PYPiVJlU=
+	t=1781536178; cv=none; b=cECxfifD9Zb55v0g4Cyim5M8jk8aylG5mcfxNAV3mv8hsK8BCAmCLrf/McBPEL7rn5EhW0U4r9QUvSRfd+DiF9BrJnsMSFg7T7hvQCALmEJ9rvcWaruJEOcAgaU5SQN7lVLkNoySemBPjJW/sBSV3t7SyMgynR7e2aanMRkIs80=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781508766; c=relaxed/simple;
-	bh=ZnGzfuyEseRd2ZP5K74fMhOls3WDneczoAr/BXXD/KY=;
+	s=arc-20240116; t=1781536178; c=relaxed/simple;
+	bh=ni84w/01+N3dJ3ED+7jfXvZ9Q1gy2jaETrYrPpi4hcs=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=KVhvgzAMS+lKocQLsyVslBLHcYpLnhu1ELuAjSGvsKafAegBjjwfHawGhc/GzzyPW4UXkH17R2ExQkCPYwxCtWuqT+qVkSxvNllT8IQjLaTN7l4eYhWVtuQMUZqhWuVo/T+v4luL0G7/w8X+3SiiS7c8LdWUP/qxOXCUwAu6Z90=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=HKu9aDeq; arc=none smtp.client-ip=209.85.128.51
+	 Content-Type:Content-Disposition:In-Reply-To; b=hVK1W4BZVgIOlu0fJWrv9hf+R3xkwG5GQBs5DxLM+sEv9NLohFRfpGIC2aOKAnoU8HEfJaC+MgOa6FuHaMGFtYPzLNFEpwuIDGGylwnCdyn8wXldFrbYmXiYUjXBeV0ptHb4VL7QG8YOfF2nZ/IQJFUAOYEBzLJnqIL7I14Jp8c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=WNcuC6T+; arc=none smtp.client-ip=209.85.128.46
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="HKu9aDeq"
-Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-490c737bcafso2953115e9.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 00:32:44 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="WNcuC6T+"
+Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-490d6730461so3657075e9.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 08:09:36 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1781508763; x=1782113563; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1781536175; x=1782140975; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=Sb3jjJ2r77wI8k5RgZUxlmRUzvui3UL+pEHdI+mwdI4=;
-        b=HKu9aDeqI2E7hWrnQSUi96AYX707i95laHO61kaSVuynDuwYtbBzbW899oSbmMEyAF
-         cgw55wC2k6zWaUUg0N/kp1cgn6uNcpdjskxHMASAl1GcmmAFvLGYTdia10FDEjtt8e95
-         XhQ92zcrgxQZerl0+2KGGSOSvOuFFVoQcW8dHS/0P8NXNTbK67eT4tEFMdNPwd+uqVhV
-         aCgVquZRg89RX9FjUqGbBkxdW2dYcf8Mntuyq5PJsFPRAdkII3mJW0O1mv0sT4Rzt9s6
-         3rxjedufE+R15Tw++e7Ke+pKtmIde6SPvMz50Omc05nJKtxsEg3/wl7I42GHjj+6rtrN
-         x9Lw==
+        bh=eUEkUrsanBqZijxmCAC0JPoHe2szL/h32mFkqnSHjAk=;
+        b=WNcuC6T+2QRHcwfZ0R1H0E0lOXPE6AagsGerH1mIuw+4WKWN7f4M7m3OtT4VHGuBsF
+         QrTPtv8YIt2wGiMRJO/InQJk/naYZddLqZEHZpmhm9xSxCNp+9i//DhKWRL6ff+ghFpe
+         0B+6yfOuqF0sssDU7zH3IlqzmHaEVOmXy9ryN2w4kfIDxj2cNVopo0X87dHolSZV5Mtx
+         IaoERiMeO+Ij3Ebez955I2CpMpLKnybAI6Lioa6urX/bWfn1Hxhmo36CLK+xojw9ISOc
+         IpKoB+2PDO7IGjDDrK5EzOOAfOc7yda4Fo9NzJfdtLoEVZCWDCRR7/CIR6ttbyE/279j
+         zQ7g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781508763; x=1782113563;
+        d=1e100.net; s=20251104; t=1781536175; x=1782140975;
         h=in-reply-to:content-disposition:mime-version:references:message-id
          :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
          :subject:date:message-id:reply-to;
-        bh=Sb3jjJ2r77wI8k5RgZUxlmRUzvui3UL+pEHdI+mwdI4=;
-        b=VoxLciJvnTstS4WDLDEKufJrc2JI26DL2WhwAVhdBRVYCGMeyohkshjDGwGDv68IsH
-         LgQ9fng+C3NYn3z0yDd9pd+eV80sro2+eS77BQRQ/gV+1ta4Nh+zQVyXiTrfWjcU11dp
-         U1upziFJzHytcAk1g1bW3zZz9pmI5NYXi7KkUqOaj/VbEX17hlXrEP1amN1zAeMv0uM9
-         /hrUGZcDoYk929BveiCd6RiKPceBX4VXdYp/lCKJpep+b7OSRX3mlHmhU9kc542qDTfY
-         4HWL1d2y8Uy6sknpCZWXxk439FnkWg/OIO1qvB26eR3wR6Jcwgn2EBdhR8lyC+gXhs4H
-         srXg==
-X-Forwarded-Encrypted: i=1; AFNElJ/JFqBpILh6JLZmmlEM6r6yQ6TGv9f2bRLZSVV1DpgAwNiRwu/05DADVu5axPh7RfYWM8X5OXHMe/fkSg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwWAqdPVre3l7YsdfGRH9VsGFmHwSy6UvKOu2Sq4sX49iYmPMiw
-	gn2uLxSVcnSlK733O8UkJuqxluRiAiNu+OPtxokqgLVcn4HAmaEvdx4RL3zS28e5vdc=
-X-Gm-Gg: Acq92OGCbIYOh5xGAtE5rl/R/GET8qBY+mXcDjfWTa7oq2Snnnct1VnoXbqQ3qJCRM5
-	oqWCAhcH3JnE24oqjpzExm0+sddUxvUyYX1W048gUIfm9wAQmXdRenkcQprtf2Md9fo9PaKV6Ie
-	aQ2cLv/h84iCb+eRljpXQ7lMx8wi1f98Q21Y2PURlR94T2JYoMEAx65n+seiM6V9HYHnO1QHAlW
-	Zr5vG4hePoMN3FDevazdSOEiCDm2NfBIxZwoAOMthbG2MuVwxinJ3eZ9SJpFMg4ahsVQd4Y1QJC
-	F65+i+oJmPgsmojf33gpRA75KPvpe7xrLa2NlRKZhTW6B5TzrOnBjb+0SBcI0aBVOc4Z/wMhyvG
-	c4pqzRQMhZH9YNugb0i6NpwrXtT//BvLV7xWWVhrRiwWhrmbRgv+p90gxD574toAX+JJGgtYWkb
-	f/hnygQTr6lKQS5OHyX3RORA==
-X-Received: by 2002:a05:600c:2ad3:b0:490:b3ee:b857 with SMTP id 5b1f17b1804b1-490ec50afaemr44846575e9.8.1781508762753;
-        Mon, 15 Jun 2026 00:32:42 -0700 (PDT)
+        bh=eUEkUrsanBqZijxmCAC0JPoHe2szL/h32mFkqnSHjAk=;
+        b=GzT+kPUIxPdV10I3GhZhoMAxCkYZlwpxuEGhGbOGVhN5nyqb/GB7sBOuvs5/AKhLn6
+         ggfGMDGsSQlemgT4nxzsd0T7tbFnlPh6ochrTWtAUMpj5nBi0PoZ9bL/q8NRchLq/s3C
+         7+pGNrJynCunMIqPvfHGV+hovykdTnUO7Me+gRLPtICUpxeCzN9p85V3/kJnmShm9MvC
+         tbMfuo8pOXQ859I8IyjHK5D5h59Qw8eRkPkHX5B8CdYgPGgcLvq1/WqVTQ3E8Bwyd70u
+         bTqHuN+9OONFKfSQ/1ISYEjtS6hyQb9Tbkf4r6VldTkXg5DwV6Hovu+tMw20b3/qM0dI
+         JwuQ==
+X-Forwarded-Encrypted: i=1; AFNElJ9U3+3XVXNIxZ8VfYTurwdejR2/IssMvBMRGbKBnLy15om8BsQCP/cBn97cGZVdsqbrVLJAaycjbX9BoQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YySGK+pi4Q6KzyUqTQnQnIDwnNB6irTJv0mNNaXRnqxQ7Xb2YYt
+	QSrQmiFOssQZHrpDzZQjVOP/W+79R1PK/R6Ib6lFjKl7pamF2Z5QlOpKzkVdDPKS19Y=
+X-Gm-Gg: Acq92OGjk1BD7hxtEDAHXOBLynMwruvTAyhSrQkLlkJ0ju2FyOI5HDpsQYHPl8z9Una
+	9kTiPmtQkvk7REZUD0d4abiD7iWztne/LCoCGBdLRYdbwGgfNxLxNFvEUgzDs/sHNz2ICzXFS8A
+	9iyt1HVOfBoIr5Uxv7GZ7706wHe8jcpbhberwXQs5DjnY5MIkZbiZO3SKMWktw9cfPlbaxUjyCv
+	BkODkvADHah6d30j9IfbJZAFrn0p/mlWo3JEg0Q3a2jIzfKfFZPt4By6TU+hqtQVcXP8sTvuYWx
+	+B6QvaO6lYB97NQXYP9sYTDDpAiNgVrjH2WvPyoi9x3ouRgaaP46G1GvkhG58cIE5zU5TH6OjeN
+	GjypcOF5luIffSAQYZlXEVgL50pkMpWBr96dSfA3RyfsxfdQC/pmVNDFf40vrx6gFDh8GDdy6m0
+	jeV0F+e5yPwTuPL0UD+rpRJrnjOINLd12x
+X-Received: by 2002:a05:600c:4745:b0:488:7e7b:dbc2 with SMTP id 5b1f17b1804b1-490ec4fd3e4mr93700105e9.3.1781536175225;
+        Mon, 15 Jun 2026 08:09:35 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-3081e91f88bsm13987906eec.16.2026.06.15.00.32.40
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-3081e5d810fsm15466767eec.12.2026.06.15.08.09.33
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 15 Jun 2026 00:32:41 -0700 (PDT)
-Date: Mon, 15 Jun 2026 15:32:38 +0800
+        Mon, 15 Jun 2026 08:09:34 -0700 (PDT)
+Date: Mon, 15 Jun 2026 23:09:31 +0800
 From: Heming Zhao <heming.zhao@suse.com>
-To: syzbot <syzbot@kernel.org>
-Cc: syzkaller-bugs@googlegroups.com, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, syzbot@lists.linux.dev
-Subject: Re: [PATCH] ocfs2: fix circular locking dependency in
- ocfs2_dio_end_io_write
-Message-ID: <ai-qJbXLuniGv-mr@p15>
-References: <97c902a6-3bcf-43ea-9b70-f1f136a6c3f2@mail.kernel.org>
+To: Marco Elver <elver@google.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	kasan-dev@googlegroups.com
+Subject: Re: [PATCH] ocfs2: fix orphan inode disk leak in ocfs2_dio_end_io()
+ on I/O error
+Message-ID: <ajAP6648UpilAPXz@p15>
+References: <20260611150341.3964327-1-elver@google.com>
+ <aitf5rampsYpes2t@p15>
+ <aiwCgXY4tChR3MiU@elver.google.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -75,133 +77,94 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <97c902a6-3bcf-43ea-9b70-f1f136a6c3f2@mail.kernel.org>
+In-Reply-To: <aiwCgXY4tChR3MiU@elver.google.com>
 
-On Fri, Jun 12, 2026 at 11:50:20AM +0000, syzbot wrote:
-> From: Aleksandr Nogikh <nogikh@google.com>
+On Fri, Jun 12, 2026 at 02:58:41PM +0200, Marco Elver wrote:
+> On Fri, Jun 12, 2026 at 09:27AM +0800, Heming Zhao wrote:
+> > On Thu, Jun 11, 2026 at 05:01:50PM +0200, Marco Elver wrote:
+> > > When an extending direct I/O write or a direct I/O write racing with an
+> > > unlink is initiated, ocfs2_direct_IO() places the user inode into the
+> > > system orphan directory and sets the OCFS2_DIO_ORPHANED_FL flag to
+> > > ensure defined behavior and crash consistency.
+> > > 
+> > > However, if the direct I/O request encounters an error or gets
+> > > asynchronous cancellation (bytes <= 0), the VFS completion hook
+> > > ocfs2_dio_end_io() bypasses ocfs2_dio_end_io_write() entirely and
+> > > executes ocfs2_dio_free_write_ctx().  This completely omits the teardown
+> > > of the orphan entry, leaking the user inode in the orphan directory and
+> > > leaving the OCFS2_DIO_ORPHANED_FL disk flag set.
+> > > 
+> > > Because the OCFS2_DIO_ORPHANED_FL flag remains active, subsequent VFS
+> > > final inode eviction (ocfs2_delete_inode) observes the flag, assumes a
+> > > direct I/O write is actively in progress, and refuses to wipe the inode.
+> > > This results in an irrecoverable disk storage and resource leak that can
+> > > only be reclaimed if the cluster unmounts or crashes.
+> > > 
+> > > Fix this by ensuring that ocfs2_dio_end_io() inspects dw_orphaned even
+> > > when an I/O error occurs, and executes ocfs2_del_inode_from_orphan() to
+> > > liberate the inode before destroying the in-memory write context.
+> > > 
+> > > Fixes: 5040f8df56fb ("ocfs2: free up write context when direct IO failed")
+> > > Assisted-by: Antigravity:Gemini
+> > > Signed-off-by: Marco Elver <elver@google.com>
+> > > ---
+> > >  fs/ocfs2/aops.c | 17 +++++++++++++++--
+> > >  1 file changed, 15 insertions(+), 2 deletions(-)
+> > > 
+> > > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> > > index 4acdbb70882c..ad3f2057e26e 100644
+> > > --- a/fs/ocfs2/aops.c
+> > > +++ b/fs/ocfs2/aops.c
+> > > @@ -2419,11 +2419,24 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
+> > >  		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
+> > >  				 (long long)bytes);
+> > >  	if (private) {
+> > > -		if (bytes > 0)
+> > > +		if (bytes > 0) {
+> > >  			ret = ocfs2_dio_end_io_write(inode, private, offset,
+> > >  						     bytes);
+> > > -		else
+> > > +		} else {
+> > > +			struct ocfs2_dio_write_ctxt *dwc = private;
+> > > +
+> > > +			if (dwc->dw_orphaned) {
+> > > +				struct buffer_head *di_bh = NULL;
+> > > +
+> > > +				if (ocfs2_inode_lock(inode, &di_bh, 1) == 0) {
+> > > +					ocfs2_del_inode_from_orphan(OCFS2_SB(inode->i_sb),
+> > > +								    inode, di_bh, 0, 0);
+> > > +					ocfs2_inode_unlock(inode, 1);
+> > > +					brelse(di_bh);
+> > > +				}
+> > 
+> > Calling only ocfs2_del_inode_from_orphan() without ocfs2_truncate_file() will
+> > leave stale blocks beyond the EOF.
 > 
-> A circular locking dependency involves INODE_ALLOC_SYSTEM_INODE,
-> EXTENT_ALLOC_SYSTEM_INODE, and ORPHAN_DIR_SYSTEM_INODE.
+> Right.
 > 
-> 1. ocfs2_mknod() acquires INODE_ALLOC then EXTENT_ALLOC.
-> 2. ocfs2_dio_end_io_write() acquires EXTENT_ALLOC for unwritten extents,
-> then ORPHAN_DIR via ocfs2_del_inode_from_orphan() while still holding
-> EXTENT_ALLOC.
-> 3. ocfs2_wipe_inode() acquires ORPHAN_DIR then INODE_ALLOC via
-> ocfs2_remove_inode.
+> > I think the existing OCFS2 code already handles error/crash cases for orphaned
+> > inodes, and this "leaking" behavior is by design.
+> > please refer to ocfs2_recover_orphans() and ocfs2_add_inode_to_orphan().
 > 
-> Break the cycle in ocfs2_dio_end_io_write() by freeing the allocation
-> contexts (releasing EXTENT_ALLOC) before acquiring ORPHAN_DIR.
+> Periodic scans skip direct I/O entries to avoid racing with active
+> direct I/O on live nodes:
 > 
-> WARNING: possible circular locking dependency detected
-> ------------------------------------------------------
-> is trying to acquire lock:
-> ffff8881e78b33a0
-> (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at:
-> ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
+> In fs/ocfs2/journal.c:ocfs2_orphan_filldir():
 > 
-> but task is already holding lock:
-> ffff8881e78b4fa0
-> (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at:
-> ocfs2_evict_inode+0xe97/0x43b0 fs/ocfs2/inode.c:1299
+> 	/* do not include dio entry in case of orphan scan */
+> 	if ((p->orphan_reco_type == ORPHAN_NO_NEED_TRUNCATE) &&
+> 			(!strncmp(name, OCFS2_DIO_ORPHAN_PREFIX,
+> 			OCFS2_DIO_ORPHAN_PREFIX_LEN)))
+> 		return true;
 > 
-> the existing dependency chain (in reverse order) is:
-> 
-> -> #2 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
->        inode_lock include/linux/fs.h:1029 [inline]
->        ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2728
->        ocfs2_dio_end_io+0xf9c/0x1370 fs/ocfs2/aops.c:2418
->        dio_complete+0x25b/0x790 fs/direct-io.c:281
-> 
-> -> #1 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
->        inode_lock include/linux/fs.h:1029 [inline]
->        ocfs2_reserve_suballoc_bits+0x16d/0x4840 fs/ocfs2/suballoc.c:882
->        ocfs2_reserve_new_metadata_blocks+0x415/0x9a0
->        fs/ocfs2/suballoc.c:1078
->        ocfs2_mknod+0x10f3/0x2260 fs/ocfs2/namei.c:351
-> 
-> -> #0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
->        __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
->        lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
->        down_write+0x96/0x200 kernel/locking/rwsem.c:1625
->        inode_lock include/linux/fs.h:1029 [inline]
->        ocfs2_remove_inode fs/ocfs2/inode.c:733 [inline]
->        ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
->        ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
->        ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
-> 
-> Chain exists of:
->   &ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE] -->
->   &ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE] -->
->   &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]
-> 
->  Possible unsafe locking scenario:
-> 
->        CPU0                    CPU1
->        ----                    ----
->   lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
->                                lock(&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]);
->                                lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
->   lock(&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]);
-> 
->  *** DEADLOCK ***
-> 
-> Fixes: d647c5b2fbf8 ("ocfs2: split transactions in dio completion to avoid credit exhaustion")
-> Assisted-by: Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview syzbot
-> Reported-by: syzbot+b225d4dfce6219600c42@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=b225d4dfce6219600c42
-> Link: https://syzkaller.appspot.com/ai_job?id=0b53ce1e-2972-4192-aa85-8097a702762c
-> Signed-off-by: Aleksandr Nogikh <nogikh@google.com>
+> Is something else recovering them?
 
-LGTM.
-After d647c5b2fbf8, ocfs2_dio_end_io_write() spends a significant amount of time
-looping through the unwritten extent list before it finally acquires the
-ORPHAN_DIR lock. This gives other functions (such as ocfs2_wipe_inode() mentioned
-in this patch) a chance to preemptively grab the ORPHAN_DIR lock, thereby
-triggering the circular locking.
-What d647c5b2fbf8 actually did was widen the race window, turning a pre-existing,
-low-probability issue into an easily reproducible one.
+Searching for ORPHAN_NEED_TRUNCATE, i.e.:
+- ocfs2_recover_node() calls ocfs2_queue_recovery_completion() with the
+  ORPHAN_NEED_TRUNCATE flag.
+- ocfs2_complete_mount_recovery() calls subroutines with the
+  ORPHAN_NEED_TRUNCATE flag.
 
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-> 
-> ---
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 6ec198bda..4acdbb708 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -2372,6 +2372,15 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  unlock:
->  	up_write(&oi->ip_alloc_sem);
->  
-> +	if (data_ac) {
-> +		ocfs2_free_alloc_context(data_ac);
-> +		data_ac = NULL;
-> +	}
-> +	if (meta_ac) {
-> +		ocfs2_free_alloc_context(meta_ac);
-> +		meta_ac = NULL;
-> +	}
-> +
->  	/* everything looks good, let's start the cleanup */
->  	if (!ret && dwc->dw_orphaned) {
->  		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
-> @@ -2383,10 +2392,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
->  	ocfs2_inode_unlock(inode, 1);
->  	brelse(di_bh);
->  out:
-> -	if (data_ac)
-> -		ocfs2_free_alloc_context(data_ac);
-> -	if (meta_ac)
-> -		ocfs2_free_alloc_context(meta_ac);
->  	ocfs2_run_deallocs(osb, &dealloc);
->  	ocfs2_dio_free_write_ctx(inode, dwc);
->  
-> 
-> 
-> base-commit: e7ae89a0c97ce2b68b0983cd01eda67cf373517d
-> -- 
-> See https://goo.gle/syzbot-ai-patches for information about AI-generated patches.
-> You can comment on the patch as usual, syzbot will try to address
-> the comments and send a new version of the patch if necessary.
-> syzbot engineers can be reached at syzkaller@googlegroups.com.
-> 
+ocfs2 is a cluster fs. When one node crashes, another node handles the recovery.
+
+- Heming
