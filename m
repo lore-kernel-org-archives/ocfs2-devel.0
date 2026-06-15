@@ -1,195 +1,207 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wm1-f51.google.com (mail-wm1-f51.google.com [209.85.128.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5EF953BBFBC
-	for <ocfs2-devel@lists.linux.dev>; Sun, 14 Jun 2026 13:58:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 937483BE148
+	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 07:32:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781445487; cv=none; b=AXqDN/UofjjDGlI16Sq6TOsyYSvONnfRqZUvH7CnKG+izHeXoe0eNsQZkmX+tYgl3l+UEJ7vNefZDqPtHdqmduyhOIU4sauOjeBma2C8IacaHkte6iuKdW4MqUvun5OXLU//JKEVVGCLeqaIMfvd6XMcMAybUZPKIKWOcxk1ZyA=
+	t=1781508766; cv=none; b=a1kPKGz8fbVeil5ix0PZY9fYfi/8LnNgTh6O/Z+TAilRTqzp/rrJNdwO2nDbTChmQtqxSuFUEhkGktFwg+NyuHeFueeEQ4PMtVxgmKB67zy4ojTIpVH+H/jt7vJcK47+7shpf75/PIH40x/8TXGkhD48DBaS/JJXUB3PYPiVJlU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781445487; c=relaxed/simple;
-	bh=TxNdc/t3Cf2PZtap8vVrP3O8nGBDu69nufxjw/OtEI4=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
-	 In-Reply-To:Content-Type; b=jRZtXYNc7BcUxGuAykEYP9Qud+Du21gH3ZCtEDEwVT+n4GZ7BC1+v0WLUNL6LT11LePCk1qLT2nVOfONOB9xzUTm35lBXF5qDVXwrgnCqAOneipq2t9ulTtDMSF0yIKttQIXgUf6zryfnJKrGMqCdNqwHQg7iGnxMxYdfSwCQUs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=FXdmxRNO; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1781508766; c=relaxed/simple;
+	bh=ZnGzfuyEseRd2ZP5K74fMhOls3WDneczoAr/BXXD/KY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=KVhvgzAMS+lKocQLsyVslBLHcYpLnhu1ELuAjSGvsKafAegBjjwfHawGhc/GzzyPW4UXkH17R2ExQkCPYwxCtWuqT+qVkSxvNllT8IQjLaTN7l4eYhWVtuQMUZqhWuVo/T+v4luL0G7/w8X+3SiiS7c8LdWUP/qxOXCUwAu6Z90=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=HKu9aDeq; arc=none smtp.client-ip=209.85.128.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="FXdmxRNO"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1781445475; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=sA+T4QJHG15HUfyrpsQrLwy1Afce7hJ27rQLeCW/N30=;
-	b=FXdmxRNOFzkddyqhoGC+zYZTEDavNC982tEGCQnZTP4qnSUO8YmdJ/FATXIwgoPykTAe2AQ9wAr1AcjW+ZiJp3swOGTgB3Edp1AHmIEw1tCtxoJK5FlJVHkQacdQsaUpAjTkXUGsR216rkPQqu3T9IZ3+WQnvUzSRdF6TIvx+n4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R931e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X4nVW4H_1781445474;
-Received: from 30.134.110.188(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X4nVW4H_1781445474 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Sun, 14 Jun 2026 21:57:54 +0800
-Message-ID: <d73e1f39-8207-4e8c-9c86-94a6b3d737c2@linux.alibaba.com>
-Date: Sun, 14 Jun 2026 21:57:54 +0800
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="HKu9aDeq"
+Received: by mail-wm1-f51.google.com with SMTP id 5b1f17b1804b1-490c737bcafso2953115e9.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 00:32:44 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1781508763; x=1782113563; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
+        bh=Sb3jjJ2r77wI8k5RgZUxlmRUzvui3UL+pEHdI+mwdI4=;
+        b=HKu9aDeqI2E7hWrnQSUi96AYX707i95laHO61kaSVuynDuwYtbBzbW899oSbmMEyAF
+         cgw55wC2k6zWaUUg0N/kp1cgn6uNcpdjskxHMASAl1GcmmAFvLGYTdia10FDEjtt8e95
+         XhQ92zcrgxQZerl0+2KGGSOSvOuFFVoQcW8dHS/0P8NXNTbK67eT4tEFMdNPwd+uqVhV
+         aCgVquZRg89RX9FjUqGbBkxdW2dYcf8Mntuyq5PJsFPRAdkII3mJW0O1mv0sT4Rzt9s6
+         3rxjedufE+R15Tw++e7Ke+pKtmIde6SPvMz50Omc05nJKtxsEg3/wl7I42GHjj+6rtrN
+         x9Lw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1781508763; x=1782113563;
+        h=in-reply-to:content-disposition:mime-version:references:message-id
+         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
+         :subject:date:message-id:reply-to;
+        bh=Sb3jjJ2r77wI8k5RgZUxlmRUzvui3UL+pEHdI+mwdI4=;
+        b=VoxLciJvnTstS4WDLDEKufJrc2JI26DL2WhwAVhdBRVYCGMeyohkshjDGwGDv68IsH
+         LgQ9fng+C3NYn3z0yDd9pd+eV80sro2+eS77BQRQ/gV+1ta4Nh+zQVyXiTrfWjcU11dp
+         U1upziFJzHytcAk1g1bW3zZz9pmI5NYXi7KkUqOaj/VbEX17hlXrEP1amN1zAeMv0uM9
+         /hrUGZcDoYk929BveiCd6RiKPceBX4VXdYp/lCKJpep+b7OSRX3mlHmhU9kc542qDTfY
+         4HWL1d2y8Uy6sknpCZWXxk439FnkWg/OIO1qvB26eR3wR6Jcwgn2EBdhR8lyC+gXhs4H
+         srXg==
+X-Forwarded-Encrypted: i=1; AFNElJ/JFqBpILh6JLZmmlEM6r6yQ6TGv9f2bRLZSVV1DpgAwNiRwu/05DADVu5axPh7RfYWM8X5OXHMe/fkSg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwWAqdPVre3l7YsdfGRH9VsGFmHwSy6UvKOu2Sq4sX49iYmPMiw
+	gn2uLxSVcnSlK733O8UkJuqxluRiAiNu+OPtxokqgLVcn4HAmaEvdx4RL3zS28e5vdc=
+X-Gm-Gg: Acq92OGCbIYOh5xGAtE5rl/R/GET8qBY+mXcDjfWTa7oq2Snnnct1VnoXbqQ3qJCRM5
+	oqWCAhcH3JnE24oqjpzExm0+sddUxvUyYX1W048gUIfm9wAQmXdRenkcQprtf2Md9fo9PaKV6Ie
+	aQ2cLv/h84iCb+eRljpXQ7lMx8wi1f98Q21Y2PURlR94T2JYoMEAx65n+seiM6V9HYHnO1QHAlW
+	Zr5vG4hePoMN3FDevazdSOEiCDm2NfBIxZwoAOMthbG2MuVwxinJ3eZ9SJpFMg4ahsVQd4Y1QJC
+	F65+i+oJmPgsmojf33gpRA75KPvpe7xrLa2NlRKZhTW6B5TzrOnBjb+0SBcI0aBVOc4Z/wMhyvG
+	c4pqzRQMhZH9YNugb0i6NpwrXtT//BvLV7xWWVhrRiwWhrmbRgv+p90gxD574toAX+JJGgtYWkb
+	f/hnygQTr6lKQS5OHyX3RORA==
+X-Received: by 2002:a05:600c:2ad3:b0:490:b3ee:b857 with SMTP id 5b1f17b1804b1-490ec50afaemr44846575e9.8.1781508762753;
+        Mon, 15 Jun 2026 00:32:42 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-3081e91f88bsm13987906eec.16.2026.06.15.00.32.40
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 15 Jun 2026 00:32:41 -0700 (PDT)
+Date: Mon, 15 Jun 2026 15:32:38 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: syzbot <syzbot@kernel.org>
+Cc: syzkaller-bugs@googlegroups.com, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org, syzbot@lists.linux.dev
+Subject: Re: [PATCH] ocfs2: fix circular locking dependency in
+ ocfs2_dio_end_io_write
+Message-ID: <ai-qJbXLuniGv-mr@p15>
+References: <97c902a6-3bcf-43ea-9b70-f1f136a6c3f2@mail.kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix NULL h_transaction deref in
- ocfs2_assure_trans_credits
-To: Ian Bridges <icb@fastmail.org>, akpm <akpm@linux-foundation.org>
-References: <airKTsM1fRVN-Wj7@dev>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <airKTsM1fRVN-Wj7@dev>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <97c902a6-3bcf-43ea-9b70-f1f136a6c3f2@mail.kernel.org>
 
-
-
-On 6/11/26 10:46 PM, Ian Bridges wrote:
-> [BUG]
-> A direct write over unwritten extents can panic the kernel in
-> ocfs2_assure_trans_credits() when the journal aborts during DIO
-> completion. The crash is a general protection fault from a NULL pointer
-> dereference.
+On Fri, Jun 12, 2026 at 11:50:20AM +0000, syzbot wrote:
+> From: Aleksandr Nogikh <nogikh@google.com>
 > 
-> [CAUSE]
-> ocfs2_dio_end_io_write() loops over a direct write's unwritten extents,
-> marking each written under a single journal handle. If the journal
-> aborts (for example after an I/O error) while the extent tree is being
-> updated, the handle is left aborted with its transaction pointer
-> cleared. The extent merge treats that failure as not critical and
-> reports success, so the loop keeps using the handle.
-> ocfs2_assure_trans_credits() reads the handle's remaining credits
-> without first checking whether the handle is aborted, and that read
-> dereferences the cleared transaction pointer.
+> A circular locking dependency involves INODE_ALLOC_SYSTEM_INODE,
+> EXTENT_ALLOC_SYSTEM_INODE, and ORPHAN_DIR_SYSTEM_INODE.
 > 
-> [FIX]
-> A journal abort is recorded in the handle itself, so callers are
-> expected to test the handle rather than rely on a returned error.
-> Make ocfs2_assure_trans_credits() do that, as the other ocfs2 journal
-> helpers already do, and return -EROFS when the handle is aborted.
+> 1. ocfs2_mknod() acquires INODE_ALLOC then EXTENT_ALLOC.
+> 2. ocfs2_dio_end_io_write() acquires EXTENT_ALLOC for unwritten extents,
+> then ORPHAN_DIR via ocfs2_del_inode_from_orphan() while still holding
+> EXTENT_ALLOC.
+> 3. ocfs2_wipe_inode() acquires ORPHAN_DIR then INODE_ALLOC via
+> ocfs2_remove_inode.
 > 
-> Fixes: be346c1a6eeb ("ocfs2: fix DIO failure due to insufficient transaction credits")
-> Reported-by: syzbot+e9c15ff790cea6a0cfae@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=e9c15ff790cea6a0cfae
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Ian Bridges <icb@fastmail.org>
+> Break the cycle in ocfs2_dio_end_io_write() by freeing the allocation
+> contexts (releasing EXTENT_ALLOC) before acquiring ORPHAN_DIR.
+> 
+> WARNING: possible circular locking dependency detected
+> ------------------------------------------------------
+> is trying to acquire lock:
+> ffff8881e78b33a0
+> (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at:
+> ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
+> 
+> but task is already holding lock:
+> ffff8881e78b4fa0
+> (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at:
+> ocfs2_evict_inode+0xe97/0x43b0 fs/ocfs2/inode.c:1299
+> 
+> the existing dependency chain (in reverse order) is:
+> 
+> -> #2 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
+>        inode_lock include/linux/fs.h:1029 [inline]
+>        ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2728
+>        ocfs2_dio_end_io+0xf9c/0x1370 fs/ocfs2/aops.c:2418
+>        dio_complete+0x25b/0x790 fs/direct-io.c:281
+> 
+> -> #1 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+>        inode_lock include/linux/fs.h:1029 [inline]
+>        ocfs2_reserve_suballoc_bits+0x16d/0x4840 fs/ocfs2/suballoc.c:882
+>        ocfs2_reserve_new_metadata_blocks+0x415/0x9a0
+>        fs/ocfs2/suballoc.c:1078
+>        ocfs2_mknod+0x10f3/0x2260 fs/ocfs2/namei.c:351
+> 
+> -> #0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+>        __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
+>        lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+>        down_write+0x96/0x200 kernel/locking/rwsem.c:1625
+>        inode_lock include/linux/fs.h:1029 [inline]
+>        ocfs2_remove_inode fs/ocfs2/inode.c:733 [inline]
+>        ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+>        ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+>        ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
+> 
+> Chain exists of:
+>   &ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE] -->
+>   &ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE] -->
+>   &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]
+> 
+>  Possible unsafe locking scenario:
+> 
+>        CPU0                    CPU1
+>        ----                    ----
+>   lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+>                                lock(&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]);
+>                                lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+>   lock(&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]);
+> 
+>  *** DEADLOCK ***
+> 
+> Fixes: d647c5b2fbf8 ("ocfs2: split transactions in dio completion to avoid credit exhaustion")
+> Assisted-by: Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview syzbot
+> Reported-by: syzbot+b225d4dfce6219600c42@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=b225d4dfce6219600c42
+> Link: https://syzkaller.appspot.com/ai_job?id=0b53ce1e-2972-4192-aa85-8097a702762c
+> Signed-off-by: Aleksandr Nogikh <nogikh@google.com>
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+LGTM.
+After d647c5b2fbf8, ocfs2_dio_end_io_write() spends a significant amount of time
+looping through the unwritten extent list before it finally acquires the
+ORPHAN_DIR lock. This gives other functions (such as ocfs2_wipe_inode() mentioned
+in this patch) a chance to preemptively grab the ORPHAN_DIR lock, thereby
+triggering the circular locking.
+What d647c5b2fbf8 actually did was widen the race window, turning a pre-existing,
+low-probability issue into an easily reproducible one.
 
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> 
 > ---
-> This patch contains a proposed fix for a crash reported by syzbot
-> in ocfs2_assure_trans_credits().
-> 
-> The file names and offsets in this description are from commit
-> 7cb1c5b32a2bfde961fff8d5204526b609bcb30a from this repo:
-> git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging.git
-> 
-> I also have a small test harness that reproduces the original panic,
-> which I can make available as well.
-> 
-> The Bug
-> 
-> OCFS2 supports unwritten extents. These are ranges that fallocate()
-> has allocated on disk but flagged as holding no data, so reads return
-> zeros until the range is written. Clearing that flag is a journalled
-> metadata change. For a direct write, OCFS2 makes that change when the
-> write completes rather than when the write is submitted.
-> 
-> When a direct write to unwritten extents completes, ocfs2_dio_end_io()
-> (fs/ocfs2/aops.c:2401) calls ocfs2_dio_end_io_write()
-> (fs/ocfs2/aops.c:2266). That function opens one jbd2 handle and loops
-> over the extents the write covered (fs/ocfs2/aops.c:2319). For each one
-> it calls ocfs2_assure_trans_credits() (fs/ocfs2/aops.c:2334) and then
-> ocfs2_mark_extent_written() (fs/ocfs2/aops.c:2339). The same handle is
-> reused on each pass.
-> 
-> ocfs2_assure_trans_credits() (fs/ocfs2/journal.c:474) makes sure the
-> handle still has enough journal credits for the next extent operation.
-> Its first action is:
-> 
->     int old_nblks = jbd2_handle_buffer_credits(handle);
-> 
-> jbd2_handle_buffer_credits() (include/linux/jbd2.h:1817) is an inline
-> accessor that reads handle->h_transaction->t_journal without a NULL
-> check. t_journal is at offset 0 of struct transaction_s, so a NULL
-> h_transaction makes this a read of address 0.
-> 
-> A handle's h_transaction is set to NULL when a transaction restart
-> fails. The bug is that ocfs2_dio_end_io_write() can keep using such a
-> handle. The sequence is:
-> 
-> 1. ocfs2_mark_extent_written() reaches ocfs2_try_to_merge_extent()
->    through ocfs2_change_extent_flag() and ocfs2_split_extent(). When the
->    marked extent merges with a neighbor (ctxt->c_split_covers_rec,
->    fs/ocfs2/alloc.c:3820), the merge reserves rotation credits with
->    ocfs2_extend_rotate_transaction() (fs/ocfs2/alloc.c:3822), which calls
->    ocfs2_extend_trans() (fs/ocfs2/journal.c:428).
-> 
-> 2. ocfs2_extend_trans() cannot grow the running transaction, so it
->    restarts the handle with jbd2_journal_restart()
->    (fs/ocfs2/journal.c:454).
-> 
-> 3. jbd2__journal_restart() (fs/jbd2/transaction.c) sets
->    handle->h_transaction to NULL, then calls start_this_handle() to
->    attach a new transaction. If the journal has aborted,
->    start_this_handle() returns an error (fs/jbd2/transaction.c:366) and
->    h_transaction stays NULL.
-> 
-> 4. The error reaches ocfs2_try_to_merge_extent(), which ignores it.
->    At fs/ocfs2/alloc.c:3827 it resets ret to 0 and returns success, so
->    the loop does not stop.
-> 
-> 5. The loop moves to the next extent and calls
->    ocfs2_assure_trans_credits(handle) again (fs/ocfs2/aops.c:2334), now
->    on the handle whose h_transaction is NULL.
-> 
-> 6. ocfs2_assure_trans_credits() calls jbd2_handle_buffer_credits()
->    (fs/ocfs2/journal.c:476), which dereferences the NULL h_transaction.
->    This is the general protection fault syzbot reports.
-> 
-> The Proposed Fix
-> 
-> A failed transaction restart records the abort in the handle itself, as
-> a NULL h_transaction. It is not threaded back through return values, so
-> an intermediate caller that ignores the error, like
-> ocfs2_try_to_merge_extent() above, does not lose the abort. Each user is
-> instead expected to check the handle before touching it.
-> 
-> ocfs2 already does this. ocfs2_journal_dirty() (fs/ocfs2/journal.c:834)
-> and ocfs2_update_inode_fsync_trans() (fs/ocfs2/journal.h:603) both test
-> is_handle_aborted() before they read handle->h_transaction.
-> 
-> ocfs2_assure_trans_credits() is the one place that reads h_transaction,
-> through jbd2_handle_buffer_credits(), without that check. The fix adds
-> that check. is_handle_aborted() returns true when h_transaction is NULL,
-> so the NULL dereference cannot happen. Returning the error makes
-> ocfs2_dio_end_io_write() take its "goto commit" path and stop using the
-> handle.
-> 
->  fs/ocfs2/journal.c | 6 +++++-
->  1 file changed, 5 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index f9bf3bac085d..64a26da8eb28 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -473,8 +473,12 @@ int ocfs2_extend_trans(handle_t *handle, int nblocks)
->   */
->  int ocfs2_assure_trans_credits(handle_t *handle, int nblocks)
->  {
-> -	int old_nblks = jbd2_handle_buffer_credits(handle);
-> +	int old_nblks;
+> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+> index 6ec198bda..4acdbb708 100644
+> --- a/fs/ocfs2/aops.c
+> +++ b/fs/ocfs2/aops.c
+> @@ -2372,6 +2372,15 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>  unlock:
+>  	up_write(&oi->ip_alloc_sem);
 >  
-> +	if (is_handle_aborted(handle))
-> +		return -EROFS;
+> +	if (data_ac) {
+> +		ocfs2_free_alloc_context(data_ac);
+> +		data_ac = NULL;
+> +	}
+> +	if (meta_ac) {
+> +		ocfs2_free_alloc_context(meta_ac);
+> +		meta_ac = NULL;
+> +	}
 > +
-> +	old_nblks = jbd2_handle_buffer_credits(handle);
->  	trace_ocfs2_assure_trans_credits(old_nblks);
->  	if (old_nblks >= nblocks)
->  		return 0;
-
+>  	/* everything looks good, let's start the cleanup */
+>  	if (!ret && dwc->dw_orphaned) {
+>  		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+> @@ -2383,10 +2392,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>  	ocfs2_inode_unlock(inode, 1);
+>  	brelse(di_bh);
+>  out:
+> -	if (data_ac)
+> -		ocfs2_free_alloc_context(data_ac);
+> -	if (meta_ac)
+> -		ocfs2_free_alloc_context(meta_ac);
+>  	ocfs2_run_deallocs(osb, &dealloc);
+>  	ocfs2_dio_free_write_ctx(inode, dwc);
+>  
+> 
+> 
+> base-commit: e7ae89a0c97ce2b68b0983cd01eda67cf373517d
+> -- 
+> See https://goo.gle/syzbot-ai-patches for information about AI-generated patches.
+> You can comment on the patch as usual, syzbot will try to address
+> the comments and send a new version of the patch if necessary.
+> syzbot engineers can be reached at syzkaller@googlegroups.com.
+> 
