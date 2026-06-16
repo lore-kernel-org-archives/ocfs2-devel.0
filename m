@@ -1,170 +1,184 @@
-Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+Received: from mail-108-mta137.mxroute.com (mail-108-mta137.mxroute.com [136.175.108.137])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C0B91400E0A
-	for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 15:09:36 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A44DA38D6B1
+	for <ocfs2-devel@lists.linux.dev>; Tue, 16 Jun 2026 02:05:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=136.175.108.137
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781536178; cv=none; b=cECxfifD9Zb55v0g4Cyim5M8jk8aylG5mcfxNAV3mv8hsK8BCAmCLrf/McBPEL7rn5EhW0U4r9QUvSRfd+DiF9BrJnsMSFg7T7hvQCALmEJ9rvcWaruJEOcAgaU5SQN7lVLkNoySemBPjJW/sBSV3t7SyMgynR7e2aanMRkIs80=
+	t=1781575516; cv=none; b=T8p8EnRtbzPfW82SccxlTz2su+WedFk6TrFQe3EQaD27BMBN/yARvbtW+sLDaIUpFoO+/Er1s3SqPIUGYZGn+V0QAeGDmkkxPx5yipAuuDd4sZ3Xzgbf6Ub9Wdy5LPsnfTdPQ0+i99GfX9csmISjo8vLxW0gbhZdvczLwHXmmhU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781536178; c=relaxed/simple;
-	bh=ni84w/01+N3dJ3ED+7jfXvZ9Q1gy2jaETrYrPpi4hcs=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=hVK1W4BZVgIOlu0fJWrv9hf+R3xkwG5GQBs5DxLM+sEv9NLohFRfpGIC2aOKAnoU8HEfJaC+MgOa6FuHaMGFtYPzLNFEpwuIDGGylwnCdyn8wXldFrbYmXiYUjXBeV0ptHb4VL7QG8YOfF2nZ/IQJFUAOYEBzLJnqIL7I14Jp8c=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=WNcuC6T+; arc=none smtp.client-ip=209.85.128.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1781575516; c=relaxed/simple;
+	bh=YEJE5A/tSDkKwkjtFWrjNHEEnfdWd56Iws8cKs+fWgo=;
+	h=From:To:Cc:Subject:In-Reply-To:References:Date:Message-ID:
+	 MIME-Version:Content-Type; b=jz8O101eN+XstF7kIEbTYgxAAJB+TclFPwL/Cn6jfb4fVJ5kMt4PODbawK6pKLPrvJTmxTDVp7Cg6xDPcXgjkJzCCvTXpwJxDMxQiVHGIYVsML89NzigM++14/vLF/EZ6TyvVzL5GOII8KS9DkuNMHSU/H8G/J1pu7gMkyOjLnc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org; spf=pass smtp.mailfrom=damenly.org; dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b=LN+Jz9WG; arc=none smtp.client-ip=136.175.108.137
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=damenly.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=damenly.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="WNcuC6T+"
-Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-490d6730461so3657075e9.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 15 Jun 2026 08:09:36 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1781536175; x=1782140975; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:from:to:cc:subject:date:message-id:reply-to;
-        bh=eUEkUrsanBqZijxmCAC0JPoHe2szL/h32mFkqnSHjAk=;
-        b=WNcuC6T+2QRHcwfZ0R1H0E0lOXPE6AagsGerH1mIuw+4WKWN7f4M7m3OtT4VHGuBsF
-         QrTPtv8YIt2wGiMRJO/InQJk/naYZddLqZEHZpmhm9xSxCNp+9i//DhKWRL6ff+ghFpe
-         0B+6yfOuqF0sssDU7zH3IlqzmHaEVOmXy9ryN2w4kfIDxj2cNVopo0X87dHolSZV5Mtx
-         IaoERiMeO+Ij3Ebez955I2CpMpLKnybAI6Lioa6urX/bWfn1Hxhmo36CLK+xojw9ISOc
-         IpKoB+2PDO7IGjDDrK5EzOOAfOc7yda4Fo9NzJfdtLoEVZCWDCRR7/CIR6ttbyE/279j
-         zQ7g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1781536175; x=1782140975;
-        h=in-reply-to:content-disposition:mime-version:references:message-id
-         :subject:cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to;
-        bh=eUEkUrsanBqZijxmCAC0JPoHe2szL/h32mFkqnSHjAk=;
-        b=GzT+kPUIxPdV10I3GhZhoMAxCkYZlwpxuEGhGbOGVhN5nyqb/GB7sBOuvs5/AKhLn6
-         ggfGMDGsSQlemgT4nxzsd0T7tbFnlPh6ochrTWtAUMpj5nBi0PoZ9bL/q8NRchLq/s3C
-         7+pGNrJynCunMIqPvfHGV+hovykdTnUO7Me+gRLPtICUpxeCzN9p85V3/kJnmShm9MvC
-         tbMfuo8pOXQ859I8IyjHK5D5h59Qw8eRkPkHX5B8CdYgPGgcLvq1/WqVTQ3E8Bwyd70u
-         bTqHuN+9OONFKfSQ/1ISYEjtS6hyQb9Tbkf4r6VldTkXg5DwV6Hovu+tMw20b3/qM0dI
-         JwuQ==
-X-Forwarded-Encrypted: i=1; AFNElJ9U3+3XVXNIxZ8VfYTurwdejR2/IssMvBMRGbKBnLy15om8BsQCP/cBn97cGZVdsqbrVLJAaycjbX9BoQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YySGK+pi4Q6KzyUqTQnQnIDwnNB6irTJv0mNNaXRnqxQ7Xb2YYt
-	QSrQmiFOssQZHrpDzZQjVOP/W+79R1PK/R6Ib6lFjKl7pamF2Z5QlOpKzkVdDPKS19Y=
-X-Gm-Gg: Acq92OGjk1BD7hxtEDAHXOBLynMwruvTAyhSrQkLlkJ0ju2FyOI5HDpsQYHPl8z9Una
-	9kTiPmtQkvk7REZUD0d4abiD7iWztne/LCoCGBdLRYdbwGgfNxLxNFvEUgzDs/sHNz2ICzXFS8A
-	9iyt1HVOfBoIr5Uxv7GZ7706wHe8jcpbhberwXQs5DjnY5MIkZbiZO3SKMWktw9cfPlbaxUjyCv
-	BkODkvADHah6d30j9IfbJZAFrn0p/mlWo3JEg0Q3a2jIzfKfFZPt4By6TU+hqtQVcXP8sTvuYWx
-	+B6QvaO6lYB97NQXYP9sYTDDpAiNgVrjH2WvPyoi9x3ouRgaaP46G1GvkhG58cIE5zU5TH6OjeN
-	GjypcOF5luIffSAQYZlXEVgL50pkMpWBr96dSfA3RyfsxfdQC/pmVNDFf40vrx6gFDh8GDdy6m0
-	jeV0F+e5yPwTuPL0UD+rpRJrnjOINLd12x
-X-Received: by 2002:a05:600c:4745:b0:488:7e7b:dbc2 with SMTP id 5b1f17b1804b1-490ec4fd3e4mr93700105e9.3.1781536175225;
-        Mon, 15 Jun 2026 08:09:35 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-3081e5d810fsm15466767eec.12.2026.06.15.08.09.33
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 15 Jun 2026 08:09:34 -0700 (PDT)
-Date: Mon, 15 Jun 2026 23:09:31 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Marco Elver <elver@google.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	kasan-dev@googlegroups.com
-Subject: Re: [PATCH] ocfs2: fix orphan inode disk leak in ocfs2_dio_end_io()
- on I/O error
-Message-ID: <ajAP6648UpilAPXz@p15>
-References: <20260611150341.3964327-1-elver@google.com>
- <aitf5rampsYpes2t@p15>
- <aiwCgXY4tChR3MiU@elver.google.com>
+	dkim=pass (2048-bit key) header.d=damenly.org header.i=@damenly.org header.b="LN+Jz9WG"
+Received: from filter006.mxroute.com ([136.175.111.3] filter006.mxroute.com)
+ (Authenticated sender: mN4UYu2MZsgR)
+ by mail-108-mta137.mxroute.com (ZoneMTA) with ESMTPSA id 19ece28349500067f7.007
+ for <ocfs2-devel@lists.linux.dev>
+ (version=TLSv1.3 cipher=TLS_AES_256_GCM_SHA384);
+ Tue, 16 Jun 2026 02:00:01 +0000
+X-Zone-Loop: 97c7b5d1a3843b5d8d9345b18ebd02e3db05f01508dd
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; d=damenly.org
+	; s=x; h=Content-Type:MIME-Version:Message-ID:Date:References:In-Reply-To:
+	Subject:Cc:To:From:Sender:Reply-To:Content-Transfer-Encoding:Content-ID:
+	Content-Description:Resent-Date:Resent-From:Resent-Sender:Resent-To:Resent-Cc
+	:Resent-Message-ID:List-Id:List-Help:List-Unsubscribe:List-Subscribe:
+	List-Post:List-Owner:List-Archive;
+	bh=1TGmJBeCmoASDuhfZSVp4cyz9t64lKgvUFvXZKSeS4U=; b=LN+Jz9WGN0Gnwvydwu9LpRtfvQ
+	RbLwsCljjv5bJI8IX2YQ1HBiNIjOPANWt4dK9oWUqZ19lPyOzCD9lrEK6kvG3IkDKLq7ywPOKGyk0
+	nh5HIRuXxYbAduR38QdVI+PMQyy+zIpPg9GZ8hSv//7GEX4dfFqkPtvltH09ZTrysFW6yy17uHMXj
+	NMBT7Ba+JRhpHFYOhb4kw90JGiAluA79S0xCsuf/xADCetRWhnibvOMI79Eq/cW9sUu5HaPi8yAul
+	iB86+NjIABk6CZWDHDHZuZ1iKUlkXFmN7kZIHG+N/2oSFynJsFW2r8PFx80fMgxBv8uIE37iFNRtM
+	9iJsGAFQ==;
+From: Su Yue <l@damenly.org>
+To: Zhang Cen <rollkingzzc@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>,  Joel Becker <jlbec@evilplan.org>,
+  Joseph Qi <joseph.qi@linux.alibaba.com>,  ocfs2-devel@lists.linux.dev,
+  zerocling0077@gmail.com,  2045gemini@gmail.com
+Subject: Re: [PATCH] ocfs2: remove debugfs before shutting down recovery
+In-Reply-To: <20260525070604.360875-1-rollkingzzc@gmail.com> (Zhang Cen's
+	message of "Mon, 25 May 2026 15:06:04 +0800")
+References: <20260525070604.360875-1-rollkingzzc@gmail.com>
+User-Agent: mu4e 1.12.7; emacs 30.2
+Date: Tue, 16 Jun 2026 09:59:47 +0800
+Message-ID: <tsr3tfcc.fsf@damenly.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <aiwCgXY4tChR3MiU@elver.google.com>
+Content-Type: text/plain; format=flowed
+X-Authenticated-Id: l@damenly.org
 
-On Fri, Jun 12, 2026 at 02:58:41PM +0200, Marco Elver wrote:
-> On Fri, Jun 12, 2026 at 09:27AM +0800, Heming Zhao wrote:
-> > On Thu, Jun 11, 2026 at 05:01:50PM +0200, Marco Elver wrote:
-> > > When an extending direct I/O write or a direct I/O write racing with an
-> > > unlink is initiated, ocfs2_direct_IO() places the user inode into the
-> > > system orphan directory and sets the OCFS2_DIO_ORPHANED_FL flag to
-> > > ensure defined behavior and crash consistency.
-> > > 
-> > > However, if the direct I/O request encounters an error or gets
-> > > asynchronous cancellation (bytes <= 0), the VFS completion hook
-> > > ocfs2_dio_end_io() bypasses ocfs2_dio_end_io_write() entirely and
-> > > executes ocfs2_dio_free_write_ctx().  This completely omits the teardown
-> > > of the orphan entry, leaking the user inode in the orphan directory and
-> > > leaving the OCFS2_DIO_ORPHANED_FL disk flag set.
-> > > 
-> > > Because the OCFS2_DIO_ORPHANED_FL flag remains active, subsequent VFS
-> > > final inode eviction (ocfs2_delete_inode) observes the flag, assumes a
-> > > direct I/O write is actively in progress, and refuses to wipe the inode.
-> > > This results in an irrecoverable disk storage and resource leak that can
-> > > only be reclaimed if the cluster unmounts or crashes.
-> > > 
-> > > Fix this by ensuring that ocfs2_dio_end_io() inspects dw_orphaned even
-> > > when an I/O error occurs, and executes ocfs2_del_inode_from_orphan() to
-> > > liberate the inode before destroying the in-memory write context.
-> > > 
-> > > Fixes: 5040f8df56fb ("ocfs2: free up write context when direct IO failed")
-> > > Assisted-by: Antigravity:Gemini
-> > > Signed-off-by: Marco Elver <elver@google.com>
-> > > ---
-> > >  fs/ocfs2/aops.c | 17 +++++++++++++++--
-> > >  1 file changed, 15 insertions(+), 2 deletions(-)
-> > > 
-> > > diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> > > index 4acdbb70882c..ad3f2057e26e 100644
-> > > --- a/fs/ocfs2/aops.c
-> > > +++ b/fs/ocfs2/aops.c
-> > > @@ -2419,11 +2419,24 @@ static int ocfs2_dio_end_io(struct kiocb *iocb,
-> > >  		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
-> > >  				 (long long)bytes);
-> > >  	if (private) {
-> > > -		if (bytes > 0)
-> > > +		if (bytes > 0) {
-> > >  			ret = ocfs2_dio_end_io_write(inode, private, offset,
-> > >  						     bytes);
-> > > -		else
-> > > +		} else {
-> > > +			struct ocfs2_dio_write_ctxt *dwc = private;
-> > > +
-> > > +			if (dwc->dw_orphaned) {
-> > > +				struct buffer_head *di_bh = NULL;
-> > > +
-> > > +				if (ocfs2_inode_lock(inode, &di_bh, 1) == 0) {
-> > > +					ocfs2_del_inode_from_orphan(OCFS2_SB(inode->i_sb),
-> > > +								    inode, di_bh, 0, 0);
-> > > +					ocfs2_inode_unlock(inode, 1);
-> > > +					brelse(di_bh);
-> > > +				}
-> > 
-> > Calling only ocfs2_del_inode_from_orphan() without ocfs2_truncate_file() will
-> > leave stale blocks beyond the EOF.
-> 
-> Right.
-> 
-> > I think the existing OCFS2 code already handles error/crash cases for orphaned
-> > inodes, and this "leaking" behavior is by design.
-> > please refer to ocfs2_recover_orphans() and ocfs2_add_inode_to_orphan().
-> 
-> Periodic scans skip direct I/O entries to avoid racing with active
-> direct I/O on live nodes:
-> 
-> In fs/ocfs2/journal.c:ocfs2_orphan_filldir():
-> 
-> 	/* do not include dio entry in case of orphan scan */
-> 	if ((p->orphan_reco_type == ORPHAN_NO_NEED_TRUNCATE) &&
-> 			(!strncmp(name, OCFS2_DIO_ORPHAN_PREFIX,
-> 			OCFS2_DIO_ORPHAN_PREFIX_LEN)))
-> 		return true;
-> 
-> Is something else recovering them?
+On Mon 25 May 2026 at 15:06, Zhang Cen <rollkingzzc@gmail.com> 
+wrote:
 
-Searching for ORPHAN_NEED_TRUNCATE, i.e.:
-- ocfs2_recover_node() calls ocfs2_queue_recovery_completion() with the
-  ORPHAN_NEED_TRUNCATE flag.
-- ocfs2_complete_mount_recovery() calls subroutines with the
-  ORPHAN_NEED_TRUNCATE flag.
+> ocfs2_osb_debug_open() builds the per-mount fs_state snapshot by 
+> calling
+> ocfs2_osb_dump(), which reads osb->recovery_map. During normal 
+> unmount,
+> ocfs2_dismount_volume() currently calls ocfs2_recovery_exit() 
+> before it
+> removes osb->osb_debug_root, so a concurrent fs_state open can 
+> still
+> enter ocfs2_osb_dump() after the recovery map has been freed.
+>
+> operations, so moving it ahead of ocfs2_recovery_exit() closes 
+> the
+>
+"operations,"? Seems one line is missing.
 
-ocfs2 is a cluster fs. When one node crashes, another node handles the recovery.
+> post-free/pre-remove window without changing the recovery-state 
+> logic.
+> This also makes the normal unmount path match the existing 
+> mount-error
+> state.
+>
+> The buggy scenario involves two paths, with each column showing 
+> the
+> order within that path:
+>
+> 1. Open the per-mount fs_state file      1. 
+> ocfs2_dismount_volume() starts
+> 2. ocfs2_osb_debug_open() calls          2. 
+> ocfs2_recovery_exit() frees
+>    ocfs2_osb_dump()                         osb->recovery_map
+>    osb->recovery_map                        runs later
+>
+> Validation reproduced this kernel report:
+>
+Please paste the link of report or steps to reproduce.
 
-- Heming
+The codes LGTM.
+
+--
+Su
+
+> KASAN slab-use-after-free in ocfs2_osb_debug_open+0x478/0xaa0
+> RIP: 0033:0x7f65fc97a001
+> The buggy address belongs to the object at ffff8881049c3da0 
+> which belongs
+> to the cache kmalloc-8 of size 8
+> The buggy address is located 0 bytes inside of freed 8-byte 
+> region
+> [ffff8881049c3da0, ffff8881049c3da8)
+> Read of size 4
+> Call trace:
+>   dump_stack_lvl+0x66/0xa0 (?:?)
+>   print_report+0xd0/0x630 (?:?)
+>   ocfs2_osb_debug_open+0x478/0xaa0 (fs/ocfs2/super.c:343)
+>   srso_alias_return_thunk+0x5/0xfbef5 (?:?)
+>   __virt_addr_valid+0x188/0x2f0 (?:?)
+>   kasan_report+0xe4/0x120 (?:?)
+>   full_proxy_open_regular+0x113/0x170 (?:?)
+>   do_dentry_open+0x233/0x7f0 (?:?)
+>   vfs_open+0x5a/0x1b0 (?:?)
+>   security_inode_permission+0x19/0x60 (?:?)
+>   path_openat+0x679/0x1540 (?:?)
+>   kmem_cache_alloc_noprof+0x1ea/0x5f0 (?:?)
+>   do_getname+0x2e/0x1d0 (?:?)
+>   do_sys_openat2+0xa4/0x150 (?:?)
+>   __x64_sys_openat+0xd0/0x140 (?:?)
+>   do_syscall_64+0x10c/0x640 (arch/x86/entry/syscall_64.c:87)
+>   entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+>   do_file_open+0x190/0x2a0 (?:?)
+>   __lock_acquire+0x42f/0x1a60 (?:?)
+>   _raw_spin_unlock+0x23/0x40 (?:?)
+>   alloc_fd+0x210/0x350 (?:?)
+>   do_sys_openat2+0xce/0x150 (?:?)
+>   irqentry_exit+0xac/0x6e0 (?:?)
+> Freed by task stack:
+>   kasan_save_stack+0x33/0x60 (?:?)
+>   kasan_save_track+0x14/0x30 (?:?)
+>   kasan_save_free_info+0x3b/0x60 (?:?)
+>   __kasan_slab_free+0x5f/0x80 (?:?)
+>   kfree+0x30f/0x580 (?:?)
+>   ocfs2_dismount_volume+0x168/0x560 (fs/ocfs2/super.c:1868)
+>   generic_shutdown_super+0xc3/0x220 (fs/ocfs2/super.c:?)
+>   kill_block_super+0x29/0x60 (fs/ocfs2/super.c:?)
+>   deactivate_locked_super+0x66/0xe0 (fs/ocfs2/super.c:?)
+>   cleanup_mnt+0x13d/0x210 (?:?)
+>   task_work_run+0xfa/0x170 (?:?)
+>   exit_to_user_mode_loop+0xd6/0x430 (?:?)
+>   do_syscall_64+0x3cb/0x640 (arch/x86/entry/syscall_64.c:87)
+>   entry_SYSCALL_64_after_hwframe+0x77/0x7f (?:?)
+>
+> Fixes: 5e7a3ed9f1a6 ("ocfs2: further debugfs cleanups")
+> Assisted-by: Codex:gpt-5.5
+> Signed-off-by: Zhang Cen <rollkingzzc@gmail.com>
+> ---
+>  fs/ocfs2/super.c | 6 +++---
+>  1 file changed, 3 insertions(+), 3 deletions(-)
+>
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index b875f01c9756..357f210b6a43 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1826,6 +1826,9 @@ static void ocfs2_dismount_volume(struct 
+> super_block *sb, int mnt_err)
+>
+>  	ocfs2_truncate_log_shutdown(osb);
+>
+> +	ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
+> +	debugfs_remove_recursive(osb->osb_debug_root);
+> +
+>  	/* This will disable recovery and flush any recovery work. */
+>  	ocfs2_recovery_exit(osb);
+>
+> @@ -1865,9 +1868,6 @@ static void ocfs2_dismount_volume(struct 
+> super_block *sb, int mnt_err)
+>
+>  	ocfs2_dlm_shutdown(osb, hangup_needed);
+>
+> -	ocfs2_blockcheck_stats_debugfs_remove(&osb->osb_ecc_stats);
+> -	debugfs_remove_recursive(osb->osb_debug_root);
+> -
+>  	if (hangup_needed)
+>  		ocfs2_cluster_hangup(osb->uuid_str, 
+>  strlen(osb->uuid_str));
