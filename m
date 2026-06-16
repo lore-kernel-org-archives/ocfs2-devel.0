@@ -1,32 +1,32 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D6E92F8E96
-	for <ocfs2-devel@lists.linux.dev>; Tue, 16 Jun 2026 03:49:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C45F43D966F;
+	Tue, 16 Jun 2026 06:00:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1781581769; cv=none; b=JnEBxJ1tYqqiN8MV6bFLxiDLUB1WpbqbzPkio0hkpoCAZbryu8u5524NqKQdsADj/2vGoUGcJrhSw+S4iUcmSYDJeKORE7iM5V185MNZL4Mu/XlgmtF1zNlYkPA3xJ3qzSlzSxLUQqz4F7Ge6g2/yjh88WnLcIUB/Q/4SMnpU+c=
+	t=1781589648; cv=none; b=SaGk0pxW4s3r1EWGWEJNoH06hJfqvdeeeEUohiHjbJnpI1OV6hmUP6lG/HfjsG/X6qwMtV2l5HH4gQebQVrxIsYpHmOUyXCeIdCiKHHnpv+mwxi40z7ysBBZK4O8/eUi891o1bn5+M54KMlzSZtTjq0QHxNYI+82shMRlsfy4BI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1781581769; c=relaxed/simple;
-	bh=VbSEQWpY70Pw6CCdTsoFz9ygCaBEpH3QlMWci+Am2fU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:Cc:
-	 In-Reply-To:Content-Type; b=B2N2KKJ9+tIk6AaKz1q5TzXwvVHICK7shjsaVOmi/Miezv7sPIsiQxBSZ3AkAuUTqchcgwssAHWBsENiJwcDf5Rd67GyIeq6NXwaeMtuwoZyaM9q+cqnpW0tA1IN9LxKT6/aKkSjgojCSwb9KedIqIdy5B9RoolKgshKE5yGQcI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=wDwvNrX1; arc=none smtp.client-ip=115.124.30.119
+	s=arc-20240116; t=1781589648; c=relaxed/simple;
+	bh=RHiDjfPGyjzwJA9XleoqFxc1SXobyVlg8CDllrM/GZo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=mCMlmp5uc3uJozy5QA7LcXRx76iAjW+WZiK+JLpSnyukNxuqzHDNApjDY4m8SZnTXNYEqfLpiP2FJO0ls1g+mb2NhJiPqFj/H2cyoJToeyu/t4FjwPA4C1yy0CCzuA6lpdt0Bt35CJmZ9wLuVO6OVueYPlUXS0nmDOkSzIPYQpE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=HeF1/ZxA; arc=none smtp.client-ip=115.124.30.112
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="wDwvNrX1"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="HeF1/ZxA"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1781581756; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=8moniJIKHxW29OCgFGCqqKe60x3wkhkZVp7syH/ImOg=;
-	b=wDwvNrX1rqircNFvm1fx2Ye5IbGNfnCxhUeBSgo0lU+M116nS7BjnQFUmW10RfgxATd7Iq0ctMyNThh8G3RpX9zLkn959/gb5FwdExsW6855SXRWq7eY78Rz9b3EmgpDDx0aadqDrpTC4o/Clg4Ch6g/YIoxy6mNfBGSslxJu/E=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X4zvE19_1781581755;
-Received: from 30.221.145.41(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X4zvE19_1781581755 cluster:ay36)
+	t=1781589642; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=JHVdgI38vU8InSz4ekfmHoTl4B0c/zoZFuDfyGeoFak=;
+	b=HeF1/ZxAu5qub1qGceuK3lUP5xHMqKjAi4IbyXiWb1CQ9EGUDY2NmoPTFmoD7HsEzAFLEOwFx0YPiWmrWt43sr1+q4WG+YL9zkE1XgQzhzz/0yFCJ7VZM846McyTrqTa2j4Iow5HV28O9aLJofp85VN1RQ6UYA7WrzJm87pJI40=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R191e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X5-Edtn_1781589640;
+Received: from 30.221.145.41(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X5-Edtn_1781589640 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 16 Jun 2026 11:49:15 +0800
-Message-ID: <c86cd029-4d0c-499a-a763-763f42352c92@linux.alibaba.com>
-Date: Tue, 16 Jun 2026 11:49:13 +0800
+          Tue, 16 Jun 2026 14:00:41 +0800
+Message-ID: <6f95cc40-3014-4628-9739-28f47bec825b@linux.alibaba.com>
+Date: Tue, 16 Jun 2026 14:00:40 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,211 +34,160 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix out-of-bounds read in
- ocfs2_duplicate_inline_data()
-To: Ian Bridges <icb@fastmail.org>
-References: <ai1byUgMNULbZuLs@dev>
+Subject: Re: [PATCH] ocfs2: fix circular locking dependency in
+ ocfs2_dio_end_io_write
+To: Heming Zhao <heming.zhao@suse.com>, syzbot <syzbot@kernel.org>,
+ Aleksandr Nogikh <nogikh@google.com>
+Cc: syzkaller-bugs@googlegroups.com, Joel Becker <jlbec@evilplan.org>,
+ Mark Fasheh <mark@fasheh.com>, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, syzbot@lists.linux.dev
+References: <97c902a6-3bcf-43ea-9b70-f1f136a6c3f2@mail.kernel.org>
+ <ai-qJbXLuniGv-mr@p15>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-In-Reply-To: <ai1byUgMNULbZuLs@dev>
+In-Reply-To: <ai-qJbXLuniGv-mr@p15>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 6/13/26 9:31 PM, Ian Bridges wrote:
-> [BUG]
-> copy_file_range() (or reflink) of an inline-data file can read and write
-> out of bounds in ocfs2_duplicate_inline_data() when the source inode's
-> on-disk id_count exceeds the inline-data capacity. KASAN reports a
-> use-after-free read past the end of the inode block buffer.
-> 
-> [CAUSE]
-> ocfs2_duplicate_inline_data() copies the source inline area with a
-> memcpy() whose length is le16_to_cpu() of the on-disk id_count, taken
-> straight from the source inode buffer with no bounds check. The inline
-> capacity is at most ocfs2_max_inline_data_with_xattr() (3896 bytes for a
-> 4K block); a larger id_count overruns the 4096-byte source and target
-> inode blocks into the adjacent page. ocfs2_validate_inode_block() already
-> bounds id_count, but it only runs on a disk read; an inode buffer that
-> was validated and then mutated in the block-device page cache (for
-> example by a concurrent LOOP_SET_STATUS invalidating the loop bdev) stays
-> up-to-date and is consumed without re-validation.
-> 
-> [FIX]
-> Bound the source id_count against ocfs2_max_inline_data_with_xattr() in
-> ocfs2_duplicate_inline_data() before the memcpy, and return an error via
-> ocfs2_error() if it is too large.
-> 
-> Fixes: 2f48d593b6ce ("ocfs2: duplicate inline data properly during reflink.")
-> Reported-by: syzbot+e400b192d6ca035354ee@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=e400b192d6ca035354ee
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Ian Bridges <icb@fastmail.org>
-> ---
-> This patch contains a proposed fix for a crash reported by syzbot
-> in ocfs2_duplicate_inline_data().
-> 
-> The file names and offsets in this description are from commit
-> 7cb1c5b32a2bfde961fff8d5204526b609bcb30a from this repo:
-> git://git.kernel.org/pub/scm/linux/kernel/git/gregkh/staging.git
-> 
-> I also have a small test harness that reproduces the original crash
-> deterministically, which I can make available as well.
-> 
-> The Bug
-> 
-> OCFS2 stores the data of a small file directly inside the inode block,
-> in the space that would otherwise hold the extent list (the inline-data
-> feature). The on-disk container is struct ocfs2_inline_data
-> (fs/ocfs2/ocfs2_fs.h:652):
-> 
->     __le16  id_count;
->     __le16  id_reserved0;
->     __le32  id_reserved1;
->     __u8    id_data[] __counted_by_le(id_count);
-> 
-> id_count is the capacity of the inline area, not the used length; it is
-> set at creation to ocfs2_max_inline_data_with_xattr()
-> (fs/ocfs2/namei.c:589). For a 4K block that capacity is
-> 4096 - offsetof(struct ocfs2_dinode, id2.i_data.id_data) = 3896 bytes,
-> less any inline-xattr reservation (fs/ocfs2/ocfs2_fs.h:1252).
-> 
-> When copy_file_range() (or FICLONE) targets two files on the same ocfs2
-> mount and the source is inline, ocfs2 copies the inline bytes directly in
-> ocfs2_duplicate_inline_data() (fs/ocfs2/refcounttree.c:3918). It memcpys
-> the source id_data array into the target's, using le16_to_cpu() of the
-> source id_count as the copy length (fs/ocfs2/refcounttree.c:3946).
-> 
-> id_count is taken straight from the source inode buffer as the copy
-> length, with no bounds check. If it exceeds the 3896-byte capacity the
-> memcpy runs off the end of the source inode block, and because the same
-> count is the write length, off the end of the target block too. Both are
-> 4096-byte buffers, so the access spills into the adjacent page. syzbot's
-> report is the read side: "Read of size 8483 ..." in
-> ocfs2_duplicate_inline_data, 8483 being the bad id_count.
-> 
-> How it is reached:
-> 
-> 1. With both files on the same super block, vfs_copy_file_range()
->    (fs/read_write.c:1554) has no copy_file_range method to call and falls
->    back to ocfs2's remap_file_range method, ocfs2_remap_file_range()
->    (fs/ocfs2/file.c:2701), with REMAP_FILE_CAN_SHORTEN
->    (fs/read_write.c:1599). An over-long copy length is clamped to the
->    source i_size.
-> 
-> 2. ocfs2_remap_file_range() calls ocfs2_reflink_inodes_lock()
->    (fs/ocfs2/refcounttree.c:4698), which takes the inode cluster lock via
->    ocfs2_inode_lock_nested() (fs/ocfs2/refcounttree.c:4743), yielding the
->    source inode buffer s_bh, then calls ocfs2_reflink_remap_blocks()
->    (fs/ocfs2/refcounttree.c:4599).
-> 
-> 3. For a whole-file copy of an inline source
->    (fs/ocfs2/refcounttree.c:4622) it takes the inline fast path:
->    ocfs2_duplicate_inline_data(s_inode, s_bh, ...)
->    (fs/ocfs2/refcounttree.c:4625), which runs the memcpy above. A corrupt
->    id_count of 8483 overruns the buffers and KASAN reports the
->    out-of-bounds read into the freed neighbouring page.
-> 
-> The bad id_count is not present on disk in a freshly read inode.
-> ocfs2_validate_inode_block() (fs/ocfs2/inode.c:1423) already rejects an
-> id_count larger than ocfs2_max_inline_data_with_xattr() at read time
-> (fs/ocfs2/inode.c:1508, added by 7bc5da4842be for the write-side sibling
-> of this bug), and that check is in the crashing kernel. The bad value
-> instead reaches s_bh through a buffer that was validated once and then
-> mutated underneath ocfs2.
-> 
-> The fs is on a loop device; while the copy runs, the test harness issues
-> LOOP_SET_STATUS with a changed lo_offset/lo_sizelimit. loop_set_status()
-> (drivers/block/loop.c:1227) then calls invalidate_bdev()
-> (drivers/block/loop.c:1246), dropping the loop bdev pages that back
-> ocfs2's cached inode buffer. When the page is refilled from the
-> offset-shifted backing it holds neighboring garbage, and the inline fast
-> path reads that id_count without re-validating. (The report's "page last
-> freed by loop_set_status" is this same churn.) The test harness produces the
-> state deterministically by writing an oversized id_count straight into the
-> loop device's page cache at the inode's offset, then issuing the copy.
-> 
-> The Proposed Fix
-> 
-> The fix adds the bound check to ocfs2_duplicate_inline_data() itself,
-> before the memcpy. If the source id_count exceeds
-> ocfs2_max_inline_data_with_xattr() for the source inode, the inode is
-> corrupt, so report it with ocfs2_error() and return. id_count is read
-> once into a local used for both the check and the copy, so the value
-> cannot change between them.
-> 
-> The natural instinct, and what the write-side sibling 7bc5da4842be did,
-> is to reject the value at read time in ocfs2_validate_inode_block(). That
-> is right for corruption already present on disk when the inode is read,
-> but it does not stop this bug.
-> 
-> ocfs2_validate_inode_block() does not run on every use of a buffer; it
-> runs at most once, as the post-I/O callback of a disk read.
-> ocfs2_read_blocks() (fs/ocfs2/buffer_head_io.c:193) goes to disk only
-> when the buffer is not already up-to-date (fs/ocfs2/buffer_head_io.c:271);
-> only that path sets NeedsValidate (fs/ocfs2/buffer_head_io.c:327-328),
-> and the callback runs only when that flag is set
-> (fs/ocfs2/buffer_head_io.c:376-382). An already up-to-date buffer is
-> returned with no I/O and no validation. The validator therefore checks
-> the bytes when read from disk, not when used.
-> 
-> Because of this, the patch checks the invariant where the value is consumed
-> (the memcpy site), the only place that sees the live bytes. Putting it in
-> ocfs2_duplicate_inline_data() also covers both callers
-> (fs/ocfs2/refcounttree.c:4107 and :4625) and bounds both the source read
-> and the target write, since one count drives both.
-> 
->  fs/ocfs2/refcounttree.c | 17 +++++++++++++++--
->  1 file changed, 15 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 8eee5be4d1ed..eb3ddcaaa049 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -3925,9 +3925,23 @@ static int ocfs2_duplicate_inline_data(struct inode *s_inode,
->  	struct ocfs2_super *osb = OCFS2_SB(s_inode->i_sb);
->  	struct ocfs2_dinode *s_di = (struct ocfs2_dinode *)s_bh->b_data;
->  	struct ocfs2_dinode *t_di = (struct ocfs2_dinode *)t_bh->b_data;
-> +	u16 id_count = le16_to_cpu(s_di->id2.i_data.id_count);
->  
->  	BUG_ON(!(OCFS2_I(s_inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL));
->  
-> +	/*
-> +	 * id_count was validated by ocfs2_validate_inode_block() when the inode
-> +	 * was read, but the cached buffer can be modified afterward, so re-check
-> +	 * it before the memcpy.
-> +	 */
+On 6/15/26 3:32 PM, Heming Zhao wrote:
+> On Fri, Jun 12, 2026 at 11:50:20AM +0000, syzbot wrote:
+>> From: Aleksandr Nogikh <nogikh@google.com>
+>>
+>> A circular locking dependency involves INODE_ALLOC_SYSTEM_INODE,
+>> EXTENT_ALLOC_SYSTEM_INODE, and ORPHAN_DIR_SYSTEM_INODE.
+>>
+>> 1. ocfs2_mknod() acquires INODE_ALLOC then EXTENT_ALLOC.
+>> 2. ocfs2_dio_end_io_write() acquires EXTENT_ALLOC for unwritten extents,
+>> then ORPHAN_DIR via ocfs2_del_inode_from_orphan() while still holding
+>> EXTENT_ALLOC.
+>> 3. ocfs2_wipe_inode() acquires ORPHAN_DIR then INODE_ALLOC via
+>> ocfs2_remove_inode.
+>>
+>> Break the cycle in ocfs2_dio_end_io_write() by freeing the allocation
+>> contexts (releasing EXTENT_ALLOC) before acquiring ORPHAN_DIR.
+>>
+>> WARNING: possible circular locking dependency detected
+>> ------------------------------------------------------
+>> is trying to acquire lock:
+>> ffff8881e78b33a0
+>> (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at:
+>> ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
+>>
+>> but task is already holding lock:
+>> ffff8881e78b4fa0
+>> (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}, at:
+>> ocfs2_evict_inode+0xe97/0x43b0 fs/ocfs2/inode.c:1299
+>>
+>> the existing dependency chain (in reverse order) is:
+>>
+>> -> #2 (&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]){+.+.}-{4:4}:
+>>        inode_lock include/linux/fs.h:1029 [inline]
+>>        ocfs2_del_inode_from_orphan+0x12e/0x7a0 fs/ocfs2/namei.c:2728
+>>        ocfs2_dio_end_io+0xf9c/0x1370 fs/ocfs2/aops.c:2418
+>>        dio_complete+0x25b/0x790 fs/direct-io.c:281
+>>
+>> -> #1 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+>>        inode_lock include/linux/fs.h:1029 [inline]
+>>        ocfs2_reserve_suballoc_bits+0x16d/0x4840 fs/ocfs2/suballoc.c:882
+>>        ocfs2_reserve_new_metadata_blocks+0x415/0x9a0
+>>        fs/ocfs2/suballoc.c:1078
+>>        ocfs2_mknod+0x10f3/0x2260 fs/ocfs2/namei.c:351
+>>
+>> -> #0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}:
+>>        __lock_acquire+0x15a5/0x2cf0 kernel/locking/lockdep.c:5237
+>>        lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+>>        down_write+0x96/0x200 kernel/locking/rwsem.c:1625
+>>        inode_lock include/linux/fs.h:1029 [inline]
+>>        ocfs2_remove_inode fs/ocfs2/inode.c:733 [inline]
+>>        ocfs2_wipe_inode fs/ocfs2/inode.c:896 [inline]
+>>        ocfs2_delete_inode fs/ocfs2/inode.c:1157 [inline]
+>>        ocfs2_evict_inode+0x1539/0x43b0 fs/ocfs2/inode.c:1299
+>>
+>> Chain exists of:
+>>   &ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE] -->
+>>   &ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE] -->
+>>   &ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]
+>>
+>>  Possible unsafe locking scenario:
+>>
+>>        CPU0                    CPU1
+>>        ----                    ----
+>>   lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+>>                                lock(&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]);
+>>                                lock(&ocfs2_sysfile_lock_key[ORPHAN_DIR_SYSTEM_INODE]);
+>>   lock(&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]);
+>>
+>>  *** DEADLOCK ***
+>>
 
-Ummm... If this is the case, I think it is a code bug in other place.
+Better to describe the solution here.
 
-Not sure if this is relevant with
-https://lore.kernel.org/ocfs2-devel/20260529190101.a72cec8337c1b5e908e3afa0@linux-foundation.org/T/#t
+>> Fixes: d647c5b2fbf8 ("ocfs2: split transactions in dio completion to avoid credit exhaustion")
+>> Assisted-by: Gemini:gemini-3.1-pro-preview Gemini:gemini-3-flash-preview syzbot
+>> Reported-by: syzbot+b225d4dfce6219600c42@syzkaller.appspotmail.com
+>> Closes: https://syzkaller.appspot.com/bug?extid=b225d4dfce6219600c42
+>> Link: https://syzkaller.appspot.com/ai_job?id=0b53ce1e-2972-4192-aa85-8097a702762c
+>> Signed-off-by: Aleksandr Nogikh <nogikh@google.com>
+> 
+> LGTM.
+> After d647c5b2fbf8, ocfs2_dio_end_io_write() spends a significant amount of time
+> looping through the unwritten extent list before it finally acquires the
+> ORPHAN_DIR lock. This gives other functions (such as ocfs2_wipe_inode() mentioned
+> in this patch) a chance to preemptively grab the ORPHAN_DIR lock, thereby
+> triggering the circular locking.
+> What d647c5b2fbf8 actually did was widen the race window, turning a pre-existing,
+> low-probability issue into an easily reproducible one.
+> 
+
+Ummm... before d647c5b2fbf8, ocfs2_del_inode_from_orphan() is called
+before down_write(&ip_alloc_sem) and ocfs2_lock_allocators().
+So I think the 'Fixes' tag looks reasonable.
 
 Thanks,
 Joseph
 
-> +	if (id_count > ocfs2_max_inline_data_with_xattr(s_inode->i_sb, s_di)) {
-> +		ret = ocfs2_error(s_inode->i_sb,
-> +				  "Inode %llu has invalid inline data id_count %u\n",
-> +				  (unsigned long long)OCFS2_I(s_inode)->ip_blkno,
-> +				  id_count);
-> +		goto out;
-> +	}
-> +
->  	handle = ocfs2_start_trans(osb, OCFS2_INODE_UPDATE_CREDITS);
->  	if (IS_ERR(handle)) {
->  		ret = PTR_ERR(handle);
-> @@ -3943,8 +3957,7 @@ static int ocfs2_duplicate_inline_data(struct inode *s_inode,
->  	}
->  
->  	t_di->id2.i_data.id_count = s_di->id2.i_data.id_count;
-> -	memcpy(t_di->id2.i_data.id_data, s_di->id2.i_data.id_data,
-> -	       le16_to_cpu(s_di->id2.i_data.id_count));
-> +	memcpy(t_di->id2.i_data.id_data, s_di->id2.i_data.id_data, id_count);
->  	spin_lock(&OCFS2_I(t_inode)->ip_lock);
->  	OCFS2_I(t_inode)->ip_dyn_features |= OCFS2_INLINE_DATA_FL;
->  	t_di->i_dyn_features = cpu_to_le16(OCFS2_I(t_inode)->ip_dyn_features);
+> Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+>>
+>> ---
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index 6ec198bda..4acdbb708 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+>> @@ -2372,6 +2372,15 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>  unlock:
+>>  	up_write(&oi->ip_alloc_sem);
+>>  
+>> +	if (data_ac) {
+>> +		ocfs2_free_alloc_context(data_ac);
+>> +		data_ac = NULL;
+>> +	}
+>> +	if (meta_ac) {
+>> +		ocfs2_free_alloc_context(meta_ac);
+>> +		meta_ac = NULL;
+>> +	}
+>> +
+>>  	/* everything looks good, let's start the cleanup */
+>>  	if (!ret && dwc->dw_orphaned) {
+>>  		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+>> @@ -2383,10 +2392,6 @@ static int ocfs2_dio_end_io_write(struct inode *inode,
+>>  	ocfs2_inode_unlock(inode, 1);
+>>  	brelse(di_bh);
+>>  out:
+>> -	if (data_ac)
+>> -		ocfs2_free_alloc_context(data_ac);
+>> -	if (meta_ac)
+>> -		ocfs2_free_alloc_context(meta_ac);
+>>  	ocfs2_run_deallocs(osb, &dealloc);
+>>  	ocfs2_dio_free_write_ctx(inode, dwc);
+>>  
+>>
+>>
+>> base-commit: e7ae89a0c97ce2b68b0983cd01eda67cf373517d
+>> -- 
+>> See https://goo.gle/syzbot-ai-patches for information about AI-generated patches.
+>> You can comment on the patch as usual, syzbot will try to address
+>> the comments and send a new version of the patch if necessary.
+>> syzbot engineers can be reached at syzkaller@googlegroups.com.
+>>
 
