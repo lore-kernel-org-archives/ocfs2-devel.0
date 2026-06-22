@@ -1,106 +1,109 @@
-Received: from mail-lj1-f195.google.com (mail-lj1-f195.google.com [209.85.208.195])
+Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E6FA43644A4
-	for <ocfs2-devel@lists.linux.dev>; Mon, 22 Jun 2026 07:14:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.195
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782112484; cv=pass; b=c5H+EA7MYkpnCCIP0r8cEKLwL8hCYdxbJhglhr7cl3kczRv8tnIRBV1rUeQ2ZiPHOvtuprXzehlLgrOWzRMq4SUWaPKkM/hOe/Fy85ykvcx71vh0CWdHglk8/X37Mu16r/6LP5yoxtbEkbRtKV+XiTAJLmkO5vDk9rMYhHuZBxQ=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782112484; c=relaxed/simple;
-	bh=ir24aUHO6A0liTvN9pHV2uOiWxrK6G8m0FdSyJ55Qxc=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=Ad2Dkp9OPLbE/9HqSqhWmdOE5bBofRsbxun5cs+7X/LFJ1+bfv6Ddd/8cTh2vCW0zV60s9pjqjCJ6k//pqNs1eydqkCbIk5LgVL5e7OFosCSb0ovCQEpj1Qmj39eS6W4m7GMIf6A6PrByb7yaEjwZxZlm8hQr3ZiPBG8Roqz/IY=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=NhKl1w8P; arc=pass smtp.client-ip=209.85.208.195
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EC2AC3AFD05
+	for <ocfs2-devel@lists.linux.dev>; Mon, 22 Jun 2026 13:03:38 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.170
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1782133421; cv=none; b=LXD8dPI7xxcGDHklbrNj/Z1OvpWfu2HQNRWraE3JQnHIoX7yNf3zSSyYIlpzwtE+8jUzzIR2HVwy+tRkLYw/QLEXw7KbdMHgeO+c7vDW+VOjh3BmWaQMK4yKCCBgIU9Pqjl0Wx+tAbjpz/RNOw9z6oK3+k/08cO4UYtC0DyAZzA=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1782133421; c=relaxed/simple;
+	bh=RfznLkS+ZpsSvId4xOD4/cnLi/Phx3olePuZ7XR8qCk=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=lqfBGJY1W3YGZ8Hyr/Ru05J874UaJ8JaqHZsNRKrW56nMHeXc3eb7GooFtAXIqzQmEg3sN+kGKzgw9DxCdIu7+N0iDKLAlR7oxNNNUJN11Y8SEonb/manIyqFdp5f2p+4b7YFBzl7rwBCaFDJGzyEbRGzUdX6rJ7w0pl8Duu8bw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=DZidEdyB; arc=none smtp.client-ip=209.85.214.170
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="NhKl1w8P"
-Received: by mail-lj1-f195.google.com with SMTP id 38308e7fff4ca-3967726bc47so38287261fa.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 22 Jun 2026 00:14:42 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1782112481; cv=none;
-        d=google.com; s=arc-20240605;
-        b=cXxdxsmOVuBAoxthTM5ylxEFI4dWlivh6faOO2qW4pF6/2eHOvuDhtzkesqJ9W0N6E
-         huhVy3OwTyUolue0Vc+loqZJ4FlpajuDV3aJuJ162G6VnGqx133Q5T0suYSWlhVIM4+6
-         mToEiuL1qMPTVD0MPiwPL38pfcLaz5CSoJe4dnEbWEqnCqdCWawvETvqfI4/pTS7eWUE
-         LlKIpzFT7+3CKbEVPrNHgVBKMRjA5rcnFOnW8vRBNl1D02Oo4Q+y9ThplpzljnKgYLzS
-         ucRF+osES7X36w9wynpbDPmjPxBr9SbtuO2uXenRnwtzhQ7igzm2dK+Cid+HlCHzRU9b
-         0uZw==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=ir24aUHO6A0liTvN9pHV2uOiWxrK6G8m0FdSyJ55Qxc=;
-        fh=yJ1elH1q5DGbbz/BcCrYHVIOMEg+cJMsFp3q0OU3IoU=;
-        b=BPSFshyGoXNyIzz/dTHngg8hcI+fX+IKi+LbocCSa18BTRVeIggs/dEC6WUwrIvztb
-         XetsOWGLk3HXBuobv08aFQ/sUBvZBCtK6HHbJuMpD+WLrVXFAXPLyHiVvNc+SB0GUvN3
-         +zWGLhTIKoF1gXaYrBgqONsppULhLP5FYnFbXJcn78El5WofG2GDvAA6xiNXB9WmwtrQ
-         4fail9XyDx/165R4o9JTcn/IdfPkgAQBj25/y/EWbbyGRc4a1YWcy/ROKMA5wGV9v9Ne
-         IN3AuCfPLIqDr4cOtnKQIgqHK6+IqwjOQIqcfiXn7+jI5OukPuBv9dMz7HYyib95bqTD
-         2erA==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="DZidEdyB"
+Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-2c0c1e0b0faso27204715ad.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 22 Jun 2026 06:03:38 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1782112481; x=1782717281; darn=lists.linux.dev;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=ir24aUHO6A0liTvN9pHV2uOiWxrK6G8m0FdSyJ55Qxc=;
-        b=NhKl1w8PiFcxjDTyonfBujG4K0CHm203HYN3scpwOXyKxX+5ohmSngWPdKmRY/m2uQ
-         QIUiSmQ56KaZJ+S3oO5VvEg87+V4jNBvvrzid1VhhvdBSVbYktOIcekq3JHazqjK7nFy
-         W7mPmERE0tyujUoRO6/j3tdavIK92XqGvVxVjOxsgX3qAaf6HRDRdAqzPN8IcMWiPqFY
-         wK9er8d+xUWN9ITAuwHavWlh4UkFFl4o/OvImV4+PFANFeuQc1GI19YIxriFc5GEZYVt
-         NBQUV60SDmsy5OjQ8l1TBQ6C3PPsqTQVrX8xSDmKiXXPWW6Z/8TF+OuuZLPom6aA0OPf
-         ro0w==
+        d=gmail.com; s=20251104; t=1782133418; x=1782738218; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=XbKFFG1L00z5MlRiOkKCPtXY87GUTjiQbqND4Ea6D2k=;
+        b=DZidEdyB71jN8Cmz281gZc5wDzwDMnh0r4HOr/kKmVqMjBBCowTRDyvbnjo6xu9i6v
+         b8bWLFgxoIvGiGo7IeUBtM7p9/ax658Ndcyl2iVhePwlSXqdZkbmnVh4ggxJUF1FxCms
+         svj0UuYqAS0NokYDtJde8IaF5hscoqVwZIi6z1MV1zNror+k1SsATe9NdVbqu1es83Jm
+         I84+Tnyk6ZH+ThiPrPO+KoLsVljH1Yv8Jd60GeN9WUDFJ3C3kSOGt23Sq4mIJTSIc1Fh
+         YUh6yJ5d9MeOC2l3ElduUqRIWnmAH0pC+wbdyMqC+rHdYUtSfRMdkAZqubpVZoNTgA6x
+         dg4Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1782112481; x=1782717281;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to;
-        bh=ir24aUHO6A0liTvN9pHV2uOiWxrK6G8m0FdSyJ55Qxc=;
-        b=miAwc+2t/7gFvF/f98VNRRfXF7qtinUAueuRYxYAqAmPslEwJ43bhPW+lWVTDVPk+Y
-         JiNBO8CQ2D70VNti3BKYhp127p+f6Q52WSX8oV7oMnmxpGhkOhMzYOOzQ27ZVjinJM6u
-         XFQH+yD6BGeFoAIr9sZ1Ztkp3Clz1myJSR3WfEurpCwa8y2/YuuxrvH92zYm+FpAWjs5
-         7NR+/iQmGH1dLWULz47YpdZ4TMvQH4gQkNFM2X4cNslwp6YDhEzcLXyIRWDESjTjBPg4
-         WyrVAAlQmb7YhkkJqdUhfDL0Qa48laVza1W+x7KG/2ZIZMSV914eIPuqEyUz3Mopb7hr
-         VE5g==
-X-Gm-Message-State: AOJu0YxIst5p2fSlsI4kNSe3hOjCxRrQTrzjrbxaN31KeGwWHy11NmDs
-	3Y1LNm3P2p/IxfuHX3Hg2DxG5pNNmIB3r96ZR3l9aGXHpHFZ6xJ8wYdhh4xNI9k+RMeXbXJHJt+
-	IE0ydtJpwH2UKCdDnAVfVPtsC52ZVrZU=
-X-Gm-Gg: AfdE7clvFXOX5BfwJXSVQzxh/DukwpWnNex1SuVf8gqeqYkejH6uLSW1eU3Infq36Ga
-	AZ5xH7R1KeCamo4zl9essxCpswblUCBtPhrrKRLhzvyxWjFNj57TBTM8hv2XjTIUureTEhvH/tU
-	1O+9VhE4JecyFNcmtow5R0qAkJ+1Oz07Xekp4xAlHjX2vbOOsdgFPIN0q+xCXikfvEgN6uBVKsB
-	IjoQcZdOk/GOBKUQUABxFbnC5X+WYwEMaya4UFIc4JaWkYvi7b0vPetRUM2duGf0QavUxd5jH9j
-	nZ1oK75f+cIAJCkhTkZzIYRgW3ElIVd+//xe3xAxSneXshXOIsWuZd+S
-X-Received: by 2002:a05:651c:220c:b0:396:7f3c:2723 with SMTP id
- 38308e7fff4ca-3998e518f89mr29960761fa.21.1782112480658; Mon, 22 Jun 2026
- 00:14:40 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1782133418; x=1782738218;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=XbKFFG1L00z5MlRiOkKCPtXY87GUTjiQbqND4Ea6D2k=;
+        b=II+gF6/ZEkD21j5MGvU+AzCCNNyAkI4uMf9u6zvB67RucBB2z+hqPtXahsIdEudu5N
+         ecKKEgTMRfl67BwBsENUpFUAEJJHBh5JBdEUwODlN3dbL6DjuW3u2JFTRj7fN2gk/1OJ
+         SjqhZNHbCM9vi5aHi5nJ/K6x+hvRkjozttYJUnzqwunRYIy3bkPAl+H+82lUYIb7ocRq
+         MMzsAUmUEmbynYcr1+UPBsRsssEvGMhF/lo9BKUdhOvJD5uG+Zo1aSdJTdYIlKY1YQCu
+         gDOWUAjo56QzbrHaX1/O51vU7RQArGJEAozQ9/ZQsovbBpn+05tf/o3vyPXBmx8AHPr8
+         OHbA==
+X-Gm-Message-State: AOJu0Yw6Jx5mGHDf0S9XdapqYnHQC+Da0qZyj79ZZ3c1nutXtdgBnHqo
+	Tmqtvmhzha0Ch0bPMdVwKpNGy2Qg+K9XMrKgBEDmPPdh9FTMbISdbTLG
+X-Gm-Gg: AfdE7cmZQu+RGVlFwxKVCx1qgdkPB86Z+mLMDOcBF/VEfmvD9aY3JLG31M81ZhzFUKR
+	DZatkT6Zs0mThNGks22qaYGStsz3mt4St8FVEieSkQ6E2p1W+EXNIwo+LQD0i/Z8gUzTl+gixbb
+	WYTlfS2uXEm3Pks1fydtuKc3mbV4WSm/oJPYs0887vxeVGnSPYd+ICXswVKlI237GjbNglnhOdR
+	j60lXLHPGlZNk0Wdv5pq7xyHiKca4TI17K+jfaSWqlM5EJX5JXJKBEHWJvQx8b1t0fZpa+x6O1K
+	AFf/1U5o3Vl+sIUtsW4/SaPMH1D8JG57A3tjxdYjC9w3Sv8VONf/jBM1Vw9H0Gv2r87zcc5Xu6a
+	yfDaT4eLc482G/b4syxRzO9CTbhrCMLi+czZwyN4r06mbIxrcqc9JB/87lxRv44RhUO/jyS+42s
+	JvUh835I5zU0DKCUfDSA==
+X-Received: by 2002:a17:903:390d:b0:2c6:b38b:e75d with SMTP id d9443c01a7336-2c725d38359mr158556635ad.20.1782133418077;
+        Mon, 22 Jun 2026 06:03:38 -0700 (PDT)
+Received: from localhost ([111.228.63.84])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2c743fd6420sm78895885ad.70.2026.06.22.06.03.35
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 22 Jun 2026 06:03:37 -0700 (PDT)
+From: Cen Zhang <zzzccc427@gmail.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH v4 0/2] ocfs2: validate xattr metadata bounds
+Date: Mon, 22 Jun 2026 21:03:30 +0800
+Message-Id: <20260622130332.2094018-1-zzzccc427@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260616091132.3990054-1-rollkingzzc@gmail.com> <b9dbf1e7-f19c-426f-943f-50456ee12aa8@linux.alibaba.com>
-In-Reply-To: <b9dbf1e7-f19c-426f-943f-50456ee12aa8@linux.alibaba.com>
-From: Cen Zhang <rollkingzzc@gmail.com>
-Date: Mon, 22 Jun 2026 15:14:27 +0800
-X-Gm-Features: AVVi8CfNRHVUqroEcbtFSPx0PqoqRQ54U8prGN2zAX766QNIzCC8sJfCuMynPKw
-Message-ID: <CAB7XQsGHRqoOVW+r8xaimnKL9XHVEwG847Xex5ck_tL3jsr5ZA@mail.gmail.com>
-Subject: Re: [PATCH v3 0/2] ocfs2: validate xattr metadata bounds
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev, zerocling0077@gmail.com, 2045gemini@gmail.com, 
-	Cen Zhang <zzzccc427@gmail.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 
-Hi Joseph,
+Hi,
 
-> Hi,
-> I couldn't apply your patches cleanly upon the lastest master.
-> Could you please do a update?
+This v4 rebases the series on current torvalds/master and reworks the
+inline xattr part on top of the newly merged
+ocfs2_xattr_ibody_lookup_header() helper.
 
-Thanks for the notice. I=E2=80=99ll rebase the patches on the latest master
-and resend them.
+Patch 1 extends the shared ibody helper with xattr entry name/value
+bounds checks and calls it from ocfs2_validate_inode_block().
 
-Best regards,
-Cen Zhang
+Patch 2 validates non-indexed external xattr blocks from
+ocfs2_validate_xattr_block(). Indexed xattr buckets do not pass through
+that validator, so their header and per-entry bounds are checked after
+bucket ECC verification in ocfs2_read_xattr_bucket().
+
+Both issues were reproduced with crafted OCFS2 images under KASAN.
+
+Changes since v3:
+- Rebase on current torvalds/master.
+- Build on the newly merged ocfs2_xattr_ibody_lookup_header() helper
+  instead of adding a duplicate inline-header helper.
+- Keep indexed bucket xh_entries[] bounded by the first bucket block,
+  while checking name/value offsets against the addressed bucket block.
+
+Cen Zhang (2):
+  ocfs2: validate inline xattrs during inode block validation
+  ocfs2: validate external xattr entries when reading metadata
+
+ fs/ocfs2/inode.c |   4 +
+ fs/ocfs2/xattr.c | 192 +++++++++++++++++++++++++++++++++++++++++------
+ fs/ocfs2/xattr.h |   2 +
+ 3 files changed, 177 insertions(+), 21 deletions(-)
+
+-- 
+2.43.0
