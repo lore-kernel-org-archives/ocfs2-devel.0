@@ -1,62 +1,62 @@
-Received: from mail-pj1-f52.google.com (mail-pj1-f52.google.com [209.85.216.52])
+Received: from mail-pl1-f175.google.com (mail-pl1-f175.google.com [209.85.214.175])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0BAA0376A1E
-	for <ocfs2-devel@lists.linux.dev>; Thu, 25 Jun 2026 09:01:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.52
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 641CB37B014
+	for <ocfs2-devel@lists.linux.dev>; Thu, 25 Jun 2026 09:01:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782378071; cv=none; b=tdW4uHelnMA816ZY4uailD4xiP3jyVvCjSdXHvVNVOLKEf3WiNPxqenUxhls7cXkNMnke5kj/zso+x58TRTuhwrfLJlMc8exzQJOfHcG8DBzOJWQpq5/D2P9l5y4kosUDd2mAEAMAji4lJgoN+OwdC0EyQl/uY1qFNIR3pRIKYo=
+	t=1782378072; cv=none; b=BFozDuyht0GjlSDv/AxmCdSUdwkeOSZhq84peVrJbKzhp77Ie0s3/PMx+0urdKS/6kADFd2Wyudv7TmBjNXW4Yqs3l6I6+5G/KXZ3wKwJEVFIqDTvFJgImv0Ylt2XiDDq7j2u9b4hH7Ws4q5IHdW/CWlS7ENDdczKDnfJDb33Do=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782378071; c=relaxed/simple;
-	bh=am5CR7Zite+SVUPcoxrsq4l87Hr1S/ZIDo1eDV7e52k=;
+	s=arc-20240116; t=1782378072; c=relaxed/simple;
+	bh=9910rDOdgntu/IdL/bzHysNcQGCMg3BxBboAi+zYMeo=;
 	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=P3vDpYK25p1QFCJGEJwOnJAtRoxFQTQ5rywtCdMqV95k/k444Ly1ZZnZ/g89m6X9ccbFDU5dAI28kqwQfwoNWA3eMwcLS8wVt6drtI5lahxpSS8OdOUYLXN2tn8/G1LbNshssemCeBotOreXUAhm7IPMSmheq3kneDU2xwOG+iE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=KM+KPC2w; arc=none smtp.client-ip=209.85.216.52
+	 MIME-Version; b=QWQJoB/mhV+xZtdIhhW9DlEZodec5M8WBlyxqtWFUFewOxNnEpUeX8/R8MHye8voqx9/VlKjKtDS5ibBlo013KBQRb6dF0YkabbvECG1lRjBpjYyD/9EPVVN7/dsTF3NS26gqIIS0o6FMWzhiBMGFszZiXIQauLFE4svjbNahT8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=DVofr5RJ; arc=none smtp.client-ip=209.85.214.175
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="KM+KPC2w"
-Received: by mail-pj1-f52.google.com with SMTP id 98e67ed59e1d1-37dfcc2767eso142187a91.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 25 Jun 2026 02:01:08 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="DVofr5RJ"
+Received: by mail-pl1-f175.google.com with SMTP id d9443c01a7336-2c7ee3952ebso14934275ad.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 25 Jun 2026 02:01:11 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1782378068; x=1782982868; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1782378071; x=1782982871; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to;
-        bh=JzMHPanavVvphKDY3mtvgcMdK84jQDGy51gO5WmreGs=;
-        b=KM+KPC2wQXSeNq5H6IID9+78J7YiogPA/I4MyUmS/TodINFsiXJQXDLywZ+bBnhJyK
-         ymT6jGPAiztZNPQIqFENyXWvp8Q+dbuOM9sEWbjfyHdjvLiRvoneBW1XDUpdSUYbdCR6
-         dtfS5bmb/7M3ABxQXT6sIa1ISDoyEiW1Yzbu1aIyJhLBk0/4e1CjBVmMR/1POgjjlP6B
-         qXnl4vNh8meytxlUgm2R94Txg5rzeS5o7jvNHV2JoNVtpQKhpNo3Cisn1ae0Exd1kZEv
-         0lB3Vc68etmq9lHqmiy7EVW+Sajr5KKKhdM2Q0AHixTGHE193oDxKAwwz3zgDPLfKqDa
-         9jEQ==
+        bh=NqPfV+tCqNEZnFIAUu2y2M5HYLqzWY3lJT6vyiF2WMo=;
+        b=DVofr5RJkxnOhJLj1xIvzGQm8YT/iWb/kJq0vcfiSSrAjUN5HJA4DQg0vqZbh/vZ2e
+         1XC7dhELQceVplQCdJ8SGG60KwnVoObEc1B2wWtmd8DnFZqzOD37AF+oF6d0unDCJD+R
+         6mxIpa9ticcbUOyKwhS4CzqXgh2+pUwA8c6vg/LDlMlHlBjrEdY9Jglh0RPply6toqeA
+         iRu4GRIqRVaiY1zz4kIfyRGkfHhzlj0/yCDcIOjGWNjfZZs98APndX+fQSjKW/AiDOEM
+         JAgnTPfe7/OQaxE9wpHPxsNfo3/fKqWdlL7uvDHLQc0gU2R+D3Eu6az43NxsoSQN0wmi
+         pomA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1782378068; x=1782982868;
+        d=1e100.net; s=20251104; t=1782378071; x=1782982871;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to;
-        bh=JzMHPanavVvphKDY3mtvgcMdK84jQDGy51gO5WmreGs=;
-        b=WPndCCkBsq9yI7bPVxSWS7Tr2erf1J/Aolc6weOAHqznJCLCKTYS+wujyrkUspsmmy
-         bRaA5RnefNellvGBiuEL3U8RvsaMebNePfyCnJr0nXVb1hnolx7rvi/22DfCyI2UTySn
-         17iwRBNDrwcPfIMAJ/xFk82JNFjSb8oW23uB7diI5skrCnDENWfaAcdhTCowmqRolKia
-         45KjHs8Gvk+gXOiZmMVpDbamvp1nnyBf92RHRlbdA96kwtwMRAnaIRne+d1KPr+Dh/Pg
-         dTvQU2t5TJzG6CyUD2x1qi/P6QUMkgUVYMQ1S/trV/6R6UR52uPRkljk3j7rQ0Xcw/gO
-         gbHQ==
-X-Gm-Message-State: AOJu0Yzl+nVm0RsoUF+fqdeqUfscVqMndvgfEBsgbj39Pplsi3oBKlNp
-	sNxGnDBE+l9pNV+ZWCG8EHnjb3yzHUx9IM0FKNOBLMLImUDbaNW2XiRh8PWaSI/v
-X-Gm-Gg: AfdE7cndS/0sVwUQj3wN4ZJw7DJ8q5AbwZMGIWwhyZn3tRJQPSKxps+WGcnF128em7N
-	vlqWHNod6wlz7IsM76LucbjXjKZ0+cK9ohTJeIXFlVHA5B3f2aUWqLVGGtDjwirhMH39sRfbca2
-	iDAlDsS1i7BCxi9JJdHOQwcw3rCpgIpzIg1psF0aFozvNp8eAYtxEkWPP7SoIvc9cFCvZHtk3LN
-	4YjKcXT1eAOREl5TitRKcoiT+D+9Eun8/1j0WpfvfAh3pUPzrjZ0CHoP2kGvnqhy5N7nq47tiGZ
-	AjPd4XEz9H3ZKsFhIf45Y8eqesaSjXnQtPMtFetWXJ6gQPNfkxrDf7vx6WMiZOj8l/MHGHA2A/E
-	bdyFmE8OmcHr8yiMkgBD63dd3sxwueMAMt6ygM8PouNTxIb40vGeBSk+KlGXoioXHHIiOY7qGyV
-	ajAxUUAg4cImPE4C/93A==
-X-Received: by 2002:a17:903:98f:b0:2c7:fe1e:1ebf with SMTP id d9443c01a7336-2c7fe1e20e7mr12462125ad.23.1782378068096;
-        Thu, 25 Jun 2026 02:01:08 -0700 (PDT)
+        bh=NqPfV+tCqNEZnFIAUu2y2M5HYLqzWY3lJT6vyiF2WMo=;
+        b=Sb/PXMWFCHotyXsxkylyffnMVLudxQl7xpKy8oK35LK0iRRLfDJObXXDfypUIPaNwV
+         AXLdKgVLEyhYIz8Jb1npL6kR73Ac0MLdvid/fkbdYDgB9eklDPOuhIxg+lImZ9/NmcqJ
+         k6yzVA23T6ekbmXZgJPOE7IqoOM1G8idOZt1oEqHL3i/EBIby+QGN5n4hHIy2HRP8M9m
+         ZJhL7wN0tXPMzT/Wf5i7Y1JbRWtAkLR3t91HXUzpPpkERBV/fhqdhOQpSLIU36TSVVdb
+         3kuthXcCAa4Ogy3nYRFzm2dpkhWPgHA0rRMYkhRu93V+JYLwkmWxtl9LL5jQLEA2LJnd
+         KPJw==
+X-Gm-Message-State: AOJu0YxVze7Fn5Tl6q2tK+M2V8fAWu8olJtcPzSvw8ZdH+pfgOeZQRb8
+	bp6+w0y6IMod3ePbilQoB0eag4A4M7FqYG8yyuL84+NXKZhyGfhUjttI
+X-Gm-Gg: AfdE7ckP+K4U2Jr8iMtar+dpB8thWPdzo6zKflapH/d9UvFn3XmfuLmml1qbLlth75K
+	8YND8ef17P0FymZvX1VU9R3C+oE8vnyA0wbrwB8jOsgjUGZbsr76V+rcGbjEXckeyeHObUPhquG
+	Z5XevKngAEhs5xvG1Mmoag5jvOJaFYQgb/oKVHr/juzBDGrYfiaMbX461TpoUE/pDPT5qRFs5EL
+	0OoVdbQmd06/q3nRb1P7tewbYXKi5WFIBuB/gY7ZMVwuwUWs75FC6X2AEBhkw+JfPG6I4HWIyl+
+	phbg0u3wxk1w50IfJPWc4QzQZPPT23FHCnn8Ix2SV70DEKM6L4brgoIbzI2xHmo50apnVavOH7U
+	3vpQKYxd3ewSSyfiy8bwEFBNY/1qHERmOXrKYTbw/a3u+uIK54RBF4BX5d7aYCwHYG75LDK1JhC
+	ZplorKpiU=
+X-Received: by 2002:a17:902:e741:b0:2c7:9b3e:3987 with SMTP id d9443c01a7336-2c7fc890ac0mr16734415ad.25.1782378070529;
+        Thu, 25 Jun 2026 02:01:10 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2c7f6518bb1sm15365715ad.84.2026.06.25.02.01.05
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2c7f6518bb1sm15365715ad.84.2026.06.25.02.01.08
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 25 Jun 2026 02:01:07 -0700 (PDT)
+        Thu, 25 Jun 2026 02:01:10 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>,
 	Mark Fasheh <mark@fasheh.com>,
@@ -64,9 +64,9 @@ To: Joseph Qi <joseph.qi@linux.alibaba.com>,
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	zzzccc427@gmail.com
-Subject: [PATCH v5 1/2] ocfs2: validate inline xattrs during inode block validation
-Date: Thu, 25 Jun 2026 17:00:59 +0800
-Message-Id: <20260625090100.202881-2-zzzccc427@gmail.com>
+Subject: [PATCH v5 2/2] ocfs2: validate external xattr entries when reading metadata
+Date: Thu, 25 Jun 2026 17:01:00 +0800
+Message-Id: <20260625090100.202881-3-zzzccc427@gmail.com>
 X-Mailer: git-send-email 2.34.1
 In-Reply-To: <20260625090100.202881-1-zzzccc427@gmail.com>
 References: <20260622130332.2094018-1-zzzccc427@gmail.com>
@@ -79,280 +79,99 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_validate_inode_block() verifies a dinode before OCFS2 users walk
-metadata from it, but inline xattr metadata is still checked only in
-operation-specific consumers.  The existing ibody lookup helper validates
-inline header placement and entry count, but inode block validation does
-not reject entry name/value bounds.
+ocfs2_validate_xattr_block() checks the xattr block header before the
+block reaches higher-level xattr users, but it does not verify that a
+non-indexed block's xh_count and entry offsets fit inside the block.
+Indexed buckets likewise reach list/get consumers after ECC without an
+entry-bounds check.
 
-Add a shared xattr entry validator and call it from inode block
-validation for inline xattrs.  Keep the operation paths on their existing
-header/count lookup checks; the full entry bounds check now runs when the
-inode block is validated at read time.
+Reuse the xattr entry validator for non-indexed external xattr blocks
+and indexed buckets at metadata read time.  The enum entry type selects
+the storage geometry: non-indexed blocks use the xattr block payload,
+while buckets keep the entry table bounded by the first bucket block and
+check name/value offsets against the bucket block they target.
 
-Reject corrupted inline xattr metadata before ocfs2_xattr_ibody_get() or
-listxattr() can walk past the inline storage.
+Reject corrupted external xattr metadata before listxattr() or
+getxattr() can walk out-of-range entry arrays or name/value offsets.
 
 Validation reproduced this kernel report:
-BUG: KASAN: use-after-free in ocfs2_xattr_find_entry+0x5a/0x170
-Read of size 2 at addr ffff8881242a2000 by task python3/529
+BUG: KASAN: use-after-free in ocfs2_xattr_list_entries+0xd7/0x190
+Read of size 1 at addr ffff88810a654007 by task ocfs2_xattr_lis/630
 Call Trace:
   dump_stack_lvl+0x66/0xa0
   print_report+0xce/0x630
   kasan_report+0xe0/0x110
-  ocfs2_xattr_find_entry+0x5a/0x170
-  ocfs2_xattr_get_nolock+0x20a/0x820
-  ocfs2_xattr_get+0x10c/0x1e0
-  __vfs_getxattr+0xe2/0x130
-  vfs_getxattr+0x185/0x1b0
+  ocfs2_xattr_list_entries+0xd7/0x190
+  ocfs2_listxattr+0x3f6/0x610
+  listxattr+0x90/0xe0
+  path_listxattrat+0xed/0x220
+  do_syscall_64+0x115/0x6a0
+  entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
 Fixes: cf1d6c763fbc ("ocfs2: Add extended attribute support")
+Fixes: 0c044f0b24b9 ("ocfs2: Add xattr bucket iteration for large numbers of EAs")
 Assisted-by: Codex:gpt-5.5
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 ---
- fs/ocfs2/inode.c |   4 ++
- fs/ocfs2/xattr.c | 169 +++++++++++++++++++++++++++++++++++++++++++----
- fs/ocfs2/xattr.h |   2 +
- 3 files changed, 162 insertions(+), 13 deletions(-)
+ fs/ocfs2/xattr.c | 25 +++++++++++++++++++++++++
+ 1 file changed, 25 insertions(+)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 662dbc845b8b..815bf3f659da 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1608,6 +1608,10 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		goto bail;
- 	}
- 
-+	rc = ocfs2_validate_inode_xattr(sb, bh->b_blocknr, di);
-+	if (rc)
-+		goto bail;
-+
- 	if (le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_DATA_FL) {
- 		struct ocfs2_inline_data *data = &di->id2.i_data;
- 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index fcddd3c13acd..b6f00926849d 100644
+index b6f00926849d..cb0775d526b8 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -68,6 +68,12 @@ struct ocfs2_xattr_bucket {
- 	int bu_blocks;
- };
- 
-+enum ocfs2_xattr_entry_type {
-+	OCFS2_XATTR_IBODY,
-+	OCFS2_XATTR_BLOCK,
-+	OCFS2_XATTR_BUCKET,
-+};
-+
- struct ocfs2_xattr_set_ctxt {
- 	handle_t *handle;
- 	struct ocfs2_alloc_context *meta_ac;
-@@ -950,41 +956,178 @@ static int ocfs2_xattr_list_entries(struct inode *inode,
- 	return result;
+@@ -396,6 +396,13 @@ static int ocfs2_init_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
+ 	return rc;
  }
  
--static int ocfs2_xattr_ibody_lookup_header(struct inode *inode,
--					   struct ocfs2_dinode *di,
--					   struct ocfs2_xattr_header **header)
 +static int ocfs2_validate_xattr_entries(struct super_block *sb, u64 blkno,
 +					struct ocfs2_xattr_header *xh,
 +					enum ocfs2_xattr_entry_type type,
-+					size_t storage_size)
-+{
-+	u16 xattr_count = le16_to_cpu(xh->xh_count);
-+	size_t entry_storage_size = storage_size;
-+	size_t max_entries;
-+	int i;
++					size_t storage_size);
++static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
++				       u64 blkno);
 +
-+	switch (type) {
-+	case OCFS2_XATTR_IBODY:
-+		break;
-+	case OCFS2_XATTR_BLOCK:
-+		storage_size = sb->s_blocksize -
-+			offsetof(struct ocfs2_xattr_block, xb_attrs.xb_header);
-+		entry_storage_size = storage_size;
-+		break;
-+	case OCFS2_XATTR_BUCKET:
-+		entry_storage_size = sb->s_blocksize;
-+		break;
-+	}
-+
-+	if (storage_size < sizeof(*xh))
-+		return ocfs2_error(sb,
-+				   "Invalid xattr in block %llu: storage size %zu is too small\n",
-+				   (unsigned long long)blkno, storage_size);
-+
-+	if (entry_storage_size < sizeof(*xh))
-+		return ocfs2_error(sb,
-+				   "Invalid xattr in block %llu: entry storage size %zu is too small\n",
-+				   (unsigned long long)blkno,
-+				   entry_storage_size);
-+
-+	max_entries = (entry_storage_size - sizeof(*xh)) /
-+		      sizeof(struct ocfs2_xattr_entry);
-+
-+	if (xattr_count > max_entries)
-+		return ocfs2_error(sb,
-+				   "Invalid xattr in block %llu: entry count %u exceeds maximum %zu\n",
-+				   (unsigned long long)blkno,
-+				   xattr_count, max_entries);
-+
-+	for (i = 0; i < xattr_count; i++) {
-+		struct ocfs2_xattr_entry *xe = &xh->xh_entries[i];
-+		size_t name_offset = le16_to_cpu(xe->xe_name_offset);
-+		size_t value_offset;
-+		size_t value_limit = storage_size;
-+
-+		if (type == OCFS2_XATTR_BUCKET) {
-+			size_t block_offset;
-+
-+			if (name_offset >= storage_size)
-+				return ocfs2_error(sb,
-+						   "Invalid xattr in block %llu: entry %d name is out of bounds\n",
-+						   (unsigned long long)blkno,
-+						   i);
-+
-+			block_offset = name_offset % sb->s_blocksize;
-+			if (xe->xe_name_len > sb->s_blocksize - block_offset)
-+				return ocfs2_error(sb,
-+						   "Invalid xattr in block %llu: entry %d name crosses block boundary\n",
-+						   (unsigned long long)blkno,
-+						   i);
-+
-+			value_offset = block_offset +
-+				OCFS2_XATTR_SIZE(xe->xe_name_len);
-+			value_limit = sb->s_blocksize;
-+		} else {
-+			if (name_offset > storage_size ||
-+			    xe->xe_name_len > storage_size - name_offset)
-+				return ocfs2_error(sb,
-+						   "Invalid xattr in block %llu: entry %d name is out of bounds\n",
-+						   (unsigned long long)blkno,
-+						   i);
-+
-+			value_offset = name_offset +
-+				OCFS2_XATTR_SIZE(xe->xe_name_len);
-+		}
-+
-+		if (value_offset > value_limit)
-+			return ocfs2_error(sb,
-+					   "Invalid xattr in block %llu: entry %d value starts out of bounds\n",
-+					   (unsigned long long)blkno, i);
-+
-+		if (ocfs2_xattr_is_local(xe)) {
-+			if (le64_to_cpu(xe->xe_value_size) >
-+			    value_limit - value_offset)
-+				return ocfs2_error(sb,
-+						   "Invalid xattr in block %llu: entry %d value is out of bounds\n",
-+						   (unsigned long long)blkno,
-+						   i);
-+		} else if (sizeof(struct ocfs2_xattr_value_root) >
-+			   value_limit - value_offset) {
-+			return ocfs2_error(sb,
-+					   "Invalid xattr in block %llu: entry %d value root is out of bounds\n",
-+					   (unsigned long long)blkno, i);
-+		}
-+	}
-+
-+	return 0;
-+}
-+
-+static int ocfs2_xattr_ibody_lookup_header_raw(struct super_block *sb,
-+					       u64 blkno,
-+					       struct ocfs2_dinode *di,
-+					       struct ocfs2_xattr_header **header,
-+					       u16 *inline_size_ret)
- {
-+	struct ocfs2_xattr_header *xh;
- 	u16 xattr_count;
- 	size_t max_entries;
- 	u16 inline_size = le16_to_cpu(di->i_xattr_inline_size);
- 
--	if (inline_size > inode->i_sb->s_blocksize ||
-+	if (inline_size > sb->s_blocksize ||
- 	    inline_size < sizeof(struct ocfs2_xattr_header)) {
--		ocfs2_error(inode->i_sb,
--			    "Invalid xattr inline size %u in inode %llu\n",
--			    inline_size,
--			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
-+		ocfs2_error(sb,
-+			    "Invalid inode %llu: xattr inline size %u\n",
-+			    (unsigned long long)blkno, inline_size);
- 		return -EFSCORRUPTED;
+ /* Read the xattr bucket at xb_blkno */
+ static int ocfs2_read_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
+ 				   u64 xb_blkno)
+@@ -414,6 +421,8 @@ static int ocfs2_read_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
+ 		spin_unlock(&OCFS2_SB(bucket->bu_inode->i_sb)->osb_xattr_lock);
+ 		if (rc)
+ 			mlog_errno(rc);
++		else
++			rc = ocfs2_validate_xattr_bucket(bucket, xb_blkno);
  	}
  
--	*header = (struct ocfs2_xattr_header *)
--		((void *)di + inode->i_sb->s_blocksize - inline_size);
-+	xh = (struct ocfs2_xattr_header *)
-+		((void *)di + sb->s_blocksize - inline_size);
- 
--	xattr_count = le16_to_cpu((*header)->xh_count);
-+	xattr_count = le16_to_cpu(xh->xh_count);
- 	max_entries = (inline_size - sizeof(struct ocfs2_xattr_header)) /
- 		      sizeof(struct ocfs2_xattr_entry);
- 
- 	if (xattr_count > max_entries) {
--		ocfs2_error(inode->i_sb,
-+		ocfs2_error(sb,
- 			    "xattr entry count %u exceeds maximum %zu in inode %llu\n",
- 			    xattr_count, max_entries,
--			    (unsigned long long)OCFS2_I(inode)->ip_blkno);
-+			    (unsigned long long)blkno);
- 		return -EFSCORRUPTED;
+ 	if (rc)
+@@ -515,6 +524,11 @@ static int ocfs2_validate_xattr_block(struct super_block *sb,
+ 				   le32_to_cpu(xb->xb_fs_generation));
  	}
  
-+	*header = xh;
-+	if (inline_size_ret)
-+		*inline_size_ret = inline_size;
++	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED))
++		return ocfs2_validate_xattr_entries(sb, bh->b_blocknr,
++						    &xb->xb_attrs.xb_header,
++						    OCFS2_XATTR_BLOCK, 0);
 +
  	return 0;
  }
  
-+int ocfs2_validate_inode_xattr(struct super_block *sb, u64 blkno,
-+			       struct ocfs2_dinode *di)
+@@ -1119,6 +1133,17 @@ int ocfs2_validate_inode_xattr(struct super_block *sb, u64 blkno,
+ 					    inline_size);
+ }
+ 
++static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
++				       u64 blkno)
 +{
-+	struct ocfs2_xattr_header *xh;
-+	u16 inline_size;
-+	int ret;
++	struct super_block *sb = bucket->bu_inode->i_sb;
 +
-+	if (!(le16_to_cpu(di->i_dyn_features) & OCFS2_INLINE_XATTR_FL))
-+		return 0;
-+
-+	ret = ocfs2_xattr_ibody_lookup_header_raw(sb, blkno, di, &xh,
-+						  &inline_size);
-+	if (ret)
-+		return ret;
-+
-+	return ocfs2_validate_xattr_entries(sb, blkno, xh, OCFS2_XATTR_IBODY,
-+					    inline_size);
++	return ocfs2_validate_xattr_entries(sb, blkno, bucket_xh(bucket),
++					    OCFS2_XATTR_BUCKET,
++					    sb->s_blocksize *
++					    bucket->bu_blocks);
 +}
 +
-+static int ocfs2_xattr_ibody_lookup_header(struct inode *inode,
-+					   struct ocfs2_dinode *di,
-+					   struct ocfs2_xattr_header **header)
-+{
-+	return ocfs2_xattr_ibody_lookup_header_raw(inode->i_sb,
-+						   OCFS2_I(inode)->ip_blkno,
-+						   di, header, NULL);
-+}
-+
- int ocfs2_has_inline_xattr_value_outside(struct inode *inode,
- 					 struct ocfs2_dinode *di)
- {
-diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 65e9aa743919..6b7589941315 100644
---- a/fs/ocfs2/xattr.h
-+++ b/fs/ocfs2/xattr.h
-@@ -43,6 +43,8 @@ int ocfs2_xattr_set_handle(handle_t *, struct inode *, struct buffer_head *,
- 			   struct ocfs2_alloc_context *);
- int ocfs2_has_inline_xattr_value_outside(struct inode *inode,
- 					 struct ocfs2_dinode *di);
-+int ocfs2_validate_inode_xattr(struct super_block *sb, u64 blkno,
-+			       struct ocfs2_dinode *di);
- int ocfs2_xattr_remove(struct inode *, struct buffer_head *);
- int ocfs2_init_security_get(struct inode *, struct inode *,
- 			    const struct qstr *,
+ static int ocfs2_xattr_ibody_lookup_header(struct inode *inode,
+ 					   struct ocfs2_dinode *di,
+ 					   struct ocfs2_xattr_header **header)
 -- 
 2.43.0
-
-
