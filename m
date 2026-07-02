@@ -1,110 +1,93 @@
-Received: from mail-05.mail-europe.com (mail-05.mail-europe.com [85.9.206.169])
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0FC13431F8
-	for <ocfs2-devel@lists.linux.dev>; Thu,  2 Jul 2026 09:27:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=85.9.206.169
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C27B23EA94
+	for <ocfs2-devel@lists.linux.dev>; Thu,  2 Jul 2026 11:03:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782984464; cv=none; b=tsVc34D6S+RaBHZLOk7CtayHl+gCC/zHkqCBOdog/zWgTGroWAxFWomb91vh6Zld/CYFaRe3kWVFIB30u8h5u6rsl1RtUUyDQHpKH0sTCTILAoT4EP8o7JbDH0XaT52cde+0WqwrhTGf2s60vt86P530BAXKhCz9kV+Vp5663Qc=
+	t=1782990190; cv=none; b=LXdB45LYYJVzVRoISmrb/O24zccKAl3T4nvHjKE2ii6hufBAI6miyhL6E/e6jxvSVo/IvbihLd1SYS6SctYKuCOh6r1VQCN6NzvIaE2Bn2U5vfGKFAJDzPdL3NCcaFzbLsAthq1boIqba16OA6DnyQzjJyaU6uGMIBe6DxMx1IY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782984464; c=relaxed/simple;
-	bh=TKHe5uD8HbZ0vxoS4cE6zN54uESH7opw6OiZstEHxkA=;
-	h=Date:To:From:Cc:Subject:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=jA/kHJD+XJKP5w1T7Hs9xt0lpkp3Z+twXpTRK4Y9Vtj3wVCQ/iqqiEECP1AIIRwc9Krr38MUalskzDoSwbtBH+fZwJwzD9C/4/TOWy/K1yaNk0XvbyFV2lrgeqzZ9DFeNz5Zm5M+Ya6YbB23l5eGEK+cGZKggIkkpkNA8XyXQZo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=proton.me; spf=pass smtp.mailfrom=proton.me; dkim=pass (2048-bit key) header.d=proton.me header.i=@proton.me header.b=CkkEhkSj; arc=none smtp.client-ip=85.9.206.169
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=proton.me
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=proton.me
+	s=arc-20240116; t=1782990190; c=relaxed/simple;
+	bh=r/xC86ceC0IQtBG74gWu/g4wbDKnLatgAano1UzIH0s=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=n56HeXuL18k3Kcxz4dwtaoM4K0BKDuXmvBW3EhQ3rrJgQ2XG9pmBlIFhRAQH6A2+o3R12hTxXOIwRcEoZgPhQqwiP/UUTyBNTwt0bDs5lsftcV0xIou0tKOM4lKiWHPk5JECi/kabCl9+CG+xW9tsZ7pgPk4mBnGlf4RlVjmzfE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=h+DWZn45; arc=none smtp.client-ip=115.124.30.99
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=proton.me header.i=@proton.me header.b="CkkEhkSj"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=proton.me;
-	s=protonmail; t=1782984445; x=1783243645;
-	bh=hJHbY7hmyNV7Z3Zn4irN7YTH0PyWSAs6MO8WJ2LUyMU=;
-	h=Date:To:From:Cc:Subject:Message-ID:In-Reply-To:References:
-	 Feedback-ID:From:To:Cc:Date:Subject:Reply-To:Feedback-ID:
-	 Message-ID:BIMI-Selector;
-	b=CkkEhkSj1IIYvWAWztcnLmVb3l4S8d0SIKkNFqMiL1alQu9BOktHCDK3oGQ4Qe4+z
-	 dQmYAxJh1WlltsPUSPcDAbnmsyTzOAYwVXCrWKJNoucaRF45Jg5wLEKf7a0vhLfmUD
-	 cU9+/FaeaLKvbQ7NyrnynlWDxmXNewPs/Vkc8Mas7ZJYQD2A3F5a0Nyy9vKP1kb0e2
-	 7gjqVBwgTNE+kzaIoD46ytCIzWZJOfuHrNFxRgmYcJKvujWHrA0vYXV2UIRWVjvM25
-	 cTEiF5j8zI4YAmvyoD+nTwGszw46lym6ziVFl8WHPJP+V2Qca8j/fMedWKrzkYMruS
-	 ReQCN0Pg5zL0Q==
-Date: Thu, 02 Jul 2026 09:27:21 +0000
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-From: Bryam Vargas <hexlabsecurity@proton.me>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, Andrew Morton <akpm@linux-foundation.org>, Kurt Hackel <kurt.hackel@oracle.com>
-Subject: Re: [PATCH 0/2] ocfs2/dlm: bound peer-controlled lengths in the o2dlm receive path
-Message-ID: <20260702092714.303785-1-hexlabsecurity@proton.me>
-In-Reply-To: <18449469-291f-4f39-be62-faec1513645a@linux.alibaba.com>
-References: <20260629-b4-disp-94fb6521-v1-0-6953bcc0421f@proton.me> <18449469-291f-4f39-be62-faec1513645a@linux.alibaba.com>
-Feedback-ID: 199661219:user:proton
-X-Pm-Message-ID: 076fc4e7cf373a5fae4b236cecf6bdb7b24065ec
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="h+DWZn45"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1782990184; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=40gJcu0DvjRLYPCCKrXgN782eNAaaueahems5RWfVuw=;
+	b=h+DWZn45ZQyhG7wdMBdJx0AJIt+Eslb8nSV31226fB2CH+oLM/v1LIUi4vIKBS4SjDgc1Sg+nxcOi+thJDffBZhEnyUNWcB0MEPau0RBn3QTsVoEaghfyD8Pc3Z19Ar6Nz1mxVnnt1tFp5s7xBw+LPHv+KGFvHSW+tPyLVMytIo=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X6EWqRr_1782990183;
+Received: from 30.221.145.54(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6EWqRr_1782990183 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Thu, 02 Jul 2026 19:03:03 +0800
+Message-ID: <4b25d8e7-7348-482c-81cf-df7c4d0bb365@linux.alibaba.com>
+Date: Thu, 2 Jul 2026 19:03:02 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Transfer-Encoding: quoted-printable
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH 1/2] ocfs2: bound namelen in dlm_migrate_request_handler
+To: hexlabsecurity@proton.me, Andrew Morton <akpm@linux-foundation.org>
+Cc: linux-kernel@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+ Kurt Hackel <kurt.hackel@oracle.com>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+References: <20260629-b4-disp-94fb6521-v1-0-6953bcc0421f@proton.me>
+ <20260629-b4-disp-94fb6521-v1-1-6953bcc0421f@proton.me>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260629-b4-disp-94fb6521-v1-1-6953bcc0421f@proton.me>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Thu, 2 Jul 2026 13:56:00 +0800, Joseph Qi wrote:
-> Ocfs2 is always deployed in trusted network, so how to trigger this
-> issue in real environment?
 
-Agreed on the precondition: there's no local trigger, and a random host off=
- the
-cluster can't reach this. The sender has to be a node the cluster's o2net l=
-ayer
-accepts, so it isn't remote-unauthenticated.
 
-The real-environment trigger isn't a malicious admin. It's a single comprom=
-ised
-member: code execution on one node via any unrelated flaw, or a node wrongl=
-y
-admitted to the interconnect. o2net admits senders by node configuration, n=
-ot by
-any secret -- so "trusted network" is the whole boundary. From that one foo=
-thold
-you can corrupt the kernel heap of, or panic, every other node in the domai=
-n.
-Node B's kernel integrity shouldn't depend on node A never being compromise=
-d.
+On 6/29/26 1:01 PM, Bryam Vargas via B4 Relay wrote:
+> From: Bryam Vargas <hexlabsecurity@proton.me>
+> 
+> A node receiving a DLM_MIGRATE_REQUEST message trusts the peer-supplied
+> name length (migrate->namelen) without bounding it.  dlm_init_mle() then
+> copies that many bytes into the fixed DLM_LOCKID_NAME_MAX-byte mname[]
+> array of an o2dlm_mle slab object, so a malformed message from a cluster
+> peer overflows the slab object by up to ~215 bytes: a heap out-of-bounds
+> write of attacker-controlled data, reachable by any node in the domain.
+> 
+> Reject an oversized name, the way dlm_master_request_handler() and the
+> other o2dlm receive handlers already do; the migration handler omits the
+> check entirely.  Conforming messages are unaffected.
+> 
+> Fixes: 6714d8e86bf4 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Bryam Vargas <hexlabsecurity@proton.me>
 
-> IMO, the patches are reasonable as a belt hardening against future bugs
-> or operational accidents, but not overstate the risk by framing it as a
-> security vulnerability.
-
-The DLM already treats these wire fields as untrusted, so this isn't a belt
-against a hypothetical. The lock-operation handlers reject an oversized nam=
-e the
-moment they read it:
-
-  dlm_master_request_handler   fs/ocfs2/dlm/dlmmaster.c:1426
-  dlm_create_lock_handler      fs/ocfs2/dlm/dlmlock.c:469
-  dlm_convert_lock_handler     fs/ocfs2/dlm/dlmconvert.c:450
-  dlm_unlock_lock_handler      fs/ocfs2/dlm/dlmunlock.c:416
-
-same namelen > DLM_LOCKID_NAME_MAX test in all four. dlm_migrate_request_ha=
-ndler
-and dlm_mig_lockres_handler take the identical u8 field into the identical
-32-byte buffer and skip it. The patches just make them consistent with the =
-rest
-of the receive path. Here the sender's u8 length (up to 255) reaches the 32=
--byte
-slab buffer with no bound, and the sender controls the copied bytes too. Th=
-at's
-a heap OOB write.
-
-The framing is your call as maintainer, and the fix is identical either way=
-. If
-ocfs2's position is that a joined member is inside the trust boundary, I wo=
-n't
-argue the CVE -- but these two are attacker-length-and-content-controlled h=
-eap
-OOB writes, which is why I didn't post them as robustness-only. Either way =
-I'd
-like the bound to land.
-
-Thanks for the review,
-Bryam
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/dlm/dlmmaster.c | 6 ++++++
+>  1 file changed, 6 insertions(+)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
+> index 93eff38fdadd..bd7623cc6e77 100644
+> --- a/fs/ocfs2/dlm/dlmmaster.c
+> +++ b/fs/ocfs2/dlm/dlmmaster.c
+> @@ -3100,6 +3100,12 @@ int dlm_migrate_request_handler(struct o2net_msg *msg, u32 len, void *data,
+>  
+>  	name = migrate->name;
+>  	namelen = migrate->namelen;
+> +	if (namelen > DLM_LOCKID_NAME_MAX) {
+> +		mlog(ML_ERROR, "%s: invalid name length %u in migrate request\n",
+> +		     dlm->name, namelen);
+> +		ret = -EINVAL;
+> +		goto leave;
+> +	}
+>  	hash = dlm_lockid_hash(name, namelen);
+>  
+>  	/* preallocate.. if this fails, abort */
+> 
 
