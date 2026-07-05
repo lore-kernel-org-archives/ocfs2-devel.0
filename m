@@ -1,65 +1,98 @@
-Received: from forward502b.mail.yandex.net (forward502b.mail.yandex.net [178.154.239.146])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pf1-f180.google.com (mail-pf1-f180.google.com [209.85.210.180])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F263C47CC70
-	for <ocfs2-devel@lists.linux.dev>; Thu,  2 Jul 2026 13:03:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.146
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E27331A316E
+	for <ocfs2-devel@lists.linux.dev>; Sun,  5 Jul 2026 02:53:17 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1782997390; cv=none; b=Ag/hzrOxGypWZQfF3lsSimVDYr4yh+YiMMx9PS59E8Xb/W3WIEbYcD2/apm48PugmmJZqK9wHSVq2vMxrI2xC3M3PEvvNsps7/td94ch6h9Oe1pnFV2g/bNK1sGaRFEwt9baPWMSeGCPdL0MSODV0EZeLhgzA6unEnyF5/LYFgU=
+	t=1783219999; cv=none; b=WMAY5vL5vOVoC1OQka2S1gwyPQJQo6fs37rkLtGho/b9TWy8ZC/Y4pDP8WPAnlgW5yyBJ9UndT6jdU/GJqRjTEGsCgwzZlK7GLdm8YT2gGpz/IswU9jy+oVSsN2abkiV9gBUJCjAW+DJ09asOKUongpF78EXLcHKV3THkGj1mXQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1782997390; c=relaxed/simple;
-	bh=g9KiUH5qgOrz7LhZp0gU5yDLnCJfA9a/10t5wmwpGyA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=SRwqsJGcCR2RM99qkoG4bvyWvHp//gSyxd5L7si9hvjqu48ou+INSCcrnCpGXE9MM+sGfG4orryrPRUcfVPh54llzScVK55H1VjI3xKpmYFLmKG3lLjCwt8v980CqmNh2HfSWDgWb6M09nXVunOw3yQf2BdUxnB4gY0G4q0c4Ig=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=DxcWxh5o; arc=none smtp.client-ip=178.154.239.146
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1783219999; c=relaxed/simple;
+	bh=pyx/79FhtvTLGN4J55OZsGUaNqqP1dzxXF+c06E8A0U=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=bXMufO/IWFfIASAqwf5OWNwaTzW9VHCHLEzGN+dXTX3TVbihvIupaI7ABnEE7gx0KRgCC2tEhBYYJMX2W88hCZeNgXe8XNh7/BcjTJUi+By4rEZ8zkApS+fedhfftPg0Mr/zlwd1G2M2CV0w0Ga07I5C7CLTXUnYtUrLunvMQ/U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=A9ynMJ1K; arc=none smtp.client-ip=209.85.210.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="DxcWxh5o"
-Received: from mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net [IPv6:2a02:6b8:c24:1698:0:640:befc:0])
-	by forward502b.mail.yandex.net (postfix) with ESMTPS id C547181F6B;
-	Thu, 02 Jul 2026 16:02:48 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net (smtp) with ESMTPSA id k2gxMVBgReA0-PyZe2liG;
-	Thu, 02 Jul 2026 16:02:48 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1782997368; bh=YR2ZHsb5lL4l4Y4EtikOcF5Grkin/s13A53jJFfPwNw=;
-	h=From:In-Reply-To:Cc:Date:References:To:Subject:Message-ID;
-	b=DxcWxh5o6S4tvCn2MFYNYCTriuN5EAuaitDIMUZERHAsp8bjfyuWfe/HTReT4ct/L
-	 cQqjey5mwjQ+WqfcKPuXZEfty2Ypiiksk6ht4gSNLiS7Fwbwa9ELaLNTdw1pqsxAyN
-	 9dlOf0jOnrL45UrRJOko5MYNcKH5lIEJBqB8wuJE=
-Authentication-Results: mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-Message-ID: <c9c39a22-5fe3-446c-b9cb-181dd822f59f@yandex.ru>
-Date: Thu, 2 Jul 2026 16:00:30 +0300
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="A9ynMJ1K"
+Received: by mail-pf1-f180.google.com with SMTP id d2e1a72fcca58-8471013fac2so1960784b3a.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 04 Jul 2026 19:53:17 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1783219997; x=1783824797; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to;
+        bh=DCDVv54Ie1lgNDH1K5byCo9c0pHxpB0DY98GerjqU9M=;
+        b=A9ynMJ1KwRBVi+5eOyyJzt3qeEd/H68RK3nNexO1mPU3UUwBOF/9c7G2Qhp2Cjjl9+
+         khRKZVearwq+/b18c+Ct96gHyEaRN88RmWPPBf4AhJ9FCEE8YMM8b2pPGJgm7302uwmk
+         9IDNz+W46RCD0l7W5LME/fqrR0VGxhhjYT3G9IPVfYHlafhQn9cj/Ws0USrHwMIcc5Y9
+         Fb9Ik1fyeAKtr1N+1kiKZ/mpmA3+y/lSub+z+turBb+YhRlbVy6XKoQZ2FZqwzISvYUR
+         4fDRTjgFN7zfwVdcMFeUoIaWo4hh1GDGddrpEA5yMGFCxWm+zjiXc3vE/rA82uq+g51s
+         IloQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1783219997; x=1783824797;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=DCDVv54Ie1lgNDH1K5byCo9c0pHxpB0DY98GerjqU9M=;
+        b=r9PEjmvgwGrgogfW4AH0yzMyMtZ5yJmVnHJDJlhVr5+3vtB/BLdZ9xlS8/Hb5pxh/p
+         zogAtZ6cMGFD1cOAzNNPpAZQMmqiT8cz4rVCBsDheJssl+LjUSVyj1zL19rFQdM99E/4
+         bklFcEQu/nV1T6nkWpFamcUOAYwg0kigBXn1NTHUQ4dY1LIBfsB8qyoiEOv44yAddPsT
+         O2TRSPHrqVyRsr1SQ1v364NdHdFLgTiL+DgZLgFM1HNxStXwro6JwkD8AqJt7mu7VNDS
+         BN6g73VLW471GDuVn/Bnz9m+/YYGArGW+yI9CBaMlDnPjQT5MVgwlIJAJXHb8lhRBNE5
+         aXSA==
+X-Gm-Message-State: AOJu0Yxs7UqIqsOPyiseoLJO+b1z+KQvce/okcNpMoRBN1axkit7FwIB
+	3X3HnQTtigiYlLn6RXEtrSwOpDE5r7HMQsr8fAcu/fKIWvOpAfjexnQ6KJLc71sMM5I=
+X-Gm-Gg: AfdE7cmJCBbP/ymmAkk+arptuQ3kkZTEvYPKMOOJ56edS5fmQAUwenHxtzdVpgX+v9V
+	JEvnQFRqfgX8t7x7qGLt+HvOd6AjTyqdr4EPtQBIDbyNQHdkYhcbVxHC20hGcgcJk9bln6WBW5q
+	zo+UzJIt3hmOJ5/O+T7eo91MYB6xoWytLcw/4OG2dIzm17o4wq4+TXJoiPeo/gBAQRc2GZ5e154
+	eQnWCpwcNeNQB6Yb8sI4F7cO+7YPxIVeMY3AC03qDv8cpbNks9TMl8eqq5bHZcUcVZEdXS5qy2j
+	fo+1zbypBlU+7OjJXFCeyxx6xdCN4hwYv15QspOWPN+s23Rg3lkSdjAGh3+UHY1jFLpH2NYMvjn
+	R4FgBNWdfrzuO4MCLo1o8ZSM7LjiJ1HOEbimB9btCFrwjGKy4UeVueGaBrU95moouKGdhYrR6KV
+	jGdi53m2o=
+X-Received: by 2002:a05:6a00:2304:b0:845:4126:222b with SMTP id d2e1a72fcca58-847f6f10664mr5054118b3a.28.1783219997045;
+        Sat, 04 Jul 2026 19:53:17 -0700 (PDT)
+Received: from localhost ([111.228.63.84])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-c9e8bd30ca5sm4253679a12.0.2026.07.04.19.53.14
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 04 Jul 2026 19:53:16 -0700 (PDT)
+From: Cen Zhang <zzzccc427@gmail.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	zzzccc427@gmail.com
+Subject: [PATCH v7 0/2] ocfs2: validate xattr entry bounds
+Date: Sun,  5 Jul 2026 10:53:09 +0800
+Message-Id: <20260705025311.3429854-1-zzzccc427@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: validate quota file block count in
- ocfs2_local_read_info()
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Sam Sun <samsun1006219@gmail.com>, ocfs2-devel@lists.linux.dev,
- "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
-References: <20260625084448.1634511-1-dmantipov@yandex.ru>
- <f89a5fb9-9d49-47e9-b356-f14acb603f0b@linux.alibaba.com>
-Content-Language: en-US
-From: Dmitry Antipov <dmantipov@yandex.ru>
-In-Reply-To: <f89a5fb9-9d49-47e9-b356-f14acb603f0b@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
-On 7/1/26 12:08 PM, Joseph Qi wrote:
+Hi,
 
-> This will reject valid on-disk layouts.
-> See ol_quota_chunk_block().
-> 
-> BTW, could we move the geometry bound check into a dedicated info-block
-> validator?
+This series validates OCFS2 xattr entry name/value bounds when xattr
+metadata is read and validated, before getxattr() or listxattr() can
+walk out-of-range entry arrays or offsets from corrupted metadata.
 
-Sure. But it seems I have no clue how to detect invalid (extremely
-large as in this particular case) values of 'dqi_blocks' anyway.
+Patch 1 validates inline xattrs from ocfs2_validate_inode_block().
+Patch 2 validates non-indexed xattr blocks from ocfs2_validate_xattr_block()
+and indexed xattr buckets after bucket ECC validation.
 
-Dmitry
+Cen Zhang (2):
+  ocfs2: validate inline xattrs during inode block validation
+  ocfs2: validate external xattr entries when reading metadata
+
+ fs/ocfs2/inode.c |   4 +
+ fs/ocfs2/xattr.c | 215 ++++++++++++++++++++++++++++++++++++++++++++---
+ fs/ocfs2/xattr.h |   2 +
+ 3 files changed, 208 insertions(+), 13 deletions(-)
+
+-- 
+2.43.0
+
