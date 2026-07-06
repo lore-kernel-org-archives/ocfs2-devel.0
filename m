@@ -1,221 +1,155 @@
-Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yw1-f178.google.com (mail-yw1-f178.google.com [209.85.128.178])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E13DF449EB0
-	for <ocfs2-devel@lists.linux.dev>; Mon,  6 Jul 2026 06:24:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783319090; cv=none; b=brv2PE1hUCZvJHFYz7XLLvLMFNVxIuZ1KNG8nwcI2OMyfcLkojxd37QuanxvBVxRyRHD/yIU49v+cTGFiKgfhH1zMx9zlZVgulZYzqS7UjCc/7EMWGrWvWnCvQBGDXF9XFJLYNCmX7f3qcYBiOfGjaoPqocobxKNZhWs+FzSN0I=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783319090; c=relaxed/simple;
-	bh=dsDLfpAJZojcjHnlwhCbyHLoh/cpSSllNldUO+vn8dw=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=UWx8A92rIaP0PfACf91JhtZpfBUvOHZ46oeY8hi/sjwjEbLLAmJoz2QKymu21u8ioU6VDW0teidRF3P1jqvG2aXVw57Rvqi9acJ+MHLEGW7g6+9tDibCLP4fY8H5Vum6eXpnTZYKG9H7ckXr4rCsHnzVmPgrd1tBv/nVo8cMSCw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=CMmxddyN; arc=none smtp.client-ip=115.124.30.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 89A1A38BF76
+	for <ocfs2-devel@lists.linux.dev>; Mon,  6 Jul 2026 08:57:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.128.178
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1783328240; cv=pass; b=cU/Hdc8WWZM9LNAJLE9lhjPDjw2RWAAvDe2FsWn5kNjjmhdNKQmp96i+YoVDkiurbqX6ySDLvtspNler/nz5lGMRsmsg8RacuTkHkWSMwZv6xUifHrkWldsUCPnEnN/YFGj9hSQ6lkpPi37zCNw5lFsC+OZxry8/nt5Rc0rE9Hc=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1783328240; c=relaxed/simple;
+	bh=3ei4JGq621TpLEYaeIPVyJz6Rv2URImPhoRrRi+QUCI=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=HP2Mo6XWepUpVlTo24IyFCZdnPtzz6arq4gGTD30Mz82UkkKrCId0jIIwH6tRei+nNWp2sdne4FFrFF5x3hCREWixe2u9QQVsulSV7JNkR+VN1b0jMlaFDs6Ko91N+3cqU0O00tQxs20BEFVHBXoppFl8WDnlm7f6weB3cWi/rA=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=J2GOhO2B; arc=pass smtp.client-ip=209.85.128.178
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="CMmxddyN"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1783319075; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=G+tHIJCPobKWzMYsN62CNWojPqT5+1B4ZYUpGptJKP4=;
-	b=CMmxddyNvmTdovGMkUXN+QO5IQnQgxpgOb23oraOjs/5Lh5B96LMCBBZL2HsqqHbsd3Dnl++h+blR2qx6Z2xuMsEA7bJbpi6B2duAsNcTM7JDqt3oawFJigHn10eQKQIKOhFmWHg9CWrP1lk7h6WvFn9CR9gzvSx3HPVWHQXQtQ=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X6QX-YU_1783319074;
-Received: from 30.221.144.246(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6QX-YU_1783319074 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 06 Jul 2026 14:24:34 +0800
-Message-ID: <d97f819f-82ea-412f-869b-aeab4b484853@linux.alibaba.com>
-Date: Mon, 6 Jul 2026 14:24:34 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="J2GOhO2B"
+Received: by mail-yw1-f178.google.com with SMTP id 00721157ae682-80cbb0688c8so38563777b3.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 06 Jul 2026 01:57:12 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1783328229; cv=none;
+        d=google.com; s=arc-20260327;
+        b=UOy3N16g/1M95mwhhTM1CXLzPjycyCqCCWJV382F+1IlrTA8ycbEMtLyZObTJeRwBS
+         LC+lnu1NgFEBSyY4z0v1v5sVRAc7lB31JKUvekvLVXQsRloogcuY9xoWQFXNCVUAnQQ+
+         bfkoEJlKHam1P7OmxMjouQtZehBhD2P6NqndljuZdlSi1ZxmkukVOFjxZeOdCLlRx6Bl
+         HHSlPkBJlGsFaakMDdm2HrOt7HbJz6vjahGzSTq0XwoSSbyklpW7EzhnYw5EEVwCxDeo
+         0TLcfpPmbJyatuPi3/kVV5p4vj8N7JAinBArCYxjavAxoBclRsVxpfyTAH0IJMgWOFud
+         fTlw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=N2etlpIn5EKQOAmKmriCOa0lKT3T1K8RZ+Raku32510=;
+        fh=MSvir7TB+vM1TGVcwzzCuIYmBlYPs/TnizdwXyHp+6I=;
+        b=CUDsjko+WX9w1xYUL5eC8oJ1wN6LDAV4EmU3/YIeXFU3XVHaswmRyZD5IwKf3YgKhJ
+         XQwLdrg/uW4B2MfQhW8NhLOokGBeOLiWiO6EOzScOBKcdgRvzcVBvKA5u29RjvLDfFM5
+         FKhXM0rdiEIY2dK8jQKj0lLQvhR01WZqqPrANDh2ktqW4hVsyxLgiKhrq7q1tA7u85S5
+         s6RwWzROYNIlF+GF+Vu7/tcspHiKFKl0rdl4d8z/xVA5SYlKsBragJg6B0IMKLxUJNQs
+         85wualPkteUcgI19pKOGWdu+6f5j4BHQm0NALVNWMG3LZMlyv+nmCxrbUbN7LqE79Jca
+         vDmg==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1783328229; x=1783933029; darn=lists.linux.dev;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:from:to:cc:subject:date
+         :message-id:reply-to;
+        bh=N2etlpIn5EKQOAmKmriCOa0lKT3T1K8RZ+Raku32510=;
+        b=J2GOhO2BUaCdUSayd1wWdLcRCk3nZAGKYLBbtlwoARXbpzr059wOmSmE0Rzs3yyOVs
+         8yGuUJJe4dEYZPP7cyJrXFOG0bWfZWFtk8qkN5PcFsuQgp2XsSs+FjXPWADcmRGbIhcj
+         utPWBepsyW0y1jrV2aFsV2Nc+zAq61HBPHgYMvKQqI3sAjBQ3KJErUMieLSfhL4KZ9P5
+         oIzPo3MQqXascmQMOwo5bAGYKre5BTzHZmw2Cke5xxQqffsTRju9XR+qNJrkVjQEHrvD
+         JlFgt5WV/6UJ+yteEVaoMpnP0hQNl+GNBfdIn4CIf+9nM8WwJ2VghBeZ23962jNIAOYt
+         d52w==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1783328229; x=1783933029;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to;
+        bh=N2etlpIn5EKQOAmKmriCOa0lKT3T1K8RZ+Raku32510=;
+        b=l4KeLBuhRFrGANpA8xV9fkCA6Ia2gPL/VsBpiQKyhpWVQdiRRBzvfXT3I1SCS48+Jn
+         mV2Bir+l7/Yc2O5riNgQL/RT2Vz+KyGiL85DNPEZ75xYxIshJV/AgUjBnsPU22IT/Coi
+         UzQWef2bvUMrELoZlSoeH4Urc7dHdket/ahtbG0zdOPLOdjZOBa72jpZnhTsy3xRGWJ4
+         Os3YuwHLhefYCMUnxV+ajkHO9TZ+B5dz4B4J0lT18F2QfMNUNRBxgQepGDjkGEfO8LUf
+         qyDi0U0/BXcXwt1WdEG9Upg0FeRA8AR+OnVT5tKNsGjqgJTxLrhqyhRE6KAaeOQooKsl
+         nOVg==
+X-Forwarded-Encrypted: i=1; AHgh+Rr5NrymFzgrCaWjkIDN4Ch7Hy+ZqHC6bO2nECFb4Mei+7GCOK8Tk2jL61TKpoVGGeB3dYLrGy/g3NfR1g==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwNp8RsHjUmE6wvi/HA/uEwgk2zxuOGU/frY9Jixn4QCHGbYrGg
+	HDDVoKXlX5PjekXxpGJqs1LvVCr+8ejGJSgiPPYFBtNmsxs+7RqZGixZQ+Zhvy5btup8FZww1Mv
+	OyotYVSGtH4bVlJPVScAwaoNTF2cfCeo=
+X-Gm-Gg: AfdE7cmhhqKrnD/EM3wJ17BasuraSM23+V7V2MkIt5gMHRswgjezJwLsT2wiRAmkDug
+	73hzF4iPO43lZWjccJUk67wTIzTlMHj2i2+9ZKAiDCnbauvKJDDpUgJT3vvk9VhjxhJc8HkNux2
+	kyuySQfr+r5JyeAfxxM3Xg4/0kv1rXWl6xJuIdlAmKiJ5eMVCziIBplaiSjL3dj4Y7FyX08jrSA
+	XfqxDFTAexgo6bFEozzSJezO8ULigBnV/qiZKON3KoHiA7QwatKiTPUzFu7pLZxxjBVdeIPKuU=
+X-Received: by 2002:a05:690c:c454:b0:80c:3848:bdf4 with SMTP id
+ 00721157ae682-817396f8523mr109297857b3.41.1783328229094; Mon, 06 Jul 2026
+ 01:57:09 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v7 2/2] ocfs2: validate external xattr entries when
- reading metadata
-To: Cen Zhang <zzzccc427@gmail.com>, akpm <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>
-References: <20260705025311.3429854-1-zzzccc427@gmail.com>
- <20260705025311.3429854-3-zzzccc427@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260705025311.3429854-3-zzzccc427@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+References: <20260624095310.763763-1-zzzccc427@gmail.com>
+In-Reply-To: <20260624095310.763763-1-zzzccc427@gmail.com>
+From: Cen Zhang <zzzccc427@gmail.com>
+Date: Mon, 6 Jul 2026 16:56:57 +0800
+X-Gm-Features: AVVi8CdkQ-UrTujiFxQuJKSaTpeK1voNmJqw5IlNLwSNXf7GnnSoitSJ4UZdiv0
+Message-ID: <CAFRLqsW4URbUTjiFEqM-xqDxoArt1gCzLgL+Pes0CY98jfycjg@mail.gmail.com>
+Subject: Re: [PATCH 0/2] ocfs2: harden heartbeat teardown races
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org, baijiaju1990@gmail.com
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
+Hi Joseph,
 
+Gentle ping on this series.
 
-On 7/5/26 10:53 AM, Cen Zhang wrote:
-> ocfs2_validate_xattr_block() checks the xattr block header before the
-> block reaches higher-level xattr users, but it does not verify that a
-> non-indexed block's xh_count and entry offsets fit inside the block.
-> Indexed buckets likewise reach list/get consumers after ECC without an
-> entry-bounds check.
-> 
-> Use the flat xattr entry validator for non-indexed external xattr
-> blocks, and use a bucket-specific validator for indexed buckets at
-> metadata read time. The bucket validator keeps the entry array bounded
-> by the first bucket block while checking name/value offsets against the
-> bucket block they target.
-> 
-> Reject corrupted external xattr metadata before listxattr() or
-> getxattr() can walk out-of-range entry arrays or name/value offsets.
-> 
-> Validation reproduced this kernel report:
-> BUG: KASAN: use-after-free in ocfs2_xattr_list_entries+0xd7/0x190
-> Read of size 1 at addr ffff88810a654007 by task ocfs2_xattr_lis/630
-> Call Trace:
->   dump_stack_lvl+0x66/0xa0
->   print_report+0xce/0x630
->   kasan_report+0xe0/0x110
->   ocfs2_xattr_list_entries+0xd7/0x190
->   ocfs2_listxattr+0x3f6/0x610
->   listxattr+0x90/0xe0
->   path_listxattrat+0xed/0x220
->   do_syscall_64+0x115/0x6a0
->   entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> 
-> Fixes: cf1d6c763fbc ("ocfs2: Add extended attribute support")
-> Fixes: 0c044f0b24b9 ("ocfs2: Add xattr bucket iteration for large numbers of EAs")
-> Assisted-by: Codex:gpt-5.5
-> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+This is based on the earlier patch that has been queued in Andrew's
+-mm tree, and it fixes two OCFS2 heartbeat/o2net teardown races found
+by KASAN.
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/xattr.c | 97 ++++++++++++++++++++++++++++++++++++++++++++++++
->  1 file changed, 97 insertions(+)
-> 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index ca76441625db..d23364c30e1a 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -390,6 +390,12 @@ static int ocfs2_init_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
->  	return rc;
->  }
->  
-> +static int ocfs2_validate_xattr_entries_flat(struct super_block *sb, u64 blkno,
-> +					     struct ocfs2_xattr_header *xh,
-> +					     size_t region_size);
-> +static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
-> +				       u64 blkno);
-> +
->  /* Read the xattr bucket at xb_blkno */
->  static int ocfs2_read_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
->  				   u64 xb_blkno)
-> @@ -408,6 +414,8 @@ static int ocfs2_read_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
->  		spin_unlock(&OCFS2_SB(bucket->bu_inode->i_sb)->osb_xattr_lock);
->  		if (rc)
->  			mlog_errno(rc);
-> +		else
-> +			rc = ocfs2_validate_xattr_bucket(bucket, xb_blkno);
->  	}
->  
->  	if (rc)
-> @@ -509,6 +517,22 @@ static int ocfs2_validate_xattr_block(struct super_block *sb,
->  				   le32_to_cpu(xb->xb_fs_generation));
->  	}
->  
-> +	if (!(le16_to_cpu(xb->xb_flags) & OCFS2_XATTR_INDEXED)) {
-> +		size_t region_offset =
-> +			offsetof(struct ocfs2_xattr_block, xb_attrs.xb_header);
-> +
-> +		if (bh->b_size < region_offset)
-> +			return ocfs2_error(sb,
-> +					   "Invalid xattr block %llu: block size %zu is too small\n",
-> +					   (unsigned long long)bh->b_blocknr,
-> +					   bh->b_size);
-> +
-> +		return ocfs2_validate_xattr_entries_flat(sb, bh->b_blocknr,
-> +							 &xb->xb_attrs.xb_header,
-> +							 bh->b_size -
-> +							 region_offset);
-> +	}
-> +
->  	return 0;
->  }
->  
-> @@ -1068,6 +1092,79 @@ int ocfs2_validate_inode_xattr(struct super_block *sb, u64 blkno,
->  	return ocfs2_validate_xattr_entries_flat(sb, blkno, xh, inline_size);
->  }
->  
-> +static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
-> +				       u64 blkno)
-> +{
-> +	struct super_block *sb = bucket->bu_inode->i_sb;
-> +	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
-> +	u16 xattr_count = le16_to_cpu(xh->xh_count);
-> +	size_t region_size = (size_t)sb->s_blocksize * bucket->bu_blocks;
-> +	size_t entries_limit = sb->s_blocksize;
-> +	size_t nv_limit = sb->s_blocksize;
-> +	size_t max_entries;
-> +	int i;
-> +
-> +	if (region_size < sizeof(*xh))
-> +		return ocfs2_error(sb,
-> +				   "Invalid xattr bucket %llu: region size %zu is too small\n",
-> +				   (unsigned long long)blkno, region_size);
-> +
-> +	if (entries_limit < sizeof(*xh))
-> +		return ocfs2_error(sb,
-> +				   "Invalid xattr bucket %llu: entries limit %zu is too small\n",
-> +				   (unsigned long long)blkno,
-> +				   entries_limit);
-> +
-> +	max_entries = (entries_limit - sizeof(*xh)) /
-> +		      sizeof(struct ocfs2_xattr_entry);
-> +
-> +	if (xattr_count > max_entries)
-> +		return ocfs2_error(sb,
-> +				   "Invalid xattr bucket %llu: entry count %u exceeds maximum %zu\n",
-> +				   (unsigned long long)blkno,
-> +				   xattr_count, max_entries);
-> +
-> +	for (i = 0; i < xattr_count; i++) {
-> +		struct ocfs2_xattr_entry *xe = &xh->xh_entries[i];
-> +		size_t name_offset = le16_to_cpu(xe->xe_name_offset);
-> +		size_t block_off = name_offset >> sb->s_blocksize_bits;
-> +		size_t block_offset = name_offset % nv_limit;
-> +		size_t value_offset;
-> +
-> +		if (name_offset >= region_size || block_off >= bucket->bu_blocks)
-> +			return ocfs2_error(sb,
-> +					   "Invalid xattr bucket %llu: entry %d name is out of bounds\n",
-> +					   (unsigned long long)blkno, i);
-> +
-> +		if (xe->xe_name_len > nv_limit - block_offset)
-> +			return ocfs2_error(sb,
-> +					   "Invalid xattr bucket %llu: entry %d name crosses block boundary\n",
-> +					   (unsigned long long)blkno, i);
-> +
-> +		value_offset = block_offset + OCFS2_XATTR_SIZE(xe->xe_name_len);
-> +		if (value_offset > nv_limit)
-> +			return ocfs2_error(sb,
-> +					   "Invalid xattr bucket %llu: entry %d value starts out of bounds\n",
-> +					   (unsigned long long)blkno, i);
-> +
-> +		if (ocfs2_xattr_is_local(xe)) {
-> +			if (le64_to_cpu(xe->xe_value_size) >
-> +			    nv_limit - value_offset)
-> +				return ocfs2_error(sb,
-> +						   "Invalid xattr bucket %llu: entry %d value is out of bounds\n",
-> +						   (unsigned long long)blkno,
-> +						   i);
-> +		} else if (sizeof(struct ocfs2_xattr_value_root) >
-> +			   nv_limit - value_offset) {
-> +			return ocfs2_error(sb,
-> +					   "Invalid xattr bucket %llu: entry %d value root is out of bounds\n",
-> +					   (unsigned long long)blkno, i);
-> +		}
-> +	}
-> +
-> +	return 0;
-> +}
-> +
->  static int ocfs2_xattr_ibody_lookup_header(struct inode *inode,
->  					   struct ocfs2_dinode *di,
->  					   struct ocfs2_xattr_header **header)
+Please let me know if there are any comments or if I should make any change=
+s.
 
+Best regards,
+Cen Zhang
+
+Cen Zhang <zzzccc427@gmail.com> =E4=BA=8E2026=E5=B9=B46=E6=9C=8824=E6=97=A5=
+=E5=91=A8=E4=B8=89 17:53=E5=86=99=E9=81=93=EF=BC=9A
+>
+> Hi,
+>
+> This series fixes two OCFS2 heartbeat/o2net teardown races found by
+> KASAN.
+>
+> This series is based on my earlier patch:
+>
+>   [PATCH v2] ocfs2/cluster: keep heartbeat local node stable
+>
+> That patch has been queued in Andrew's -mm tree as:
+>
+>   ocfs2-cluster-keep-heartbeat-local-node-stable.patch
+>
+> It is needed as the base because this series uses the stable per-region
+> heartbeat node number from that patch instead of re-reading
+> o2nm_this_node() during teardown.
+>
+> Patch 1 stops heartbeat callbacks from queuing o2net reconnect and
+> disconnect work after local o2net teardown has started, while still
+> keeping the callbacks registered for quorum state.
+>
+> Patch 2 keeps a heartbeat region non-armable while it is starting or
+> stopping, unregisters negotiate handlers before tearing down state they
+> can reach, and waits for the active or destroying o2net ordered
+> workqueue before freeing the region.
+>
+> Thanks,
+> Cen
+>
+> Cen Zhang (2):
+>   ocfs2: synchronize heartbeat callbacks with o2net teardown
+>   ocfs2: o2hb: quiesce negotiate handlers and timeout work
+>
+>  fs/ocfs2/cluster/heartbeat.c   |  99 ++++++++++++++----
+>  fs/ocfs2/cluster/heartbeat.h   |   5 +
+>  fs/ocfs2/cluster/nodemanager.c |   4 +
+>  fs/ocfs2/cluster/tcp.c         | 186 +++++++++++++++++++++++++++------
+>  fs/ocfs2/cluster/tcp.h         |   2 +
+>  5 files changed, 247 insertions(+), 49 deletions(-)
+>
+> --
+> 2.43.0
