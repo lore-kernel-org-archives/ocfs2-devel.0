@@ -1,73 +1,50 @@
-Received: from mail-pj1-f46.google.com (mail-pj1-f46.google.com [209.85.216.46])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from forward205b.mail.yandex.net (forward205b.mail.yandex.net [178.154.239.152])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9A9ED420876
-	for <ocfs2-devel@lists.linux.dev>; Wed,  8 Jul 2026 06:24:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CB3AA3EA95C
+	for <ocfs2-devel@lists.linux.dev>; Wed,  8 Jul 2026 07:06:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.152
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783491873; cv=none; b=K0U1GVVcTDC2vKBP9TKPI0AjXVJSrSiU7PNBrcsO1PbYRCDaR51+Nr+t73g/Du3t29Bb6wCzkmJK61AKrr7T4h/r6cCA+fkNLTleJMOmMEAskK6qpfQ9ylLD1yuOgeKCcg7EQlEUq7ZVS8Wxwt9dWL1dJaqYULXcumWUDhQj77g=
+	t=1783494407; cv=none; b=ghcR8XCwlvw1N5c7ucHMNCrGqa/cQUf8GaiJjM3CWKWvV3N1j5PYrluxJOmBuEptn5RtNoZStLvaknb4LpEsZ9Z/MiV7P+Fe8uK4f6gKj2inU5EXcOLIw9I8DfQ7Ti8d+hMi14uzjWeVFU0sE6KtMSFRXvamCAOQGaoWz0RXWXQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783491873; c=relaxed/simple;
-	bh=54HNHqmD1Kb/0MVV+fdyoDqHbuWGNtH2NcaMF+dhMyI=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=u3o5qwbN+107lEhorllydyk+epXizCwoGtain52wbZ053R3/HKyBJjny27EssH6GLbtSaQFvqeOpntOK8O143buv36mPj7r6J2l3/TtkbLqxfBEO6bKnQznKhgDY5nCWaYdWXGFnxNIVclgt5dBjvtdq4XfPZZy9N1pqdPRYvLc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=V38Mfrxo; arc=none smtp.client-ip=209.85.216.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1783494407; c=relaxed/simple;
+	bh=Y10FxRtxvPyTE98QrQ0uhl3uaSSR+IXDpPDJ2i7qnZ0=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=hAC54/RxTIKH8uxcZJkWpXHEKzo9wxHPz6WXt9ks1pizMcx/pRIZlUE3KzPiqG0atIR+oNkAy/q9UYkNdkVMNwiFtovSjHGj8uvIhPjzQLelspK469ekFCmeWTAWCN/j65apBT9gYu5EsVAfgVAWumkDO7lXyuHXJTWxDbuMuCo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=GvcJs6Se; arc=none smtp.client-ip=178.154.239.152
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="V38Mfrxo"
-Received: by mail-pj1-f46.google.com with SMTP id 98e67ed59e1d1-381891a9525so414013a91.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 07 Jul 2026 23:24:32 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1783491872; x=1784096672; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to;
-        bh=4qpikAqS5swMVwJB88wGEHNfN7682of6SZQWYwiU0nY=;
-        b=V38MfrxorEW4q4O4cTlX37ZmnAkAOcDncNx8Wq21PdhlgCJkGTaehU4AjpY9QMJgQs
-         G8iGUOMMEViPtmkIleoU+p+O11mgvjXST3BYrIeZx4R/nk/rqcui7omfviPd71L4JPm3
-         Ty3PV31N2OFsLdnaiIR9VN2luJ61yR7ls2gbQZdP+lAiDqEOmcJQZZwqrlBHsPQe9IG+
-         SyMSbbr8hwTSeKypVdLWX9SuO2aYl+lqOpBoYEL+IZVemwxtWNW2GqFsmy+hkTff5e43
-         YTK2tZ6LhOZ/5N4pgtJaK9OabfVFrJkanNGZARXdvtCyRcYDR0L0ruxHZ8pI85HUpBwt
-         JUZQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783491872; x=1784096672;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to;
-        bh=4qpikAqS5swMVwJB88wGEHNfN7682of6SZQWYwiU0nY=;
-        b=BMBt1zVwxXuHInh4U3YSLSG5aOV+vJofUQuHdFeUS5el3VQp/9AOvl7asSKUSK1kg5
-         Yv4SAFjTsMUxzK+U+9hee4hdTOxnzyXeL1gk0sQ2WywZ4BHnDOaXT0IQUSlqEd0mHCB0
-         7vahne5V5Ybuew8n3gLplsa2t1c1g8VFC6NS4lGt0lawD7z2Ik9N+rA08FJTmvc8sNAp
-         3Amtk9b9S3+UD9zOzfiy3lpdd18mYY7qQHmuIUa7/lLm/wVXqGuZJBGYQ3WdRDTZAITr
-         KvatqLfhqEGiimXH4M45/FZ62L1H2t4zFZO6Qbp4nL3jRpNBBlAjr8zPWIHHUkv/VXSl
-         bDKQ==
-X-Forwarded-Encrypted: i=1; AHgh+RpBzh0ndt4+cTbjOrKTjSmzRNIR1t0d4bACouOOwXGbznqtv9+RpVJXwqWEbSA6iS3is7Yv3SuVGPqrPw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzsotKZ44KbfqZakRXvdlCEgur/bRi2coFpBSnkv0dFYgSOWZNh
-	iPccz6MAREEmgoQjx5ypf7dKuBfLk8IAajhzx3Ws7Htl3FWEvTOt0D7b
-X-Gm-Gg: AfdE7clD3db2cxaaheyfrU7juEgd7tr6cGJCcMCsxiXQWF3dz7Ptg5Ydufmmp2J4keR
-	Kzy1l9DDb4Sfs5VCNkdtpC+RZCHB7MrjeYL2mz3b3u5C3w9l0bDNc6HQV15rtfRBuJjSwvk58d6
-	50i7pQJRx0zURK/tI3oLdDsPw84QPqK434sKIwj36/RcHoH2XEp6fHWU04nnSNEtBl0P/BODHS6
-	BkCMgd3HheEAPsBDsMNl3eJbHXmZbd5X4QijPBU7rXFBmGqHQY/7X2jaY6mj0h4LvqV6sTv9vx+
-	A4cb/+p/UeMyQPDh8c02lXfASnBZH0dB3zovLeG7FA5gQgtwKF3bcy+23I8AJBiZgh4xPRj59ug
-	gXhzmuoF7tj0bCAU4yMPBecrPZhVosZu39Vpb5winE89sttlYpJCSAEolszyjzScCBBzvjYAu7s
-	4xnpudZA==
-X-Received: by 2002:a17:90b:384f:b0:37e:1c8f:3dff with SMTP id 98e67ed59e1d1-3893fb746dfmr1277792a91.11.1783491871880;
-        Tue, 07 Jul 2026 23:24:31 -0700 (PDT)
-Received: from lgs.. ([2001:250:5800:1000::f280])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-387d20a361asm2181987a91.15.2026.07.07.23.24.28
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 07 Jul 2026 23:24:31 -0700 (PDT)
-From: Guangshuo Li <lgs201920130244@gmail.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Tristan Ye <tristan.ye@oracle.com>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Cc: Guangshuo Li <lgs201920130244@gmail.com>
-Subject: [PATCH] ocfs2: free claimed clusters when defrag move fails
-Date: Wed,  8 Jul 2026 14:22:12 +0800
-Message-ID: <20260708062212.715437-1-lgs201920130244@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="GvcJs6Se"
+Received: from forward100b.mail.yandex.net (forward100b.mail.yandex.net [IPv6:2a02:6b8:c02:900:1:45:d181:d100])
+	by forward205b.mail.yandex.net (postfix) with ESMTPS id 1B23A8574A
+	for <ocfs2-devel@lists.linux.dev>; Wed, 08 Jul 2026 10:06:21 +0300 (MSK)
+Received: from mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net [IPv6:2a02:6b8:c24:1698:0:640:befc:0])
+	by forward100b.mail.yandex.net (postfix) with ESMTPS id 6F76C811FC;
+	Wed, 08 Jul 2026 10:06:13 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net (smtp) with ESMTPSA id 96DIFQGgDa60-zMHGkanp;
+	Wed, 08 Jul 2026 10:06:12 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1783494372; bh=KWmvEayVfMIbsbbRNy8vvK5OzBoBC4nnPrXdQG8aHFY=;
+	h=Message-ID:Date:Cc:Subject:To:From;
+	b=GvcJs6SerM4QMbKGdx2CgqlCcytfohdxDwGcna61Tjmjk32OfgiicnC8kEUeBEGfw
+	 i6pIk/afxvTq6+sRYgsfYZ3v/J1icAQg2iXxH8mhyFjU73WEB8Y6w/1bBlhS6qP8XT
+	 QFP652L4OO20KTq1uvWgKKbK9lgT1gvtuOI19ffI=
+Authentication-Results: mail-nwsmtp-smtp-production-main-74.sas.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+From: Dmitry Antipov <dmantipov@yandex.ru>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	Heming Zhao <heming.zhao@suse.com>,
+	Ahmet Eray Karadag <eraykrdg1@gmail.com>,
+	Albin Babu Varghese <albinbabuvarghese20@gmail.com>,
+	Al Viro <viro@zeniv.linux.org.uk>,
+	lvc-project@linuxtesting.org,
+	Dmitry Antipov <dmantipov@yandex.ru>,
+	syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
+Subject: [PATCH] ocfs2: do not use make_bad_inode() in ocfs2_read_inode_block_full()
+Date: Wed,  8 Jul 2026 10:02:54 +0300
+Message-ID: <20260708070254.149940-1-dmantipov@yandex.ru>
+X-Mailer: git-send-email 2.55.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -76,42 +53,39 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_defrag_extent() claims new clusters before calling
-__ocfs2_move_extent(). If __ocfs2_move_extent() fails, the newly claimed
-clusters have not been attached to the inode extent tree, but the error
-path only logs the error and continues.
+This reverts commit 58b6fcd2ab34 ("ocfs2: mark inode bad upon
+validation failure during read").
 
-The following ocfs2_cow_sync_writeback() call can then overwrite the
-original error with 0, while the claimed clusters are left allocated and
-unreferenced.
+Since 'make_bad_inode()' resets inode type to S_IFREG, doing this
+for directory inode during active VFS lookup ls likely to confuse
+the latter, including VFS_BUG_ON_INODE() triggered in this case.
 
-Set need_free and leave through out_commit when __ocfs2_move_extent()
-fails, so the claimed clusters are released and the original error is
-returned to the caller.
-
-Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
-Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
+Reported-by: syzbot+d222f4b7129379c3d5bc@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=d222f4b7129379c3d5bc
+Suggested-by: Al Viro <viro@zeniv.linux.org.uk>
+Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 ---
- fs/ocfs2/move_extents.c | 5 ++++-
- 1 file changed, 4 insertions(+), 1 deletion(-)
+Suggested by Al at https://syzkaller.appspot.com/text?tag=Patch&x=10c51a1a580000.
 
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index ad1678ee7cc4..4f1745d58a88 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -310,8 +310,11 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+I've also verified https://syzkaller.appspot.com/bug?extid=b93b65ee321c97861072
+and this issue is no longer triggered when 'make_bad_inode()' is dropped.
+---
+ fs/ocfs2/inode.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 662dbc845b8b..b5d109cc9edc 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1948,8 +1948,6 @@ int ocfs2_read_inode_block_full(struct inode *inode, struct buffer_head **bh,
+ 	rc = ocfs2_read_blocks(INODE_CACHE(inode), OCFS2_I(inode)->ip_blkno,
+ 			       1, &tmp, flags, ocfs2_validate_inode_block);
  
- 	ret = __ocfs2_move_extent(handle, context, cpos, new_len, phys_cpos,
- 				  new_phys_cpos, ext_flags);
--	if (ret)
-+	if (ret) {
- 		mlog_errno(ret);
-+		need_free = 1;
-+		goto out_commit;
-+	}
- 
- 	if (partial && (new_len != *len))
- 		*len = new_len;
+-	if (rc < 0)
+-		make_bad_inode(inode);
+ 	/* If ocfs2_read_blocks() got us a new bh, pass it up. */
+ 	if (!rc && !*bh)
+ 		*bh = tmp;
 -- 
-2.43.0
+2.55.0
 
