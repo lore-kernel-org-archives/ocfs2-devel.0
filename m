@@ -1,155 +1,98 @@
-Received: from mail-wr1-f41.google.com (mail-wr1-f41.google.com [209.85.221.41])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 588BF44CAE0
-	for <ocfs2-devel@lists.linux.dev>; Wed,  8 Jul 2026 18:13:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7915C439356
+	for <ocfs2-devel@lists.linux.dev>; Thu,  9 Jul 2026 03:59:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783534412; cv=none; b=FMzh1RWIFtgfvzFNa/M6gQI3jYPsCMXceh7RjGHnXekMnq8flPByIimWrTH874arsx89b1g1ZGRG66zaL2W01kPFagliymExidlZAlf0QpSii2Eh8yjmpR5GjgcyJLiC+68OEPa07plfTTaykWFigAYQBy/Kt661HkHA1woVolY=
+	t=1783569550; cv=none; b=pDHiNGhF85Sg2Su3vPQs4A8wgBf6MaJkYWstlsWBPRFtVhz5Ot31ULZhgm1B2fCit1H03Idid4iosatA7rLeHnpmu7czhclIreMPL4Y7T7ab60Fx8Gs7XCmkUARdVVef3BIXKD+66q7EP07AwSFDuUoSD0pqUDPUzGBYB5fYSB0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783534412; c=relaxed/simple;
-	bh=mKB64eFzBwevlbfHP4GHbGCdzZzNbk41FGpjUYsfux4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=qeZJyqz0x3BiZZT9jZatTIWbmyTJuEMtCrSuHHXo5JVJuin34eoYg12Plb+oS/L/VFWNExCZQHut9PkYbmWmdyAWb0eXnUggdLl4BRElrQRTxRqblEGnTJjMKfSwHFeG32Bv3oA/QeO2lw8p/9S2K8TJ3s2KakvJfXmFNjW7I3Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=W0RGk0B3; arc=none smtp.client-ip=209.85.221.41
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1783569550; c=relaxed/simple;
+	bh=IbBIkaZF46cqMJlPORp7pYbXNvhdj6iKnPJ6S0DXL9I=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
+	 In-Reply-To:Content-Type; b=D3SOzlPoN5fYz7eoeJKVmYqB9Xnc/m51cY7zt4M0KEWUDHA/uZnuG9gwDjj/WDLQu01YXTpJk60nPtBcGbtReSJTwEKQMtvmbcFi48nfpJNnugjDrlhMtVNst0lv4ZlcsTx3kdgDBIn15Rn+vWJYwporoIq70j4OyIfDDvC9zNw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=xAk0ec6M; arc=none smtp.client-ip=115.124.30.98
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="W0RGk0B3"
-Received: by mail-wr1-f41.google.com with SMTP id ffacd0b85a97d-47db714766aso84564f8f.0
-        for <ocfs2-devel@lists.linux.dev>; Wed, 08 Jul 2026 11:13:28 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1783534407; x=1784139207; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=WEMJWE1zcwQ4UkLGDHzDIo1wA9TMgoKtQk475YCTe6o=;
-        b=W0RGk0B3P+wqm4AgZ/vsB1z8Yw32zZNsMPsLdsSgrQ4ja6BX7OqqjG0GHaEG7jM2kR
-         0MLCkfHo22RaGnDpPiix0O6gVcZgeRBee6fxPVw3Gc2f4B+Cp2wZK/o1sVxtz8QDxfMh
-         +sssDK7iL8L0VWIPQl8/Tu/cYKt1Vw1pDVt9z38vxqHUBJrPeCZ/5fY9vVAM1XZjzyqu
-         +NvI0kuqgDbuKjPZl5/jF4/eUHH+m0QKCQ0BgDqrRbHza7ncE5mEjyHHazbQBJ7ICBY0
-         yl6qprqBLuV/vgXXxukaxViq53nJMTtUF395uQof4qCJ65/KfakHKr3PHCAnzAoPuR3I
-         NJKQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783534407; x=1784139207;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=WEMJWE1zcwQ4UkLGDHzDIo1wA9TMgoKtQk475YCTe6o=;
-        b=Bgd0L+JSu1TkVmAy37cQpMF+k8eZsFKbB8h8RoVtq5rZsSEI6qIphKEzkavuBbyS0f
-         oTbH157xOSlOprQ54FZCVskdAEs5AI/mmoU4Yp114jYIm0MsxD5TIYN5aGw4kwqm3T81
-         EwneJeJodxsYo/4TZ/DmsWAhkuAH/zH1LmSa3xt52x2sSZnqlZEU2dQGAnAi7K34NR01
-         pc198rnpPvUwSrJ71cUU7h8hleo/h3CxW1hMv9T6k2RGKdSZ2wa4+w6dtHR5dXLKyVOd
-         cP0twytuS+ppYCfjjL8Uy0KuikBmuZyxAHfYfuNS9wkYZ+aKaCoABexN2oV85JuFFMqH
-         Y29Q==
-X-Forwarded-Encrypted: i=1; AHgh+Rr2a0/7yWqXRw9Gf3sAhagpTDElmYwmPj/MqY8XlQJSshpZaWsJ64QaXvHqeJ5LHeeZJKXP3YnkR9C4XA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxbMrk5cl5gK8YkvqwQLXV8V6m6nCyHf//FjRVwuboins0X7eb+
-	TrHRzxty3Lrx/excoMFbpnQvZJFXKYzm5hxJGC8AXvmMkJNM3ms1EqRwoKurqdZ7a64=
-X-Gm-Gg: AfdE7cmu82k4ZPvhHkK7qXy0rW35nTLXbggoYyyS1WDa44JEyn2p1rld8sI68v53nL/
-	RSonN20CoBDJf5vz7BZe/6gqboFS2vSSy6HkfILwTlJCb7zTVmuMX+IaBYawUVTAwT908uqoBLY
-	wuX5z8THbZ0zIXctvLJsFh1HmtRWsyQcGqinyuVAMcce80c9Ef+WxyYzNiWpvqjlNXhGPA4iKEH
-	ZJAZWG8wUy6qBh6dcqnqWV6S8UJXzmLwrohUBn1AYsV92XfCsrSHezNuuutbD0KGYSJS6uiYbxf
-	qWNQ+HVcVMft4PJN9pMeO+ShTU79jJCZRLFI0UL1Bl+lVx5YsqKlcTkzE715EOuWh9e6bUmuaQ+
-	CLg+snKY0ev4xFvYJ1ixF7fZ2ASjuWQlqaaGKucW/TA5VSX6/+lfljGCMpOXJhq1y7+9q48mT4R
-	A6KfyevLyfUyf3YyS/jIjEDEARAUgxICyTIeFQkw==
-X-Received: by 2002:a05:6000:460c:b0:473:c608:eeb5 with SMTP id ffacd0b85a97d-47de9a4f159mr9196162f8f.29.1783534406837;
-        Wed, 08 Jul 2026 11:13:26 -0700 (PDT)
-Received: from localhost.localdomain (nat2.prg.suse.com. [195.250.132.146])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-47a9de1d910sm43325516f8f.6.2026.07.08.11.13.24
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 08 Jul 2026 11:13:26 -0700 (PDT)
-Date: Wed, 8 Jul 2026 20:13:23 +0200
-From: Michal =?utf-8?Q?Koutn=C3=BD?= <mkoutny@suse.com>
-To: Petr Pavlu <petr.pavlu@suse.com>
-Cc: Tony Luck <tony.luck@intel.com>, Borislav Petkov <bp@alien8.de>, 
-	Thomas Gleixner <tglx@kernel.org>, Ingo Molnar <mingo@redhat.com>, 
-	Dave Hansen <dave.hansen@linux.intel.com>, x86@kernel.org, "H. Peter Anvin" <hpa@zytor.com>, 
-	Philipp Reisner <philipp.reisner@linbit.com>, Lars Ellenberg <lars.ellenberg@linbit.com>, 
-	Christoph =?utf-8?Q?B=C3=B6hmwalder?= <christoph.boehmwalder@linbit.com>, Jens Axboe <axboe@kernel.dk>, Johan Hovold <johan@kernel.org>, 
-	Alex Elder <elder@kernel.org>, Greg Kroah-Hartman <gregkh@linuxfoundation.org>, 
-	"Rafael J. Wysocki" <rafael@kernel.org>, Michal Januszewski <spock@gentoo.org>, 
-	Helge Deller <deller@gmx.de>, Alexander Viro <viro@zeniv.linux.org.uk>, 
-	Christian Brauner <brauner@kernel.org>, Jan Kara <jack@suse.cz>, Trond Myklebust <trondmy@kernel.org>, 
-	Anna Schumaker <anna@kernel.org>, Chuck Lever <cel@kernel.org>, Jeff Layton <jlayton@kernel.org>, 
-	NeilBrown <neil@brown.name>, Olga Kornievskaia <okorniev@redhat.com>, 
-	Dai Ngo <Dai.Ngo@oracle.com>, Tom Talpey <tom@talpey.com>, Mark Fasheh <mark@fasheh.com>, 
-	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
-	Tejun Heo <tj@kernel.org>, Johannes Weiner <hannes@cmpxchg.org>, 
-	Luis Chamberlain <mcgrof@kernel.org>, Daniel Gomez <da.gomez@kernel.org>, 
-	Sami Tolvanen <samitolvanen@google.com>, Aaron Tomlin <atomlin@atomlin.com>, 
-	Pavel Machek <pavel@kernel.org>, Len Brown <lenb@kernel.org>, 
-	Andrew Morton <akpm@linux-foundation.org>, Danilo Krummrich <dakr@kernel.org>, 
-	Nikolay Aleksandrov <razor@blackwall.org>, Ido Schimmel <idosch@nvidia.com>, 
-	"David S. Miller" <davem@davemloft.net>, Eric Dumazet <edumazet@google.com>, 
-	Jakub Kicinski <kuba@kernel.org>, Paolo Abeni <pabeni@redhat.com>, Simon Horman <horms@kernel.org>, 
-	David Howells <dhowells@redhat.com>, Jarkko Sakkinen <jarkko@kernel.org>, 
-	Paul Moore <paul@paul-moore.com>, James Morris <jmorris@namei.org>, 
-	"Serge E. Hallyn" <serge@hallyn.com>, Kentaro Takeda <takedakn@nttdata.co.jp>, 
-	Tetsuo Handa <penguin-kernel@i-love.sakura.ne.jp>, linux-edac@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	drbd-dev@lists.linux.dev, linux-block@vger.kernel.org, greybus-dev@lists.linaro.org, 
-	linuxppc-dev@lists.ozlabs.org, linux-acpi@vger.kernel.org, linux-fbdev@vger.kernel.org, 
-	dri-devel@lists.freedesktop.org, linux-fsdevel@vger.kernel.org, linux-nfs@vger.kernel.org, 
-	ocfs2-devel@lists.linux.dev, cgroups@vger.kernel.org, linux-modules@vger.kernel.org, 
-	linux-pm@vger.kernel.org, driver-core@lists.linux.dev, bridge@lists.linux.dev, 
-	netdev@vger.kernel.org, keyrings@vger.kernel.org, linux-security-module@vger.kernel.org
-Subject: Re: [PATCH 1/2] umh, treewide: Explicitly include linux/umh.h where
- needed
-Message-ID: <ak6STbqZd-Q-c56v@localhost.localdomain>
-References: <20260708154510.6794-1-petr.pavlu@suse.com>
- <20260708154510.6794-2-petr.pavlu@suse.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="xAk0ec6M"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1783569545; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=buQdi0BomK5CB74T7xDmUNZVePMYb8bI5undGI57DXk=;
+	b=xAk0ec6Mbm5VU6KrwwBIYHIyiAwZGI7P2LXSXtJGM3RXkolBN/xnblCzd3VVeK6KYWu7gAwXWpAJdMabufKukNhQSFiTgnRDQXzPEKrbrdofxiECES3y8xZuwDtvzvr9dWUXJfc6pEvNeCP1igcXm7PT9tFvQkNWeKYbXiZC+Es=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R921e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X6jKSMW_1783569543;
+Received: from 30.221.145.97(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6jKSMW_1783569543 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Thu, 09 Jul 2026 11:59:04 +0800
+Message-ID: <12edcc56-8f9f-4f36-b5ca-8a4ba0f3d9f3@linux.alibaba.com>
+Date: Thu, 9 Jul 2026 11:59:02 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: multipart/signed; micalg=pgp-sha512;
-	protocol="application/pgp-signature"; boundary="kijzkd5xnaepafl2"
-Content-Disposition: inline
-In-Reply-To: <20260708154510.6794-2-petr.pavlu@suse.com>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: free claimed clusters when defrag move fails
+To: Guangshuo Li <lgs201920130244@gmail.com>
+References: <20260708062212.715437-1-lgs201920130244@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Tristan Ye <tristan.ye@oracle.com>, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260708062212.715437-1-lgs201920130244@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
---kijzkd5xnaepafl2
-Content-Type: text/plain; protected-headers=v1; charset=us-ascii
-Content-Disposition: inline
-Content-Transfer-Encoding: quoted-printable
-Subject: Re: [PATCH 1/2] umh, treewide: Explicitly include linux/umh.h where
- needed
-MIME-Version: 1.0
 
-Hi Petr.
+On 7/8/26 2:22 PM, Guangshuo Li wrote:
+> ocfs2_defrag_extent() claims new clusters before calling
+> __ocfs2_move_extent(). If __ocfs2_move_extent() fails, the newly claimed
+> clusters have not been attached to the inode extent tree, but the error
+> path only logs the error and continues.
+> 
+> The following ocfs2_cow_sync_writeback() call can then overwrite the
+> original error with 0, while the claimed clusters are left allocated and
+> unreferenced.
+> 
+> Set need_free and leave through out_commit when __ocfs2_move_extent()
+> fails, so the claimed clusters are released and the original error is
+> returned to the caller.
+> 
+> Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
+> Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
+> ---
+>  fs/ocfs2/move_extents.c | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index ad1678ee7cc4..4f1745d58a88 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -310,8 +310,11 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+>  
+>  	ret = __ocfs2_move_extent(handle, context, cpos, new_len, phys_cpos,
+>  				  new_phys_cpos, ext_flags);
+> -	if (ret)
+> +	if (ret) {
+>  		mlog_errno(ret);
+> +		need_free = 1;
+> +		goto out_commit;
+> +	}
+>  
+>  	if (partial && (new_len != *len))
+>  		*len = new_len;
 
-On Wed, Jul 08, 2026 at 05:44:29PM +0200, Petr Pavlu <petr.pavlu@suse.com> =
-wrote:
-> diff --git a/kernel/cgroup/cgroup-v1.c b/kernel/cgroup/cgroup-v1.c
-> index a4337c9b5287..60eb994c32ae 100644
-> --- a/kernel/cgroup/cgroup-v1.c
-> +++ b/kernel/cgroup/cgroup-v1.c
-> @@ -16,6 +16,7 @@
->  #include <linux/pid_namespace.h>
->  #include <linux/cgroupstats.h>
->  #include <linux/fs_parser.h>
-> +#include <linux/umh.h>
-> =20
->  #include <trace/events/cgroup.h>
+__ocfs2_move_extent() calls ocfs2_split_extent() partway through, which
+repoints the tree at new_phys_cpos, then can still fail in
+ocfs2_decrease_refcount() (-ENOMEM from ocfs2_read_refcount_block()) or
+ocfs2_truncate_log_append() (-ENOSPC). Neither aborts the handle.
 
-There is kmod.h in here too but it's unnecessary, no module lazy loading
-in this code.
+On those failures the new out_commit path frees new_phys_cpos/new_len and
+commits, so the clusters are both referenced by the extent tree and marked
+free.
 
 Thanks,
-Michal
-
---kijzkd5xnaepafl2
-Content-Type: application/pgp-signature; name="signature.asc"
-
------BEGIN PGP SIGNATURE-----
-
-iJEEABYKADkWIQRCE24Fn/AcRjnLivR+PQLnlNv4CAUCak6TOhsUgAAAAAAEAA5t
-YW51MiwyLjUrMS4xMiwyLDIACgkQfj0C55Tb+AgY2gEAgOkCGIEUNQ8/AFfxYtdb
-0XG1ZQXkD0d1Rm0cAq1+u8cBANw3nWI/wHkp5zcHmZWevxdnweU507gsyVTXzMGQ
-ZwsB
-=k+w6
------END PGP SIGNATURE-----
-
---kijzkd5xnaepafl2--
+Joseph
