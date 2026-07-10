@@ -1,32 +1,32 @@
-Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
+Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9B60D4252B2
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Jul 2026 11:58:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9D27A41CB48
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Jul 2026 13:19:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783684687; cv=none; b=F1iBNxTit6eHzfx2UlbHrktfyBv7aZ3URuV5Tbf/5UdYfIkgIG0Y/25lUTx0XpwewHcRUs/acQHDSLV+A3q29pzOkDz0pSP6p1MgrN57H338oSA/mDNNtI2/vwfAXKxjHJvT65U706gdkgktTobjPVacCNLixwBi1Sg4WxrpAVI=
+	t=1783689544; cv=none; b=XFPnvEPYji3yNxaLhpjn64qctDegULDbMx46k7NGbDUdgHykb4josZsiraXCqWxKJ2XjoDa6v1l/EDgyBUNTDsoCyWr0Y9cHYk20y/32ShctFNMMu6qmk3TDdkQmPqpgSgeooMA/eYL44Wa5KbPpmzwqJ3DyQ5TnB8DTzQr9CoE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783684687; c=relaxed/simple;
-	bh=+0Tsw2JDdKPzFq03lPk1X/vpjj1tAclF0t1NcvJsNz4=;
+	s=arc-20240116; t=1783689544; c=relaxed/simple;
+	bh=X0xEnM/gmtv2U84K8blzTDIjgcLLuzTIQlMGwSkBcNE=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=BkHba4AsBORUGkjFOU9aCyXX4e7BuVXQUYKVzvxKAih+BX4A40v3kSCetsM+ODTKDepzqhimW0Q5FH4X70Xq/D8OGpaafFpsPFGR1A5SGHBI3y0mGuHI5GGj1ipuKz4HrZa3rF1Ze53yQspPafdsktMNJ4lHOg9Mq/lT60H0ZxY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=cP3nCc0L; arc=none smtp.client-ip=115.124.30.133
+	 In-Reply-To:Content-Type; b=lcMBFlbwJ8yFhzDYT3xz9Tq2yrlH9hbKLfTqIC4rTSI4gkrbObGdmeD2vwyCitnGxPFl8poQr+icC0kBLVifuyjCmhVUQbrPCOWqihfKFuFcnpYSdNHaKLcUq/l4m3zXPI5mbpF7gdC+yCja0u3k1E/PNTL7WpOwbHr8JlorzIU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=B8RG4Nf2; arc=none smtp.client-ip=115.124.30.97
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="cP3nCc0L"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="B8RG4Nf2"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1783684672; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=bdxWu45eIVaVC9QDMDep/xNtQShWpvZLSrE0kVIt8TY=;
-	b=cP3nCc0Lap4o66WDZS/6BTJlWrqtnsEBDafJvlWHThcbYlvNt8E8bRnutVJ8GTWkvNUAo0PDaM4BV11TkWmnEc6MOG2PK+Q/JgjdFELNgqmlNDrdw4P8XfWHxiykY3+dEqJDFevudSkQ/cd6e1ATM+4Xxi8cX9VwqpdV5r6KJPc=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R331e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X6nX6q5_1783684670;
-Received: from 30.221.145.52(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6nX6q5_1783684670 cluster:ay36)
+	t=1783689533; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=AOiVPSP9S97BGaSHoU8Zaopo4gXsqjz4kfDsq5DO8hE=;
+	b=B8RG4Nf2C4PJk6qoS4I986wfvAdhfjS7lKD/ChBCwr0BrtKMjw1fXyqpP8jgkNdAXZSAAuPVXAm277EGhIoMo9hZsvt4cltPiAjiO/HtXywJpFN9lwJSYtaxc4/OPyf85rPqbs2aamZoK0hE6vTInBUCuXaLTWbpEYaamiBEstU=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R911e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X6nmaED_1783689532;
+Received: from 30.134.110.188(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6nmaED_1783689532 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 10 Jul 2026 19:57:51 +0800
-Message-ID: <9a7f8287-6139-42e4-a596-fc7c27b4aee6@linux.alibaba.com>
-Date: Fri, 10 Jul 2026 19:57:49 +0800
+          Fri, 10 Jul 2026 21:18:52 +0800
+Message-ID: <b5928876-7962-4dc3-aa5f-ec822d82da8c@linux.alibaba.com>
+Date: Fri, 10 Jul 2026 21:18:52 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -36,10 +36,9 @@ MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH] ocfs2: validate rl_used against rl_count in refcount
  block validator
-To: Ibrahim Hashimov <security@auditcode.ai>
+To: Ibrahim Hashimov <security@auditcode.ai>, akpm <akpm@linux-foundation.org>
 Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- stable@vger.kernel.org
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
 References: <20260709132609.44233-1-security@auditcode.ai>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 In-Reply-To: <20260709132609.44233-1-security@auditcode.ai>
@@ -133,9 +132,7 @@ On 7/9/26 9:26 PM, Ibrahim Hashimov wrote:
 > Signed-off-by: Ibrahim Hashimov <security@auditcode.ai>
 > Assisted-by: AuditCode-AI:2026.07
 
-Looks good.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
 > ---
 >  fs/ocfs2/refcounttree.c | 27 +++++++++++++++++++++++++++
 >  1 file changed, 27 insertions(+)
