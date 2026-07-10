@@ -1,166 +1,125 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+Received: from forward500d.mail.yandex.net (forward500d.mail.yandex.net [178.154.239.208])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DB93B3C819A
-	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Jul 2026 07:18:07 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EEAFD3DCDBC
+	for <ocfs2-devel@lists.linux.dev>; Fri, 10 Jul 2026 07:54:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.208
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783667891; cv=none; b=g7i1sk8mxRMEq7NoH3r1VA2BvpFkJGU6LUa9yAxtyuRT7Jk3s7lpWYWPM9Bf8hD1RNcOo9OZwC0MphKlZ/X5TrDcVURjJBKWgsOsAPYfwiZ38V8xoPJ3z7HEJQp6CfSirkmKANwR8Rm+FuQLxnbXg+ImGTnKU8P/01xTea8OzP8=
+	t=1783670096; cv=none; b=F65N2T6gO7wEX6k2xJ04FMUTnXDIsOk6jSp/Fr8SOjSkKRO37bPpyNruJZmgz2tViWV4l8DFSx1yhq3nsd8FzuVEx9tTJxlnKsN6VF7WXSSjH2lF+OWfdBQD1qxXyt4IUFdrb4pRzKZTVepKQoIZPTKt/hDO9kAz/YPeKkRe/CU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783667891; c=relaxed/simple;
-	bh=czBy+eokThaEp9QTd0cTZBZbYYXULYcWtY4NMrW6wPc=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=Of+sh8m3eXuOc1cvUUEMxz1urfrPJGPkhYSL/+Dc51rN4Enc+HNUFHAZ4Zq/1eOeqU07uNzbC7aASQT7W9Etl5IagCa6Njg12LOz+ZGd6HOqKrwFT7P+kXIPC1R8ERS9wzHUG3hGOyY7rYGAm3Pqt9HNQBFTanXSV67OLIG8KLs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ZJb8Q42i; arc=none smtp.client-ip=115.124.30.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1783670096; c=relaxed/simple;
+	bh=r+QpkomSdk65be7qVLiopXauLWVsz+LY39UI4SCSJI0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=W+A4dYYNfMXWSQmAHNFUgBmGHWhssP1IDLiKEpjAbMh9QN1+07zPwZUHHRQuqmi+En3bdKRPHmu0lI/jhvCfeoA1Hd70A7Yyct1aC6xetg+Z5+30G6oJh9YmIZKmrqulu/hC+AaHRFFBwVrQziJPhjgO345hVtCFmPtXyY6uJUw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=Pi9L5JJC; arc=none smtp.client-ip=178.154.239.208
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ZJb8Q42i"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1783667879; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=CRAwQkwUF4M3FkCFqvYZhe3zoijsBR4m3xh1fk7XhHM=;
-	b=ZJb8Q42is1Nfb2PvN1BxhT4YIjRL+NHV4tSskRHUVP8XGJTwd8jAYJZeOy8xpco4clqKrxRlVoHbD0ocbOAbTdjfN+oJDS8zEv5je1ra6+0FfMMrRrCIHFDptDCkl7X1s0R8TlXbZPX8lR+H3rGhZAcxMRTj6Mlxs8zF+BYRwHE=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X6mw3S4_1783667876;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6mw3S4_1783667876 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 10 Jul 2026 15:17:57 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH 1/2] ocfs2: cluster: use GFP_NOFS for heartbeat bio allocation
-Date: Fri, 10 Jul 2026 15:17:55 +0800
-Message-Id: <20260710071756.3586797-1-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
+	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="Pi9L5JJC"
+Received: from mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:4f41:0:640:844:0])
+	by forward500d.mail.yandex.net (postfix) with ESMTPS id 70FAE81AAE;
+	Fri, 10 Jul 2026 10:54:45 +0300 (MSK)
+Received: by mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net (smtp) with ESMTPSA id hsFZ4l0dPOs0-3cj5QmTW;
+	Fri, 10 Jul 2026 10:54:44 +0300
+X-Yandex-Fwd: 1
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
+	t=1783670084; bh=Pqauam0jXruaNM3hTlzvMrtafeo56LS3MlRuytVCYrE=;
+	h=From:In-Reply-To:Cc:Date:References:To:Subject:Message-ID;
+	b=Pi9L5JJCepyi4G1mz2f7sz1OihbHBww9xqK9NEJ3KPf03mhJ/fcYdHOM1GQkvR/0A
+	 G1pwf7F1RFGvVd9i5xRuMzuo2Ooo5OP5DLA+VxIYmhJj/io0VVvAimZbWuqYJxOd5f
+	 3yGFgOZMhX7qRf6JF5nqcVm+SGUJZMkwGNhZFz80=
+Authentication-Results: mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
+Message-ID: <f41eea26-44e3-40f9-90e7-6a0dbf14ba72@yandex.ru>
+Date: Fri, 10 Jul 2026 10:52:27 +0300
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fix boundary check in ocfs2_check_dir_entry() to
+ use buffer offset
+To: Joseph Qi <joseph.qi@linux.alibaba.com>,
+ Andrew Morton <akpm@linux-foundation.org>, Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+References: <20260710040512.3310736-1-joseph.qi@linux.alibaba.com>
+Content-Language: en-US
+From: Dmitry Antipov <dmantipov@yandex.ru>
+In-Reply-To: <20260710040512.3310736-1-joseph.qi@linux.alibaba.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
+Content-Transfer-Encoding: 7bit
 
-o2hb_setup_one_bio() allocates the heartbeat bio with GFP_ATOMIC. The
-disk heartbeat runs in the o2hb kernel thread (o2hb_do_disk_heartbeat),
-which is process context and can sleep, so there is no atomicity
-requirement here.
+On 7/10/26 7:05 AM, Joseph Qi wrote:
 
-GFP_ATOMIC lacks __GFP_DIRECT_RECLAIM, so the allocation is not served
-from the fs_bio_set mempool reserve and can return NULL under memory
-pressure. A failed heartbeat allocation aborts the heartbeat and can
-lead to the local node being fenced, which is exactly what the old
-comment worried about.
+> Commit 390ac56cf0f6 ("ocfs2: add boundary check to ocfs2_check_dir_entry()")
+> added an out-of-bounds guard using the caller-supplied 'offset' argument:
+> 
+> 	if (offset > size - OCFS2_DIR_REC_LEN(1))
+> 		return 0;
+> 
+> However, 'offset' and 'size' are not measured against the same base for
+> all callers. In the block-based lookup path, ocfs2_find_entry_el() passes
+> 'offset' as an absolute offset into the whole directory:
+> 
+> 	i = ocfs2_search_dirblock(bh, dir, name, namelen,
+> 				  block << sb->s_blocksize_bits,
+> 				  bh->b_data, sb->s_blocksize, res_dir);
+> 
+> while 'size' is a single block size (sb->s_blocksize). For any directory
+> entry located in the second or later block, 'offset' is >= sb->s_blocksize,
+> so the guard rejects every such entry even though it is perfectly valid and
+> lies entirely within its block buffer.
+> 
+> This makes mounting fail for filesystems whose system directory spans more
+> than one block, e.g. a volume formatted with a small block size:
+> 
+>    mkfs.ocfs2 -b 512 -C 4096 -N 2 -T datafiles --fs-features=usrquota,grpquota
+> 
+>    ocfs2_check_dir_entry:314 ERROR: directory entry (#18: offset=512) too close to end or out-of-bounds
+>    ocfs2_init_local_system_inodes:496 ERROR: status=-22, sysfile=12, slot=0
+>    ocfs2_mount_volume:1757 ERROR: status = -22
+> 
+> The dirent's position within the buffer being validated is
+> ((char *)de - buf), which is what the rest of the function already uses
+> (via next_offset) and what must be bounds-checked against 'size'. Compute
+> that buffer-relative offset and use it for the guard. The subtraction is
+> reordered to size - buf_offset < OCFS2_DIR_REC_LEN(1) to avoid an unsigned
+> underflow when size is smaller than the minimal record length.
+> 
+> Fixes: 390ac56cf0f6 ("ocfs2: add boundary check to ocfs2_check_dir_entry()")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Use GFP_NOFS instead. It keeps __GFP_DIRECT_RECLAIM so the allocation is
-backed by the fs_bio_set mempool and cannot fail, while avoiding
-recursion back into the filesystem during heartbeat I/O. As the
-allocation can no longer fail, drop the dead ERR_PTR(-ENOMEM) path in
-o2hb_setup_one_bio() and the now-redundant IS_ERR() handling in its
-callers.
+Reviewed-and-tested-by: Dmitry Antipov <dmantipov@yandex.ru>
 
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/cluster/heartbeat.c | 41 +++++++-----------------------------
- 1 file changed, 8 insertions(+), 33 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 6da96a374fcdf..ef6a11fdef5bc 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -522,16 +522,12 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
- 	struct bio *bio;
- 	struct page *page;
- 
--	/* Testing has shown this allocation to take long enough under
--	 * GFP_KERNEL that the local node can get fenced. It would be
--	 * nicest if we could pre-allocate these bios and avoid this
--	 * all together. */
--	bio = bio_alloc(reg_bdev(reg), 16, opf, GFP_ATOMIC);
--	if (!bio) {
--		mlog(ML_ERROR, "Could not alloc slots BIO!\n");
--		bio = ERR_PTR(-ENOMEM);
--		goto bail;
--	}
-+	/*
-+	 * The heartbeat runs in process context and can sleep, so use
-+	 * GFP_NOFS. It is backed by the fs_bio_set mempool and thus cannot
-+	 * fail, while avoiding recursion back into the filesystem.
-+	 */
-+	bio = bio_alloc(reg_bdev(reg), 16, opf, GFP_NOFS);
- 
- 	/* Must put everything in 512 byte sectors for the bio... */
- 	bio->bi_iter.bi_sector = (reg->hr_start_block + cs) << (bits - 9);
-@@ -556,7 +552,6 @@ static struct bio *o2hb_setup_one_bio(struct o2hb_region *reg,
- 		vec_start = 0;
- 	}
- 
--bail:
- 	*current_slot = cs;
- 	return bio;
- }
-@@ -566,7 +561,6 @@ static int o2hb_read_slots(struct o2hb_region *reg,
- 			   unsigned int max_slots)
- {
- 	unsigned int current_slot = begin_slot;
--	int status;
- 	struct o2hb_bio_wait_ctxt wc;
- 	struct bio *bio;
- 
-@@ -575,30 +569,18 @@ static int o2hb_read_slots(struct o2hb_region *reg,
- 	while(current_slot < max_slots) {
- 		bio = o2hb_setup_one_bio(reg, &wc, &current_slot, max_slots,
- 					 REQ_OP_READ);
--		if (IS_ERR(bio)) {
--			status = PTR_ERR(bio);
--			mlog_errno(status);
--			goto bail_and_wait;
--		}
--
- 		atomic_inc(&wc.wc_num_reqs);
- 		submit_bio(bio);
- 	}
- 
--	status = 0;
--
--bail_and_wait:
- 	o2hb_wait_on_io(&wc);
--	if (wc.wc_error && !status)
--		status = wc.wc_error;
- 
--	return status;
-+	return wc.wc_error;
- }
- 
- static int o2hb_issue_node_write(struct o2hb_region *reg,
- 				 struct o2hb_bio_wait_ctxt *write_wc)
- {
--	int status;
- 	unsigned int slot;
- 	struct bio *bio;
- 
-@@ -610,18 +592,11 @@ static int o2hb_issue_node_write(struct o2hb_region *reg,
- 
- 	bio = o2hb_setup_one_bio(reg, write_wc, &slot, slot+1,
- 				 REQ_OP_WRITE | REQ_SYNC);
--	if (IS_ERR(bio)) {
--		status = PTR_ERR(bio);
--		mlog_errno(status);
--		goto bail;
--	}
- 
- 	atomic_inc(&write_wc->wc_num_reqs);
- 	submit_bio(bio);
- 
--	status = 0;
--bail:
--	return status;
-+	return 0;
- }
- 
- static u32 o2hb_compute_block_crc_le(struct o2hb_region *reg,
--- 
-2.39.3
-
+> ---
+>   fs/ocfs2/dir.c | 5 +++--
+>   1 file changed, 3 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 8e6b032383278..d7fc3cccf2f4b 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -302,10 +302,11 @@ static int ocfs2_check_dir_entry(struct inode *dir,
+>   				 unsigned long offset)
+>   {
+>   	const char *error_msg = NULL;
+> +	unsigned long buf_offset = (char *)de - buf;
+>   	unsigned long next_offset;
+>   	int rlen;
+>   
+> -	if (offset > size - OCFS2_DIR_REC_LEN(1)) {
+> +	if (buf_offset > size || size - buf_offset < OCFS2_DIR_REC_LEN(1)) {
+>   		/* Dirent is (maybe partially) beyond the buffer
+>   		 * boundaries so touching 'de' members is unsafe.
+>   		 */
+> @@ -316,7 +317,7 @@ static int ocfs2_check_dir_entry(struct inode *dir,
+>   	}
+>   
+>   	rlen = le16_to_cpu(de->rec_len);
+> -	next_offset = ((char *) de - buf) + rlen;
+> +	next_offset = buf_offset + rlen;
+>   
+>   	if (unlikely(rlen < OCFS2_DIR_REC_LEN(1)))
+>   		error_msg = "rec_len is smaller than minimal";
