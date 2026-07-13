@@ -1,85 +1,71 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+Received: from verein.lst.de (verein.lst.de [213.95.11.211])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7F71C3769F6
-	for <ocfs2-devel@lists.linux.dev>; Sun, 12 Jul 2026 12:43:37 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 920E83E639D
+	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Jul 2026 09:59:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.95.11.211
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783860220; cv=none; b=tBtmCyeRstTpBb60jkJ/eKM9maTJcUBrLkfF0N6wmqPqruivciIAvO0/aoV51Wo/Emb3lpTEDT27HOfTedBiLQcX2KjFdeb9m2MAnCwWNu6lYhlCkd10k8yIWQJpKnkqPBE/COy9B0YqEqIWexlIgxrybjGwGuMvZNm20LSSfOk=
+	t=1783936745; cv=none; b=bLnf8skhGQaNzYTT2050u77uWAEDnAfwA+CmDVCjkbAtTIpwrt6DqMXaPWweSCAF+5kZD6mWuKjA41MWZ7SEJM0HMzZ+DbeiCwUBg/F2BjWczjq+ioenKgtaDhC1LSzLRhJh1SyLKWltctUtxxq4b4jDPsjjEznDrjpOuUG+2bo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783860220; c=relaxed/simple;
-	bh=zqVMdxoNm2XT5PgbYhHqUWXvGOqnsC6zkr3zgk/Sy2Q=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=iQlhtUgdhphGZSO87m8/4jfPL1/jkkSqHC7RGFft5c0CiwRZruRbAfs3waSB81+gvAEengAx3tnzStmH056Ilurj8ENyX/dvnuWYdYw93tv0gtSJNsMY2Lbf32GpKtQhyCnWIwRzceTAr1APEn/7LZdcXbjSE3W/+A9XDPEN1kc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=IVFj87Ku; arc=none smtp.client-ip=115.124.30.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="IVFj87Ku"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1783860208; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=N3B16MEu1BWDRpBq4JDEKledBQjIad1Ke/22GTvpEWc=;
-	b=IVFj87KuO9lybEHfBNE+d3shZTfbb17flUiaBDki2+GqOJp9j/vyDlYOztyPemyP4j1/5XynhLpgrpWOzJxxOxC1b0JLtbiQkHVd2zg3mlN45EHW0CmdCdY6qa/TxRuYZPKOHQ8l3GTgTe+l8ZEX6Us+Q5QsPNgzVb/EbHwtPDo=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R551e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X6s31tv_1783860207;
-Received: from 30.134.110.188(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X6s31tv_1783860207 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Sun, 12 Jul 2026 20:43:27 +0800
-Message-ID: <0479b948-54e3-4dbe-a661-6c36070bb4f9@linux.alibaba.com>
-Date: Sun, 12 Jul 2026 20:43:25 +0800
+	s=arc-20240116; t=1783936745; c=relaxed/simple;
+	bh=YlBUt7nswou5vInVDSmKtqY9HvPOSjwm7fdwyXD7ni0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=fgRJng3ttxVf1BlVJdA/z5wLIc/o9B/ic4alIjqDbWz81/mkYqVwf2BCNTkvLvmmb7cNr75sB1LpPEGV6EpqFypIywAc84AzjnjmTYezM1bgwb4Us1eCyRpN3jY+pChh0/+aWtwQZtzEEw3Jx0JSahG3rfyuyC2VLQZ0wRLPL5U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de; spf=pass smtp.mailfrom=lst.de; arc=none smtp.client-ip=213.95.11.211
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=lst.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=lst.de
+Received: by verein.lst.de (Postfix, from userid 2407)
+	id 05AEC68BFE; Mon, 13 Jul 2026 11:58:58 +0200 (CEST)
+Date: Mon, 13 Jul 2026 11:58:57 +0200
+From: Christoph Hellwig <hch@lst.de>
+To: Viacheslav Dubeyko <slava@dubeyko.com>
+Cc: Christoph Hellwig <hch@lst.de>, David Sterba <dsterba@suse.com>,
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
+	John Paul Adrian Glaubitz <glaubitz@physik.fu-berlin.de>,
+	Yangtao Li <frank.li@vivo.com>, Dave Kleikamp <shaggy@kernel.org>,
+	Jan Kara <jack@suse.com>, Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Christian Brauner <brauner@kernel.org>,
+	linux-fsdevel@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
+	linux-nilfs@vger.kernel.org, ocfs2-devel@lists.linux.dev
+Subject: Re: removing the remaining blockdev_direct_IO users
+Message-ID: <20260713095857.GB10501@lst.de>
+References: <20260710050744.GA6720@lst.de> <fea4c4f25afb7711d1e8fbe6ca5ab654ec522186.camel@dubeyko.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/2] ocfs2: cluster: use GFP_NOFS for heartbeat bio
- allocation
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-References: <20260710071756.3586797-1-joseph.qi@linux.alibaba.com>
- <20260710172629.46dcd01fc4132e876b92d2f0@linux-foundation.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260710172629.46dcd01fc4132e876b92d2f0@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
+Content-Type: text/plain; charset=iso-8859-1
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <fea4c4f25afb7711d1e8fbe6ca5ab654ec522186.camel@dubeyko.com>
+User-Agent: Mutt/1.5.17 (2007-11-01)
 
-
-
-On 7/11/26 8:26 AM, Andrew Morton wrote:
-> On Fri, 10 Jul 2026 15:17:55 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+On Fri, Jul 10, 2026 at 09:51:09AM -0700, Viacheslav Dubeyko wrote:
+> On Fri, 2026-07-10 at 07:07 +0200, Christoph Hellwig wrote:
+> > Hi all,
+> > 
+> > we have 7 users of blockdev_direct_IO and one of the lower-level
+> > __blockdev_direct_IO left, and I'd really like to get rid of them.
+> > 
+> > The filesystems are affs, fat, hfs, hfsplus, jfs, nilfs2, udf and
+> > ocfs2,
+> > and you are the relevant maintainers.  In 7.2 exfat converted
+> > entirely
+> > to iomap, which would be a really good example for a "simple" file
+> > system.  Another options especially for the file systems supporting
+> > foreign formats would be to just drop direct I/O support and reduce
+> > the support burden.
 > 
->> o2hb_setup_one_bio() allocates the heartbeat bio with GFP_ATOMIC. The
->> disk heartbeat runs in the o2hb kernel thread (o2hb_do_disk_heartbeat),
->> which is process context and can sleep, so there is no atomicity
->> requirement here.
->>
->> GFP_ATOMIC lacks __GFP_DIRECT_RECLAIM, so the allocation is not served
->> from the fs_bio_set mempool reserve and can return NULL under memory
->> pressure. A failed heartbeat allocation aborts the heartbeat and can
->> lead to the local node being fenced, which is exactly what the old
->> comment worried about.
->>
->> Use GFP_NOFS instead. It keeps __GFP_DIRECT_RECLAIM so the allocation is
->> backed by the fs_bio_set mempool and cannot fail, while avoiding
->> recursion back into the filesystem during heartbeat I/O. As the
->> allocation can no longer fail, drop the dead ERR_PTR(-ENOMEM) path in
->> o2hb_setup_one_bio() and the now-redundant IS_ERR() handling in its
->> callers.
-> 
-> fyi, AI review asked a thing:
-> 	https://sashiko.dev/#/patchset/20260710071756.3586797-1-joseph.qi@linux.alibaba.com
+> I like the idea. I think we can try to switch HFS/HFS+ and NILFS2 on
+> iomap approach. Do you have some initial patches for this? Which
+> particular commit(s) converted the exfat to iomap? It will be good to
+> take a deeper look into this conversion to estimate the complexity of
+> HFS/HFS+, NILFS2 modifications.
 
-GFP_NOFS won't reintroduce the fencing stall. mempool_alloc strips
-__GFP_DIRECT_RECLAIM on the first attempt (mempool_adjust_gfp) and
-checks the reserve before any reclaim, so the common path never blocks.
-Reclaim happens only if the reserve is fully drained â€” strictly better
-than GFP_ATOMIC failing outright.
+Almost all commits in fs/exfat/ in 7.2-rc1, starting with
+623f0aa1eca5c2a94ca1e4e5de719d062eac3b6c
 
-And the further improvement is what next patch exactly does.
-
-Thanks,
-Joseph
