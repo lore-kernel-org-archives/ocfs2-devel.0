@@ -1,173 +1,166 @@
-Received: from mail-oi1-f176.google.com (mail-oi1-f176.google.com [209.85.167.176])
+Received: from mail-yx1-f54.google.com (mail-yx1-f54.google.com [74.125.224.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E2B5C26ED59
-	for <ocfs2-devel@lists.linux.dev>; Mon, 13 Jul 2026 22:40:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.176
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1783982417; cv=none; b=GaPbavtge4M2Rrwp5p4s0YmuZKi5T1YHlm1RelFS7AE3BL+nAVhiuV1t2Ilcbo0xPi/EFMHkglghPXZxg0PSBkK/+vXOJaNeimX0YeD1oOXh7VK51KcHRXhGHDc9MLtB1G6fDhtUHjW+0B7TpBhLj2PIOUUi77v4EszwTGkkfIw=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1783982417; c=relaxed/simple;
-	bh=Ox6BVqo9uQAHzFJ89Dkk5sMUjCTGHUh4RcAozmVDRhU=;
-	h=Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:MIME-Version; b=EUaLSb8k9FpYczyVYNT4Qw+qb9Hwf+inwrYB445Q7RVFKGlugQe3FKmc07ZkCRqnLEnNW9Wjr7KDto3ObEcfh+r0MXrhdIi6Xi0qkddCa4pcUXxU2zAbkbqxx3pAn8kTRzeufSJjfSmE7fDAzvGgE5J2r46hP6dTESkjsZz6+a8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=dubeyko.com; spf=pass smtp.mailfrom=dubeyko.com; dkim=pass (2048-bit key) header.d=dubeyko-com.20251104.gappssmtp.com header.i=@dubeyko-com.20251104.gappssmtp.com header.b=PI9pLejr; arc=none smtp.client-ip=209.85.167.176
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=dubeyko.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=dubeyko.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B55D23F39D8
+	for <ocfs2-devel@lists.linux.dev>; Tue, 14 Jul 2026 07:54:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.224.54
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1784015673; cv=pass; b=EsbIkSB9B29Ge6APJjSH/DK+ZO5AntLyuZKxCeWFxEqaq14GXGFmI9WY2nkmbQjaywYUAP/YVuGOmzAH7tjoRgPKaKLwJv5+7HaSfYcwMBeVORUAw50qcoaTQZsRTMdwYiRzb7M47s13ektDrvMZAVcY6vGAw2xN4Ldn4/aHfog=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1784015673; c=relaxed/simple;
+	bh=h/HAz738sWCCW4QIL1LT89j3USLGWYxgNnlJHAJT/b4=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=h2Z9tE/MHQiUwl0cfcKpnMbr9w5z0dC53A/oBKdqqMOkUkHQ8HH0vgozbNhKw57iYhGf+d0/ilC7PEyvVPh7KetT7+7BtKGbo3Bde/ELC492geu8909jLRzNh7liRXSO8ou6eSLP5I7Flp3hUZj9iFqs3TGpHnDE5edNnBhjReY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=X08YBafU; arc=pass smtp.client-ip=74.125.224.54
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=dubeyko-com.20251104.gappssmtp.com header.i=@dubeyko-com.20251104.gappssmtp.com header.b="PI9pLejr"
-Received: by mail-oi1-f176.google.com with SMTP id 5614622812f47-4a416619cb2so271906b6e.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 13 Jul 2026 15:40:15 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="X08YBafU"
+Received: by mail-yx1-f54.google.com with SMTP id 956f58d0204a3-667971437d6so6456548d50.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 14 Jul 2026 00:54:31 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1784015671; cv=none;
+        d=google.com; s=arc-20260327;
+        b=laQ8MJUaiBkAsgJUUW3LMKQoI5FFnkBMYEDb9ayOiHRtcR0Ev1szo2bUruO6WnBVeH
+         +s8ggdYNL+EI0/5kTFBpP7iOY6axzx1KFNRo+tmT8+WBXGE58KnrmURa5AjnnBypxxaC
+         BIS3lpS5Rd+rgYwUNbrsMkDlpoJdgLhWSzVsW+ZrDu90lMcb65XPzqTi9xc6VgtJCYzF
+         wk4AoCmfXOx3ohuSRkgtgjtl98c++nLJ6rZ2B6nPHWTo4yrvATckwTg66QoDZ69s6lbk
+         pDE/MYXz2dOMTynURlhD1mB3CqQsU1HrAa80zOXso8xIiHjedRn6SSa2JhDL1YWT0EFO
+         BlPw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=tp47eXyvNj+jd5kwLE/njorNqHasF4qtkp1+t0fIdY8=;
+        fh=VFiyofP1oCthHMbiwP5YsJiDalGi2l1A2m2MMDp6Rvo=;
+        b=WM4fAogsc5jQSwUz53xcGWmvbvdrGu0UPyRUW0zAvxBJGgwWlwaH8FHv5wja9SXvIk
+         SRqqrxSP3mhXlVQQM3HZV/cb2rjjokZyrw0gc1c2Oft5Tb9WClx80KSIkXaN2UWLmjmk
+         dCPZf/W1YuPrFh0FHn2ovV+Bt7LEOO1MOGRXVrL0S/OUehatqfkP9kgQGEPzNJsw2Vpn
+         idT+5aoXeZZRCXM9wy6uESAobVowI+RDWo75M8p5OkrKYpBh/5j1IPE1Kru+pAftHLB2
+         evmfSJHcEblbn0MQysbuyPhj8rsHiAkQ+oAmnItWk3Ld2sYX9vDoAjgx56hC2crw9XeK
+         QcAQ==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=dubeyko-com.20251104.gappssmtp.com; s=20251104; t=1783982415; x=1784587215; darn=lists.linux.dev;
-        h=mime-version:user-agent:content-transfer-encoding:content-type
-         :autocrypt:references:in-reply-to:date:cc:to:from:subject:message-id
-         :from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=Ox6BVqo9uQAHzFJ89Dkk5sMUjCTGHUh4RcAozmVDRhU=;
-        b=PI9pLejrjjrcvD9n7J5oVe3HC+7DTZlC6LeZBOAod9sIzXGYGeSvjR59ICdsxJAGOZ
-         ANllE5OP+jJh6bHhKX41ZJxg52p0TgULwCI8CvGLlsh/d6EyDMunWDxzif0Xf4OhfGPK
-         5KDbQs/My41emKZonoFEzZ/Xhe/vZxOsLNv6+r6vMn/xcyOXozJHS4cpMXme2Ch+M+g2
-         dnpRG1P1rbJj4Ze/cqeDuC1EVmuCvXBRabNLbdtYJejAgPR9ObAHi217YqpJ6saFcjKa
-         pqs8Lc62y4BOPVcdHOb4RaPJdA8QsMmrxDOGgEimMM+d/LXsT6ER8xJuW4w14VDOpj0m
-         enXg==
+        d=gmail.com; s=20251104; t=1784015671; x=1784620471; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=tp47eXyvNj+jd5kwLE/njorNqHasF4qtkp1+t0fIdY8=;
+        b=X08YBafU1qkALpvC6EDMNzhWK3HMVaS1iNo5EjNwWr3cuv5vbqz+09f8OmFbqqYjqb
+         Ma50i9DvKq5wkS74Qg1UO2Zxh1S+LIWxIbTc85NbAXK6yP5P3caoBxRVC26w/Wf3AR/R
+         isbZ20k5covxi1KAWiv5QE87+PoA0kgkveuVYstxPhgmWYoezdtB5jJ5q6o/gf8TMXTM
+         9lvO/OEtxEQ66zC2Svb38Uq2ZVRej76o/5v/HqR/UtF5sl56JlSykMNUVcJQy9I+7fhK
+         qqNUO8vxYClEHFYl0vYmoHpDKpxJkJjmLNwA6fYW4wUXxp5tUtG4Wlh/ZxXwRnp+ZiyX
+         GoBQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1783982415; x=1784587215;
-        h=mime-version:user-agent:content-transfer-encoding:content-type
-         :autocrypt:references:in-reply-to:date:cc:to:from:subject:message-id
-         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to:content-type;
-        bh=Ox6BVqo9uQAHzFJ89Dkk5sMUjCTGHUh4RcAozmVDRhU=;
-        b=KYpQ79OHxMiqawRJL8RKffMZ9iYzGwm5dIQrN+D8ZiFhFZpTButIQZbrAf7fV3YjGe
-         OEImGp9Ys8Yze1zewkA2cfD57OshwhwpjXlTovTZDhEuHtKVpt3MVUh/20cLWcgQfiah
-         d7/PR0YOe2ZuS2Z2veBD+96lmEkUhvyLJ1p3VQWalqzVu/7OOlhqtOAxZ8hZL6nZPtMO
-         o9NRfDfHaBG5yGU+dgOG1QVJ9LmP06XuMkEMgDu1vVJA9HUvpWiJD+dXkJgkxKjQAJ9Q
-         ZIGmw2kkYKxVPDBReh7W2WWNP3452xmYn5BmZ5C1AF7hGRSlaDP1ARSEudvigsDCM3xi
-         JJww==
-X-Forwarded-Encrypted: i=1; AFNElJ9dYO2+pXC0vbHwg4lFEE82XpYON9lZsWQymYbPRzT922bfCYquEjf/T0LATRIHqBkhWnr+lkRywthrVQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyIh/V29Thapn47TSd1EXv1VOh6/ECELEYO88U5znv4HCUhT09Y
-	ch0LsmRIWEpZo0vFjZEqzWhZoVSirufaRVbvCYuQZxc/oOkZg9MEavz7dVnE0PrlD2AlwV/zre/
-	OUgP7APFi1Q==
-X-Gm-Gg: AfdE7ckJ0VSjifVzmvATJiy3cY6IATOK3VGkllFvxNe080bxcNOnih7PaaizdJhOUxq
-	/E0Xd83Z4pVLous1PYWz9J79Tv1evTIXmqegUzuN+IESdJBdmlt1w0DT4nXXLis4Rxj9rWJ/vjb
-	VPmgvr53DTtdPpJs553MWGRtaaAKhRLWg35Pf2XOstMjtkoGZh4kmRYu7c2cRdP91zgclKqDlGe
-	JYORYWi7BlqhNrTIsS8sVubyu9BMOtmiLzgC9fpezg6E7UrKTqNFfHCF1auGMJlrYTk0opHE8Ud
-	es5itmiI71nEIIQKLsLMqwd/Cbhqon/mLbTcJ5OYVAvR4157tOAqavAhY7tNYogQHcxzvPhE3C3
-	a0U7r+SL3oPWo/wkuN58ymD5KBw9O/3aPLctRxf64lOIdkpRFcmEeox7JTeCyDJWmaU3DDUWnlp
-	pycMfiVPJCEV9fu1vwcscAb3SJM8+VIF89nU/tB9Ex3l1Mj5Gdr6vag6ZTBwKotgPM6ncjIJHpe
-	rr9R3miivh6KSWrrSiDEqftsLh5y5d52fy/ayg/C2C1iA==
-X-Received: by 2002:a05:690e:169b:b0:668:159:32d5 with SMTP id 956f58d0204a3-6680159343bmr1421801d50.87.1783982011683;
-        Mon, 13 Jul 2026 15:33:31 -0700 (PDT)
-Received: from pop-os.attlocal.net ([2600:1700:6476:1430:e472:ff2d:20b0:742d])
-        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-667877aaadesm14714239d50.7.2026.07.13.15.33.29
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 13 Jul 2026 15:33:31 -0700 (PDT)
-Message-ID: <af41e2dd178bbc4068317f1b9e09401cb49e7228.camel@dubeyko.com>
-Subject: Re: removing the remaining blockdev_direct_IO users
-From: Viacheslav Dubeyko <slava@dubeyko.com>
-To: Christoph Hellwig <hch@lst.de>
-Cc: David Sterba <dsterba@suse.com>, OGAWA Hirofumi	
- <hirofumi@mail.parknet.co.jp>, John Paul Adrian Glaubitz	
- <glaubitz@physik.fu-berlin.de>, Yangtao Li <frank.li@vivo.com>, Dave
- Kleikamp	 <shaggy@kernel.org>, Jan Kara <jack@suse.com>, Mark Fasheh
- <mark@fasheh.com>,  Joel Becker <jlbec@evilplan.org>, Joseph Qi
- <joseph.qi@linux.alibaba.com>, Christian Brauner	 <brauner@kernel.org>,
- linux-fsdevel@vger.kernel.org, 	jfs-discussion@lists.sourceforge.net,
- linux-nilfs@vger.kernel.org, 	ocfs2-devel@lists.linux.dev
-Date: Mon, 13 Jul 2026 15:33:29 -0700
-In-Reply-To: <20260713095857.GB10501@lst.de>
-References: <20260710050744.GA6720@lst.de>
-	 <fea4c4f25afb7711d1e8fbe6ca5ab654ec522186.camel@dubeyko.com>
-	 <20260713095857.GB10501@lst.de>
-Autocrypt: addr=slava@dubeyko.com; prefer-encrypt=mutual;
- keydata=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
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
-User-Agent: Evolution 3.60.1 (by Flathub.org) 
+        d=1e100.net; s=20251104; t=1784015671; x=1784620471;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=tp47eXyvNj+jd5kwLE/njorNqHasF4qtkp1+t0fIdY8=;
+        b=aw+qC056lBanZaxiYVsV7/jtdQXAJnJ4CW/EYiHIlnwMLJ98mcD3RSPlg47wkpL8j3
+         5SRmhxi0GCiYa8Tueo62rpRGOBRsWYafAhb2PNhNwC6gE1PbGwASz0C1copgS6HYF0JO
+         sUuh3kNKyDmeMQvJowxS7TTdMJFRqt2gEIM4jzp4ts1WqGvqByiUqMfDQA7vNlz51h8k
+         mH3AT4YZb4Ma4jxB6P2L5nKFsrymT+6GwU7nLtRHADHX5NZklZyNb/aKkJc/AehgLgpk
+         p9Xo0cGelZxio9aATH2s+jWicW1zylOcFq3srbWSeC17eoLAcKbof1FAnzGiujhtRa1m
+         0vwg==
+X-Forwarded-Encrypted: i=1; AHgh+Rpv9tQQJ26rx0sXcDZBb1hfsafQibY/swIdswrTk1uRR3xs4dshTPuzd1E1RN625uxOEvseH6/GNUrYSg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Ywiw1t5vPINQAVVjOpCZrwbPdqL2etqw3VSk53Jo6kZnYX7n9zz
+	QSfpPQc9Lexrejd7wP6w29dyKvNWYw65WTd203zUgpltS0cyWDCjUepBecZglgSg8GMIx6E00HM
+	wmgffvu/fAJpDDlggtHzRZD4Us/Kx/i8=
+X-Gm-Gg: AfdE7ckr2EfH2lXZOj71Bep2ganJ29ruImD0huNXo/1yjUhRsTYIxoCYa66PdPUXcq6
+	T72MVww/hHmk49E8blsbUsBuE9TTbhwBvrr4aE/bl0LaG+3AmFjpV/G4JBAcETrniLE3XL5vSWe
+	tBtUnqD9XEbfx8gmgv/H1ZANwletCUFdWhFLr/tMAAz/CXNWZQiMTuLqmdJZPm4o8rVK3Ap97nq
+	cq7cVVOrpxxaM3vxd6PvBrRWAjvd275apQrzYpsJY0O5Fuxfd3yk8/4NoJAj87RYsGc9Xz9PbI=
+X-Received: by 2002:a53:cf51:0:b0:667:c532:a185 with SMTP id
+ 956f58d0204a3-667d7edb7fcmr6237074d50.89.1784015670754; Tue, 14 Jul 2026
+ 00:54:30 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+References: <20260708062212.715437-1-lgs201920130244@gmail.com> <12edcc56-8f9f-4f36-b5ca-8a4ba0f3d9f3@linux.alibaba.com>
+In-Reply-To: <12edcc56-8f9f-4f36-b5ca-8a4ba0f3d9f3@linux.alibaba.com>
+From: Guangshuo Li <lgs201920130244@gmail.com>
+Date: Tue, 14 Jul 2026 15:54:20 +0800
+X-Gm-Features: AVVi8Cc7hmvd09gLByZDZpeMbaurT00gVCP8hv-UwV-m5okafaprawe5TiN1R3Q
+Message-ID: <CANUHTR8JM29R=uyc_Abn-Cf=7T9QCvRi-hEPVD9-kksWf1Np9Q@mail.gmail.com>
+Subject: Re: [PATCH] ocfs2: free claimed clusters when defrag move fails
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Tristan Ye <tristan.ye@oracle.com>, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-On Mon, 2026-07-13 at 11:58 +0200, Christoph Hellwig wrote:
-> On Fri, Jul 10, 2026 at 09:51:09AM -0700, Viacheslav Dubeyko wrote:
-> > On Fri, 2026-07-10 at 07:07 +0200, Christoph Hellwig wrote:
-> > > Hi all,
-> > >=20
-> > > we have 7 users of blockdev_direct_IO and one of the lower-level
-> > > __blockdev_direct_IO left, and I'd really like to get rid of
-> > > them.
-> > >=20
-> > > The filesystems are affs, fat, hfs, hfsplus, jfs, nilfs2, udf and
-> > > ocfs2,
-> > > and you are the relevant maintainers.=C2=A0 In 7.2 exfat converted
-> > > entirely
-> > > to iomap, which would be a really good example for a "simple"
-> > > file
-> > > system.=C2=A0 Another options especially for the file systems
-> > > supporting
-> > > foreign formats would be to just drop direct I/O support and
-> > > reduce
-> > > the support burden.
-> >=20
-> > I like the idea. I think we can try to switch HFS/HFS+ and NILFS2
-> > on
-> > iomap approach. Do you have some initial patches for this? Which
-> > particular commit(s) converted the exfat to iomap? It will be good
-> > to
-> > take a deeper look into this conversion to estimate the complexity
-> > of
-> > HFS/HFS+, NILFS2 modifications.
->=20
-> Almost all commits in fs/exfat/ in 7.2-rc1, starting with
-> 623f0aa1eca5c2a94ca1e4e5de719d062eac3b6c
+On Thu, 9 Jul 2026 at 11:59, Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+>
+>
+>
+> On 7/8/26 2:22 PM, Guangshuo Li wrote:
+> > ocfs2_defrag_extent() claims new clusters before calling
+> > __ocfs2_move_extent(). If __ocfs2_move_extent() fails, the newly claime=
+d
+> > clusters have not been attached to the inode extent tree, but the error
+> > path only logs the error and continues.
+> >
+> > The following ocfs2_cow_sync_writeback() call can then overwrite the
+> > original error with 0, while the claimed clusters are left allocated an=
+d
+> > unreferenced.
+> >
+> > Set need_free and leave through out_commit when __ocfs2_move_extent()
+> > fails, so the claimed clusters are released and the original error is
+> > returned to the caller.
+> >
+> > Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
+> > Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
+> > ---
+> >  fs/ocfs2/move_extents.c | 5 ++++-
+> >  1 file changed, 4 insertions(+), 1 deletion(-)
+> >
+> > diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> > index ad1678ee7cc4..4f1745d58a88 100644
+> > --- a/fs/ocfs2/move_extents.c
+> > +++ b/fs/ocfs2/move_extents.c
+> > @@ -310,8 +310,11 @@ static int ocfs2_defrag_extent(struct ocfs2_move_e=
+xtents_context *context,
+> >
+> >       ret =3D __ocfs2_move_extent(handle, context, cpos, new_len, phys_=
+cpos,
+> >                                 new_phys_cpos, ext_flags);
+> > -     if (ret)
+> > +     if (ret) {
+> >               mlog_errno(ret);
+> > +             need_free =3D 1;
+> > +             goto out_commit;
+> > +     }
+> >
+> >       if (partial && (new_len !=3D *len))
+> >               *len =3D new_len;
+>
+> __ocfs2_move_extent() calls ocfs2_split_extent() partway through, which
+> repoints the tree at new_phys_cpos, then can still fail in
+> ocfs2_decrease_refcount() (-ENOMEM from ocfs2_read_refcount_block()) or
+> ocfs2_truncate_log_append() (-ENOSPC). Neither aborts the handle.
+>
+> On those failures the new out_commit path frees new_phys_cpos/new_len and
+> commits, so the clusters are both referenced by the extent tree and marke=
+d
+> free.
+>
+> Thanks,
+> Joseph
 
-OK. Thanks for sharing this. :) Let me take a look and spend some time
-on this. I should have a time for checking commits during this week. I
-hope so. :)
+Thanks, you are right. My patch incorrectly assumed that every error
+from __ocfs2_move_extent() occurs before the extent tree is repointed.
+The ext_flags validation failure I was targeting is pre-split, but
+ocfs2_decrease_refcount() and ocfs2_truncate_log_append() can fail
+after a successful split. I will rework the fix to preserve the
+original error while freeing the claimed clusters only when the split
+has not been attempted.
 
-Thanks,
-Slava.
+Thanks=EF=BC=8C
+Guangshuo
