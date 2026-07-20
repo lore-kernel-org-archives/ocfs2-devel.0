@@ -1,236 +1,157 @@
-Received: from mail-yw1-f172.google.com (mail-yw1-f172.google.com [209.85.128.172])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from sender-op-o17.zoho.eu (sender-op-o17.zoho.eu [136.143.169.17])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 375FE3DCDAB
-	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 14:21:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.128.172
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DEBA4399002
+	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 17:08:37 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.169.17
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784557310; cv=pass; b=im6Qlit/h6k9HxdEbPzP7h1qKC4k+1CcmvSUQNMpT4ESb5ZWwAs6v0M7+P2IporbQB3FG1SBsaBfufsD1SKbxcNWPRMAq0CjhkP5l/9ITiOAKjYegd9BBjMp73H7/0rcZJvh9jK5wdA66htGQXUwHxhSH6y2Eux0h6nhbHDwi1o=
+	t=1784567319; cv=pass; b=rAswFaQGOdJlLjAbiu72F5vHNxGqPNulaoP/lRbJ0W2oAdLvrt/TrC3Luzs+a68xHub3v0hD+I/fun9Ty2VoAdXDtAfky64OlLu6M6xbxNEqvOQEsnYpXGPPRXqOjtDVIj8Hb29ESKzHGZk5z5ieH4sPAiBW5AsRnVel9W/bm0E=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784557310; c=relaxed/simple;
-	bh=WEwwCETDlsNQJFv5hY3ZkCq1BoftM3bbFquctiAMLJ8=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=krOzkoLGv/Mn/jwu55re/Pg0yaAfLxpg8idluXdfB8aTRnY3Lzp5ZFypl6cxLBEo/Rb1Lc9Y92Krowge/LOw3QIeehTkkVS/5XZuuszGQ9DEvVUX9wttFvkGMCnb/+dSWzQS91FDiA3bQxYnrgeoq2J5ptaxfE0l5gJw74yF75s=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=blo3LZvG; arc=pass smtp.client-ip=209.85.128.172
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1784567319; c=relaxed/simple;
+	bh=jAAPr+NzkcF2+Oosp8LKgy5a74mmAcQ21+C08Ruro/k=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Qj1uDFV11apCziOXP0IW8W9JoNvPr9ikio31S8UUX6IfrhwRd9+iY8ZQt3l3Ye8bGgUmRVf6X3GDH0sb5FH0TwaBWigt3jbpIyeQuWadU3IhKZtctJCCsV9sVRa6IjvwlJGV64wiCgVzUiSY6yEcRng9L7xt/04EoPPjIh3xTJk=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=auditcode.ai; spf=pass smtp.mailfrom=auditcode.ai; dkim=pass (1024-bit key) header.d=auditcode.ai header.i=security@auditcode.ai header.b=baT3UPtC; arc=pass smtp.client-ip=136.143.169.17
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=auditcode.ai
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=auditcode.ai
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="blo3LZvG"
-Received: by mail-yw1-f172.google.com with SMTP id 00721157ae682-81e69a2db34so52424607b3.0
-        for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 07:21:48 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1784557308; cv=none;
-        d=google.com; s=arc-20260327;
-        b=DTy2RfgQe8EzzWdBTNsRhqUxe2kDmoXxGoN/aS97sszllOnCkuKUiUwkBrxaXhnGWR
-         gCLyGEqx5NuON26a/MGzQOsbUYlNdPWQb8qHuQy7i3P6q/EBH0AgLHTbTx6mI36ckocg
-         WGy8xQBv0Xewu0zL36Q6hy0XEEAMQikkucyuLmWh76wuO2PNeu3GzhHnzXqBsY2kuwof
-         bz4STi52chCJogRooyvezJ7NE4G7+/w4MK6ElNFO+b/RJJSYgu6gfujrqSH44X1ON1IH
-         L0IE3bx25cD2lz7fEkmQkazuPgUOpnZhYOzg3dr+8vvMnPP1tZ7B2PxY3Jl+7Dz6mKUe
-         ppDg==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=cc:to:subject:message-id:date:from:in-reply-to:references
-         :mime-version:dkim-signature;
-        bh=YEL/okeXjUlwjJKcmLwYHGsfz5XUTlwUM/c5E7Dfnl4=;
-        fh=k89a9n86f/iWizPSkBWBJmejCZ2G0fNxnE5KamFxuMw=;
-        b=iCiYFnvs+/63i6PfyvmUKslGk23zDdZIvfIWgWnAnU0VPuH2HbY/OcpON3CRt22kfI
-         adll6pKPHDe3UJxWkGA2hIVU14t+gF6D6+6MdbFMKCxtjKUfni9+CIcpT07i6CeJmlci
-         enMAPvO2hMEWY0WImpIDVn71zqehkLV7Yp6oNzOk2/QOnZrR89BUSBbrtX7onVEuEfTZ
-         HzQvSaQ7AsJjm5uySNx4Bvkln4mMVtP6SndQ0KJlcB04FrZvPvUKIFziDyYMYzPbJvmP
-         nLSuHoXX0QG+xjOJmiXzaTyCLkeW/lG7mLYWu73ThJ/SyoVUcFoR30XNjylxartdizxt
-         kb1w==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1784557308; x=1785162108; darn=lists.linux.dev;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=YEL/okeXjUlwjJKcmLwYHGsfz5XUTlwUM/c5E7Dfnl4=;
-        b=blo3LZvGjz5TkZmYhaoogVNoKR47s0YsfWKkkb7zomZJg8UDR8R/MDRATiJhJPtvch
-         k/T9ghz0UtCc1bd6gFWqcr/0xoJKlDWTQyGNRRNv2GlBZ47r4xvX2v4SotQLJPam+9bY
-         hoLLQLatRTsgmJZs7BYs2Wd41Wi0cmtFjCHl411gX0LZI3QzLZZv9+e5WbyHtik9BrQw
-         koaL6JoGkgnG2u3+bOzE3VARC3m4jjuGcOVaFES4YBTb94pLJSX2/PXxkjr4cC+Ql24H
-         zGKFGtA79b5yY4WnIbf/elVIYxc9AQS4eXrbHi82HoUdCBCP5DgZItoZvnMhcghRUy52
-         txOg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1784557308; x=1785162108;
-        h=content-type:cc:to:subject:message-id:date:from:in-reply-to
-         :references:mime-version:x-gm-gg:x-gm-message-state:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=YEL/okeXjUlwjJKcmLwYHGsfz5XUTlwUM/c5E7Dfnl4=;
-        b=DngGOmuu1VrRIe77njik01Ez8ihqEfUHsVIbOLXMbb9DTmvf2nUA4f4QeFSmF8S2wQ
-         T0+S2TXQVi2gRse86KX+WmeKyTubCQdFviPRg7Ptnswle6/N8kErP4sLY6OqY1+FePiC
-         dMqteXAPjguGAjjFx44X3ChmshXJLdZPHi0L/DsDafONJKU4GZr3pXg4E8+AWjJvXAmn
-         IPlG+aP/hbXGBVjnfbn1gf0ct8MhHJ6LraYU0+XP3UZrgecKpxcM2C+wXtSnlUId2H/v
-         W5soHrUe511tjOrtPgCx8/MX79yeSLS8/YiOdWQm+wqAtWZeWwpUz9fd9Kdq1sdD8g2U
-         i1Kg==
-X-Forwarded-Encrypted: i=1; AHgh+Ro9J2wh3l/3xocFt+UcANuOgFKVLqfn487EW6KU1i3IOhuusRqxlynm/zAKWghHOB/+QEHT0wAEHqCjIA==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw7xbrabyJBogBdFtQDVXYsfmosQLlK0YTbpCsNftNDCFq6gksH
-	Lso5rcfSWXvBjrlNCGjihh3bDDIIptB1k9Ucr/KPavEd7pOpK3bhQcEFMV/tTdCmMb9FOD12mDS
-	vIuqwqPrEp2Qf0BTyOvJ8aa250YvpVM8=
-X-Gm-Gg: AR+sD10BllQsmj4t5rQjkwJIg2xCG9EcQsfqF/G14ET2WIN7nSSDaZNoUwxGeOu+jEi
-	x11wXiqLIITTtYyhbOuov+czKXcp2+36wYmgAwMoRUOYaSeqhLDHhegpGsN+8tjPesx/nc2pYDT
-	HHOXza3aWBOYLYDyih+muMuhL2hrRtnhOjbjVs8xD+/xutiwRO+IZYdU2UA8gjW46GaAvZ/Zfdc
-	8N4C0PFc8iUvaRaMRzsefoSHli5Rn/6f7Ke/nRjz6PHSyQH0xULVHhLIwwzO0I=
-X-Received: by 2002:a05:690c:3505:b0:81e:6c2e:f113 with SMTP id
- 00721157ae682-81ef2857f57mr45877217b3.36.1784557307892; Mon, 20 Jul 2026
- 07:21:47 -0700 (PDT)
+	dkim=pass (1024-bit key) header.d=auditcode.ai header.i=security@auditcode.ai header.b="baT3UPtC"
+ARC-Seal: i=1; a=rsa-sha256; t=1784567313; cv=none; 
+	d=zohomail.eu; s=zohoarc; 
+	b=SzfDqKeOLlt/lE1+eZOcJiPT7P7J3Dky+E/Uw0Dme6Hy25aEl6X5n9DR6paMyrNuv8ayC8yCb/5h3Nh2LbUHWfDLTz8VEMvo1J6rsotA8pJb25kTtRw8YAP2If+G88nSE0f+yj1rM28YoeF9K9Lj5KLNpKpcit4Xr8MDlIAJAwM=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.eu; s=zohoarc; 
+	t=1784567313; h=Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To; 
+	bh=Q+odzwMiVWZ3Eq1b7HuOgOgBPZLqMNN6vIgDe0sl3xk=; 
+	b=kbuijMIrSOwBSS2Uw/lAdlXUt9M29VWM36cFqiuP13inmpU2va0mU0I8n63/Cn2W2h2oD/XORrFEgouLCzfVgd4ZUyqjb1zeMGA+1rQn5+9c3vapaUZw4wLBgBWrt7UtMUK34xfoXfNH/LgdBiZiCTCmDiUODv8FRWzuUmF6Ye0=
+ARC-Authentication-Results: i=1; mx.zohomail.eu;
+	dkim=pass  header.i=auditcode.ai;
+	spf=pass  smtp.mailfrom=security@auditcode.ai;
+	dmarc=pass header.from=<security@auditcode.ai>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1784567313;
+	s=zmail; d=auditcode.ai; i=security@auditcode.ai;
+	h=From:From:To:To:Cc:Cc:Subject:Subject:Date:Date:Message-ID:MIME-Version:Content-Transfer-Encoding:Message-Id:Reply-To;
+	bh=Q+odzwMiVWZ3Eq1b7HuOgOgBPZLqMNN6vIgDe0sl3xk=;
+	b=baT3UPtCIAQgzZQuUY4DP4Z4Fyuf/f3WPLZEzmmgP4bZMAxItjicGpTfUvIH2MTz
+	RFKMmssBvn6NjztE4mlH80gQnKnN7Gu2OYwq8xhVrppRq1tE1gSAfFAnuwecs+vb5s/
+	xY4Qg2XiwzQWd6QpW9MQE701N3wMS+PeNqFF5vXU=
+Received: by mx.zoho.eu with SMTPS id 1784567311239469.60805300631216;
+	Mon, 20 Jul 2026 19:08:31 +0200 (CEST)
+From: Ibrahim Hashimov <security@auditcode.ai>
+To: joseph.qi@linux.alibaba.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	stable@vger.kernel.org
+Subject: [PATCH] ocfs2/dlm: validate lockname_len in dlm_mig_lockres_handler()
+Date: Mon, 20 Jul 2026 19:08:28 +0200
+Message-ID: <20260720170828.11476-1-security@auditcode.ai>
+X-Mailer: git-send-email 2.50.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260714113517.1381604-1-lgs201920130244@gmail.com> <910f147b-baaa-441f-b532-8858f8d43d85@linux.alibaba.com>
-In-Reply-To: <910f147b-baaa-441f-b532-8858f8d43d85@linux.alibaba.com>
-From: Guangshuo Li <lgs201920130244@gmail.com>
-Date: Mon, 20 Jul 2026 22:21:34 +0800
-X-Gm-Features: AUfX_mxzNJs9YoWDwWlmakS-quV6yhdpZ-hCMUrLRog9uycxaVj-yn5HhVsDgsw
-Message-ID: <CANUHTR-PTkMvD_wmd3SXAQ2tv=ynnWFG1b0FDambQ4+s+ZE9Ug@mail.gmail.com>
-Subject: Re: [PATCH v2] ocfs2: free unused clusters on defrag move errors
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Tristan Ye <tristan.ye@oracle.com>, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org
-Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: 8bit
+X-ZohoMailClient: External
 
-Hi Joseph,
+dlm_mig_lockres_handler() handles an incoming DLM_MIG_LOCKRES_MSG o2net
+message from a remote DLM domain node and copies the migratable lockres
+straight out of the wire buffer:
 
-Thanks for the review.
+    struct dlm_migratable_lockres *mres =
+        (struct dlm_migratable_lockres *)msg->buf;
+    ...
+    res = dlm_new_lockres(dlm, mres->lockname, mres->lockname_len);
 
-On Mon, 20 Jul 2026 at 11:09, Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
->
->
->
-> On 7/14/26 7:35 PM, Guangshuo Li wrote:
-> > ocfs2_defrag_extent() claims new clusters before calling
-> > __ocfs2_move_extent(). If the move fails before the extent tree update
-> > is attempted, the claimed clusters are not referenced by the inode and
-> > must be released.
-> >
-> > The current error path only logs the error and continues to
-> > ocfs2_cow_sync_writeback(), which can overwrite the original error with
-> > zero. The claimed clusters are also left allocated.
-> >
-> > Not every __ocfs2_move_extent() error can free the new clusters,
-> > however. Once ocfs2_split_extent() has been called, the extent tree may
-> > already reference them even if a later operation fails. Freeing them in
-> > that case would leave the extent tree pointing to clusters marked free.
-> >
-> > Track whether the extent split has been started. On errors before that
-> > point, report that the new clusters remain unused so the defrag caller
-> > can release them. Once the split has started, leave the clusters
-> > allocated. Return all move errors through the transaction cleanup path
-> > without allowing writeback to overwrite them.
-> >
-> > Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
-> > Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
-> > ---
-> > v2:
-> >   - Do not free the new clusters after the extent-tree update has
-> >     started, as pointed out by Joseph Qi.
-> >   - Track whether the new clusters remain unused on error.
-> >   - Preserve __ocfs2_move_extent() errors instead of allowing the
-> >     subsequent writeback call to overwrite them.
-> >
-> >  fs/ocfs2/move_extents.c | 23 +++++++++++++++++++----
-> >  1 file changed, 19 insertions(+), 4 deletions(-)
-> >
-> > diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> > index ad1678ee7cc4..138c65d21668 100644
-> > --- a/fs/ocfs2/move_extents.c
-> > +++ b/fs/ocfs2/move_extents.c
-> > @@ -49,9 +49,10 @@ struct ocfs2_move_extents_context {
-> >  static int __ocfs2_move_extent(handle_t *handle,
-> >                              struct ocfs2_move_extents_context *context,
-> >                              u32 cpos, u32 len, u32 p_cpos, u32 new_p_cpos,
-> > -                            int ext_flags)
-> > +                            int ext_flags, bool *new_clusters_unused)
-> >  {
-> >       int ret = 0, index;
-> > +     bool split_started = false;
-> >       struct inode *inode = context->inode;
-> >       struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> >       struct ocfs2_extent_rec *rec, replace_rec;
-> > @@ -59,6 +60,10 @@ static int __ocfs2_move_extent(handle_t *handle,
-> >       struct ocfs2_extent_list *el;
-> >       u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
-> >       u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
-> > +     bool split_started = false;
->
-> Duplicate declaration?
->
-> > +
-> > +     if (new_clusters_unused)
-> > +             *new_clusters_unused = false;
-> >
-> >       ret = ocfs2_duplicate_clusters_by_page(handle, inode, cpos,
-> >                                              p_cpos, new_p_cpos, len);
-> > @@ -111,6 +116,7 @@ static int __ocfs2_move_extent(handle_t *handle,
-> >        */
-> >       replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
-> >
-> > +     split_started = true;
-> >       ret = ocfs2_split_extent(handle, &context->et, path, index,
-> >                                &replace_rec, context->meta_ac,
-> >                                &context->dealloc);
-> > @@ -138,6 +144,9 @@ static int __ocfs2_move_extent(handle_t *handle,
-> >
-> >       ocfs2_update_inode_fsync_trans(handle, inode, 0);
-> >  out:
-> > +     if (ret && !split_started && new_clusters_unused)
-> > +             *new_clusters_unused = true;
-> > +
-> >       ocfs2_free_path(path);
-> >       return ret;
-> >  }
-> > @@ -209,6 +218,7 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
-> >       struct ocfs2_refcount_tree *ref_tree = NULL;
-> >       u32 new_phys_cpos, new_len;
-> >       u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
-> > +     bool new_clusters_unused;
-> >       int need_free = 0;
-> >
-> >       if ((ext_flags & OCFS2_EXT_REFCOUNTED) && *len) {
-> > @@ -309,9 +319,14 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
-> >            phys_cpos, new_phys_cpos);
-> >
-> >       ret = __ocfs2_move_extent(handle, context, cpos, new_len, phys_cpos,
-> > -                               new_phys_cpos, ext_flags);
-> > -     if (ret)
-> > +                               new_phys_cpos, ext_flags,
-> > +                               &new_clusters_unused);
->
-> Seems we can reuse 'context->new_phys_cpos' to check if need free without
-> changing __ocfs2_move_extent() prototype.
->
-> Thanks,
-> Joseph
->
-> > +     if (ret) {
-> >               mlog_errno(ret);
-> > +             if (new_clusters_unused)
-> > +                     need_free = 1;
-> > +             goto out_commit;
-> > +     }
-> >
-> >       if (partial && (new_len != *len))
-> >               *len = new_len;
-> > @@ -684,7 +699,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
-> >       }
-> >
-> >       ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
-> > -                               *new_phys_cpos, ext_flags);
-> > +                               *new_phys_cpos, ext_flags, NULL);
-> >       if (ret) {
-> >               mlog_errno(ret);
-> >               goto out_commit;
->
+mres->lockname_len is a raw u8 field taken verbatim from the network
+message (dlmcommon.h), so it can be anywhere in [0, 255].
+dlm_new_lockres() forwards it unchanged into dlm_init_lockres():
 
-You are right about the duplicate declaration. Reusing
-context->new_phys_cpos is also simpler and avoids changing the
-__ocfs2_move_extent() prototype.
+    qname = (char *) res->lockname.name;
+    memcpy(qname, name, namelen);
 
-I will update the patch and send v3.
+res->lockname.name is allocated from dlm_lockname_cache, a dedicated
+kmem_cache sized exactly DLM_LOCKID_NAME_MAX (32) bytes
+(dlm_init_master_caches(), dlmmaster.c). Any lockname_len above 32
+therefore makes memcpy() write past the end of that 32-byte slab object;
+the maximum attacker-controlled value of 255 yields a 223-byte
+slab-out-of-bounds write (CWE-787) with fully attacker-controlled content
+(the bytes are mres->lockname itself).
 
-Thanks,
-Guangshuo
+The o2net receive path only bounds-checks the whole payload against
+nh_max_len (cluster/tcp.c); it has no notion of the lockname_len
+sub-field and cannot catch this. Every other DLM message handler that
+consumes an attacker-supplied name length already guards it against
+DLM_LOCKID_NAME_MAX right after pulling it out of the wire structure:
+dlm_master_request_handler(), dlm_assert_master_handler(),
+dlm_deref_lockres_handler() and dlm_deref_lockres_done_handler()
+(dlmmaster.c), and the equivalent check in dlmconvert.c / dlmast.c.
+dlm_mig_lockres_handler() is simply missing the same check -- present
+since the file's introduction and never covered because exercising it
+requires two heartbeating o2cb cluster nodes and a joined DLM domain,
+i.e. it is invisible to single-node testing and to fuzzers that don't
+speak the o2net/o2cb protocol.
+
+The attacker is any node it fully controls (or is on-path and can spoof)
+that is heartbeating in the same o2cb cluster and has been permitted to
+join the DLM domain. o2net authentication is limited to cluster
+membership (nodes list + heartbeat), not per-message payload validation,
+so a single rogue or compromised cluster member, or an on-path attacker
+able to inject on the unauthenticated o2net TCP stream, can send one
+crafted DLM_MIG_LOCKRES_MSG frame with lockname_len = 255 to any other
+domain member and corrupt adjacent dlm_lockname_cache slab objects,
+leading to memory corruption and, depending on slab layout, a crash or
+worse.
+
+Reject the message before it reaches dlm_new_lockres() /
+__dlm_lookup_lockres_full() if mres->lockname_len exceeds
+DLM_LOCKID_NAME_MAX, mirroring the validation idiom already used by the
+sibling handlers above. The check is placed immediately after the
+existing dlm_joined() gate, before any use of mres->lockname /
+mres->lockname_len, and follows this function's own early-return style
+(dlm_put(dlm); return -EINVAL;) rather than the later "leave:" label,
+since at this point buf/item are still NULL and no refs have been taken.
+This is the smallest possible fix: one bounds check, no change to wire
+format, on-disk format, or any other code path.
+
+Reproduced on a v6.19 KASAN-instrumented kernel with an in-kernel
+injector that calls dlm_mig_lockres_handler() directly (bypassing the
+o2net accept/heartbeat gate that otherwise requires a second heartbeating
+cluster node) against a live single-node OCFS2/o2cb DLM domain. A control
+frame with lockname_len = 8 completed cleanly; an otherwise-identical
+frame differing only in lockname_len = 255 reliably produced
+"KASAN: slab-out-of-bounds in dlm_new_lockres", deterministically and
+with no dependence on timing or allocator state. Full network delivery
+over a real two-node o2cb cluster was not exercised: the injector proves
+handler-reachability and the write is deterministic once the handler
+runs, but the o2net wire path itself was not verified end-to-end.
+
+Fixes: 6714d8e86bf4 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+Cc: stable@vger.kernel.org
+Signed-off-by: Ibrahim Hashimov <security@auditcode.ai>
+Assisted-by: AuditCode-AI:2026.07
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 9b97bf73df22..ec7edffc8ca8 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -1366,6 +1366,12 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
+ 		return -EINVAL;
+ 	}
+ 
++	if (mres->lockname_len > DLM_LOCKID_NAME_MAX) {
++		mlog(ML_ERROR, "Invalid name length!");
++		dlm_put(dlm);
++		return -EINVAL;
++	}
++
+ 	BUG_ON(!(mres->flags & (DLM_MRES_RECOVERY|DLM_MRES_MIGRATION)));
+ 
+ 	real_master = mres->master;
+-- 
+2.50.1 (Apple Git-155)
+
