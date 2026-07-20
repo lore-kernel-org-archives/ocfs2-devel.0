@@ -1,47 +1,73 @@
-Received: from forward205a.mail.yandex.net (forward205a.mail.yandex.net [178.154.239.88])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f175.google.com (mail-pl1-f175.google.com [209.85.214.175])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 27CFB4014A1
-	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 11:47:43 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.88
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C17FE429006
+	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 14:19:59 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.175
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784548070; cv=none; b=YSDoH+hSBNvZbx0Hx7SdJiQJai4kWKtH6JfdPrhkpjcwuk2BNdCoN7hb2MtQG5vipWTodEsRX/bsZM8Prf86fHAr908Atjk4VjScNMGdAnEA6WHPoaNKzay1G7r7ID+eOi1vHIWk8H1nxKQxiryiVD/WOXDNdGUIotUujm0kI5I=
+	t=1784557201; cv=none; b=j5Qf3/32Dw5nhDma0lF2/VIL83SnidYVEBkUaUu8j1WL9iCTjhqgR5ZuQ60g4tGcyGI5JAkNPWb1PIGFJlPDpjkwJQT0EJnw90kKQgBVVQm5a3FAINKfwcgmrT0LMkxsgRtWKgxZ1gyApLzZzR/jvLzeAR58/jeoIX4/2Xf3uic=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784548070; c=relaxed/simple;
-	bh=dv+nU5hkUZ8BellW0wAl50eXLNdX/rP/9LOQQ7afCVA=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=iT1kOobMDN9WMHXuNmI60cBiPs1Z/KfGtBxzuj2xAiOrcpX7UL7sPTAJkziajosf5+Yk8x7goFiPvSAExRbX24x0FDJkChvVAcslqkItlerrruo81cLTJlUpjm81H+dAP8Gr51JlFUFVkSRumyPKxyD1xcnGPF0ZS19oJxI2bJ8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=FJ+Z+/sP; arc=none smtp.client-ip=178.154.239.88
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	s=arc-20240116; t=1784557201; c=relaxed/simple;
+	bh=oaAbz8G8f2X7RTP1P1HJ+1cflrmoJylc1nG/N2BbeVM=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=t+yXXqs/TYcX9+dR+ajKRbM0//MDl9rf0/W6vBYuIhpbnq4fogd3HW+F8T88I7eSTY7rgxgsdZhK92pyIT11isAn+zI7BNvjyMPH3vbuy+fDd4jxuMalZ23VUl9F0ujGoF0qcBfcY/g/ne3MU7ZqLH3BGBa9vxPX+LewqEhjz5k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=sLl8xhhy; arc=none smtp.client-ip=209.85.214.175
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="FJ+Z+/sP"
-Received: from forward102a.mail.yandex.net (forward102a.mail.yandex.net [IPv6:2a02:6b8:c0e:500:1:45:d181:d102])
-	by forward205a.mail.yandex.net (postfix) with ESMTPS id 2EC5BC2B82
-	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 14:42:30 +0300 (MSK)
-Received: from mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net [IPv6:2a02:6b8:c1f:582e:0:640:200:0])
-	by forward102a.mail.yandex.net (postfix) with ESMTPS id A2D62C0189;
-	Mon, 20 Jul 2026 14:42:21 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net (smtp) with ESMTPSA id JgTkit2f4Os0-laKA29ce;
-	Mon, 20 Jul 2026 14:42:21 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1784547741; bh=L5C+9XnLV8C8SJ6IQegsVixwjDxGMxTXYx3uGY38tsM=;
-	h=Message-ID:Date:Cc:Subject:To:From;
-	b=FJ+Z+/sPDQSxvFUS+WCpfIkoWqZ4O8P1KeEKqDvuFOXHZac25YPKzUP4fjDt0Gq0X
-	 w9mEC487aqW1KtlPJYTMNS9gxr6JTW+lMg+enuQOITo0JyR/1/LqKTl7KcJMRmPa6N
-	 Sm6RCmvp3y2fV7AbTPLtcl76epNeBFAT4sl4DuQY=
-Authentication-Results: mail-nwsmtp-smtp-production-main-55.vla.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-From: Dmitry Antipov <dmantipov@yandex.ru>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>
-Cc: ocfs2-devel@lists.linux.dev,
-	lvc-project@linuxtesting.org,
-	Dmitry Antipov <dmantipov@yandex.ru>
-Subject: [PATCH] ocfs2: always run deallocs on copy-on-write completion
-Date: Mon, 20 Jul 2026 14:39:57 +0300
-Message-ID: <20260720113957.58219-1-dmantipov@yandex.ru>
-X-Mailer: git-send-email 2.55.0
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="sLl8xhhy"
+Received: by mail-pl1-f175.google.com with SMTP id d9443c01a7336-2ceab75934dso105976155ad.2
+        for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 07:19:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1784557199; x=1785161999; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=e7d4MGOSniHAE+Fyu0H72S0OaeGQ/IROc3PriVSjYUc=;
+        b=sLl8xhhyAKdrcLlZXEsdQ/m0zq1RxpGocLUzCYAdFWjqxnXBEquCMVL5jPMQcsVjW6
+         8bRXqw3n1VtUQpCaQMFDUDP0rbgTs4Y1Gzsqm+Nwd89Cj5gIs+YqAV6NzFccKqSZDV5Y
+         Pa8vL/QTw0qU2W5q90tkBppWTEv8R8nTFKSuuXKVBpVWkFT2khG7uZjAZSHupOjy1/ml
+         SkOvUawWvb6QwoxDEqCQRhUO90nJHSCWX1PBfuVEhKiNQX0E3nOP6RSh3lure9844XTE
+         aLlrRxdtJTpRqehfU+bbOBaYj2J2f9coz/7EYVAEmd+zDS29HsgsydQh3ZfqG+xoDoyT
+         OB9Q==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1784557199; x=1785161999;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=e7d4MGOSniHAE+Fyu0H72S0OaeGQ/IROc3PriVSjYUc=;
+        b=idCANZn8ZUfoq3IO9mqiAcXG7glJqOTTQcaLIe7cmEHLl0H/rPCGrVyY7VSZteLFJP
+         6bqpwEXf20PHfKpUMG/41JGAk0Gz1ajdqQzshFOKJWvPHuzeZLdi4q++Z+uessbbFknU
+         4PL6GRTgmV1xewhuw0Mc86qRXR69VoUXNTZBOulAuy8Gih+Zc7JKGAklLYX5FDDkLxM/
+         EdTZ+g4ZFijAK8QJKq7eVS8//feunY1EE6q6xBqdVEImzP6T97mcpOQ+mA3RtGNoX7AM
+         eSqXNmTV0wD6tTwGTqM2va+mfMMoTXqqIbRimdYLuKGQUKw/JC//rLugiCt/LWc2hq0T
+         lV/A==
+X-Forwarded-Encrypted: i=1; AHgh+RrrOKtdtoSiODddU/yCBUuQYIfEiECauuIt1HLopufNVTWi7awABdI7ypU0OnUaeOw+u3sjX8V5GJBNbw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YymthZix6164jtGvfyd2d2PRaBl9B7WXIAQPG5sdaX6yPIEOmbw
+	sfUFw1+bF0pexfHMruMWKeTHj3cWPDxetC6uIFNdibFhBEqwbx8gVNSWWbklLW7ssqg8lQ==
+X-Gm-Gg: AR+sD11ee6W03jVWMBLSrL58cRotsH603Lk5GHHdV2fWQiKbmxmBOZAWqi7S3rccuHO
+	MxjwHxWY9s9xTL7jGhRUKnAtIEOOkqY8N3u3YT0ypZAfiE5AQNps/eX4RN+mHFdw/FzVjLtEuc7
+	GUN5cOfbAQGl4vZEdifvWk1QXl6uOKgNUmysJj3qIIP3jz8T2sHTweQ/BIFCelCFT6mpdlvfv+p
+	TbE21l23ltCAEzXmP/x0x7ubBF6LkW4ESICRW7Sksuz/2cp8JuKEYgskOEHGHvQzb0vW0ynmiHZ
+	fDPOGp5xWu6bhk3tdVl5LVYYfhz6UkFwuOYl5I0wAytzbT77ilwHQuKSpFTVxhEE6WMMkE9lXAh
+	oDj92q0RP3L3+9Vy5UqDF9oSW4h2PbAjoD8TOgMVpiYy2xHrK7ZCFJGkjIhVFNEmZN+iOo6ghdl
+	s=
+X-Received: by 2002:a17:902:f710:b0:2cf:7d44:e14f with SMTP id d9443c01a7336-2cf7d44f558mr4954095ad.26.1784557198961;
+        Mon, 20 Jul 2026 07:19:58 -0700 (PDT)
+Received: from lgs.. ([101.76.249.46])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2cf3479463bsm56844765ad.80.2026.07.20.07.19.56
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 20 Jul 2026 07:19:58 -0700 (PDT)
+From: Guangshuo Li <lgs201920130244@gmail.com>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Tristan Ye <tristan.ye@oracle.com>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Cc: Guangshuo Li <lgs201920130244@gmail.com>
+Subject: [PATCH v3] ocfs2: free unused clusters on defrag move errors
+Date: Mon, 20 Jul 2026 22:19:43 +0800
+Message-ID: <20260720141944.485212-1-lgs201920130244@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -50,110 +76,67 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Local fuzzing of 6.12.94 has found the following memory leak
-caused by doing 'copy_file_range()' within the same filesystem:
+ocfs2_defrag_extent() claims new clusters before calling
+__ocfs2_move_extent(). If the move fails before ocfs2_split_extent()
+succeeds, the claimed clusters are not referenced by the inode and must
+be released.
 
-unreferenced object 0xffff88812192c980 (size 32):
-  comm "syz.0.49", pid 12095, jiffies 4294964143
-  hex dump (first 32 bytes):
-    00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00  ................
-    c0 c5 92 21 81 88 ff ff 00 02 00 00 00 06 00 00  ...!............
-  backtrace (crc 7068d63f):
-    kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
-    slab_post_alloc_hook mm/slub.c:4152 [inline]
-    slab_alloc_node mm/slub.c:4197 [inline]
-    __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
-    kmalloc_noprof include/linux/slab.h:878 [inline]
-    ocfs2_find_per_slot_free_list fs/ocfs2/alloc.c:6618 [inline]
-    ocfs2_cache_block_dealloc+0x155/0x4b0 fs/ocfs2/alloc.c:6786
-    ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
-    ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
-    ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
-    __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
-    ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
-    ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
-    ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
-    ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
-    ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
-    ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
-    ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
-    ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
-    ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
-    ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
-    ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
-    iter_file_splice_write+0x890/0xf60 fs/splice.c:743
-    do_splice_from fs/splice.c:944 [inline]
-    direct_splice_actor+0x232/0x480 fs/splice.c:1167
-    splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
-    do_splice_direct_actor fs/splice.c:1210 [inline]
-    do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
-    do_sendfile+0x430/0xbf0 fs/read_write.c:1388
+The current error path only logs the error and continues to
+ocfs2_cow_sync_writeback(), which can overwrite the original error with
+zero and leave the claimed clusters allocated.
 
-unreferenced object 0xffff88812192c5c0 (size 32):
-  comm "syz.0.49", pid 12095, jiffies 4294964143
-  hex dump (first 32 bytes):
-    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
-    29 70 00 00 00 00 00 00 19 00 00 00 00 00 00 00  )p..............
-  backtrace (crc afec850f):
-    kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
-    slab_post_alloc_hook mm/slub.c:4152 [inline]
-    slab_alloc_node mm/slub.c:4197 [inline]
-    __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
-    kmalloc_noprof include/linux/slab.h:878 [inline]
-    kzalloc_noprof include/linux/slab.h:1014 [inline]
-    ocfs2_cache_block_dealloc+0x25c/0x4b0 fs/ocfs2/alloc.c:6793
-    ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
-    ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
-    ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
-    __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
-    ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
-    ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
-    ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
-    ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
-    ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
-    ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
-    ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
-    ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
-    ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
-    ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
-    ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
-    iter_file_splice_write+0x890/0xf60 fs/splice.c:743
-    do_splice_from fs/splice.c:944 [inline]
-    direct_splice_actor+0x232/0x480 fs/splice.c:1167
-    splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
-    do_splice_direct_actor fs/splice.c:1210 [inline]
-    do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
-    do_sendfile+0x430/0xbf0 fs/read_write.c:1388
+Not every __ocfs2_move_extent() error can free the new clusters. Once
+ocfs2_split_extent() succeeds, the extent tree references them even if
+ocfs2_decrease_refcount() or ocfs2_truncate_log_append() subsequently
+fails. Freeing the clusters in that case would leave the extent tree
+pointing to clusters marked free.
 
-This happens when 'ocfs2_cache_block_dealloc()' called from
-'ocfs2_cache_extent_block_free()' uses the suballocator to
-schedule extent removal, so 'ocfs2_run_deallocs()' should
-be run unconditionally to complete the removal with
-'ocfs2_free_cached_blocks()'.
+context->new_phys_cpos is updated immediately after a successful extent
+split. Compare it with the newly claimed physical cluster on error. If
+they differ, the split for the current move did not complete and the
+claimed clusters can be freed. If they match, leave the clusters
+allocated because the extent tree already references them.
 
-Fixes: 6f70fa519976 ("ocfs2: Add CoW support.")
-Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+Return move errors through the transaction cleanup path so that the
+original error is preserved instead of being overwritten by writeback.
+
+Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
+Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
 ---
- fs/ocfs2/refcounttree.c | 5 ++---
- 1 file changed, 2 insertions(+), 3 deletions(-)
+v3:
+  - Fix the duplicate split_started declaration.
+  - Reuse context->new_phys_cpos to determine whether the extent split
+    succeeded, as suggested by Joseph Qi.
+  - Avoid changing the __ocfs2_move_extent() prototype.
 
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 7323bde70caa..e659313a7383 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -3360,10 +3360,9 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
- 		cow_start += num_clusters;
- 	}
+v2:
+  - Do not free the new clusters after the extent-tree update has
+    started, as pointed out by Joseph Qi.
+  - Track whether the new clusters remain unused on error.
+  - Preserve __ocfs2_move_extent() errors instead of allowing the
+    subsequent writeback call to overwrite them.
+
+ fs/ocfs2/move_extents.c | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+index ad1678ee7cc4..7820df90a262 100644
+--- a/fs/ocfs2/move_extents.c
++++ b/fs/ocfs2/move_extents.c
+@@ -310,8 +310,12 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
  
--	if (ocfs2_dealloc_has_cluster(&context->dealloc)) {
-+	if (ocfs2_dealloc_has_cluster(&context->dealloc))
- 		ocfs2_schedule_truncate_log_flush(osb, 1);
--		ocfs2_run_deallocs(osb, &context->dealloc);
--	}
-+	ocfs2_run_deallocs(osb, &context->dealloc);
+ 	ret = __ocfs2_move_extent(handle, context, cpos, new_len, phys_cpos,
+ 				  new_phys_cpos, ext_flags);
+-	if (ret)
++	if (ret) {
+ 		mlog_errno(ret);
++		if (context->new_phys_cpos != new_phys_cpos)
++			need_free = 1;
++		goto out_commit;
++	}
  
- 	return ret;
- }
+ 	if (partial && (new_len != *len))
+ 		*len = new_len;
 -- 
-2.55.0
+2.43.0
 
