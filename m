@@ -1,32 +1,32 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 58723134CF
-	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 02:47:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81A0738AC7D
+	for <ocfs2-devel@lists.linux.dev>; Mon, 20 Jul 2026 03:14:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784515640; cv=none; b=Va09qFKz6+Axqj/EFdouXewqpuSnzLj1T6/kXwxq2Fbvq0FwUKq95YkJ3H4saMRo//GFPQJhHQ0iYy9rA9dSqm3FT1DUzshZUZFifEyuxrj2mumWIirePFh6JCcUOfRr7JjQjofF5G5j2go83n0DIGoyhldOrEqRyJAzpGiP6Hc=
+	t=1784517302; cv=none; b=lqrV5aIpswOyU5zY5O5kSpNrKFYW1Ho2B8Hze/1TqmO37GCc/JQQ6h4JiTQexJjNkznQjUPREqoU0v/XAcrpF1KfMmb4fIJ4cBNPS0vYdqp3v6Aa8i5BV7RfxUmmWSSombKvmFhWgVEv0PySWc0N+cALEaC7w14lkeB8z6dfafM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784515640; c=relaxed/simple;
-	bh=hNIRl+3aX/vBT9zD08DhIk34w9eWEGDq6tADaDcI8/k=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=oPq1OqtxxkEEmhpfKmdv0D0EDcDTL7fbhzXkRmUb2FY95vqbbAj3Enn8W8s6KLZIZo4xSx+c3v4/tm4ANJu+K41ubRuuAdsOljds+wEK0HVtKQIvHlLoDA5lWOPXrxsNiYAn1kN0wvJ73uTNuHtaZpoQVZKEkAM5v091LhsKuiE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=c+OEFYxq; arc=none smtp.client-ip=115.124.30.131
+	s=arc-20240116; t=1784517302; c=relaxed/simple;
+	bh=zG0RYla8DZ4MEMx36ZwFoGxPIBv3/gzg2rFozWWGA90=;
+	h=Message-ID:Date:MIME-Version:Subject:To:References:From:Cc:
+	 In-Reply-To:Content-Type; b=dt2qmPPpxuOJBQVta1Yq/+/RGBZui6gZ7046F8kakFSb79Uxqwzdy5rVCvRYiNZWLEVl1jiMNs6GIOAdP7+gpbhYuug8CtTg/+7xx+eig1uLgFCaOJiTu1O327MylpWK4ICktynJRJAIpnfg4HgFUuRBreG+SuH6leZLXKmLxwQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=oV5eIWgl; arc=none smtp.client-ip=115.124.30.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="c+OEFYxq"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="oV5eIWgl"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1784515629; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=e5LOcmX7xKjMVM12F6UNulCpTZdxcjkBqRkDZ93KUDs=;
-	b=c+OEFYxqmHDv8VgwwAYeL0VKBu52gQcoR5gibbsKa4/xmRnIePg/PjFrPnWVCJ4mb5ejIzpAGxOpVbOvfSX2r2AMkm3RYdF4GUhofb0djCTEb7WBzQIsvpmnWuhFOxjdbyaq/4N6RRzRA5LIpR4fimhfIdIhQ+FAfMgDd8QQpKQ=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R281e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0X7NGMCB_1784515626;
-Received: from 30.166.0.112(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7NGMCB_1784515626 cluster:ay36)
+	t=1784517291; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=ybzns7PqX7cQ5N0j8H3ReS6/3rN3YNtUpmwzwB3l4mY=;
+	b=oV5eIWglqV+UN8RJt0kGUU8tq1xN1JEAPq3QZ+YFbc1DljdzoxndA+pNPDDjg3tMYIxnfDEUQw3h/wxm4uysEtnJuXDlPhqfgq9/5buZ0qFGqrD9bl5ffZv+Hyh9pHb0PuaxxrXfYU7urt4+lQj9AKDksDo1qMITN7G+MLtIWNk=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X7NJr.p_1784516973;
+Received: from 30.166.0.112(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7NJr.p_1784516973 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 20 Jul 2026 10:47:07 +0800
-Message-ID: <96c6f014-8e3e-464a-9ce2-bfa910f1edc1@linux.alibaba.com>
-Date: Mon, 20 Jul 2026 10:47:06 +0800
+          Mon, 20 Jul 2026 11:09:33 +0800
+Message-ID: <910f147b-baaa-441f-b532-8858f8d43d85@linux.alibaba.com>
+Date: Mon, 20 Jul 2026 11:09:32 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,119 +34,140 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: Memory leak in ocfs2_unlink_path()
-To: Dmitry Antipov <dmantipov@yandex.ru>
-Cc: Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@lists.linux.dev
-References: <a1e86cd9-847b-4f3c-9bbb-d803fe3bd022@yandex.ru>
+Subject: Re: [PATCH v2] ocfs2: free unused clusters on defrag move errors
+To: Guangshuo Li <lgs201920130244@gmail.com>
+References: <20260714113517.1381604-1-lgs201920130244@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <a1e86cd9-847b-4f3c-9bbb-d803fe3bd022@yandex.ru>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Tristan Ye <tristan.ye@oracle.com>, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+In-Reply-To: <20260714113517.1381604-1-lgs201920130244@gmail.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
 
 
 
-On 7/15/26 10:20 PM, Dmitry Antipov wrote:
-> Local fuzzing of 6.12.94 has found the following memory leak
-> caused by doing copy_file_range(2) within the same filesystem:
+On 7/14/26 7:35 PM, Guangshuo Li wrote:
+> ocfs2_defrag_extent() claims new clusters before calling
+> __ocfs2_move_extent(). If the move fails before the extent tree update
+> is attempted, the claimed clusters are not referenced by the inode and
+> must be released.
 > 
-> unreferenced object 0xffff88812192c980 (size 32):
->   comm "syz.0.49", pid 12095, jiffies 4294964143
->   hex dump (first 32 bytes):
->     00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00  ................
->     c0 c5 92 21 81 88 ff ff 00 02 00 00 00 06 00 00  ...!............
->   backtrace (crc 7068d63f):
->     kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
->     slab_post_alloc_hook mm/slub.c:4152 [inline]
->     slab_alloc_node mm/slub.c:4197 [inline]
->     __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
->     kmalloc_noprof include/linux/slab.h:878 [inline]
->     ocfs2_find_per_slot_free_list fs/ocfs2/alloc.c:6618 [inline]
->     ocfs2_cache_block_dealloc+0x155/0x4b0 fs/ocfs2/alloc.c:6786
->     ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
->     ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
->     ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
->     __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
->     ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
->     ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
->     ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
->     ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
->     ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
->     ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
->     ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
->     ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
->     ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
->     ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
->     ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
->     iter_file_splice_write+0x890/0xf60 fs/splice.c:743
->     do_splice_from fs/splice.c:944 [inline]
->     direct_splice_actor+0x232/0x480 fs/splice.c:1167
->     splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
->     do_splice_direct_actor fs/splice.c:1210 [inline]
->     do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
->     do_sendfile+0x430/0xbf0 fs/read_write.c:1388
+> The current error path only logs the error and continues to
+> ocfs2_cow_sync_writeback(), which can overwrite the original error with
+> zero. The claimed clusters are also left allocated.
 > 
-> unreferenced object 0xffff88812192c5c0 (size 32):
->   comm "syz.0.49", pid 12095, jiffies 4294964143
->   hex dump (first 32 bytes):
->     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
->     29 70 00 00 00 00 00 00 19 00 00 00 00 00 00 00  )p..............
->   backtrace (crc afec850f):
->     kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
->     slab_post_alloc_hook mm/slub.c:4152 [inline]
->     slab_alloc_node mm/slub.c:4197 [inline]
->     __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
->     kmalloc_noprof include/linux/slab.h:878 [inline]
->     kzalloc_noprof include/linux/slab.h:1014 [inline]
->     ocfs2_cache_block_dealloc+0x25c/0x4b0 fs/ocfs2/alloc.c:6793
->     ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
->     ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
->     ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
->     __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
->     ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
->     ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
->     ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
->     ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
->     ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
->     ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
->     ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
->     ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
->     ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
->     ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
->     ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
->     iter_file_splice_write+0x890/0xf60 fs/splice.c:743
->     do_splice_from fs/splice.c:944 [inline]
->     direct_splice_actor+0x232/0x480 fs/splice.c:1167
->     splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
->     do_splice_direct_actor fs/splice.c:1210 [inline]
->     do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
->     do_sendfile+0x430/0xbf0 fs/read_write.c:1388
+> Not every __ocfs2_move_extent() error can free the new clusters,
+> however. Once ocfs2_split_extent() has been called, the extent tree may
+> already reference them even if a later operation fails. Freeing them in
+> that case would leave the extent tree pointing to clusters marked free.
 > 
-> This happens when 'ocfs2_replace_cow()' ends with NULL 'c_global_allocator'
-> but non-NULL 'c_first_suballocator' of 'struct ocfs2_cached_dealloc_ctxt'
-> involved, so ocfs2_run_deallocs() is never run due to:
+> Track whether the extent split has been started. On errors before that
+> point, report that the new clusters remain unused so the defrag caller
+> can release them. Once the split has started, leave the clusters
+> allocated. Return all move errors through the transaction cleanup path
+> without allowing writeback to overwrite them.
 > 
->     if (ocfs2_dealloc_has_cluster(&context->dealloc)) {
->             ocfs2_schedule_truncate_log_flush(osb, 1);
->             ocfs2_run_deallocs(osb, &context->dealloc);
->     }
+> Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
+> Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
+> ---
+> v2:
+>   - Do not free the new clusters after the extent-tree update has
+>     started, as pointed out by Joseph Qi.
+>   - Track whether the new clusters remain unused on error.
+>   - Preserve __ocfs2_move_extent() errors instead of allowing the
+>     subsequent writeback call to overwrite them.
 > 
-> An obvious fix is to run 'ocfs2_run_deallocs()' unconditionally, but
-> 1) I have no clue why it is so and 2) I have strong suspection that the
-> whole picture may be different when doing the same with clustered mount.
+>  fs/ocfs2/move_extents.c | 23 +++++++++++++++++++----
+>  1 file changed, 19 insertions(+), 4 deletions(-)
 > 
+> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
+> index ad1678ee7cc4..138c65d21668 100644
+> --- a/fs/ocfs2/move_extents.c
+> +++ b/fs/ocfs2/move_extents.c
+> @@ -49,9 +49,10 @@ struct ocfs2_move_extents_context {
+>  static int __ocfs2_move_extent(handle_t *handle,
+>  			       struct ocfs2_move_extents_context *context,
+>  			       u32 cpos, u32 len, u32 p_cpos, u32 new_p_cpos,
+> -			       int ext_flags)
+> +			       int ext_flags, bool *new_clusters_unused)
+>  {
+>  	int ret = 0, index;
+> +	bool split_started = false;
+>  	struct inode *inode = context->inode;
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>  	struct ocfs2_extent_rec *rec, replace_rec;
+> @@ -59,6 +60,10 @@ static int __ocfs2_move_extent(handle_t *handle,
+>  	struct ocfs2_extent_list *el;
+>  	u64 ino = ocfs2_metadata_cache_owner(context->et.et_ci);
+>  	u64 old_blkno = ocfs2_clusters_to_blocks(inode->i_sb, p_cpos);
+> +	bool split_started = false;
 
-Yes, when ocfs2_cache_extent_block_free() -> ocfs2_cache_block_dealloc(),
-entries are added to c_first_suballocator.
-So it seems run ocfs2_run_deallocs() unconditionally is right.
-In ocfs2_xattr_set(), it seems use the correct pattern.
+Duplicate declaration?
+
+> +
+> +	if (new_clusters_unused)
+> +		*new_clusters_unused = false;
+>  
+>  	ret = ocfs2_duplicate_clusters_by_page(handle, inode, cpos,
+>  					       p_cpos, new_p_cpos, len);
+> @@ -111,6 +116,7 @@ static int __ocfs2_move_extent(handle_t *handle,
+>  	 */
+>  	replace_rec.e_flags = ext_flags & ~OCFS2_EXT_REFCOUNTED;
+>  
+> +	split_started = true;
+>  	ret = ocfs2_split_extent(handle, &context->et, path, index,
+>  				 &replace_rec, context->meta_ac,
+>  				 &context->dealloc);
+> @@ -138,6 +144,9 @@ static int __ocfs2_move_extent(handle_t *handle,
+>  
+>  	ocfs2_update_inode_fsync_trans(handle, inode, 0);
+>  out:
+> +	if (ret && !split_started && new_clusters_unused)
+> +		*new_clusters_unused = true;
+> +
+>  	ocfs2_free_path(path);
+>  	return ret;
+>  }
+> @@ -209,6 +218,7 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+>  	struct ocfs2_refcount_tree *ref_tree = NULL;
+>  	u32 new_phys_cpos, new_len;
+>  	u64 phys_blkno = ocfs2_clusters_to_blocks(inode->i_sb, phys_cpos);
+> +	bool new_clusters_unused;
+>  	int need_free = 0;
+>  
+>  	if ((ext_flags & OCFS2_EXT_REFCOUNTED) && *len) {
+> @@ -309,9 +319,14 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
+>  	     phys_cpos, new_phys_cpos);
+>  
+>  	ret = __ocfs2_move_extent(handle, context, cpos, new_len, phys_cpos,
+> -				  new_phys_cpos, ext_flags);
+> -	if (ret)
+> +				  new_phys_cpos, ext_flags,
+> +				  &new_clusters_unused);
+
+Seems we can reuse 'context->new_phys_cpos' to check if need free without
+changing __ocfs2_move_extent() prototype.
 
 Thanks,
 Joseph
 
-> To whom it may be interesting, there is no working C repro but ~350K
-> .syz blob [1] that has to be run via syz-execprog directly.
-> 
-> [1] https://drive.google.com/file/d/1t6DOstv77QVSr76pAsP_dW7nPd10dlhU/view?usp=drive_link
-> 
-> Dmitry
+> +	if (ret) {
+>  		mlog_errno(ret);
+> +		if (new_clusters_unused)
+> +			need_free = 1;
+> +		goto out_commit;
+> +	}
+>  
+>  	if (partial && (new_len != *len))
+>  		*len = new_len;
+> @@ -684,7 +699,7 @@ static int ocfs2_move_extent(struct ocfs2_move_extents_context *context,
+>  	}
+>  
+>  	ret = __ocfs2_move_extent(handle, context, cpos, len, phys_cpos,
+> -				  *new_phys_cpos, ext_flags);
+> +				  *new_phys_cpos, ext_flags, NULL);
+>  	if (ret) {
+>  		mlog_errno(ret);
+>  		goto out_commit;
 
