@@ -1,53 +1,143 @@
-Received: from sender-op-o18.zoho.eu (sender-op-o18.zoho.eu [136.143.169.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f44.google.com (mail-wr1-f44.google.com [209.85.221.44])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 019D348A2CD
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 11:54:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=136.143.169.18
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784634851; cv=pass; b=o8IKmxfC1N/a1k3+FrGnd12zy8VKktNQw0QvzzvavqGTceH2Bt0ZCfAbdZWVZo1okEnrM5/Mu/nnjRgyOHB8LjLpY58YX3bgaAE0UBxOouml1r8pj5Gs0UrRmvx2MxJGA5fRoSZf1Mz2UGfaYsmdOXQCfAGb/Ah/+CovJd1lKNk=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784634851; c=relaxed/simple;
-	bh=xhNSpl0BrxHd2cKBgtFWTxPLgaQfDsL+dK6E9Epk+NM=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=ocR4aXPiIZlfBzVvkLubl69BYrLfOtkfVG8ariMOPThW8ubiS6lYuFq21eogEMIhTTrCUUnSMjx2HZq0nxt0NUXedh1JnSTcNMHBYCtG1+U3sxrrdPN+hGUyOvBPhomfRaGklPMMkLWcmbKA9+rUmT1dLVn/7xWKgLrfb5WWPXA=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=auditcode.ai; spf=pass smtp.mailfrom=auditcode.ai; dkim=pass (1024-bit key) header.d=auditcode.ai header.i=security@auditcode.ai header.b=WJlSTXd0; arc=pass smtp.client-ip=136.143.169.18
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=auditcode.ai
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=auditcode.ai
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E71CD3438BD
+	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 13:12:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.44
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1784639563; cv=none; b=S6C8a69PNKm7+/JcIupAjKLM8K0gGozhZ+dn/MapLlCME595uJALRAz97FGVwKeE4x5NAO1KrZsHEN9DgWiKZ/7i9uEp7e5i+WwWf9WT20E+E1hv2t7tIHiyhZJThQpe0zZxqs81aEbPG/EIbz6pcRtkNrBAH964O5l5SQkfJiI=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1784639563; c=relaxed/simple;
+	bh=nS5SJQmwq8NU5ulEg4x+lVkufqolSp3mR/z1Mkjawbc=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=K28Wpt+wrMnx51piQUtRdjdOk9y6Qixddsn+8EGYMe9ruOc8XW7o0s9JXCPf7FBGjwLUxw6DzMpSaqGUcAJT4LeBciy+JnVi0DKzAr4xzaJh6EcPIbcpRkoHjrTAYso24zIAnZaORN8/zVFDaiGchfvO32H0LX03OYHG/8lBSu4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=P9Cm9uc3; arc=none smtp.client-ip=209.85.221.44
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=auditcode.ai header.i=security@auditcode.ai header.b="WJlSTXd0"
-ARC-Seal: i=1; a=rsa-sha256; t=1784634838; cv=none; 
-	d=zohomail.eu; s=zohoarc; 
-	b=ioAvo02gpCl9PPVFuDExFaj0x6y+cwZxnEoayZ2Z6zesnHE2mX2ojRd0HEPalZTl5hHjF0BFj5OyFxMuPn9wc9KDQDFIm9lagFzzRfdLxqwLXAAjS+ffMxvOm/mqEhleud6OcvsT51xqPEgilrj8BjSK5Eumg6fKiFNfB608PSU=
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.eu; s=zohoarc; 
-	t=1784634838; h=Content-Transfer-Encoding:Cc:Cc:Date:Date:From:From:In-Reply-To:MIME-Version:Message-ID:Subject:Subject:To:To:Message-Id:Reply-To; 
-	bh=xhNSpl0BrxHd2cKBgtFWTxPLgaQfDsL+dK6E9Epk+NM=; 
-	b=O/yoLihwe2mt8GYepFNw/n9fgC55wx1+1qWvOjxqjrjG26j8ft2oFFH0SAwzKviigHP9ianhKOssU8ykvY8jMdJjBdHSXpJur3dxGUnkEoKcelWH9T2AGWiEFhAfFvoOaeQl7RWnrDUj62jo8qGSNbQg9eG07R7w6wHYVdB+Nis=
-ARC-Authentication-Results: i=1; mx.zohomail.eu;
-	dkim=pass  header.i=auditcode.ai;
-	spf=pass  smtp.mailfrom=security@auditcode.ai;
-	dmarc=pass header.from=<security@auditcode.ai>
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1784634838;
-	s=zmail; d=auditcode.ai; i=security@auditcode.ai;
-	h=From:From:To:To:Cc:Cc:Subject:Subject:Date:Date:Message-ID:In-Reply-To:MIME-Version:Content-Transfer-Encoding:Message-Id:Reply-To;
-	bh=xhNSpl0BrxHd2cKBgtFWTxPLgaQfDsL+dK6E9Epk+NM=;
-	b=WJlSTXd0uqyhEQ0MAujxigMs5MWrOXDyRgpUV/Xid3Wi7eyPNPtp98K/QhZM1gwH
-	Indh77dzSo9s1MG0+4oNfJ4R9GjWsMk5ZxJ5rMiHakPH2wqqm4pyZ4w49qMD8n2g1Vb
-	rFgSnUC6E2TypFL74675mLugZfprTdpouQoSw9RQ=
-Received: by mx.zoho.eu with SMTPS id 1784634837310921.9226982488001;
-	Tue, 21 Jul 2026 13:53:57 +0200 (CEST)
-From: Ibrahim Hashimov <security@auditcode.ai>
-To: joseph.qi@linux.alibaba.com
-Cc: mark@fasheh.com,
-	jlbec@evilplan.org,
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="P9Cm9uc3"
+Received: by mail-wr1-f44.google.com with SMTP id ffacd0b85a97d-47362928f65so10253890f8f.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 06:12:40 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1784639559; x=1785244359; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=vXH/AcaDYaWjD1D7W7UeWMormFqpNiZzAjn7k+W0SEQ=;
+        b=P9Cm9uc39L/181ecLD/atUjjOFSrigzTfXnAZXXvEQhQ74Zgf5SnDq1wJaLVBkMLGf
+         AtrbYLqQDVJ3c9M6Ta9b8zu+hZPi9Mhza0VIS0sZTIRltms3CHho++NsfO2EwYiUNG1r
+         r6CYNhNm/p77koiwkKFI/QXRpEZpsb5jn8+EsdiIpHp5UEzSVYYBnchhQaa0yNXDH+FT
+         5VszFaOlsZQKge3bRpQOmenr1tM7szJdIQbzZwmBUBaBLZr+HK3pE7jqaIaZRld5Mf1A
+         Pgn3Zc1cMDOLgzvZEd1oUm699+X9q6LrqShJBOPTsDT6hRpEhLMd3HvcxfzP4nlLOBEB
+         M2aw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1784639559; x=1785244359;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=vXH/AcaDYaWjD1D7W7UeWMormFqpNiZzAjn7k+W0SEQ=;
+        b=EXukvQnoO3CWZ4ibULvsod2NnYLd0I43iiz21svz3YM0zOvuWinOFAx1X236r2ACs3
+         kzEv9ac1eAR+WQb4rK+HT1ZUuQoMNBI1s8z1fSjyOWoJXZxGbxMwaRAbeddOjzCmJIyE
+         bCYt8UFnxoFPQIqrJyLa9z96+DX4gAInXvwDys6RTgOLXyvQ4nCZLGF9vIn/WKYfpYjY
+         cZbg0G+pje0Zd5pTJht6EkQz7NNdwSDEL2rkZGscftR8r8dk6ta9u8d/L/HJY8HHf+AH
+         s2/clS7h07UQ49/3lWnW6Wm1Y2gjts2cEBx3grjV2ataK7XFXxrXH8ky7+Yca+zhSef0
+         Z1ow==
+X-Forwarded-Encrypted: i=1; AHgh+Rr0RuvKWT0su32JBkFxXNp6LZE54N3FnOXKLuhVYvJN4m/ifL0bmJgMMMotCRAd0cBZXCIbCrpN+3yN5A==@lists.linux.dev
+X-Gm-Message-State: AOJu0YwaHbeWEDYjz/w2URxemC9ZKE2mBtOApWBowyJ2yxttOLioldl1
+	NLXfJNcYAnWbZbddoxwbA/x+zlvbskStk3IAiywV37vDofEQ7QvdqKmIsK2S1vq0B9c=
+X-Gm-Gg: AR+sD118doEaUsmgSATohe77q77jQ4wQEd46B68dt6UQsKrNfhQ9SV9qDL29A3nTV7M
+	a+iWN0xi6OgISKrA4SUqs/xIDLONWU4ogw1tgeoX0BK9Qymnoqze1smLRDjua9Dbz3TLaflbJXW
+	OQCIpK/o6qTKCRZ+tVD7Cath8IRi3lj6N5z/7AAR724QogrjKBnGBsFXwAk36sobyZ906zwzQGX
+	JhAwyVc1bqd/E/SkiGgtVt0i5iETnlZWe/WJssNzrvB9rwOFm0y1mzthG8ACya2+NuO+2CI0Z81
+	2FF6yO5/AjoGvl8c60jicfvwfw9fVo981WU25vYr3jvBbsKWYIWlqxgBLAY3grli2cPAc6IICF7
+	MRv8Qr4zMUGawgeuANN1b0DAKqldCs2oLFi01PcoiCVAy/vfGyLareBIBzsHUVeO9Mh/oGbu8Lw
+	==
+X-Received: by 2002:a05:6000:2084:b0:47e:81aa:3832 with SMTP id ffacd0b85a97d-47f6230e614mr22543209f8f.16.1784639559042;
+        Tue, 21 Jul 2026 06:12:39 -0700 (PDT)
+Received: from zovi.suse.cz ([2001:af0:8000:1409:193:86:92:181])
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-47f63ee9281sm42070938f8f.36.2026.07.21.06.12.37
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 21 Jul 2026 06:12:38 -0700 (PDT)
+From: Petr Pavlu <petr.pavlu@suse.com>
+To: Tony Luck <tony.luck@intel.com>,
+	Borislav Petkov <bp@alien8.de>,
+	Thomas Gleixner <tglx@kernel.org>,
+	Ingo Molnar <mingo@redhat.com>,
+	Dave Hansen <dave.hansen@linux.intel.com>,
+	x86@kernel.org,
+	"H. Peter Anvin" <hpa@zytor.com>,
+	Philipp Reisner <philipp.reisner@linbit.com>,
+	Lars Ellenberg <lars.ellenberg@linbit.com>,
+	=?UTF-8?q?Christoph=20B=C3=B6hmwalder?= <christoph.boehmwalder@linbit.com>,
+	Jens Axboe <axboe@kernel.dk>,
+	Johan Hovold <johan@kernel.org>,
+	Alex Elder <elder@kernel.org>,
+	Greg Kroah-Hartman <gregkh@linuxfoundation.org>,
+	"Rafael J. Wysocki" <rafael@kernel.org>,
+	Michal Januszewski <spock@gentoo.org>,
+	Helge Deller <deller@gmx.de>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	Christian Brauner <brauner@kernel.org>,
+	Jan Kara <jack@suse.cz>,
+	Trond Myklebust <trondmy@kernel.org>,
+	Anna Schumaker <anna@kernel.org>,
+	Chuck Lever <cel@kernel.org>,
+	Jeff Layton <jlayton@kernel.org>,
+	NeilBrown <neil@brown.name>,
+	Olga Kornievskaia <okorniev@redhat.com>,
+	Dai Ngo <Dai.Ngo@oracle.com>,
+	Tom Talpey <tom@talpey.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Tejun Heo <tj@kernel.org>,
+	Johannes Weiner <hannes@cmpxchg.org>,
+	=?UTF-8?q?Michal=20Koutn=C3=BD?= <mkoutny@suse.com>,
+	Luis Chamberlain <mcgrof@kernel.org>,
+	Petr Pavlu <petr.pavlu@suse.com>,
+	Daniel Gomez <da.gomez@kernel.org>,
+	Sami Tolvanen <samitolvanen@google.com>,
+	Aaron Tomlin <atomlin@atomlin.com>,
+	Pavel Machek <pavel@kernel.org>,
+	Len Brown <lenb@kernel.org>,
+	Andrew Morton <akpm@linux-foundation.org>,
+	Danilo Krummrich <dakr@kernel.org>,
+	Nikolay Aleksandrov <razor@blackwall.org>,
+	Ido Schimmel <idosch@nvidia.com>,
+	"David S. Miller" <davem@davemloft.net>,
+	Eric Dumazet <edumazet@google.com>,
+	Jakub Kicinski <kuba@kernel.org>,
+	Paolo Abeni <pabeni@redhat.com>,
+	Simon Horman <horms@kernel.org>,
+	David Howells <dhowells@redhat.com>,
+	Jarkko Sakkinen <jarkko@kernel.org>,
+	Paul Moore <paul@paul-moore.com>,
+	James Morris <jmorris@namei.org>,
+	"Serge E. Hallyn" <serge@hallyn.com>,
+	Kentaro Takeda <takedakn@nttdata.co.jp>,
+	Tetsuo Handa <penguin-kernel@I-love.SAKURA.ne.jp>
+Cc: linux-edac@vger.kernel.org,
+	linux-kernel@vger.kernel.org,
+	drbd-dev@lists.linux.dev,
+	linux-block@vger.kernel.org,
+	greybus-dev@lists.linaro.org,
+	linuxppc-dev@lists.ozlabs.org,
+	linux-acpi@vger.kernel.org,
+	linux-fbdev@vger.kernel.org,
+	dri-devel@lists.freedesktop.org,
+	linux-fsdevel@vger.kernel.org,
+	linux-nfs@vger.kernel.org,
 	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] ocfs2/dlm: validate lockname_len in dlm_mig_lockres_handler()
-Date: Tue, 21 Jul 2026 13:53:53 +0200
-Message-ID: <20260721115353.17272-1-security@auditcode.ai>
-X-Mailer: git-send-email 2.50.1
-In-Reply-To: <b5657937-3c3a-4d85-9df6-80ebb6feeb24@linux.alibaba.com>
-References: <b5657937-3c3a-4d85-9df6-80ebb6feeb24@linux.alibaba.com>
+	cgroups@vger.kernel.org,
+	linux-modules@vger.kernel.org,
+	linux-pm@vger.kernel.org,
+	driver-core@lists.linux.dev,
+	bridge@lists.linux.dev,
+	netdev@vger.kernel.org,
+	keyrings@vger.kernel.org,
+	linux-security-module@vger.kernel.org
+Subject: [PATCH v2 0/3] Bring includes in linux/kmod.h up to date
+Date: Tue, 21 Jul 2026 15:11:24 +0200
+Message-ID: <20260721131207.803760-1-petr.pavlu@suse.com>
+X-Mailer: git-send-email 2.54.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -55,9 +145,62 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-ZohoMailClient: External
 
-Thanks, and sorry for the duplicate -- I missed the earlier posting.
-Please drop mine; the queued version covers it and I'll follow that one.
+The usermode helper declarations were previously provided by linux/kmod.h
+but commit c1f3fa2a4fde ("kmod: split off umh headers into its own file")
+moved them to linux/umh.h in 2017. Add explicit includes of linux/umh.h to
+files that use usermode helpers and remove linux/kmod.h where it is no
+longer needed.
 
-Ibrahim
+Also add a missing include of linux/sysctl.h to kernel/time/jiffies.c.
+
+Finally, clean up linux/kmod.h so that it includes only the headers that it
+actually requires, importantly removing the compat linux/umh.h include.
+
+This cleanup is motivated by trying to reduce the preprocessed size of
+linux/module.h, which includes linux/kmod.h. The linux/module.h header is
+included by every *.mod.c file to provide `struct module` and other related
+definitions, so it should avoid pulling in unnecessary dependencies. Note
+that this series doesn't immediately improve the situation, since most of
+the files included by linux/kmod.h are, for now, also included by
+linux/module.h through other paths.
+
+Apologies for the wide distribution. Acked-bys are appreciated.
+
+Changes in v2:
+- Remove the linux/kmod.h include from kernel/cgroup/cgroup-v1.c.
+- Add a missing include of linux/sysctl.h to kernel/time/jiffies.c.
+- Link to v1: https://lore.kernel.org/linux-modules/20260708154510.6794-1-petr.pavlu@suse.com/
+
+Petr Pavlu (3):
+  umh, treewide: Explicitly include linux/umh.h where needed
+  time/jiffies: Include linux/sysctl.h for proc_int_u2k_conv_uop(), ...
+  module: Bring includes in linux/kmod.h up to date
+
+ arch/x86/kernel/cpu/mce/dev-mcelog.c |  2 +-
+ drivers/block/drbd/drbd_nl.c         |  1 +
+ drivers/greybus/svc_watchdog.c       |  1 +
+ drivers/macintosh/windfarm_core.c    |  1 +
+ drivers/pnp/pnpbios/core.c           |  2 +-
+ drivers/video/fbdev/uvesafb.c        |  1 +
+ fs/coredump.c                        |  2 +-
+ fs/nfs/cache_lib.c                   |  2 +-
+ fs/nfsd/nfs4layouts.c                |  2 +-
+ fs/nfsd/nfs4recover.c                |  1 +
+ fs/ocfs2/stackglue.c                 |  1 +
+ include/linux/kmod.h                 | 12 ++----------
+ kernel/cgroup/cgroup-v1.c            |  2 +-
+ kernel/module/kmod.c                 |  1 +
+ kernel/power/process.c               |  2 +-
+ kernel/reboot.c                      |  2 +-
+ kernel/time/jiffies.c                |  1 +
+ kernel/umh.c                         |  2 +-
+ lib/kobject_uevent.c                 |  2 +-
+ net/bridge/br_stp_if.c               |  2 +-
+ security/keys/request_key.c          |  2 +-
+ security/tomoyo/common.h             |  2 +-
+ 22 files changed, 23 insertions(+), 23 deletions(-)
+
+-- 
+2.54.0
+
