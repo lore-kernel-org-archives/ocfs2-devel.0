@@ -1,225 +1,284 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E83C3E7BCA
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 11:47:53 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC717481FC9
+	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 11:49:26 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784634478; cv=none; b=XSlg1eZCrsoVEKpLipn6FNS3nBhIaW6mr9Qn4vRk+gnVAFdOKIqyKcmlWCkuv+6qbVN9sVpTKxCAvhCOn3rhS7/8pjzBI+Rj0XYxw2GyG3aAAQHB+Kor0wXhSFpNwfl2BBVFxhc8QUIz7Lh1s1o/DGwQ3g9ZC13lAYEJKmw8vkY=
+	t=1784634569; cv=none; b=LHy2BGEsuqY+1wQrwmxOOY6EyBJGkuNUk3SGhc5WdJzTSYGOiur2TEJL3jmKpchcY+mRdiVPV/17kJ5HIqEkH7c7wKFP+LXu6goRP72RFPnwr/rDU+PKaxzGIf48bJzoeErj+B4+F9QQhFqEti8VFE01KbJ6fqcDIoqYOycOsxU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784634478; c=relaxed/simple;
-	bh=zW+ZmwwHEWU7Vg2vqRzSIQktmjhrt637emAFKqoR2cU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=oPDbWe3+r8BYa4bWAGbjFqFokYQ21/C0q/hYF7Di2XsXUtRXuW1qPNwhrIjaUxkL3/mYJxu179QKR+C3hvPNd36ovuS0ylvEdPe65mQQ7HHKz2m4wYvE4dIYYm265zM4mFTefbzbO6fbnzFxxmsQPaKHUqD3tcBnw8FI7BgHTaM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=W1je1zkp; arc=none smtp.client-ip=115.124.30.101
+	s=arc-20240116; t=1784634569; c=relaxed/simple;
+	bh=n+6V8MZEYNuMTfZWJYrG5/uWwDugg2aHPFbVBzCQOiQ=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=uzcilS/CfRqePmUmDbUg90OiK9k41sYN00k8aM12booYomYohvK7kBFWAEJhOyGzLEYBBUAz/r5tatRaXLA5kCneAG483Z4BlPTYn02dooS+cp8MuI1L7I9O7UN65fUOeo0ggwddNPNYJNOfM2hK53NG1BncbiYL/UStPACmhDs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=mYo5wCG1; arc=none smtp.client-ip=115.124.30.99
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="W1je1zkp"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="mYo5wCG1"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1784634468; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=xOdH+PZwsf7SHwHBwXmBUeC/OOcSHm/V9TbkDIIfdMo=;
-	b=W1je1zkpheGaTj9fGmPgxujZKm38Gd1syk0HOoSi4NCSersP1gBH0iYuQWMlnGUvL7IkRFnl3GeiQ9F+ckGsBQHTjU/VYxrKwqygMyaxGCrFrKT6uc7kz7AYx7wX+zkibiP++40ATwbjLl6Yr+wlsPZphSfMVH0gme6oULF7U1A=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R951e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X7a0KCX_1784634467;
-Received: from 30.221.129.34(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7a0KCX_1784634467 cluster:ay36)
+	t=1784634557; h=From:To:Subject:Date:Message-Id:MIME-Version:Content-Type;
+	bh=TlQBqXEKz2cBa162EBIUo9/YwhoWB5RUudVNVJH4xag=;
+	b=mYo5wCG1EFiocdZuCh5UNlVtXtQ3Pr5zFoaK0qCOPfDDCDbhqfMczcmFKYf3obGS05Dt4ZfoTRBU9T0IQYa3s8OH6DdmMJR+X9sff5xZRUR7PDstd0GwR7VUHtrH7kFz74WpmzAvyAsJ1j59wyED8cGW69049A4Agw4tVlQmOJU=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=4;SR=0;TI=SMTPD_---0X7a1pAj_1784634556;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7a1pAj_1784634556 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 21 Jul 2026 19:47:48 +0800
-Message-ID: <c300e7ac-b119-414d-af27-cd8ddfa705fd@linux.alibaba.com>
-Date: Tue, 21 Jul 2026 19:47:47 +0800
+          Tue, 21 Jul 2026 19:49:17 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: cluster: don't sleep while holding o2hb_live_lock in o2hb_region_pin()
+Date: Tue, 21 Jul 2026 19:49:16 +0800
+Message-Id: <20260721114916.2098617-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: always run deallocs on copy-on-write completion
-To: Dmitry Antipov <dmantipov@yandex.ru>, akpm <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org
-References: <0b60eb13-564f-445f-9bcb-cd0a2a147af0@linux.alibaba.com>
- <20260721102840.387663-1-dmantipov@yandex.ru>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260721102840.387663-1-dmantipov@yandex.ru>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+o2hb_region_pin() is always called with the o2hb_live_lock spinlock held
+(from o2hb_region_inc_user() and o2hb_heartbeat_group_drop_item()), but it
+calls o2nm_depend_item() -> configfs_depend_item(), which sleeps: it pins
+the configfs filesystem and takes the configfs root inode rwsem. Under
+CONFIG_DEBUG_ATOMIC_SLEEP this triggers:
 
+  BUG: sleeping function called from invalid context at kernel/locking/rwsem.c
+  in_atomic(): 1, ... name: mount.ocfs2
+    down_write
+    configfs_depend_item
+    o2hb_region_pin
+    o2hb_region_inc_user
+    o2hb_register_callback
+    dlm_register_domain_handlers
+    ...
+    ocfs2_dlm_init
+    ocfs2_mount_volume
+    ocfs2_fill_super
 
-On 7/21/26 6:28 PM, Dmitry Antipov wrote:
-> Local fuzzing of 6.12.94 has found the following memory leak
-> caused by doing 'copy_file_range()' within the same filesystem:
-> 
-> unreferenced object 0xffff88812192c980 (size 32):
->   comm "syz.0.49", pid 12095, jiffies 4294964143
->   hex dump (first 32 bytes):
->     00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00  ................
->     c0 c5 92 21 81 88 ff ff 00 02 00 00 00 06 00 00  ...!............
->   backtrace (crc 7068d63f):
->     kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
->     slab_post_alloc_hook mm/slub.c:4152 [inline]
->     slab_alloc_node mm/slub.c:4197 [inline]
->     __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
->     kmalloc_noprof include/linux/slab.h:878 [inline]
->     ocfs2_find_per_slot_free_list fs/ocfs2/alloc.c:6618 [inline]
->     ocfs2_cache_block_dealloc+0x155/0x4b0 fs/ocfs2/alloc.c:6786
->     ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
->     ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
->     ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
->     __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
->     ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
->     ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
->     ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
->     ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
->     ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
->     ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
->     ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
->     ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
->     ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
->     ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
->     ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
->     iter_file_splice_write+0x890/0xf60 fs/splice.c:743
->     do_splice_from fs/splice.c:944 [inline]
->     direct_splice_actor+0x232/0x480 fs/splice.c:1167
->     splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
->     do_splice_direct_actor fs/splice.c:1210 [inline]
->     do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
->     do_sendfile+0x430/0xbf0 fs/read_write.c:1388
-> 
-> unreferenced object 0xffff88812192c5c0 (size 32):
->   comm "syz.0.49", pid 12095, jiffies 4294964143
->   hex dump (first 32 bytes):
->     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
->     29 70 00 00 00 00 00 00 19 00 00 00 00 00 00 00  )p..............
->   backtrace (crc afec850f):
->     kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
->     slab_post_alloc_hook mm/slub.c:4152 [inline]
->     slab_alloc_node mm/slub.c:4197 [inline]
->     __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
->     kmalloc_noprof include/linux/slab.h:878 [inline]
->     kzalloc_noprof include/linux/slab.h:1014 [inline]
->     ocfs2_cache_block_dealloc+0x25c/0x4b0 fs/ocfs2/alloc.c:6793
->     ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
->     ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
->     ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
->     __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
->     ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
->     ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
->     ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
->     ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
->     ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
->     ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
->     ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
->     ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
->     ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
->     ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
->     ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
->     iter_file_splice_write+0x890/0xf60 fs/splice.c:743
->     do_splice_from fs/splice.c:944 [inline]
->     direct_splice_actor+0x232/0x480 fs/splice.c:1167
->     splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
->     do_splice_direct_actor fs/splice.c:1210 [inline]
->     do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
->     do_sendfile+0x430/0xbf0 fs/read_write.c:1388
-> 
-> This happens when 'ocfs2_cache_block_dealloc()' called from
-> 'ocfs2_cache_extent_block_free()' uses the suballocator to
-> schedule extent removal, so 'ocfs2_run_deallocs()' should
-> be run unconditionally to complete the removal with
-> 'ocfs2_free_cached_blocks()'. An extra semi-automated static
-> analysis [1] suspects that the same scenario looks possible in
-> 'ocfs2_attach_refcount_tree()' and 'ocfs2_reflink_remap_blocks()'
-> as well, but, since 'ocfs2_run_deallocs()' is a safe no-op for
-> an empty dealloc context, 'ocfs2_create_reflink_node()' and
-> 'ocfs2_reflink_xattrs()' may be adjusted in the same way too,
-> thus keeping the code pattern consistent.
-> 
-> [1] https://lore.kernel.org/ocfs2-devel/f1d7e266-4b44-41b9-98c0-5b3868a8d9c3@yandex.ru
-> 
-> Fixes: 6f70fa519976 ("ocfs2: Add CoW support.")
-> Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
+Rework o2hb_region_pin() to pin one region at a time with the lock
+dropped across the sleeping call: under o2hb_live_lock find the next
+eligible region and take a config_item reference to keep it alive, drop
+the lock, call o2nm_depend_item(), then retake the lock and record the
+pin. The config_item_put() is done with the lock released as well, since
+o2hb_region_release() also acquires o2hb_live_lock and can sleep. The
+region list may change while unlocked, so the scan restarts from the
+top after each pin. Local heartbeat still pins only the matching region;
+global heartbeat pins all eligible regions.
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+The unpin path is unaffected: configfs_undepend_item() only takes a
+spinlock and does not sleep.
 
-> ---
->  fs/ocfs2/refcounttree.c | 20 ++++++++------------
->  fs/ocfs2/xattr.c        |  5 ++---
->  2 files changed, 10 insertions(+), 15 deletions(-)
-> 
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 7323bde70caa..b36f6143a0f6 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -3360,10 +3360,9 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
->  		cow_start += num_clusters;
->  	}
->  
-> -	if (ocfs2_dealloc_has_cluster(&context->dealloc)) {
-> +	if (ocfs2_dealloc_has_cluster(&context->dealloc))
->  		ocfs2_schedule_truncate_log_flush(osb, 1);
-> -		ocfs2_run_deallocs(osb, &context->dealloc);
-> -	}
-> +	ocfs2_run_deallocs(osb, &context->dealloc);
->  
->  	return ret;
->  }
-> @@ -3846,10 +3845,9 @@ static int ocfs2_attach_refcount_tree(struct inode *inode,
->  	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
->  	brelse(ref_root_bh);
->  
-> -	if (!ret && ocfs2_dealloc_has_cluster(&dealloc)) {
-> +	if (!ret && ocfs2_dealloc_has_cluster(&dealloc))
->  		ocfs2_schedule_truncate_log_flush(osb, 1);
-> -		ocfs2_run_deallocs(osb, &dealloc);
-> -	}
-> +	ocfs2_run_deallocs(osb, &dealloc);
->  out:
->  	/*
->  	 * Empty the extent map so that we may get the right extent
-> @@ -4135,10 +4133,9 @@ static int ocfs2_create_reflink_node(struct inode *s_inode,
->  	ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
->  	brelse(ref_root_bh);
->  out:
-> -	if (ocfs2_dealloc_has_cluster(&dealloc)) {
-> +	if (ocfs2_dealloc_has_cluster(&dealloc))
->  		ocfs2_schedule_truncate_log_flush(osb, 1);
-> -		ocfs2_run_deallocs(osb, &dealloc);
-> -	}
-> +	ocfs2_run_deallocs(osb, &dealloc);
->  
->  	return ret;
->  }
-> @@ -4691,10 +4688,9 @@ loff_t ocfs2_reflink_remap_blocks(struct inode *s_inode,
->  	}
->  
->  out:
-> -	if (ocfs2_dealloc_has_cluster(&dealloc)) {
-> +	if (ocfs2_dealloc_has_cluster(&dealloc))
->  		ocfs2_schedule_truncate_log_flush(osb, 1);
-> -		ocfs2_run_deallocs(osb, &dealloc);
-> -	}
-> +	ocfs2_run_deallocs(osb, &dealloc);
->  
->  	return ret;
->  }
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index fcddd3c13acd..412e647334ad 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -7235,10 +7235,9 @@ int ocfs2_reflink_xattrs(struct inode *old_inode,
->  				   ref_tree, 1);
->  	brelse(ref_root_bh);
->  
-> -	if (ocfs2_dealloc_has_cluster(&dealloc)) {
-> +	if (ocfs2_dealloc_has_cluster(&dealloc))
->  		ocfs2_schedule_truncate_log_flush(OCFS2_SB(old_inode->i_sb), 1);
-> -		ocfs2_run_deallocs(OCFS2_SB(old_inode->i_sb), &dealloc);
-> -	}
-> +	ocfs2_run_deallocs(OCFS2_SB(old_inode->i_sb), &dealloc);
->  
->  out:
->  	return ret;
+Fixes: 58a3158a5d17 ("ocfs2/cluster: Pin/unpin o2hb regions")
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/cluster/heartbeat.c | 126 ++++++++++++++++++++++++++++-------
+ 1 file changed, 101 insertions(+), 25 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 29542edbc992c..5ca1d9c0c6575 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -43,6 +43,14 @@ static DECLARE_RWSEM(o2hb_callback_sem);
+  * whenever any of the threads sees activity from the node in its region.
+  */
+ static DEFINE_SPINLOCK(o2hb_live_lock);
++/*
++ * Serializes region pin/unpin dependency management (o2hb_dependent_users
++ * and the o2nm_depend_item()/o2nm_undepend_item() calls). o2hb_region_pin()
++ * has to drop o2hb_live_lock across the sleeping o2nm_depend_item(), so the
++ * spinlock alone can no longer keep pin and unpin mutually exclusive; this
++ * mutex, taken outside o2hb_live_lock, does.
++ */
++static DEFINE_MUTEX(o2hb_dependency_mutex);
+ static struct list_head o2hb_live_slots[O2NM_MAX_NODES];
+ static unsigned long o2hb_live_node_bitmap[BITS_TO_LONGS(O2NM_MAX_NODES)];
+ static LIST_HEAD(o2hb_node_events);
+@@ -2172,6 +2180,7 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
+ 	 * If global heartbeat active and there are dependent users,
+ 	 * pin all regions if quorum region count <= CUT_OFF
+ 	 */
++	mutex_lock(&o2hb_dependency_mutex);
+ 	spin_lock(&o2hb_live_lock);
+ 
+ 	if (!o2hb_dependent_users)
+@@ -2183,6 +2192,7 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
+ 
+ unlock:
+ 	spin_unlock(&o2hb_live_lock);
++	mutex_unlock(&o2hb_dependency_mutex);
+ }
+ 
+ static ssize_t o2hb_heartbeat_group_dead_threshold_show(struct config_item *item,
+@@ -2322,46 +2332,108 @@ EXPORT_SYMBOL_GPL(o2hb_setup_callback);
+  */
+ static int o2hb_region_pin(const char *region_uuid)
+ {
+-	int ret = 0, found = 0;
+-	struct o2hb_region *reg;
++	int ret = 0, found;
++	struct o2hb_region *reg, *pinned;
+ 	char *uuid;
+ 
+ 	assert_spin_locked(&o2hb_live_lock);
+ 
+-	list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
+-		if (reg->hr_item_dropped)
+-			continue;
++	do {
++		found = 0;
++		pinned = NULL;
+ 
+-		uuid = config_item_name(&reg->hr_item);
++		list_for_each_entry(reg, &o2hb_all_regions, hr_all_item) {
++			if (reg->hr_item_dropped)
++				continue;
+ 
+-		/* local heartbeat */
+-		if (region_uuid) {
+-			if (strcmp(region_uuid, uuid))
++			uuid = config_item_name(&reg->hr_item);
++
++			/* local heartbeat */
++			if (region_uuid) {
++				if (strcmp(region_uuid, uuid))
++					continue;
++				found = 1;
++			}
++
++			if (reg->hr_item_pinned || reg->hr_item_dropped) {
++				if (found)
++					break;
+ 				continue;
+-			found = 1;
++			}
++
++			/*
++			 * Found a region that needs pinning. Take a reference
++			 * so it stays alive while we drop the lock below.
++			 */
++			pinned = reg;
++			config_item_get(&reg->hr_item);
++			break;
+ 		}
+ 
+-		if (reg->hr_item_pinned || reg->hr_item_dropped)
+-			goto skip_pin;
++		if (!pinned)
++			break;
++
++		uuid = config_item_name(&pinned->hr_item);
++
++		/*
++		 * o2nm_depend_item() -> configfs_depend_item() can sleep (it
++		 * takes the configfs root inode rwsem), so it must not run
++		 * under o2hb_live_lock. Drop the lock across it; @pinned is
++		 * kept alive by the reference taken above. The region list may
++		 * change while unlocked, so we rescan from the top afterwards.
++		 */
++		spin_unlock(&o2hb_live_lock);
+ 
+ 		/* Ignore ENOENT only for local hb (userdlm domain) */
+-		ret = o2nm_depend_item(&reg->hr_item);
++		ret = o2nm_depend_item(&pinned->hr_item);
++
++		spin_lock(&o2hb_live_lock);
+ 		if (!ret) {
+-			mlog(ML_CLUSTER, "Pin region %s\n", uuid);
+-			reg->hr_item_pinned = 1;
+-		} else {
+-			if (ret == -ENOENT && found)
+-				ret = 0;
+-			else {
+-				mlog(ML_ERROR, "Pin region %s fails with %d\n",
+-				     uuid, ret);
++			/*
++			 * o2hb_live_lock was dropped across o2nm_depend_item().
++			 * o2hb_set_quorum_device() runs in the heartbeat thread
++			 * without o2hb_dependency_mutex, so for global heartbeat
++			 * it may have crossed O2HB_PIN_CUT_OFF and unpinned the
++			 * regions while we slept. If that happened this pin is
++			 * no longer wanted; undo it and stop rather than
++			 * resurrecting it on the rescan below.
++			 */
++			if (!region_uuid &&
++			    bitmap_weight(o2hb_quorum_region_bitmap,
++					  O2NM_MAX_REGIONS) > O2HB_PIN_CUT_OFF) {
++				o2nm_undepend_item(&pinned->hr_item);
++				spin_unlock(&o2hb_live_lock);
++				config_item_put(&pinned->hr_item);
++				spin_lock(&o2hb_live_lock);
+ 				break;
+ 			}
++			mlog(ML_CLUSTER, "Pin region %s\n", uuid);
++			pinned->hr_item_pinned = 1;
++		} else if (ret == -ENOENT && (found || !region_uuid)) {
++			/*
++			 * For local hb (found): ignore ENOENT from userdlm
++			 * domains as before.  For global hb (!region_uuid):
++			 * the region may have been detached from configfs
++			 * while the lock was dropped — skip it and continue
++			 * pinning the remaining regions.
++			 */
++			ret = 0;
++		} else {
++			mlog(ML_ERROR, "Pin region %s fails with %d\n",
++			     uuid, ret);
+ 		}
+-skip_pin:
+-		if (found)
+-			break;
+-	}
++
++		/*
++		 * config_item_put() may drop the last reference and run
++		 * o2hb_region_release(), which also grabs o2hb_live_lock and
++		 * can sleep, so it must happen with the lock released.
++		 */
++		spin_unlock(&o2hb_live_lock);
++		config_item_put(&pinned->hr_item);
++		spin_lock(&o2hb_live_lock);
++
++		/* local hb pins a single matching region */
++	} while (!ret && !region_uuid);
+ 
+ 	return ret;
+ }
+@@ -2406,6 +2478,7 @@ static int o2hb_region_inc_user(const char *region_uuid)
+ {
+ 	int ret = 0;
+ 
++	mutex_lock(&o2hb_dependency_mutex);
+ 	spin_lock(&o2hb_live_lock);
+ 
+ 	/* local heartbeat */
+@@ -2428,11 +2501,13 @@ static int o2hb_region_inc_user(const char *region_uuid)
+ 
+ unlock:
+ 	spin_unlock(&o2hb_live_lock);
++	mutex_unlock(&o2hb_dependency_mutex);
+ 	return ret;
+ }
+ 
+ static void o2hb_region_dec_user(const char *region_uuid)
+ {
++	mutex_lock(&o2hb_dependency_mutex);
+ 	spin_lock(&o2hb_live_lock);
+ 
+ 	/* local heartbeat */
+@@ -2451,6 +2526,7 @@ static void o2hb_region_dec_user(const char *region_uuid)
+ 
+ unlock:
+ 	spin_unlock(&o2hb_live_lock);
++	mutex_unlock(&o2hb_dependency_mutex);
+ }
+ 
+ int o2hb_register_callback(const char *region_uuid,
+-- 
+2.39.3
 
