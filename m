@@ -1,32 +1,32 @@
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A09513F787E
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 01:21:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9E4A3EF658
+	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 01:35:11 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784596880; cv=none; b=hfm9DkHSjSm0ATsVKDSCvmvQtDvdt4ZTMnY5vSvS7yyDO2jtTEZvaH5ahQUem7i1OaPzHv+EZ7HmMokZvTQ3u9Q85Y+MJ1jDl/mXEAY/uqc4fhLW9mtP09o5Wf5nbyOBSOVcfkOilMNnH6AymIXJcmK8glKG+T1yGnwPGLXrIe4=
+	t=1784597716; cv=none; b=PmMB5rm5QPQ4Rj0ixXLBvii2giCqju8ZN6KJDQy85VUOWCDCJO2j3Ebof/iZV/YUZhe5scninCB26HT90n7zf+4B9p6orxlV/Jlq5HjI4K+9P+ZWvbV0hBeJaegGSnI/xRVLitjdrZyiM+LCjJLyWfvSW4n4wg8zUnPjExialD8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784596880; c=relaxed/simple;
-	bh=8Q8fqsyTCEqD9MESI2Y/A3SJA3tbjLoggsSGBUsD63o=;
+	s=arc-20240116; t=1784597716; c=relaxed/simple;
+	bh=mSppD302R5mI0hEwlz/wjT0oDv4lhU817kwyylG/sEc=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=iqzoQsKj0Kpq1eonoYHlKKmU4RZ6xOT0iTC/5aMZWKdeZh5xdQg8NEljXn3mjbyi0HaZxk3WoSTUqnYioghfPB/0i0Zm+V6VlKWJe4vAygYbTxnLkMCzNWD6h0XL42LuPOrQVqN46n36maYaH/lg+zqzfh2D8+VO5L1QrupGWR8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=MlhkMr+q; arc=none smtp.client-ip=115.124.30.132
+	 In-Reply-To:Content-Type; b=YDhiOlJ6gOUEvCb+AuUGnhKQ4VsjLnKw52oXhwxCCxNU7q6ekg8nG/5+3BsGxdLmzTB0PUWe/OhJqgh7nNqRwVwlmQ84QclrooG16srr2UButx9r7qrqCbvSV9txds+qVdF2yxfQdb6O7D+3toQLoURoMFW376+gnn0SCrTh6fI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=TJLdLzqU; arc=none smtp.client-ip=115.124.30.119
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="MlhkMr+q"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="TJLdLzqU"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1784596875; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=JREDA355EKdg2msjjt4j2FAsP9SQxUVaQtiB7ZcuRn0=;
-	b=MlhkMr+qpEAxPFfyjxW7Xdl0qxnx3DRnxq0dZQ3Tll46UamYgHYSsDSywbsa62XiymJsXPm3hCCJM9aLwYLzf8eSsp6ZEE7fhtS/VBAyNfV/KUFCduglybEGXJ9RuKINKmCRUc4DE6A3BkE7wR12t25mq4OfIUZbgDbTmyzANhw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R181e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X7XxEiR_1784596873;
-Received: from 30.221.129.34(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7XxEiR_1784596873 cluster:ay36)
+	t=1784597704; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=aSMwElfZTzA8CWfKXo54o3eJx0WUCAraADGCJkl7+ec=;
+	b=TJLdLzqUdJKQSWh3r4tdpeaH4D3rddLQJOhETP2hnV/5uUKZRRQZPaydcqiNoaL9Zh6D8ZAAtTvPxe9zDfjwYcnX33baurPuy/71dfQFLSbrKxxS9DfdzvBUqpLZladcAWUp8HLmaRiUEsQdOVVI3gq87oHoGVNsATUjj3tA+zk=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R981e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X7Y0Y98_1784597703;
+Received: from 30.221.129.34(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7Y0Y98_1784597703 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 21 Jul 2026 09:21:14 +0800
-Message-ID: <b5657937-3c3a-4d85-9df6-80ebb6feeb24@linux.alibaba.com>
-Date: Tue, 21 Jul 2026 09:21:13 +0800
+          Tue, 21 Jul 2026 09:35:03 +0800
+Message-ID: <9b036404-0863-420a-9cf4-1cc33d506cd9@linux.alibaba.com>
+Date: Tue, 21 Jul 2026 09:35:02 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,118 +34,134 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2/dlm: validate lockname_len in
- dlm_mig_lockres_handler()
-To: Ibrahim Hashimov <security@auditcode.ai>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-References: <20260720170828.11476-1-security@auditcode.ai>
+Subject: Re: [PATCH] ocfs2: always run deallocs on copy-on-write completion
+To: Dmitry Antipov <dmantipov@yandex.ru>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org
+References: <20260720113957.58219-1-dmantipov@yandex.ru>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260720170828.11476-1-security@auditcode.ai>
+In-Reply-To: <20260720113957.58219-1-dmantipov@yandex.ru>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-This has been posted before in:
-https://lore.kernel.org/ocfs2-devel/20260629-b4-disp-94fb6521-v1-2-6953bcc0421f@proton.me/
 
-And it is now queued in mm-tree.
 
-On 7/21/26 1:08 AM, Ibrahim Hashimov wrote:
-> dlm_mig_lockres_handler() handles an incoming DLM_MIG_LOCKRES_MSG o2net
-> message from a remote DLM domain node and copies the migratable lockres
-> straight out of the wire buffer:
+On 7/20/26 7:39 PM, Dmitry Antipov wrote:
+> Local fuzzing of 6.12.94 has found the following memory leak
+> caused by doing 'copy_file_range()' within the same filesystem:
 > 
->     struct dlm_migratable_lockres *mres =
->         (struct dlm_migratable_lockres *)msg->buf;
->     ...
->     res = dlm_new_lockres(dlm, mres->lockname, mres->lockname_len);
+> unreferenced object 0xffff88812192c980 (size 32):
+>   comm "syz.0.49", pid 12095, jiffies 4294964143
+>   hex dump (first 32 bytes):
+>     00 00 00 00 00 00 00 00 08 00 00 00 00 00 00 00  ................
+>     c0 c5 92 21 81 88 ff ff 00 02 00 00 00 06 00 00  ...!............
+>   backtrace (crc 7068d63f):
+>     kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
+>     slab_post_alloc_hook mm/slub.c:4152 [inline]
+>     slab_alloc_node mm/slub.c:4197 [inline]
+>     __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
+>     kmalloc_noprof include/linux/slab.h:878 [inline]
+>     ocfs2_find_per_slot_free_list fs/ocfs2/alloc.c:6618 [inline]
+>     ocfs2_cache_block_dealloc+0x155/0x4b0 fs/ocfs2/alloc.c:6786
+>     ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
+>     ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
+>     ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
+>     __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
+>     ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
+>     ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
+>     ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
+>     ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
+>     ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
+>     ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
+>     ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
+>     ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
+>     ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
+>     ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
+>     ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
+>     iter_file_splice_write+0x890/0xf60 fs/splice.c:743
+>     do_splice_from fs/splice.c:944 [inline]
+>     direct_splice_actor+0x232/0x480 fs/splice.c:1167
+>     splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
+>     do_splice_direct_actor fs/splice.c:1210 [inline]
+>     do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
+>     do_sendfile+0x430/0xbf0 fs/read_write.c:1388
 > 
-> mres->lockname_len is a raw u8 field taken verbatim from the network
-> message (dlmcommon.h), so it can be anywhere in [0, 255].
-> dlm_new_lockres() forwards it unchanged into dlm_init_lockres():
+> unreferenced object 0xffff88812192c5c0 (size 32):
+>   comm "syz.0.49", pid 12095, jiffies 4294964143
+>   hex dump (first 32 bytes):
+>     00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00  ................
+>     29 70 00 00 00 00 00 00 19 00 00 00 00 00 00 00  )p..............
+>   backtrace (crc afec850f):
+>     kmemleak_alloc_recursive include/linux/kmemleak.h:42 [inline]
+>     slab_post_alloc_hook mm/slub.c:4152 [inline]
+>     slab_alloc_node mm/slub.c:4197 [inline]
+>     __kmalloc_cache_noprof+0x168/0x2c0 mm/slub.c:4358
+>     kmalloc_noprof include/linux/slab.h:878 [inline]
+>     kzalloc_noprof include/linux/slab.h:1014 [inline]
+>     ocfs2_cache_block_dealloc+0x25c/0x4b0 fs/ocfs2/alloc.c:6793
+>     ocfs2_cache_extent_block_free fs/ocfs2/alloc.c:6819 [inline]
+>     ocfs2_unlink_path+0x286/0x450 fs/ocfs2/alloc.c:2613
+>     ocfs2_rotate_subtree_left fs/ocfs2/alloc.c:2779 [inline]
+>     __ocfs2_rotate_tree_left+0x1f6f/0x2da0 fs/ocfs2/alloc.c:2985
+>     ocfs2_rotate_tree_left+0x283/0xe00 fs/ocfs2/alloc.c:3237
+>     ocfs2_try_to_merge_extent+0xf56/0x1a20 fs/ocfs2/alloc.c:3825
+>     ocfs2_split_extent+0x15f4/0x2940 fs/ocfs2/alloc.c:5138
+>     ocfs2_clear_ext_refcount+0x2f6/0x550 fs/ocfs2/refcounttree.c:3098
+>     ocfs2_replace_clusters fs/ocfs2/refcounttree.c:3131 [inline]
+>     ocfs2_make_clusters_writable fs/ocfs2/refcounttree.c:3255 [inline]
+>     ocfs2_replace_cow+0x991/0x1660 fs/ocfs2/refcounttree.c:3349
+>     ocfs2_refcount_cow_hunk fs/ocfs2/refcounttree.c:3427 [inline]
+>     ocfs2_refcount_cow+0x5e1/0x9f0 fs/ocfs2/refcounttree.c:3470
+>     ocfs2_prepare_inode_for_write fs/ocfs2/file.c:2340 [inline]
+>     ocfs2_file_write_iter+0xbda/0x1880 fs/ocfs2/file.c:2451
+>     iter_file_splice_write+0x890/0xf60 fs/splice.c:743
+>     do_splice_from fs/splice.c:944 [inline]
+>     direct_splice_actor+0x232/0x480 fs/splice.c:1167
+>     splice_direct_to_actor+0x4b4/0xb60 fs/splice.c:1111
+>     do_splice_direct_actor fs/splice.c:1210 [inline]
+>     do_splice_direct+0x10f/0x1c0 fs/splice.c:1236
+>     do_sendfile+0x430/0xbf0 fs/read_write.c:1388
 > 
->     qname = (char *) res->lockname.name;
->     memcpy(qname, name, namelen);
+> This happens when 'ocfs2_cache_block_dealloc()' called from
+> 'ocfs2_cache_extent_block_free()' uses the suballocator to
+> schedule extent removal, so 'ocfs2_run_deallocs()' should
+> be run unconditionally to complete the removal with
+> 'ocfs2_free_cached_blocks()'.
 > 
-> res->lockname.name is allocated from dlm_lockname_cache, a dedicated
-> kmem_cache sized exactly DLM_LOCKID_NAME_MAX (32) bytes
-> (dlm_init_master_caches(), dlmmaster.c). Any lockname_len above 32
-> therefore makes memcpy() write past the end of that 32-byte slab object;
-> the maximum attacker-controlled value of 255 yields a 223-byte
-> slab-out-of-bounds write (CWE-787) with fully attacker-controlled content
-> (the bytes are mres->lockname itself).
-> 
-> The o2net receive path only bounds-checks the whole payload against
-> nh_max_len (cluster/tcp.c); it has no notion of the lockname_len
-> sub-field and cannot catch this. Every other DLM message handler that
-> consumes an attacker-supplied name length already guards it against
-> DLM_LOCKID_NAME_MAX right after pulling it out of the wire structure:
-> dlm_master_request_handler(), dlm_assert_master_handler(),
-> dlm_deref_lockres_handler() and dlm_deref_lockres_done_handler()
-> (dlmmaster.c), and the equivalent check in dlmconvert.c / dlmast.c.
-> dlm_mig_lockres_handler() is simply missing the same check -- present
-> since the file's introduction and never covered because exercising it
-> requires two heartbeating o2cb cluster nodes and a joined DLM domain,
-> i.e. it is invisible to single-node testing and to fuzzers that don't
-> speak the o2net/o2cb protocol.
-> 
-> The attacker is any node it fully controls (or is on-path and can spoof)
-> that is heartbeating in the same o2cb cluster and has been permitted to
-> join the DLM domain. o2net authentication is limited to cluster
-> membership (nodes list + heartbeat), not per-message payload validation,
-> so a single rogue or compromised cluster member, or an on-path attacker
-> able to inject on the unauthenticated o2net TCP stream, can send one
-> crafted DLM_MIG_LOCKRES_MSG frame with lockname_len = 255 to any other
-> domain member and corrupt adjacent dlm_lockname_cache slab objects,
-> leading to memory corruption and, depending on slab layout, a crash or
-> worse.
-> 
-> Reject the message before it reaches dlm_new_lockres() /
-> __dlm_lookup_lockres_full() if mres->lockname_len exceeds
-> DLM_LOCKID_NAME_MAX, mirroring the validation idiom already used by the
-> sibling handlers above. The check is placed immediately after the
-> existing dlm_joined() gate, before any use of mres->lockname /
-> mres->lockname_len, and follows this function's own early-return style
-> (dlm_put(dlm); return -EINVAL;) rather than the later "leave:" label,
-> since at this point buf/item are still NULL and no refs have been taken.
-> This is the smallest possible fix: one bounds check, no change to wire
-> format, on-disk format, or any other code path.
-> 
-> Reproduced on a v6.19 KASAN-instrumented kernel with an in-kernel
-> injector that calls dlm_mig_lockres_handler() directly (bypassing the
-> o2net accept/heartbeat gate that otherwise requires a second heartbeating
-> cluster node) against a live single-node OCFS2/o2cb DLM domain. A control
-> frame with lockname_len = 8 completed cleanly; an otherwise-identical
-> frame differing only in lockname_len = 255 reliably produced
-> "KASAN: slab-out-of-bounds in dlm_new_lockres", deterministically and
-> with no dependence on timing or allocator state. Full network delivery
-> over a real two-node o2cb cluster was not exercised: the injector proves
-> handler-reachability and the write is deterministic once the handler
-> runs, but the o2net wire path itself was not verified end-to-end.
-> 
-> Fixes: 6714d8e86bf4 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Ibrahim Hashimov <security@auditcode.ai>
-> Assisted-by: AuditCode-AI:2026.07
+
+The identical idiom also exists in other places:
+  ocfs2_attach_refcount_tree
+  ocfs2_create_reflink_node
+  ocfs2_reflink_remap_blocks
+  ocfs2_reflink_xattrs
+
+So please check if it will leak the same way. If so, please apply the
+same changes as well.
+
+Thanks,
+Joseph
+
+> Fixes: 6f70fa519976 ("ocfs2: Add CoW support.")
+> Signed-off-by: Dmitry Antipov <dmantipov@yandex.ru>
 > ---
->  fs/ocfs2/dlm/dlmrecovery.c | 6 ++++++
->  1 file changed, 6 insertions(+)
+>  fs/ocfs2/refcounttree.c | 5 ++---
+>  1 file changed, 2 insertions(+), 3 deletions(-)
 > 
-> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-> index 9b97bf73df22..ec7edffc8ca8 100644
-> --- a/fs/ocfs2/dlm/dlmrecovery.c
-> +++ b/fs/ocfs2/dlm/dlmrecovery.c
-> @@ -1366,6 +1366,12 @@ int dlm_mig_lockres_handler(struct o2net_msg *msg, u32 len, void *data,
->  		return -EINVAL;
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 7323bde70caa..e659313a7383 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -3360,10 +3360,9 @@ static int ocfs2_replace_cow(struct ocfs2_cow_context *context)
+>  		cow_start += num_clusters;
 >  	}
 >  
-> +	if (mres->lockname_len > DLM_LOCKID_NAME_MAX) {
-> +		mlog(ML_ERROR, "Invalid name length!");
-> +		dlm_put(dlm);
-> +		return -EINVAL;
-> +	}
-> +
->  	BUG_ON(!(mres->flags & (DLM_MRES_RECOVERY|DLM_MRES_MIGRATION)));
+> -	if (ocfs2_dealloc_has_cluster(&context->dealloc)) {
+> +	if (ocfs2_dealloc_has_cluster(&context->dealloc))
+>  		ocfs2_schedule_truncate_log_flush(osb, 1);
+> -		ocfs2_run_deallocs(osb, &context->dealloc);
+> -	}
+> +	ocfs2_run_deallocs(osb, &context->dealloc);
 >  
->  	real_master = mres->master;
+>  	return ret;
+>  }
 
