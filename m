@@ -1,53 +1,50 @@
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 021FB1A239A
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 01:08:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 25C76823DD;
+	Tue, 21 Jul 2026 01:15:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784596131; cv=none; b=mcQWA9kZzdZ+6opS6viv1rJYpV12sCwjpvibd691FxXU3KWJYIWDJziB7PQ9MChWhaGvz8wiOkHJyXNfP1Cy1v6ojoChKH/XZtimpQcLmUhljtbfvXIV+rmvrSPgc+X4BXifmN/54XOSiUXdtASHWuwcyvJFDo5YA+HRllnHRGQ=
+	t=1784596537; cv=none; b=DcYLs4bLTz2aCP+7wRWK4K3HqcdiLk4D33dEM1HW5oeH2owHO0usyqg0laBLAcANB0uK48FC7ZxtIiZM7WGcnjaNsf02sxpiROmO10KvRPI1LjgdVQM8r8PKjexAQ4M5QItp4BC8XNqwMf3zBlX7mM8zjRH6y5vEgDhN3DiUgRg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784596131; c=relaxed/simple;
-	bh=yQW9BpTRoM4erxzk5/SAkxgWc34OWidz8X7nFQLpeME=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
-	 In-Reply-To:Content-Type; b=GGjm3vhq944XhnzXJeTlViRrquj7oYlXTboICymmZBm+rpgkcTOFD9mitHgMsB3QOav8hex/gkSBdAItfbFAvTAT2Zp7ipXEFE+QAb7KWLhVLps2bhU9wu4DVDtcLgxCumfXfSPzepfF9cHVRZ9uBSpisrQJ8cMtZRTXrXI+Qtc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Wz4QZpTH; arc=none smtp.client-ip=115.124.30.132
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1784596537; c=relaxed/simple;
+	bh=ojIgvYqqIQK8sjCGCjkSi8JEgRCJ7XKJj4kQEog3D1A=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=h0PbdEMd/mUjI8pt6AA/EzgMA6LrvqHyRnRahjKmr0VUxAF9nsD1mivCcvIpYrFBsuLfqsDzskplohO4gJ3qgEYmyc+P2UwAU8+gWjjGoIY4Gi1GXcUrjhIA9692+kRVdk9L2Cc2wU6dVHMFbQ0SkNhdOILX6+sjORxPPFqGPvI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=T3M0QQDq; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Wz4QZpTH"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1784596120; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=89vvMoM5LmIGrWrLgI2HXEvxQqgOCPIiuWNnuqEnJUU=;
-	b=Wz4QZpTHbDNxLPfp62uFdHd4ujpmUR+zkrSyKRd84FUMBWCh61OaNd8Bka5kmpiS1Z2tCO24+5RbZxbccjIqKbSTGnO/73CsD1EvT+psIbKBmnhosfull2pFrEA33qTk37gH+k/1UNd4n6HkFx7UUtvxOIgePxKQhM3eyHzd95I=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X7XoKKw_1784596118;
-Received: from 30.221.129.34(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7XoKKw_1784596118 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 21 Jul 2026 09:08:38 +0800
-Message-ID: <a693bbc7-52fb-4efc-a4de-fa597cff24c8@linux.alibaba.com>
-Date: Tue, 21 Jul 2026 09:08:37 +0800
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="T3M0QQDq"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 722F21F000E9;
+	Tue, 21 Jul 2026 01:15:35 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1784596535;
+	bh=4q34Aw5O5ssYpPRJex6Nlp+UAAteHjDMWMQk6MU/m7I=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=T3M0QQDqN1YnwL84GA732Kupm5xRPhauTcWE79bKGG2wdA5A6mD0FGzOb8dmgExLR
+	 zABKrvdIJBvNLBCZPPhqI4eNUeU4wiNhbkwrP1UvCoAx3FeBaK63OoKTAo1Nn/8uBt
+	 9VX7YX2ngT74HpLDQ9Sn5RBFtBnPZrKTxNYsRQ84=
+Date: Mon, 20 Jul 2026 18:15:35 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Guangshuo Li <lgs201920130244@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, Joseph
+ Qi <joseph.qi@linux.alibaba.com>, Tristan Ye <tristan.ye@oracle.com>,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v3] ocfs2: free unused clusters on defrag move errors
+Message-Id: <20260720181535.158f43328e1f6c3d2036352e@linux-foundation.org>
+In-Reply-To: <20260720141944.485212-1-lgs201920130244@gmail.com>
+References: <20260720141944.485212-1-lgs201920130244@gmail.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v3] ocfs2: free unused clusters on defrag move errors
-To: Guangshuo Li <lgs201920130244@gmail.com>, akpm <akpm@linux-foundation.org>
-References: <20260720141944.485212-1-lgs201920130244@gmail.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Tristan Ye <tristan.ye@oracle.com>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260720141944.485212-1-lgs201920130244@gmail.com>
-Content-Type: text/plain; charset=UTF-8
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
+On Mon, 20 Jul 2026 22:19:43 +0800 Guangshuo Li <lgs201920130244@gmail.com> wrote:
 
-
-On 7/20/26 10:19 PM, Guangshuo Li wrote:
 > ocfs2_defrag_extent() claims new clusters before calling
 > __ocfs2_move_extent(). If the move fails before ocfs2_split_extent()
 > succeeds, the claimed clusters are not referenced by the inode and must
@@ -71,46 +68,9 @@ On 7/20/26 10:19 PM, Guangshuo Li wrote:
 > 
 > Return move errors through the transaction cleanup path so that the
 > original error is preserved instead of being overwritten by writeback.
-> 
-> Fixes: 202ee5facb2c ("Ocfs2/move_extents: defrag a range of extent.")
-> Signed-off-by: Guangshuo Li <lgs201920130244@gmail.com>
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Thanks.  AI review has flagged a couple of possible issues with this
+change.  Please check?
 
-> ---
-> v3:
->   - Fix the duplicate split_started declaration.
->   - Reuse context->new_phys_cpos to determine whether the extent split
->     succeeded, as suggested by Joseph Qi.
->   - Avoid changing the __ocfs2_move_extent() prototype.
-> 
-> v2:
->   - Do not free the new clusters after the extent-tree update has
->     started, as pointed out by Joseph Qi.
->   - Track whether the new clusters remain unused on error.
->   - Preserve __ocfs2_move_extent() errors instead of allowing the
->     subsequent writeback call to overwrite them.
-> 
->  fs/ocfs2/move_extents.c | 6 +++++-
->  1 file changed, 5 insertions(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-> index ad1678ee7cc4..7820df90a262 100644
-> --- a/fs/ocfs2/move_extents.c
-> +++ b/fs/ocfs2/move_extents.c
-> @@ -310,8 +310,12 @@ static int ocfs2_defrag_extent(struct ocfs2_move_extents_context *context,
->  
->  	ret = __ocfs2_move_extent(handle, context, cpos, new_len, phys_cpos,
->  				  new_phys_cpos, ext_flags);
-> -	if (ret)
-> +	if (ret) {
->  		mlog_errno(ret);
-> +		if (context->new_phys_cpos != new_phys_cpos)
-> +			need_free = 1;
-> +		goto out_commit;
-> +	}
->  
->  	if (partial && (new_len != *len))
->  		*len = new_len;
+	https://sashiko.dev/#/patchset/20260720141944.485212-1-lgs201920130244@gmail.com
 
