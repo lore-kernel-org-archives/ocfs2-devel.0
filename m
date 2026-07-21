@@ -1,36 +1,32 @@
-Received: from forward501d.mail.yandex.net (forward501d.mail.yandex.net [178.154.239.209])
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 46CCA3C73E1
-	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 09:18:40 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=178.154.239.209
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 315E5446C09
+	for <ocfs2-devel@lists.linux.dev>; Tue, 21 Jul 2026 10:08:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784625524; cv=none; b=GApGQtoKhYYEC/0wqXsJ+CpTBDpQPo8SvNMlAXx0kYayLdFFisOxsrLKbTLe+wrOxeE44l+fy6WbDXbGeMDagtvNaYjxegnIdylOBkioGzqfm8a61srefIVEDCEEAPi13Wly+VJdGLHDt7Fo24qJlm6Ty3hCVaaXtzMWTnPoblk=
+	t=1784628542; cv=none; b=tWTJjEUVcdEg64XTvGAOS5OQLDBp1tv3r1s2CXvUuBjvtVpa2ihsykcDB9bV/Bar8XXWmwrHY5iWw5pClUfaq9hzuyQqdjBgvYWWiHo5tgbt21xCJxUCe47y+3hyetO5JJRSOtOodBf4E4dUWD/2MDRE6eVBKok5bhRfI7hZXDI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784625524; c=relaxed/simple;
-	bh=NrLJEUVE1tH9WhLmiu6Ue0TRYXC33NNqji0faTgg74Y=;
+	s=arc-20240116; t=1784628542; c=relaxed/simple;
+	bh=NtvjdWNxurcs2GjwtZScLFaeHT1UE+KnEyTY/TsAhBY=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=EMixh0PN7f1Mc0ddNvGgAmuQ2v1njkyAdV4k30RZTS/UbBI9Oji6t9BXAv29dDbDzlyPkDhYHvEvvOLw4QkaoFb39yvEYBPlgtqK3JSg/Pb3N90TsWAG/reWX+zmWzwmI4t2YRxlnVe347rdfZix1wMyZ84M0SzdnFidF409OcI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru; spf=pass smtp.mailfrom=yandex.ru; dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b=I1xgiqYf; arc=none smtp.client-ip=178.154.239.209
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=yandex.ru
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=yandex.ru
+	 In-Reply-To:Content-Type; b=p+mNWYKH2NMn5eszfDYp+eYMUN5T0z0ktSh6PSub/Y1riUZ0kVnBR5WeAW16ZeKSLtk40t/sSxJLCzQdMJAPske1q35e2vlpsbzesz9U0BXMyIoKVWbfrbHicixLMzoIj3EJUPkSuXRt0Lpt9rvx8z3kSNfG4dTfKbcwTwTpTnc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=CrSdT3QP; arc=none smtp.client-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=yandex.ru header.i=@yandex.ru header.b="I1xgiqYf"
-Received: from mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net (mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net [IPv6:2a02:6b8:c42:4f41:0:640:844:0])
-	by forward501d.mail.yandex.net (postfix) with ESMTPS id 4A53481C38;
-	Tue, 21 Jul 2026 12:11:14 +0300 (MSK)
-Received: by mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net (smtp) with ESMTPSA id BBS8NHDdxOs0-n0Xf0zl6;
-	Tue, 21 Jul 2026 12:11:13 +0300
-X-Yandex-Fwd: 1
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=yandex.ru; s=mail;
-	t=1784625073; bh=2w7l6b8Vskk168mu0RLrfvfSzC1/MqW5I5OXJmMvM+M=;
-	h=From:In-Reply-To:Cc:Date:References:To:Subject:Message-ID;
-	b=I1xgiqYfGGb6Ac+qNc6ScwB7FVnrXp4ptzjctVWjz03gxo/uX2e7W1llUQK4VCzqO
-	 eGL586Mc91VyKxzr+WA40msVxMfcQu0ftyRtA8lN77RKkQFFKt4dOud/E9wZv15N1c
-	 Bd+u1pqOtCzxisLslOBjyk4LUDQK6ljXHFg5aazQ=
-Authentication-Results: mail-nwsmtp-smtp-production-main-63.klg.yp-c.yandex.net; dkim=pass header.i=@yandex.ru
-Message-ID: <f1d7e266-4b44-41b9-98c0-5b3868a8d9c3@yandex.ru>
-Date: Tue, 21 Jul 2026 12:08:57 +0300
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="CrSdT3QP"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1784628536; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=Y1+6+I/cUK8OoL57z0nuPLue6qfEXzmfbtAtQd5sp/A=;
+	b=CrSdT3QP6A3N/Gx3BROp9A/WjR75ghSMiVZkIh8U4SPUm9+6iGc7Qq6O1Gx2syJEB18wJ/51cVx6GHr8jKidfvOHu5GIyQoZH5DFiCRzmIYMc5AfS0q2rGhAY8cyTmP5f4ZkKBktbts27TUJuO6+UCwgyBNhX1TfILxoRzbX22U=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0X7Zh1wu_1784628533;
+Received: from 30.221.129.34(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7Zh1wu_1784628533 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 21 Jul 2026 18:08:53 +0800
+Message-ID: <0b60eb13-564f-445f-9bcb-cd0a2a147af0@linux.alibaba.com>
+Date: Tue, 21 Jul 2026 18:08:52 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -39,144 +35,157 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH] ocfs2: always run deallocs on copy-on-write completion
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Dmitry Antipov <dmantipov@yandex.ru>
 Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
  ocfs2-devel@lists.linux.dev, lvc-project@linuxtesting.org
 References: <20260720113957.58219-1-dmantipov@yandex.ru>
  <9b036404-0863-420a-9cf4-1cc33d506cd9@linux.alibaba.com>
-Content-Language: en-US
-From: Dmitry Antipov <dmantipov@yandex.ru>
-In-Reply-To: <9b036404-0863-420a-9cf4-1cc33d506cd9@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+ <f1d7e266-4b44-41b9-98c0-5b3868a8d9c3@yandex.ru>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <f1d7e266-4b44-41b9-98c0-5b3868a8d9c3@yandex.ru>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
-On 7/21/26 4:35 AM, Joseph Qi wrote:
 
-> The identical idiom also exists in other places:
->    ocfs2_attach_refcount_tree
->    ocfs2_create_reflink_node
->    ocfs2_reflink_remap_blocks
->    ocfs2_reflink_xattrs
+
+On 7/21/26 5:08 PM, Dmitry Antipov wrote:
+> On 7/21/26 4:35 AM, Joseph Qi wrote:
 > 
-> So please check if it will leak the same way. If so, please apply the
-> same changes as well.
+>> The identical idiom also exists in other places:
+>>    ocfs2_attach_refcount_tree
+>>    ocfs2_create_reflink_node
+>>    ocfs2_reflink_remap_blocks
+>>    ocfs2_reflink_xattrs
+>>
+>> So please check if it will leak the same way. If so, please apply the
+>> same changes as well.
+> 
+> So the basic problem is to check whether 'ocfs2_cache_block_dealloc()'
+> can be called from these functions as well. Since I have the only
+> .syz reproducer that proves that 'ocfs2_cache_block_dealloc()' can
+> be called from 'ocfs2_replace_cow()', time to try some static analysis.
+> 
+> 1. Collect LLVM bitcode of the relevant source code:
+> 
+> diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
+> index cc9b32b9db7c..6163df78e873 100644
+> --- a/fs/ocfs2/Makefile
+> +++ b/fs/ocfs2/Makefile
+> @@ -1,5 +1,5 @@
+>  # SPDX-License-Identifier: GPL-2.0
+> -ccflags-y := -I$(src)
+> +ccflags-y := -I$(src) --save-temps=obj
+> 
+>  obj-$(CONFIG_OCFS2_FS) +=      \
+>         ocfs2.o                 \
+> 
+> 2. Link them into a single unified bitcode and produce call graph:
+> 
+> $ llvm-link $(find fs/ocfs2 -name '*.bc') -o ocfs2.bc
+> $ opt --passes=dot-callgraph ocfs2.bc
+> 
+> This produces ocfs2.bc.callgraph.dot.
+> 
+> 3. Use the following gvpr(1) (comes from graphviz) script:
+> 
+> // AI-assisted breadth-first search
+> 
+> BEGIN {
+>     if (ARGC < 2) {
+>         printf(2, "Error: Please provide source and target node names as arguments.\n");
+>         printf(2, "Usage: gvpr -f reachable.gvpr -a [source] -a [target] input.gv\n");
+>         exit(1);
+>     }
+>     string src = ARGV[0];
+>     string tgt = ARGV[1];
+> 
+>     // Arrays for tracking BFS
+>     node_t queue[];
+>     int visited[string];
+>     int Head = 0;
+>     int Tail = 0;
+> }
+> 
+> BEG_G {
+>     node_t s = node($, src);
+>     node_t t = node($, tgt);
+> 
+>     if (s == NULL || t == NULL) {
+>         printf(2, "Error: One or both nodes do not exist in the graph.\n");
+>         exit(1);
+>     }
+> 
+>     if (s == t) {
+>         print("yes (source is equal to target)");
+>         exit(0);
+>     }
+> 
+>     // Initialize BFS queue
+>     queue[Tail++] = s;
+>     visited[s.name] = 1;
+> 
+>     // Run BFS loop
+>     while (Head < Tail) {
+>         node_t curr = queue[Head++];
+>         edge_t e;
+> 
+>         // Loop through all outgoing edges of the current node
+>         for (e = fstedge(curr); e; e = nxtedge(e, curr)) {
+>             if (e.head == curr) continue;
+> 
+>             node_t nextNode = e.head;
+>             if (!visited[nextNode.name]) {
+>                 if (nextNode == t) {
+>                     print("yes");
+>                     exit(0);
+>                 }
+>                 visited[nextNode.name] = 1;
+>                 queue[Tail++] = nextNode;
+>             }
+>         }
+>     }
+> 
+>     print("no");
+> }
+> 
+> and simple shell script to check suspected functions:
+> 
+> #!/bin/bash
+> 
+> TARGET=ocfs2_cache_block_dealloc
+> NODE_target=$(grep "{$TARGET}" ocfs2.bc.callgraph.dot  | awk '{print $1}')
+> 
+> for NAME in ocfs2_replace_cow \
+>         ocfs2_attach_refcount_tree \
+>         ocfs2_create_reflink_node \
+>         ocfs2_reflink_remap_blocks \
+>         ocfs2_reflink_xattrs
+> do
+>     NODE_check=$(grep "{$NAME}" ocfs2.bc.callgraph.dot  | awk '{print $1}')
+>     echo -ne "Check whether $TARGET() is reachable from $NAME()..."
+>     gvpr -f reachable.gvpr -a $NODE_check -a $NODE_target ocfs2.bc.callgraph.dot
+> done
+> 
+> This produces the following output:
+> 
+> Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_replace_cow()...yes
+> Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_attach_refcount_tree()...yes
+> Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_create_reflink_node()...no
+> Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_reflink_remap_blocks()...yes
+> Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_reflink_xattrs()...no
+> 
+> So I would assume that 'ocfs2_create_reflink_node()' and 'ocfs2_reflink_xattrs()'
+> are better to leave untouched.
+> 
+Reasons for ocfs2_create_reflink_node() and ocfs2_reflink_xattrs() are
+marked unreachable:
+ocfs2_create_reflink_node() - it's purely additive without remove blocks.
+ocfs2_reflink_xattrs() - allocate new xattr blocks for the destination, with
+the source's xattr tree untouched.
 
-So the basic problem is to check whether 'ocfs2_cache_block_dealloc()'
-can be called from these functions as well. Since I have the only
-.syz reproducer that proves that 'ocfs2_cache_block_dealloc()' can
-be called from 'ocfs2_replace_cow()', time to try some static analysis.
+Since ocfs2_run_deallocs() is a no-op with an empty dealloc context, so it
+seems marking it unconditional is safe. And this will keep the code pattern
+consistent.
 
-1. Collect LLVM bitcode of the relevant source code:
-
-diff --git a/fs/ocfs2/Makefile b/fs/ocfs2/Makefile
-index cc9b32b9db7c..6163df78e873 100644
---- a/fs/ocfs2/Makefile
-+++ b/fs/ocfs2/Makefile
-@@ -1,5 +1,5 @@
-  # SPDX-License-Identifier: GPL-2.0
--ccflags-y := -I$(src)
-+ccflags-y := -I$(src) --save-temps=obj
-
-  obj-$(CONFIG_OCFS2_FS) +=      \
-         ocfs2.o                 \
-
-2. Link them into a single unified bitcode and produce call graph:
-
-$ llvm-link $(find fs/ocfs2 -name '*.bc') -o ocfs2.bc
-$ opt --passes=dot-callgraph ocfs2.bc
-
-This produces ocfs2.bc.callgraph.dot.
-
-3. Use the following gvpr(1) (comes from graphviz) script:
-
-// AI-assisted breadth-first search
-
-BEGIN {
-     if (ARGC < 2) {
-         printf(2, "Error: Please provide source and target node names as arguments.\n");
-         printf(2, "Usage: gvpr -f reachable.gvpr -a [source] -a [target] input.gv\n");
-         exit(1);
-     }
-     string src = ARGV[0];
-     string tgt = ARGV[1];
-
-     // Arrays for tracking BFS
-     node_t queue[];
-     int visited[string];
-     int Head = 0;
-     int Tail = 0;
-}
-
-BEG_G {
-     node_t s = node($, src);
-     node_t t = node($, tgt);
-
-     if (s == NULL || t == NULL) {
-         printf(2, "Error: One or both nodes do not exist in the graph.\n");
-         exit(1);
-     }
-
-     if (s == t) {
-         print("yes (source is equal to target)");
-         exit(0);
-     }
-
-     // Initialize BFS queue
-     queue[Tail++] = s;
-     visited[s.name] = 1;
-
-     // Run BFS loop
-     while (Head < Tail) {
-         node_t curr = queue[Head++];
-         edge_t e;
-
-         // Loop through all outgoing edges of the current node
-         for (e = fstedge(curr); e; e = nxtedge(e, curr)) {
-             if (e.head == curr) continue;
-
-             node_t nextNode = e.head;
-             if (!visited[nextNode.name]) {
-                 if (nextNode == t) {
-                     print("yes");
-                     exit(0);
-                 }
-                 visited[nextNode.name] = 1;
-                 queue[Tail++] = nextNode;
-             }
-         }
-     }
-
-     print("no");
-}
-
-and simple shell script to check suspected functions:
-
-#!/bin/bash
-
-TARGET=ocfs2_cache_block_dealloc
-NODE_target=$(grep "{$TARGET}" ocfs2.bc.callgraph.dot  | awk '{print $1}')
-
-for NAME in ocfs2_replace_cow \
-	    ocfs2_attach_refcount_tree \
-	    ocfs2_create_reflink_node \
-	    ocfs2_reflink_remap_blocks \
-	    ocfs2_reflink_xattrs
-do
-     NODE_check=$(grep "{$NAME}" ocfs2.bc.callgraph.dot  | awk '{print $1}')
-     echo -ne "Check whether $TARGET() is reachable from $NAME()..."
-     gvpr -f reachable.gvpr -a $NODE_check -a $NODE_target ocfs2.bc.callgraph.dot
-done
-
-This produces the following output:
-
-Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_replace_cow()...yes
-Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_attach_refcount_tree()...yes
-Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_create_reflink_node()...no
-Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_reflink_remap_blocks()...yes
-Check whether ocfs2_cache_block_dealloc() is reachable from ocfs2_reflink_xattrs()...no
-
-So I would assume that 'ocfs2_create_reflink_node()' and 'ocfs2_reflink_xattrs()'
-are better to leave untouched.
-
-Dmitry
-
+Thanks,
+Joseph
