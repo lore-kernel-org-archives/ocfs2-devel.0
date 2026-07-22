@@ -1,117 +1,133 @@
-Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ot1-f80.google.com (mail-ot1-f80.google.com [209.85.210.80])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA128204C3B
-	for <ocfs2-devel@lists.linux.dev>; Wed, 22 Jul 2026 12:55:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 791CF470E9F
+	for <ocfs2-devel@lists.linux.dev>; Wed, 22 Jul 2026 19:10:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.80
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784724962; cv=none; b=H0fNkcNmdyyBKR66ZyRmSX7ToCPryFGvcCRsf5NQwI/ZLT/4fO7aLElIPRrYSnuXLou66aDdywjylBMHxGSb3eXo6G7NM8w+1sdxCps+L2q6okqgOVs3fPua8NT1A2ECLMPLP46TeLHj8MggRK5JWw5fDFf5TIOq2nFVHX1DlTE=
+	t=1784747436; cv=none; b=a0DC+TIx0XF2mrUwdUtnHSdkfRDuS/LgO6sHczW8vMbUxDdn8pECYuh6TpmRJr6Be/25LAjsH+7OW1/TjGOLPDNxODsk6Zu11uklXhj0TqZ06Fmr5vyNXz+usJ1O/kSwEMqhArkJnA4ma+ZNaCDuYGQ47/0cc5AhZy3yBZOnazY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784724962; c=relaxed/simple;
-	bh=deRUxsv5srV7zqYTH4jPbd9DwYHRRG1uVrvSajEYp9Q=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=BhqqEKhgjzGBrtCZfcLnf8FyFv9WfoNsKC6+UZ/R91923QxoHd7yLAi8nCMxDKLtWRWM3rFvObIIsxUzoFw+kDVKhB3YyJlezxOGuk9/oMTk0BJxsP72RN8fmJU/Sqmd6h2N5lofND8Iq5F2p0hznCVvr2smVAtsTIpfr/g0/G4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=YgSw9ZNl; arc=none smtp.client-ip=115.124.30.99
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="YgSw9ZNl"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1784724956; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=hVP/c6gOOXQ5oqJcJpmlBTJ20J8EqecV7BhHwopRYSc=;
-	b=YgSw9ZNlOgMMN68kJK+zE1OyaVUcJpV2zkQGHTCNec2u7DP2+gNHBGLNhyyIY5fLTnieDAbuVgveNdDaRP6JoP6FT4n4YEbg4RYHz+aDfjzxNsv+H/UixyGZBHCrwXkhQIgyNtAhaCkNd9VHtviHKxXUjfKzrUb7yWG9ZHQ+jhU=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X7dP-su_1784724954;
-Received: from 30.221.129.75(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7dP-su_1784724954 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 22 Jul 2026 20:55:55 +0800
-Message-ID: <de598854-410c-4fae-95a5-8db0ee6d47e5@linux.alibaba.com>
-Date: Wed, 22 Jul 2026 20:55:53 +0800
+	s=arc-20240116; t=1784747436; c=relaxed/simple;
+	bh=QSk+8TZzsfVPCAl2XC59e/1BraosVxjnVBJB9OLsjUU=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=iTKCRcrUE7oOsm22kVQ7I9RiY9QHpwUSAFDvHXB9Z3973Ad4D1A32sG/EOiL5xD3+CRYjAEL4C8BJQtRdBQFGmC7oemVFKzrU5eXLm2nmDOn6OfFY3Ogp59RRZxQxK4taxWx8zejV7ADACeKeUHxGX/7fpRaAJ6daCXzZLXKHOY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.210.80
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f80.google.com with SMTP id 46e09a7af769-7ead32f5c6aso8073377a34.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 22 Jul 2026 12:10:34 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1784747433; x=1785352233;
+        h=content-type:to:from:subject:message-id:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=0dkNhFe/uBczo1c6y8CnnOJ4gnHcZ/PUKa4sHOAmbVI=;
+        b=QhDF2IGePy16FMmxQQG9p5V+KX81oi56fCXuIplB6is5kM8aRDFHL10ajul87qJDG2
+         itA91F8OCi+1cdFf00acL1IFhY7Lk3TEwlPInW9eRyCOJ7sToGqVsm4YBkAHmdkWy8rc
+         4+cjES3Nt9tjddvpKHSojXWgYDg9blyFDxiircZv+pbUN+IUY8l1XLImILKLXV7MfHzj
+         sdli4ZPXKcud0bPIWGcd7y/mJVQaGvBEMFcF5nr2IJBh9AygQnmajOofAQEgnUpktOUf
+         xbp3MDvfFf1Rr9z08EeZC/fM7C58aUhEi4UbcqkHELH98l7q/+Zmo3GZlV41sGoL7Y58
+         kz6w==
+X-Forwarded-Encrypted: i=1; AHgh+Ro6ae+4p1SiqgHk22nSxTGQ8ADIpYGqPQ99Yv2rwJS1q+x8dsjkPby8IYwEHXr0HpqY20ZPUfqAjk5spQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzlgTtiHnTSUnT3juedKVSf/fsk8aG2JmIR7kBZnWn2vQZ4ubTL
+	QqaCYK5FhiGXjG/XKj2CtuZPf1Tmo0g9zI+dAllK2jC+MmkusRwoULWOPt8ZLdW6OE5i5z6CpPC
+	nZya5w1NbIG6GylX2McgG3/dYPyJZXKmDZOlZPzSPcErxfUxFngtq1K4DkIc=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: validate truncate log dinode before caching
-To: ZhengYuan Huang <gality369@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, r33s3n6@gmail.com,
- zzzccc427@gmail.com, tom442288@tuta.io
-References: <20260722091157.3141414-1-gality369@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260722091157.3141414-1-gality369@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6820:1689:b0:69e:39c9:c6ec with SMTP id
+ 006d021491bc7-6a5366ad66bmr11004261eaf.13.1784747433309; Wed, 22 Jul 2026
+ 12:10:33 -0700 (PDT)
+Date: Wed, 22 Jul 2026 12:10:33 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6a6115a9.036d4df3.243f95.0004.GAE@google.com>
+Subject: [syzbot] [ocfs2?] INFO: trying to register non-static key in
+ ocfs2_trim_fs (2)
+From: syzbot <syzbot+0a1363933fe7d9e120ee@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    248951ddc14d Merge tag 'hwmon-for-v7.2-rc5' of git://git.k..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=171772b9580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=98da55a882774dfe
+dashboard link: https://syzkaller.appspot.com/bug?extid=0a1363933fe7d9e120ee
+compiler:       Debian clang version 22.1.8 (++20260613092233+e80beda6e255-1~exp1~20260613092250.77), Debian LLD 22.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/2c64b346eb71/disk-248951dd.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/c1a6ad8dc1de/vmlinux-248951dd.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/c34e79a35bcd/bzImage-248951dd.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+0a1363933fe7d9e120ee@syzkaller.appspotmail.com
+
+ocfs2: Readonly device (7,7) detected. Cluster services will not be used for this mount. Recovery will be skipped.
+ocfs2: Mounting device (7,7) on (node local, slot 65535) with ordered data mode.
+INFO: trying to register non-static key.
+The code is fine but needs lockdep annotation, or maybe
+you didn't initialize this object before use?
+turning off the locking correctness validator.
+CPU: 0 UID: 0 PID: 8273 Comm: syz.7.455 Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 05/09/2026
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ assign_lock_key+0x133/0x150 kernel/locking/lockdep.c:984
+ register_lock_class+0xcc/0x2e0 kernel/locking/lockdep.c:1299
+ __lock_acquire+0xab/0x2ce0 kernel/locking/lockdep.c:5112
+ lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+ __mutex_lock_common kernel/locking/rtmutex_api.c:559 [inline]
+ mutex_lock_nested+0x5a/0x1d0 kernel/locking/rtmutex_api.c:578
+ ocfs2_trim_fs_lock_res_init+0x25/0xa0 fs/ocfs2/dlmglue.c:703
+ ocfs2_trim_fs+0x13c/0x24d0 fs/ocfs2/alloc.c:7692
+ ocfs2_ioctl+0x6c2/0x7e0 fs/ocfs2/ioctl.c:948
+ vfs_ioctl fs/ioctl.c:51 [inline]
+ __do_sys_ioctl fs/ioctl.c:597 [inline]
+ __se_sys_ioctl+0xff/0x170 fs/ioctl.c:583
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f23c8d2de99
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f23c6f86028 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00007f23c8fb5fa0 RCX: 00007f23c8d2de99
+RDX: 0000200000000080 RSI: 00000000c0185879 RDI: 0000000000000004
+RBP: 00007f23c8dc3eaf R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f23c8fb6038 R14: 00007f23c8fb5fa0 R15: 00007ffc521a25a8
+ </TASK>
+(syz.7.455,8273,0):ocfs2_trim_fs:7699 ERROR: status = -30
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 7/22/26 5:11 PM, ZhengYuan Huang wrote:
-> [BUG]
-> A corrupted truncate log dinode can pass through mount initialization and
-> reach the delayed flush worker, where it triggers:
-> 
-> kernel BUG at fs/ocfs2/alloc.c:6019!
-> Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-> RIP: 0010:__ocfs2_flush_truncate_log+0xa87/0xf10 fs/ocfs2/alloc.c:6019
-> Call Trace:
->  ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6084 [inline]
->  ocfs2_truncate_log_worker+0xa9/0x180 fs/ocfs2/alloc.c:6097
->  process_one_work+0x8e0/0x1980 kernel/workqueue.c:3263
->  ...
-> 
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-I've encountered this BUG occasionality. But I don't see why it happens.
-Do you have more clues on how to reproduce it?
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-Thanks,
-Joseph
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
 
-> [CAUSE]
-> ocfs2_get_truncate_log_info() assumes that ocfs2_read_inode_block()
-> always validates the returned dinode. However, ocfs2_read_blocks() skips
-> the validation callback for JBD-managed buffers. The function then reads
-> truncate log fields and exposes the invalid buffer to callers, allowing
-> ocfs2_truncate_log_init() to retain it in osb->osb_tl_bh.
-> 
-> [FIX]
-> Check the dinode signature in ocfs2_get_truncate_log_info() immediately
-> after the inode read. Reject an invalid dinode as filesystem corruption
-> before reading truncate log fields or returning the inode and buffer to
-> the caller. This keeps invalid state out of the long-lived truncate log
-> cache and preserves the validated-buffer invariant in append, flush, and
-> recovery paths.
-> 
-> Fixes: 10995aa2451a ("ocfs2: Morph the haphazard OCFS2_IS_VALID_DINODE() checks.")
-> Assisted-by: Codex:gpt-5.6-sol
-> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
-> ---
->  fs/ocfs2/alloc.c | 13 +++++++++++++
->  1 file changed, 13 insertions(+)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index be09e766ac1f..e36ae2e522d3 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -6192,6 +6192,19 @@ static int ocfs2_get_truncate_log_info(struct ocfs2_super *osb,
->  	}
->  
->  	di = (struct ocfs2_dinode *)bh->b_data;
-> +	/*
-> +	 * A JBD-managed buffer may skip the read validation callback. Check
-> +	 * the signature before exposing the truncate log to callers.
-> +	 */
-> +	if (!OCFS2_IS_VALID_DINODE(di)) {
-> +		status = ocfs2_error(osb->sb,
-> +				     "Invalid truncate log dinode #%llu\n",
-> +				     (unsigned long long)bh->b_blocknr);
-> +		iput(inode);
-> +		brelse(bh);
-> +		goto bail;
-> +	}
-> +
->  	tl = &di->id2.i_dealloc;
->  	tl_count = le16_to_cpu(tl->tl_count);
->  	tl_used = le16_to_cpu(tl->tl_used);
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
 
+If you want to undo deduplication, reply with:
+#syz undup
