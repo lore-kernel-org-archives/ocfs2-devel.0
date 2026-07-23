@@ -1,125 +1,165 @@
-Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f205.google.com (mail-oi1-f205.google.com [209.85.167.205])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 375832DC350
-	for <ocfs2-devel@lists.linux.dev>; Thu, 23 Jul 2026 03:40:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A74C23655CE
+	for <ocfs2-devel@lists.linux.dev>; Thu, 23 Jul 2026 07:48:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.205
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784778029; cv=none; b=GjA87GzbZetOLQ49cBH/Rn9kc0sH1a9LJ8pyZE9J0O8pKv2J6DO/tzVC8u/xn3dUwA1BPtD39Nl/9Fa9mCSvcFMP+DTRSl2UrHIXyLWYCON55DPVNpZE/rRT7rfaK/ElcBSYz3O3WjHF/0PHHvHw3/auK9+0O98mReY3noIRfD8=
+	t=1784792918; cv=none; b=R0EXilFzGfmw7Sj7It3+cAI+t13yIkAfoFHAsygaWI+Q1cjL/9wkeG/f2u3cBs5ql+6tBM83m6hk18Bdn0Eb8LS0ogIKySUoXuvmZRX3gbmKX5oAjJnNSkTWb0oupPivulGDuNoK9KvCbKQ+XUDpEt8vS/MdhGPX0JkGyBmk4Bo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784778029; c=relaxed/simple;
-	bh=o8aBj5/7LtA86Lx+nBVt2IuN+t4nFsa9vQMvJDGPBII=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=lR1BCp/5WXsbZ1rWrGCS9+omK4ftvvNEmjshWLGd1MBOmc59dc3bwxJF7dEbNcaisu73o9wwtJld5/75AL3fthz54eEJjptHhUSH9pUkjVIVz8lhS8KO8jVFyCddJdk/lrjfXo9FpA2QRPsvtDa70RLOGulIei4Uifp/h2J+wH0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=LWEvVrdM; arc=none smtp.client-ip=115.124.30.118
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="LWEvVrdM"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1784778024; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=2ZTHDOQMuBGPgIkn8iSQLMfyDZR08lBDZNNdLXEZagk=;
-	b=LWEvVrdMUGm5lhHKFGTTu17ZbwaJ7ZTz6S8I2A5F5uFQQNx5S9y039iKvG8ic8h48oTVAFle8VwFKTKx1tXnSmjW5YcjEVJnPGhWwYuwQFvQ0AgVY6DaAkBCvqmE+LzNAStfQubMdl6LQjHuPypBD4H9LPnznqNIsnsdopZPy7U=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R181e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X7evV3i_1784778023;
-Received: from 30.166.0.230(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7evV3i_1784778023 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 23 Jul 2026 11:40:23 +0800
-Message-ID: <4be16c98-32c1-4d87-beeb-368a45dafa40@linux.alibaba.com>
-Date: Thu, 23 Jul 2026 11:40:21 +0800
+	s=arc-20240116; t=1784792918; c=relaxed/simple;
+	bh=HOSzlMbhKgCv0I52AS+IR3w18Qhf+7mjen1aa73eGlU=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=E+xLHhn5XSUWsBIVA0R7C8rHMuku4zk2X93TCp2s7stuJnJZM7U753WnCykcKhBnr1qmcJSExHORdv7R7bvVKUFSyrQ0Cl5W4D5L7uTyt5o6Pc+Pv1OU8xGok0lmn3O2kynpXZnyUZwGcH6+rKe5VH1x3c1HO1R6co9vjFa81kA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.205
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f205.google.com with SMTP id 5614622812f47-495f637105eso515922b6e.2
+        for <ocfs2-devel@lists.linux.dev>; Thu, 23 Jul 2026 00:48:36 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1784792915; x=1785397715;
+        h=content-type:to:from:subject:message-id:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=/VVWvwcmfPleJGHbn0WwR04ZH2r/GqSFRjT4zKIARNg=;
+        b=jGApbSBmP9Yit+/h7ryrWSW/32xuN88S/+JrU3BR0klNc5+7i4JxjVacSQbldO3qu2
+         6QhUoVnXelfZrTs4v/WD+90czB+kOH0g8vA8AhrN2fuP6z7toESDmuHmwt4JeRUMRsP+
+         2w0hz6uw/6CmuMmZ2LPQbK4W5tKYhWrtDRELu60cGKRhW0g1JwQbnya4MKVdLBkXsdbJ
+         YNOBOumv81i4mWM0/QnsS3g/Aw1CKoG4U7HGCPMnD98Wj/5S52/s/yacYfTWjNbI09tf
+         DSCkDCvbA+/W98WsZk0iaiFqwsv0Bk4TI3Gt0FuOomNLoj8ADo2lzXwmPoPivNjpo7WH
+         3W8A==
+X-Forwarded-Encrypted: i=1; AHgh+RqngmsoPpCMEnx02kjLI0rR0Mmt6vrRN7JLQNyw16Pe0tSt/CQKyJSZaKk3weLrwiqnkRX4eFscPmvQUA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxflD2spoGkLamXkALZgPoeqjngmhaBeOkmO1K3T6tpWjIGHHFr
+	9A/zmPRhqaFqAsgtWQzEptOSju+8znAxtod76EtjCTjtMAuXAYMlpJAiu/oVRu+C5HsIlKEBGzm
+	HTxcA9UgwSVbzxWq507tt72Y5dQWljjG/6WiInx8b0XXegjjq5NURubp/8LI=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: validate truncate log dinode before caching
-To: ZhengYuan Huang <gality369@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, r33s3n6@gmail.com,
- zzzccc427@gmail.com, tom442288@tuta.io
-References: <20260722091157.3141414-1-gality369@gmail.com>
- <de598854-410c-4fae-95a5-8db0ee6d47e5@linux.alibaba.com>
- <CAOmEq9V-g+AxUw9XZr2Kk5_MYffAndsrbTPfXOyKDiH-eGSKGg@mail.gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <CAOmEq9V-g+AxUw9XZr2Kk5_MYffAndsrbTPfXOyKDiH-eGSKGg@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6808:1705:b0:493:e2bb:2eaf with SMTP id
+ 5614622812f47-4ab3560c757mr979372b6e.39.1784792915525; Thu, 23 Jul 2026
+ 00:48:35 -0700 (PDT)
+Date: Thu, 23 Jul 2026 00:48:35 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6a61c753.4c7b7f70.2b0f85.0001.GAE@google.com>
+Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_xattr_value_truncate (3)
+From: syzbot <syzbot+1542b94cc3d81b71110d@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    f2ec6312bf71 Merge tag 'scsi-fixes' of git://git.kernel.or..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=12cb5789580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=20c9876b0f77b546
+dashboard link: https://syzkaller.appspot.com/bug?extid=1542b94cc3d81b71110d
+compiler:       Debian clang version 22.1.8 (++20260613092233+e80beda6e255-1~exp1~20260613092250.77), Debian LLD 22.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-f2ec6312.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/89734a3b39bd/vmlinux-f2ec6312.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/48a3e1cd63f9/bzImage-f2ec6312.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+1542b94cc3d81b71110d@syzkaller.appspotmail.com
+
+loop0: detected capacity change from 0 to 32768
+=======================================================
+WARNING: The mand mount option has been deprecated and
+         and is ignored by this kernel. Remove the mand
+         option from the mount to silence this warning.
+=======================================================
+JBD2: Ignoring recovery information on journal
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+(syz.0.0,5327,0):ocfs2_dio_end_io:2420 ERROR: Direct IO failed, bytes = -28
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/xattr.c:747!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 5327 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+RIP: 0010:ocfs2_xattr_extend_allocation fs/ocfs2/xattr.c:747 [inline]
+RIP: 0010:ocfs2_xattr_value_truncate+0x1738/0x1740 fs/ocfs2/xattr.c:868
+Code: 44 89 f1 80 e1 07 80 c1 03 38 c1 0f 8c be eb ff ff 4c 89 f7 48 89 f3 e8 d6 44 3d fe 48 89 de e9 ab eb ff ff e8 c9 19 ce fd 90 <0f> 0b 66 0f 1f 44 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+RSP: 0018:ffffc9000f78e940 EFLAGS: 00010283
+RAX: ffffffff83f86807 RBX: 0000000000000002 RCX: 0000000000100000
+RDX: ffffc9000ee51000 RSI: 0000000000001097 RDI: 0000000000001098
+RBP: ffffc9000f78ec70 R08: ffff888000ec2540 R09: 0000000000000006
+R10: 00000000fffffffc R11: 0000000000000002 R12: fffff52001ef1d3c
+R13: 0000000000000002 R14: 00000000fffffff5 R15: ffff88805486a5d0
+FS:  00007f4b34b836c0(0000) GS:ffff88808c549000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 000020000000f000 CR3: 0000000040786000 CR4: 0000000000352ef0
+Call Trace:
+ <TASK>
+ ocfs2_xa_value_truncate+0x2d6/0x420 fs/ocfs2/xattr.c:1956
+ ocfs2_xa_prepare_entry fs/ocfs2/xattr.c:2215 [inline]
+ ocfs2_xa_set+0x23dd/0x2ef0 fs/ocfs2/xattr.c:2293
+ ocfs2_xattr_block_set+0x3d2/0x3330 fs/ocfs2/xattr.c:3029
+ __ocfs2_xattr_set_handle+0x6b2/0xf40 fs/ocfs2/xattr.c:3431
+ ocfs2_xattr_set+0xf20/0x13a0 fs/ocfs2/xattr.c:3694
+ __vfs_setxattr+0x442/0x480 fs/xattr.c:223
+ __vfs_setxattr_noperm+0x12a/0x660 fs/xattr.c:257
+ vfs_setxattr+0x163/0x360 fs/xattr.c:344
+ do_setxattr fs/xattr.c:662 [inline]
+ filename_setxattr+0x296/0x630 fs/xattr.c:690
+ path_setxattrat+0x408/0x450 fs/xattr.c:734
+ __do_sys_lsetxattr fs/xattr.c:775 [inline]
+ __se_sys_lsetxattr fs/xattr.c:771 [inline]
+ __x64_sys_lsetxattr+0xbf/0xe0 fs/xattr.c:771
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7f4b33d9de99
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007f4b34b82fe8 EFLAGS: 00000246 ORIG_RAX: 00000000000000bd
+RAX: ffffffffffffffda RBX: 00007f4b34025fa0 RCX: 00007f4b33d9de99
+RDX: 0000200000000080 RSI: 00002000000000c0 RDI: 0000200000000100
+RBP: 00007f4b33e33eaf R08: 0000000000000000 R09: 0000000000000000
+R10: 000000000000fe37 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007f4b34026038 R14: 00007f4b34025fa0 R15: 00007ffd4526fe68
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_xattr_extend_allocation fs/ocfs2/xattr.c:747 [inline]
+RIP: 0010:ocfs2_xattr_value_truncate+0x1738/0x1740 fs/ocfs2/xattr.c:868
+Code: 44 89 f1 80 e1 07 80 c1 03 38 c1 0f 8c be eb ff ff 4c 89 f7 48 89 f3 e8 d6 44 3d fe 48 89 de e9 ab eb ff ff e8 c9 19 ce fd 90 <0f> 0b 66 0f 1f 44 00 00 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+RSP: 0018:ffffc9000f78e940 EFLAGS: 00010283
+RAX: ffffffff83f86807 RBX: 0000000000000002 RCX: 0000000000100000
+RDX: ffffc9000ee51000 RSI: 0000000000001097 RDI: 0000000000001098
+RBP: ffffc9000f78ec70 R08: ffff888000ec2540 R09: 0000000000000006
+R10: 00000000fffffffc R11: 0000000000000002 R12: fffff52001ef1d3c
+R13: 0000000000000002 R14: 00000000fffffff5 R15: ffff88805486a5d0
+FS:  00007f4b34b836c0(0000) GS:ffff88808c549000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 0000200000001480 CR3: 0000000040786000 CR4: 0000000000352ef0
 
 
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
 
-On 7/23/26 11:05 AM, ZhengYuan Huang wrote:
-> On Wed, Jul 22, 2026 at 8:56 PM Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
->>
->>
->>
->> On 7/22/26 5:11 PM, ZhengYuan Huang wrote:
->>> [BUG]
->>> A corrupted truncate log dinode can pass through mount initialization and
->>> reach the delayed flush worker, where it triggers:
->>>
->>> kernel BUG at fs/ocfs2/alloc.c:6019!
->>> Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
->>> RIP: 0010:__ocfs2_flush_truncate_log+0xa87/0xf10 fs/ocfs2/alloc.c:6019
->>> Call Trace:
->>>  ocfs2_flush_truncate_log fs/ocfs2/alloc.c:6084 [inline]
->>>  ocfs2_truncate_log_worker+0xa9/0x180 fs/ocfs2/alloc.c:6097
->>>  process_one_work+0x8e0/0x1980 kernel/workqueue.c:3263
->>>  ...
->>>
->>
->> I've encountered this BUG occasionality. But I don't see why it happens.
->> Do you have more clues on how to reproduce it?
->>
->> Thanks,
->> Joseph
-> 
-> Thanks for looking into this.
-> 
-> This bug was originally found by our fuzzing tool. We tried to
-> reproduce it using the automatically saved disk image and syscall
-> program, but so far we have been unable to reproduce the BUG in
-> __ocfs2_flush_truncate_log directly. Instead, the same artifacts have
-> triggered two other issues:
-> 
-> KASAN: use-after-free Read in ocfs2_dx_dir_search
-> kernel BUG in ocfs2_grow_tree
-> 
-> For the use-after-free in ocfs2_dx_dir_search, I previously submitted
-> a patch that addresses what I believe is its root cause:
-> 
-> https://lore.kernel.org/all/20260416082105.1295887-1-gality369@gmail.com/
-> 
-> However, I have not received any feedback on the patch yet, and at
-> this point we are not sure whether that issue is related to the
-> truncate-log corruption reported here.
-> 
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
 
-It seems I've missed the thread.
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
 
-And I've found a similar one in:
-https://lore.kernel.org/ocfs2-devel/20260713205625.92391-1-doruk@0sec.ai/
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
 
-Could you please check if it fixes the same issue?
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
 
-Thanks,
-Joseph
-
-> We are continuing to investigate and will share any new findings. In
-> the meantime, the original artifacts generated by our fuzzer are
-> available here:
-> 
-> https://drive.google.com/file/d/1zCJoUb2uwVqTrGIM4JFLbwkcHRz04TJo/view?usp=sharing
-> 
-> The archive contains the disk image, the PoC program, and a kernel
-> log. To run the reproducer, mount the supplied disk image and execute
-> the PoC. Please note that, in our current tests, these artifacts can
-> trigger the two issues mentioned above, but they do not reproduce the
-> BUG in __ocfs2_flush_truncate_log. The archive also includes the
-> kernel log captured when the original BUG occurred, which may help
-> with further investigation.
-> 
-> Thanks,
-> ZhengYuan Huang
-
+If you want to undo deduplication, reply with:
+#syz undup
