@@ -1,474 +1,280 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+Received: from fhigh-a5-smtp.messagingengine.com (fhigh-a5-smtp.messagingengine.com [103.168.172.156])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 683D730C619
-	for <ocfs2-devel@lists.linux.dev>; Fri, 24 Jul 2026 01:41:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD999374A1E
+	for <ocfs2-devel@lists.linux.dev>; Fri, 24 Jul 2026 04:57:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=103.168.172.156
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1784857302; cv=none; b=FwRBPTH8WmOL/p+uIVPWvVvI1aDcZUcZUaYO0L/UsrPo33OPUo3VA+nb6jqbXKMu2G5PB0kFNZfnSj8Sc4nUvTSz0tc+wyRJpQtcxsjw/13t5KulZ+DWvr0O6lykF1L0SsWO5sNlRZE6yV4j5x0fzLiW/uAfxKLi7o4kV6kkloE=
+	t=1784869032; cv=none; b=rrhRf8YXon2VU3m7W/XpySfULdxBJQ/W9zH+js4++oDlErcsby7rY3RqwWUjgwoXjdvcL3UWqKnYShJs53X3K0TC4uaY6h3u9Szr0WNIvzgKdQJGpaKDBKuAW6Qcq8JyxLBVb3UvtSigCzMs9fIi0J6FT6XAjzhvSEyX2BGe5oo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1784857302; c=relaxed/simple;
-	bh=KSGxoLuYQ8asO1K7JGOjWiZC2VeMVB2bQ/RYH23QifA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=cYXRLLJVX5eAqEIGZiOnFUrW2sADon+0IVVM/AHpyhtayJKEccFLcgasKbLFxEKlErLyUlQgxaUVc3MMZgPfUB8b4MKUWICa5q67pyRwQWT/8k+ezGWvSs/bleLjJm0GM99IGwXV4BvfC+JG5f0ojSXkv+OkRYGcvyO3QpNGy2U=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=MkS2jMSI; arc=none smtp.client-ip=115.124.30.119
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1784869032; c=relaxed/simple;
+	bh=SeIVGDGhJLQtAtXwJSZ4HJIHShuKm1xWba7VbuZj+bI=;
+	h=Date:From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type:
+	 Content-Disposition; b=HIlo6m1x7xuXdFA6mcGm/x38RmzCDRvcnCBx+c3/tGlZ5q0QxhY6Kb1RVbeJTS87HqXUcxQQ0rIb2hTnJto0V2MfZZwojV3qvdZCO9oY6ydlbf/slmgRpVQz95m4DiTz6OibR2XL8aTV1ug9jM4foRya5HMB9ytnBD8LG0S2BII=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org; spf=pass smtp.mailfrom=fastmail.org; dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b=MbVmmjmF; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=MpskfeG0; arc=none smtp.client-ip=103.168.172.156
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=fastmail.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=fastmail.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="MkS2jMSI"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1784857291; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=6v4y/lgrOXROGuIh4ijnUqf4+jyK7OTA5urTXkNcyLs=;
-	b=MkS2jMSIlKDYK9JENvZ/I8+C1HSH88V5rRjucBf9kMTe4AyoAwlHTKMFCgKA94+iTc3iH/rcBZ7aMFUMyaJOCvQEZN6mmKT411ZEDR7gVTnEYz/W7mSGnqRf2NmtzHp8w7LN32gTJsljadS3P558QgXGnnxPdNnOlWf0Y0bEem4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R831e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X7hg5WM_1784857290;
-Received: from 30.221.128.197(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7hg5WM_1784857290 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 24 Jul 2026 09:41:30 +0800
-Message-ID: <3173f7a1-a098-43ad-8075-a22732ca6d34@linux.alibaba.com>
-Date: Fri, 24 Jul 2026 09:41:29 +0800
+	dkim=pass (2048-bit key) header.d=fastmail.org header.i=@fastmail.org header.b="MbVmmjmF";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="MpskfeG0"
+Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
+	by mailfhigh.phl.internal (Postfix) with ESMTP id 68CA01400128;
+	Fri, 24 Jul 2026 00:57:06 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-05.internal (MEProxy); Fri, 24 Jul 2026 00:57:06 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=fastmail.org; h=
+	cc:cc:content-transfer-encoding:content-type:content-type:date
+	:date:from:from:in-reply-to:message-id:mime-version:reply-to
+	:subject:subject:to:to; s=fm2; t=1784869026; x=1784955426; bh=ne
+	nyZzlBK2D1i22eaTDG7B3XPxBbIntzWsoNDJRPhiQ=; b=MbVmmjmFymudl1FgRQ
+	CIqAs6m6RQXhP1vqEFTfAhxv/roQy7zAhDC4gXdCCYYmHAiNO+4QxFNV2vA2PPdC
+	6gAIpzDsBLFjB2ZgE2ffFkoXINl6m8Hf8z0+R4op8fyYb0ulb691j5Uso1Bnw2CZ
+	OCAwjlzal0y4s7GQNEg+7IEfL3Skpb5BYLWHC+bhKusCbvlOABg3/9wQKfYcK0Wy
+	mu2xrGXkV4shvVNALZPI18utbiiB1/kE2DP8QuzKR4eYOadajb1DbGd8Y1nW8Zch
+	gGDmjGWas7xwyi5WsjZa3ljXvJ+UpIsxGO7dOP6I+IyCZ6tBFvUnYrKGmYBtLL6s
+	+RxQ==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-transfer-encoding
+	:content-type:content-type:date:date:feedback-id:feedback-id
+	:from:from:in-reply-to:message-id:mime-version:reply-to:subject
+	:subject:to:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=
+	fm2; t=1784869026; x=1784955426; bh=nenyZzlBK2D1i22eaTDG7B3XPxBb
+	IntzWsoNDJRPhiQ=; b=MpskfeG0tzpDweUuJ/C5ImdtxbFry+jORiXLYItkvDHN
+	ktzV06r+/LHKwJfh4PPmG/+nxdxM4qo4Gx+Q0kzmgAABp/XpfK1OnPaI+PSyvRx6
+	biP7/EYUKrKI/jzKEwo2Z7LC42fR8uo62XAQebatKZABzv0znQcDiIrENS/gBx6d
+	SEc5+ZjvYthknA4gqrWdDJ/DSm+AmJeCQ4T9D1+TSp/Z33XSDMGn6fQttf8UxIfw
+	4uHHV5B3m49NVlfBPMGT1CMf4WnbC2+ZQFHL8t8d5UPoFW9andC++jc+ec7WiOEJ
+	SlgaAprVRUYNQ11aI8h2crWj9OrOGNXH4Wku27apdg==
+X-ME-Sender: <xms:ofBian4p9lTeJGYFdh76Pdrkpk2mBZLiSRTq2hhKFVj2CZQqLoJwsw>
+    <xme:ofBial04O96CD0OVgAlocHSStBv8pftJRfWTw2_PdSTE3uNOszVELYpxCLzzgjqFs
+    nLsWFuadHefVYJVei4G46fGcufihlc--ToegMcccG_C9olCQHkjXw>
+X-ME-Received: <xmr:ofBiaqDVz8XE4MssbtQ0pE6Ie9ZLU8OWGLuU2mTZN5p_cggmhatrJUGBK4Y>
+X-ME-Proxy-Cause: dmFkZTGmjuVl5yLUfDt1VWSV8RNi75s6202A2x2GjNywNWBng59wOVNP8On11m8BYkCQxt
+    NhvBmBLi3apYzz1oDhsf50JCLgkzSP+JFWUmTvjVKlZ++ErN14r4xDFnBm4ICMQftZ0XmK
+    HP0TbOAdXptY06XcTx8lVC1X7A0gJ2MCNwIS//GtsuSilGraRf0wfBjuahrfJEU6Pt8m8F
+    ksRBmet6zEeXzb2sUIxTxrS0kOb6riLS2BqpiQJdfNeH1FCos32ChgTpS/VRWVZdRIy/8z
+    MKfmqmd5IxNQHxZTwRnWxa5kFmv3HKOk3ruSg/W8qXo55roeORSOUzknTqEJMhp8LZWip5
+    GXHQuZf8fxErUlKLbtCMh18c8xHoleIY3rGr3SAjXu5MQ9oiEbwSpeQXRESRDtTr/jB4Oh
+    Y6r9lP326j9TenbMOhJTHwn4zoZi4nEPMTfCeDO4eKjxD8f7xM3kcx+OIlT7raSG3sz8LN
+    iZeds8ObzK44DovbtqIo5QlFSF2RAg77cLkEjBaA7a2BQrcHeFCFl541dmzYiZrld7CUcI
+    0VM3hD7b4mw7jDi3cehI4JEH/9LteFS3OFPMIgdLG9FmtKL2YMZ9GRGaldGG1+OyjsDH68
+    2cTq1lqoJT7unPKE+eLwX52Ur4aBfkWmEOhQpJfBMvf3JKpbrz0Muv5Di+8Q
+X-ME-Proxy: <xmx:ofBiaoP2XJppTVETCzO9xbcKUHUIX1IsXv2uXZZXmfauVzHbsAahng>
+    <xmx:ofBianYClmLqbwxMVz-KpNqZp49izZ9pFK6qknB14oCRvLbZudeXpg>
+    <xmx:ofBiavt_yjwlwcVdm0juMUCiwVNCZtewjKDqMA5YzV8suk6VEiaa8A>
+    <xmx:ofBiahPPDd0uj9n0GlJbdFrAuJzEwUU6Ne9sVyMX3j9uIPOL7z99Qg>
+    <xmx:ovBiaut76VAkKRKYQlP_ttIynOEasiTDrXY7xcukLEidYi3JuM4UK72a>
+Feedback-ID: ib53e4b78:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Fri,
+ 24 Jul 2026 00:57:05 -0400 (EDT)
+Date: Thu, 23 Jul 2026 23:57:03 -0500
+From: Ian Bridges <icb@fastmail.org>
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: [PATCH RESEND] ocfs2: fix missing metadata reservation for large
+ xattrs
+Message-ID: <amLwn3i9tET8yhG7@dev>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 2/2] ocfs2: o2hb: quiesce negotiate handlers and timeout
- work
-To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- baijiaju1990@gmail.com
-References: <20260624095310.763763-1-zzzccc427@gmail.com>
- <20260624095310.763763-3-zzzccc427@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260624095310.763763-3-zzzccc427@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
 
+[BUG]
+lsetxattr() panics the kernel when setting a large xattr value on a
+fragmented filesystem where the file already has an external xattr
+block.
 
+[CAUSE]
+ocfs2_calc_xattr_set_need() never reserves metadata blocks for a new
+xattr value's extent tree when the file already has an external xattr
+block. The not_found path leaves meta_add at zero, so meta_ac is NULL
+when ocfs2_xattr_extend_allocation() runs.
 
-On 6/24/26 5:53 PM, Cen Zhang wrote:
-> Heartbeat regions publish struct o2hb_region as the private data for the
-> NEGO_TIMEOUT and NEGO_APPROVE o2net handlers as soon as make_item()
-> creates the configfs region. The approve handler can call
-> o2hb_arm_timeout(), so a peer can touch the region timeout work before
-> dev_store() has finished building the heartbeat runtime, or after
-> teardown has started to shut that runtime back down.
-> 
-> The final configfs put also has to keep reg alive until the last
-> in-flight o2net callback drops its handler reference.
-> o2net_unregister_handler_list() blocks future handler lookups, but it
-> does not wait for sc_rx_work that already passed o2net_handler_get().
-> That drain needs to cover local listener teardown as well, where the
-> o2net ordered workqueue may already be inside destroy_workqueue().
-> 
-> Fix the lifetime rule in both directions. Initialize the region delayed
-> works before publishing reg through the o2net handler table, keep new or
-> stopping regions non-armable with hr_stopping, and quiesce both delayed
-> works on failed-start and teardown paths even when no heartbeat thread is
-> left to call o2hb_disarm_timeout(). Then unregister handlers before
-> tearing down handler-visible region state and make the drain wait for the
-> active or destroying o2net ordered workqueue before release frees reg.
-> 
-> The buggy scenario involves two paths, with each column showing the order
-> within that path:
-> 
-> region lifecycle:                late negotiate callback:
-> 1. make_item() registers the     1. o2net_process_message() gets a
->    region handlers before           heartbeat handler for reg.
->    dev_store() has built a       2. The callback runs after the lookup
->    runnable heartbeat context.      lock is dropped and dereferences reg.
-> 2. A failed start or rmdir       3. An approve or timeout path tries to
->    stops the heartbeat thread,      queue reg's delayed work, or release
->    quiesces existing work, and      races the callback body after handler
->    drops the final configfs ref.    unregister.
-> 3. region_release() must drain   4. The callback or delayed work can
->    handler-visible o2net rx work    outlive reg unless lifecycle code
->    before freeing reg.              keeps the region non-armable and
->                                     drains the active-or-destroying
->                                     o2net workqueue.
-> 
-> Validation reproduced this kernel report:
-> KASAN slab-use-after-free in __run_timers+0x22c/0x5b0
-> Write of size 8
-> Call trace:
->   dump_stack_lvl+0x66/0xa0
->   print_report+0xce/0x630
->   __run_timers+0x22c/0x5b0
->   kasan_report+0xe0/0x110
->   _raw_spin_unlock_irqrestore+0x27/0x60
->   try_to_wake_up+0x191/0xf70
->   timer_expire_remote+0xae/0xf0
->   run_timer_softirq+0x19b/0x1a0
->   handle_softirqs+0x156/0x660
->   __irq_exit_rcu+0xc4/0x160
->   irq_exit_rcu+0xe/0x20
->   sysvec_apic_timer_interrupt+0x6c/0x80
->   asm_sysvec_apic_timer_interrupt+0x1a/0x20
-> 
-> Allocated by task stack:
->   kasan_save_stack+0x33/0x60
->   kasan_save_track+0x14/0x30
->   __kasan_kmalloc+0xaa/0xb0
->   o2hb_heartbeat_group_make_item+0x3c/0x600
-> 
-> Fixes: 34069b886f95 ("ocfs2: o2hb: add NEGO_TIMEOUT message")
-> Fixes: e76f8237a2f7 ("ocfs2: o2hb: add NEGOTIATE_APPROVE message")
-> Assisted-by: Codex:gpt-5.5
-> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+A new value root has room for a single extent record. On a fragmented
+filesystem, the allocator cannot satisfy the xattr value in one
+contiguous run, so each non-contiguous run requires its own extent
+record. When the value root's extent list is full and meta_ac is NULL,
+ocfs2_add_clusters_in_btree() returns RESTART_META, and
+ocfs2_xattr_extend_allocation() hits BUG_ON(why == RESTART_META).
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+[FIX]
+The case where no xattr block exists yet already calls
+ocfs2_extend_meta_needed(&def_xv.xv.xr_list) to reserve value tree
+metadata. Add the same reservation to the case where an xattr block
+already exists, making the two cases consistent.
 
-> ---
->  fs/ocfs2/cluster/heartbeat.c |  56 ++++++++++++++++---
->  fs/ocfs2/cluster/tcp.c       | 103 ++++++++++++++++++++++++++++++-----
->  fs/ocfs2/cluster/tcp.h       |   1 +
->  3 files changed, 138 insertions(+), 22 deletions(-)
-> 
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index 76e0c687bcbd..428b8e52f7ff 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -15,6 +15,7 @@
->  #include <linux/file.h>
->  #include <linux/kthread.h>
->  #include <linux/configfs.h>
-> +#include <linux/mutex.h>
->  #include <linux/random.h>
->  #include <linux/crc32.h>
->  #include <linux/time.h>
-> @@ -258,6 +259,9 @@ struct o2hb_region {
->  	/* Message key for negotiate timeout message. */
->  	unsigned int		hr_key;
->  	struct list_head	hr_handler_list;
-> +	/* Serializes timeout arming against failed-start and teardown. */
-> +	struct mutex		hr_arming_mutex;
-> +	bool			hr_stopping;
->  
->  	/* last hb status, 0 for success, other value for error. */
->  	int			hr_last_hb_status;
-> @@ -322,9 +326,14 @@ static void o2hb_write_timeout(struct work_struct *work)
->  
->  static void o2hb_arm_timeout(struct o2hb_region *reg)
->  {
-> +	mutex_lock(&reg->hr_arming_mutex);
-> +
-> +	if (reg->hr_stopping)
-> +		goto out_unlock;
-> +
->  	/* Arm writeout only after thread reaches steady state */
->  	if (atomic_read(&reg->hr_steady_iterations) != 0)
-> -		return;
-> +		goto out_unlock;
->  
->  	mlog(ML_HEARTBEAT, "Queue write timeout for %u ms\n",
->  	     O2HB_MAX_WRITE_TIMEOUT_MS);
-> @@ -343,6 +352,18 @@ static void o2hb_arm_timeout(struct o2hb_region *reg)
->  	schedule_delayed_work(&reg->hr_nego_timeout_work,
->  			      msecs_to_jiffies(O2HB_NEGO_TIMEOUT_MS));
->  	bitmap_zero(reg->hr_nego_node_bitmap, O2NM_MAX_NODES);
-> +
-> +out_unlock:
-> +	mutex_unlock(&reg->hr_arming_mutex);
-> +}
-> +
-> +static void o2hb_queue_nego_timeout(struct o2hb_region *reg,
-> +				    unsigned long delay)
-> +{
-> +	mutex_lock(&reg->hr_arming_mutex);
-> +	if (!reg->hr_stopping)
-> +		schedule_delayed_work(&reg->hr_nego_timeout_work, delay);
-> +	mutex_unlock(&reg->hr_arming_mutex);
->  }
->  
->  static void o2hb_disarm_timeout(struct o2hb_region *reg)
-> @@ -351,6 +372,19 @@ static void o2hb_disarm_timeout(struct o2hb_region *reg)
->  	cancel_delayed_work_sync(&reg->hr_nego_timeout_work);
->  }
->  
-> +static void o2hb_set_region_stopping(struct o2hb_region *reg, bool stopping)
-> +{
-> +	mutex_lock(&reg->hr_arming_mutex);
-> +	reg->hr_stopping = stopping;
-> +	mutex_unlock(&reg->hr_arming_mutex);
-> +}
-> +
-> +static void o2hb_quiesce_timeout(struct o2hb_region *reg)
-> +{
-> +	o2hb_set_region_stopping(reg, true);
-> +	o2hb_disarm_timeout(reg);
-> +}
-> +
->  static int o2hb_send_nego_msg(int key, int type, u8 target, u8 node_num)
->  {
->  	struct o2hb_nego_msg msg;
-> @@ -400,8 +434,7 @@ static void o2hb_nego_timeout(struct work_struct *work)
->  			/* check negotiate bitmap every second to do timeout
->  			 * approve decision.
->  			 */
-> -			schedule_delayed_work(&reg->hr_nego_timeout_work,
-> -				msecs_to_jiffies(1000));
-> +			o2hb_queue_nego_timeout(reg, msecs_to_jiffies(1000));
->  
->  			return;
->  		}
-> @@ -1558,6 +1591,8 @@ static void o2hb_region_release(struct config_item *item)
->  
->  	mlog(ML_HEARTBEAT, "hb region release (%pg)\n", reg_bdev(reg));
->  
-> +	o2hb_quiesce_timeout(reg);
-> +	o2net_unregister_and_flush_handler_list(&reg->hr_handler_list);
->  	o2hb_unmap_slot_data(reg);
->  
->  	if (reg->hr_bdev_file)
-> @@ -1573,7 +1608,6 @@ static void o2hb_region_release(struct config_item *item)
->  	list_del(&reg->hr_all_item);
->  	spin_unlock(&o2hb_live_lock);
->  
-> -	o2net_unregister_handler_list(&reg->hr_handler_list);
->  	kfree(reg);
->  }
->  
-> @@ -1888,9 +1922,6 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
->  		goto out;
->  	}
->  
-> -	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
-> -	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
-> -
->  	/*
->  	 * A node is considered live after it has beat LIVE_THRESHOLD
->  	 * times.  We're not steady until we've given them a chance
-> @@ -1910,6 +1941,7 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
->  	atomic_set(&reg->hr_steady_iterations, live_threshold);
->  	/* unsteady_iterations is triple the steady_iterations */
->  	atomic_set(&reg->hr_unsteady_iterations, (live_threshold * 3));
-> +	o2hb_set_region_stopping(reg, false);
->  
->  	hb_task = kthread_run(o2hb_thread, reg, "o2hb-%s",
->  			      reg->hr_item.ci_name);
-> @@ -1959,6 +1991,8 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
->  
->  out:
->  	if (ret < 0) {
-> +		o2hb_quiesce_timeout(reg);
-> +
->  		spin_lock(&o2hb_live_lock);
->  		hb_task = reg->hr_task;
->  		reg->hr_task = NULL;
-> @@ -2098,6 +2132,10 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
->  	 */
->  	reg->hr_key = crc32_le(reg->hr_region_num + O2NM_MAX_REGIONS,
->  		name, strlen(name));
-> +	mutex_init(&reg->hr_arming_mutex);
-> +	reg->hr_stopping = true;
-> +	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
-> +	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
->  	INIT_LIST_HEAD(&reg->hr_handler_list);
->  	ret = o2net_register_handler(O2HB_NEGO_TIMEOUT_MSG, reg->hr_key,
->  			sizeof(struct o2hb_nego_msg),
-> @@ -2118,7 +2156,7 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
->  	return &reg->hr_item;
->  
->  unregister_handler:
-> -	o2net_unregister_handler_list(&reg->hr_handler_list);
-> +	o2net_unregister_and_flush_handler_list(&reg->hr_handler_list);
->  remove_item:
->  	spin_lock(&o2hb_live_lock);
->  	list_del(&reg->hr_all_item);
-> @@ -2137,6 +2175,8 @@ static void o2hb_heartbeat_group_drop_item(struct config_group *group,
->  	struct o2hb_region *reg = to_o2hb_region(item);
->  	int quorum_region = 0;
->  
-> +	o2hb_quiesce_timeout(reg);
-> +
->  	/* stop the thread when the user removes the region dir */
->  	spin_lock(&o2hb_live_lock);
->  	hb_task = reg->hr_task;
-> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-> index e62c1ef8223b..474fe1414cee 100644
-> --- a/fs/ocfs2/cluster/tcp.c
-> +++ b/fs/ocfs2/cluster/tcp.c
-> @@ -38,6 +38,8 @@
->   */
->  
->  #include <linux/kernel.h>
-> +#include <linux/completion.h>
-> +#include <linux/mutex.h>
->  #include <linux/sched/mm.h>
->  #include <linux/jiffies.h>
->  #include <linux/slab.h>
-> @@ -102,9 +104,14 @@ static struct socket *o2net_listen_sock;
->   * quorum work is queued as sock containers are shutdown.. stop_listening
->   * tears down all the node's sock containers, preventing future shutdowns
->   * and queued quorum work, before canceling delayed quorum work and
-> - * destroying the work queue.
-> + * destroying the work queue.  Handler teardown can also race local listener
-> + * shutdown, so keep a waitable destroying pointer until the old ordered
-> + * queue has finished draining.
->   */
->  static struct workqueue_struct *o2net_wq;
-> +static struct workqueue_struct *o2net_wq_destroying;
-> +static DEFINE_MUTEX(o2net_wq_mutex);
-> +static DECLARE_COMPLETION(o2net_wq_destroyed);
->  /* Heartbeat callbacks stay registered across local-node off/on. */
->  static bool o2net_listening;
->  static struct work_struct o2net_listen_work;
-> @@ -886,6 +893,27 @@ void o2net_unregister_handler_list(struct list_head *list)
->  }
->  EXPORT_SYMBOL_GPL(o2net_unregister_handler_list);
->  
-> +static void o2net_flush_wq(void)
-> +{
-> +	mutex_lock(&o2net_wq_mutex);
-> +	if (o2net_wq_destroying) {
-> +		mutex_unlock(&o2net_wq_mutex);
-> +		wait_for_completion(&o2net_wq_destroyed);
-> +		return;
-> +	}
-> +
-> +	if (o2net_wq)
-> +		flush_workqueue(o2net_wq);
-> +	mutex_unlock(&o2net_wq_mutex);
-> +}
-> +
-> +void o2net_unregister_and_flush_handler_list(struct list_head *list)
-> +{
-> +	o2net_unregister_handler_list(list);
-> +	o2net_flush_wq();
-> +}
-> +EXPORT_SYMBOL_GPL(o2net_unregister_and_flush_handler_list);
-> +
->  static struct o2net_msg_handler *o2net_handler_get(u32 msg_type, u32 key)
->  {
->  	struct o2net_msg_handler *nmh;
-> @@ -1717,12 +1745,10 @@ void o2net_disconnect_node(struct o2nm_node *node)
->  	o2net_set_nn_state(nn, NULL, 0, -ENOTCONN);
->  	spin_unlock(&nn->nn_lock);
->  
-> -	if (o2net_wq) {
-> -		cancel_delayed_work(&nn->nn_connect_expired);
-> -		cancel_delayed_work(&nn->nn_connect_work);
-> -		cancel_delayed_work(&nn->nn_still_up);
-> -		flush_workqueue(o2net_wq);
-> -	}
-> +	cancel_delayed_work(&nn->nn_connect_expired);
-> +	cancel_delayed_work(&nn->nn_connect_work);
-> +	cancel_delayed_work(&nn->nn_still_up);
-> +	o2net_flush_wq();
->  }
->  
->  static void o2net_hb_node_down_cb(struct o2nm_node *node, int node_num,
-> @@ -2067,6 +2093,36 @@ static int o2net_open_listening_sock(__be32 addr, __be16 port)
->  	return ret;
->  }
->  
-> +static void o2net_destroy_wq(void)
-> +{
-> +	struct workqueue_struct *wq;
-> +
-> +	mutex_lock(&o2net_wq_mutex);
-> +	if (o2net_wq_destroying) {
-> +		mutex_unlock(&o2net_wq_mutex);
-> +		wait_for_completion(&o2net_wq_destroyed);
-> +		return;
-> +	}
-> +
-> +	wq = o2net_wq;
-> +	if (!wq) {
-> +		mutex_unlock(&o2net_wq_mutex);
-> +		return;
-> +	}
-> +
-> +	reinit_completion(&o2net_wq_destroyed);
-> +	o2net_wq_destroying = wq;
-> +	mutex_unlock(&o2net_wq_mutex);
-> +
-> +	destroy_workqueue(wq);
-> +
-> +	mutex_lock(&o2net_wq_mutex);
-> +	o2net_wq = NULL;
-> +	o2net_wq_destroying = NULL;
-> +	complete_all(&o2net_wq_destroyed);
-> +	mutex_unlock(&o2net_wq_mutex);
-> +}
-> +
->  /*
->   * called from node manager when we should bring up our network listening
->   * socket.  node manager handles all the serialization to only call this
-> @@ -2077,24 +2133,44 @@ static int o2net_open_listening_sock(__be32 addr, __be16 port)
->  int o2net_start_listening(struct o2nm_node *node)
->  {
->  	int ret = 0;
-> +	struct workqueue_struct *wq;
->  
->  	if (WARN_ON_ONCE(READ_ONCE(o2net_listening)))
->  		return -EBUSY;
-> -	BUG_ON(o2net_wq != NULL);
-> +
-> +	mutex_lock(&o2net_wq_mutex);
-> +	if (o2net_wq_destroying) {
-> +		mutex_unlock(&o2net_wq_mutex);
-> +		return -EBUSY;
-> +	}
-> +	if (WARN_ON_ONCE(o2net_wq)) {
-> +		mutex_unlock(&o2net_wq_mutex);
-> +		return -EBUSY;
-> +	}
-> +	mutex_unlock(&o2net_wq_mutex);
-> +
->  	BUG_ON(o2net_listen_sock != NULL);
->  
->  	mlog(ML_KTHREAD, "starting o2net thread...\n");
-> -	o2net_wq = alloc_ordered_workqueue("o2net", WQ_MEM_RECLAIM);
-> -	if (o2net_wq == NULL) {
-> +	wq = alloc_ordered_workqueue("o2net", WQ_MEM_RECLAIM);
-> +	if (!wq) {
->  		mlog(ML_ERROR, "unable to launch o2net thread\n");
->  		return -ENOMEM; /* ? */
->  	}
->  
-> +	mutex_lock(&o2net_wq_mutex);
-> +	if (unlikely(o2net_wq_destroying || o2net_wq)) {
-> +		mutex_unlock(&o2net_wq_mutex);
-> +		destroy_workqueue(wq);
-> +		return -EBUSY;
-> +	}
-> +	o2net_wq = wq;
-> +	mutex_unlock(&o2net_wq_mutex);
-> +
->  	ret = o2net_open_listening_sock(node->nd_ipv4_address,
->  					node->nd_ipv4_port);
->  	if (ret) {
-> -		destroy_workqueue(o2net_wq);
-> -		o2net_wq = NULL;
-> +		o2net_destroy_wq();
->  	} else
->  		o2quo_conn_up(node->nd_num);
->  
-> @@ -2130,8 +2206,7 @@ void o2net_stop_listening(struct o2nm_node *node)
->  
->  	/* finish all work and tear down the work queue */
->  	mlog(ML_KTHREAD, "waiting for o2net thread to exit....\n");
-> -	destroy_workqueue(o2net_wq);
-> -	o2net_wq = NULL;
-> +	o2net_destroy_wq();
->  
->  	sock_release(o2net_listen_sock);
->  	o2net_listen_sock = NULL;
-> diff --git a/fs/ocfs2/cluster/tcp.h b/fs/ocfs2/cluster/tcp.h
-> index 2e86d42b5faf..a11bcee28947 100644
-> --- a/fs/ocfs2/cluster/tcp.h
-> +++ b/fs/ocfs2/cluster/tcp.h
-> @@ -89,6 +89,7 @@ int o2net_register_handler(u32 msg_type, u32 key, u32 max_len,
->  			   o2net_post_msg_handler_func *post_func,
->  			   struct list_head *unreg_list);
->  void o2net_unregister_handler_list(struct list_head *list);
-> +void o2net_unregister_and_flush_handler_list(struct list_head *list);
->  
->  void o2net_fill_node_map(unsigned long *map, unsigned bytes);
->  
+Replace the BUG_ON with a -ENOSPC return so that if RESTART_META is
+returned despite the reservation, the error propagates to userspace
+instead of panicking the kernel.
+
+Fixes: a78f9f466894 ("ocfs2: make xattr extension work with new local alloc reservation.")
+Reported-by: syzbot+e538032956b1157914a3@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=e538032956b1157914a3
+Signed-off-by: Ian Bridges <icb@fastmail.org>
+---
+Resend, requested by Joseph Qi [1]. The patch was first posted
+2026-05-30 [2]. The diff is unchanged and still applies cleanly to
+current mainline and to the mm tree's mm-nonmm-unstable branch.
+
+[1] https://lore.kernel.org/all/882d50db-d579-4794-ad2f-8bb88d2e1ace@linux.alibaba.com/
+[2] https://lore.kernel.org/all/ahrxN7dbUaOqX9vT@dev/
+
+This patch contains a proposed fix for a crash reported by syzbot
+in ocfs2_xattr_value_truncate().
+
+I also have a small test harness that reproduces the original panic,
+which I can make available as well.
+
+The file names and offsets in this description are from mainline
+commit 48a5a7ab8d6a.
+
+The Bug
+
+When a user sets an extended attribute (xattr) that requires more
+than 80 bytes of storage (OCFS2_XATTR_INLINE_SIZE,
+fs/ocfs2/xattr.c:80) on a file, OCFS2 adds a name-root
+(ocfs2_xattr_value_root) pair to the file's xattr storage area —
+either the inline area at the tail of the inode block or the
+external xattr block, depending on which has space. The xattr value
+is then stored in separate clusters on disk. The value root is the
+entry point for looking up which clusters hold the value.
+
+Each new root is cloned from def_xv (fs/ocfs2/xattr.c:90). The
+def_xv template has its l_count member explicitly initialized to 1
+(fs/ocfs2/xattr.c:91). l_count = 1 means the embedded
+ocfs2_extent_list has room for exactly one extent record.
+l_tree_depth is implicitly set to 0.
+
+OCFS2 will attempt to find a single run of contiguous free clusters
+to store the xattr value. If it cannot find such a run because the
+disk is fragmented, OCFS2 will store the xattr value across multiple
+non-contiguous runs of clusters.
+
+The ocfs2_xattr_value_root embedded in the xattr entry is the root
+of a B-tree that tracks extent records. Each non-contiguous run of
+clusters requires its own extent record in this tree. Since l_count
+is 1, the root can only hold a single extent record initially. If
+the xattr value requires more than one extent record, the tree must
+grow, which requires allocating a new metadata block.
+
+Before opening a transaction to allocate clusters for the xattr
+value, ocfs2_xattr_set() calls ocfs2_init_xattr_set_ctxt()
+(fs/ocfs2/xattr.c:3293), which calls ocfs2_calc_xattr_set_need()
+(fs/ocfs2/xattr.c:3081) to pre-calculate the number of clusters
+and metadata blocks the operation will need.
+
+The root cause of the bug is a missing reservation in
+ocfs2_calc_xattr_set_need(). When adding a new large-value xattr to
+a file that already has an external xattr block, the function never
+adds anything to meta_add for the value tree, leaving it at 0. Here
+is a breakdown:
+
+ 0. ocfs2_calc_xattr_set_need() is called from
+    ocfs2_init_xattr_set_ctxt() (fs/ocfs2/xattr.c:3309).
+ 1. The meta_add local is initialized to 0.
+ 2. Because we are adding a new xattr, xis->not_found and
+    xbs->not_found are both -ENODATA. This means execution is
+    transferred to the meta_guess label (fs/ocfs2/xattr.c:3225)
+    with meta_add still set to 0.
+ 3. The reproducer code only sets a few xattrs. The xattrs fill the
+    inode inline area and spill into the external xattr block, but
+    not enough to cause the block to be indexed. Since the block is
+    not indexed, we skip the incrementing of meta_add under the
+    meta_guess label (fs/ocfs2/xattr.c:3248), and meta_add remains
+    0.
+ 4. The value of meta_add (still 0) is returned to
+    ocfs2_init_xattr_set_ctxt() through the meta_need parameter
+    (fs/ocfs2/xattr.c:3309).
+ 5. extra_meta is 0 because the file is not a refcounted inode, so
+    meta_add in ocfs2_init_xattr_set_ctxt() remains 0
+    (fs/ocfs2/xattr.c:3316).
+ 6. Because meta_add is 0, ocfs2_init_xattr_set_ctxt() skips the
+    metadata block reservation code
+    (ocfs2_reserve_new_metadata_blocks()) and meta_ac remains 0
+    (fs/ocfs2/xattr.c:3320).
+ 7. Eventually, we end up in ocfs2_xattr_extend_allocation()
+    (fs/ocfs2/xattr.c:699) with the 0 meta_ac value having been
+    propagated into ctxt->meta_ac.
+ 8. Due to disk fragmentation (which we purposefully cause in the
+    reproducer code), the xattr value we set must be split into two
+    non-contiguous clusters. This causes us to pass through the
+    allocation loop in ocfs2_xattr_extend_allocation() twice.
+ 9. When ocfs2_add_clusters_in_btree() is called during the first
+    pass through the loop (fs/ocfs2/xattr.c:723), the root has one
+    free extent slot (l_count (1) - l_next_free_rec (0) = 1). The
+    extent record for the first cluster is inserted into that slot,
+    and l_next_free_rec is incremented to 1.
+ 10. Since the entire xattr value did not fit in the first cluster,
+     why is set to RESTART_TRANS. This triggers another pass through
+     the allocation loop.
+ 11. During the second pass through the loop, ctxt->meta_ac is
+     still 0. Now that there are no more free slots in the root's
+     ocfs2_extent_list (l_count (1) - l_next_free_rec (1) = 0),
+     ocfs2_add_clusters_in_btree() returns RESTART_META in why
+     (fs/ocfs2/alloc.c:4832).
+ 12. We then hit the BUG_ON assertion (fs/ocfs2/xattr.c:747) and
+     panic.
+
+The Proposed Fix
+
+The proposed fix has two parts.
+
+The first part adds the missing reservation in
+ocfs2_calc_xattr_set_need(). This change is derived from a similar
+pattern (fs/ocfs2/xattr.c:3273), which handles the case where no
+xattr block exists yet. This ensures meta_ac is not 0 when
+ocfs2_xattr_extend_allocation() runs.
+
+The second part replaces the BUG_ON(why == RESTART_META) assertion
+(fs/ocfs2/xattr.c:747) with a -ENOSPC return. If RESTART_META is
+returned, the loop breaks and propagates -ENOSPC to userspace
+instead of panicking the kernel.
+
+ fs/ocfs2/xattr.c | 18 ++++++++++++------
+ 1 file changed, 12 insertions(+), 6 deletions(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index fcddd3c13acd..5989351aff93 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -740,12 +740,10 @@ static int ocfs2_xattr_extend_allocation(struct inode *inode,
+ 					 prev_clusters;
+ 
+ 		if (why != RESTART_NONE && clusters_to_add) {
+-			/*
+-			 * We can only fail in case the alloc file doesn't give
+-			 * up enough clusters.
+-			 */
+-			BUG_ON(why == RESTART_META);
+-
++			if (why == RESTART_META) {
++				status = -ENOSPC;
++				break;
++			}
+ 			credits = ocfs2_calc_extend_credits(inode->i_sb,
+ 							    &vb->vb_xv->xr_list);
+ 			status = ocfs2_extend_trans(handle, credits);
+@@ -3254,6 +3252,14 @@ static int ocfs2_calc_xattr_set_need(struct inode *inode,
+ 		} else
+ 			credits += OCFS2_SUBALLOC_ALLOC + 1;
+ 
++		/*
++		 * Reserve metadata for the new xattr's value extent tree.
++		 * The not_found path above adds credits for this tree but
++		 * omits meta_add, leaving meta_ac NULL for large values.
++		 */
++		if (xi->xi_value_len > OCFS2_XATTR_INLINE_SIZE)
++			meta_add += ocfs2_extend_meta_needed(&def_xv.xv.xr_list);
++
+ 		/*
+ 		 * This cluster will be used either for new bucket or for
+ 		 * new xattr block.
+-- 
+2.47.3
 
