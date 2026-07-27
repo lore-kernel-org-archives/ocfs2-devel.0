@@ -1,64 +1,64 @@
-Received: from mail-ed1-f48.google.com (mail-ed1-f48.google.com [209.85.208.48])
+Received: from mail-ed1-f46.google.com (mail-ed1-f46.google.com [209.85.208.46])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40E093537FD
-	for <ocfs2-devel@lists.linux.dev>; Mon, 27 Jul 2026 06:18:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.48
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B637D3ABD99
+	for <ocfs2-devel@lists.linux.dev>; Mon, 27 Jul 2026 06:18:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.46
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785133106; cv=none; b=mXZAUwg9dPX9vW4BTZDknIVczK186kqNm1q63PUJxpDiKqjs+/EIpslNMTeHnnweStsR3pr5SaJjjwd9B0SZFY46eSMTpj4RwcdSF5xl3TqURTTrHluUARuQ8sKgr6i1iL+dbOmet4vl5h1RZUE9HMV/+haPc1Bhu8OhMmis1SE=
+	t=1785133110; cv=none; b=Cj6sqeYbNTOQYFxMjsi+dQlvsB99Pbs5jkTzj0eJdDH2Q0GXC/3CR95ChmR3So6tHZVsyuYnsnphrlG+GDZIbnn0DKCtgiU/4m1GvU7HrhHI+5qanTdpWJV8m2YmaFvqtdu/jMErVfisiEJ6JUHDn9L+9V47zs4aDkPe6jW+/M8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785133106; c=relaxed/simple;
-	bh=ipIc5mIjuPdnhjxEQWxY3I4cWevJDCobazMTJt2bLrc=;
+	s=arc-20240116; t=1785133110; c=relaxed/simple;
+	bh=rtZobYAYOxOmyv7heAB0SZB/edmFS7RWX70/SrzIf3g=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=lAEztkHURH3HNtEZ1GeCLpKoe7yVTHoSJDdCX66nVFFAqOdLlmBfP4a4+PAKt7VaBVp3JRv7ZW3AMNsp8MwHp+v8Tl/G4CxbcAiKlZTNm0XnsUh2612h6A/y2J8Fi8L24q2ehlpkh/Gos+epyr3YjEMB8Vb3ZE4kSQ1hPTBXlnA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=DwCHtCOM; arc=none smtp.client-ip=209.85.208.48
+	 MIME-Version; b=dONuEYcRFCUCfeyn8chKkuVHDCkUs7/tZxfOV3wbQw28NybDxr+d8P5QxaD42r96HXZ/MobSgof91uDp3Vwdc2Hjt1HcTr0XhrgVVIUi72Puqtq6Ru2hi1f+bpX5CbIqAYlodrn+Sgo5alZoAH8PRIArglzL3iOa+d00nJx5rbQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=MSka+W0h; arc=none smtp.client-ip=209.85.208.46
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="DwCHtCOM"
-Received: by mail-ed1-f48.google.com with SMTP id 4fb4d7f45d1cf-69fe1df830fso183071a12.2
-        for <ocfs2-devel@lists.linux.dev>; Sun, 26 Jul 2026 23:18:23 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="MSka+W0h"
+Received: by mail-ed1-f46.google.com with SMTP id 4fb4d7f45d1cf-69fdfd98eb8so145624a12.0
+        for <ocfs2-devel@lists.linux.dev>; Sun, 26 Jul 2026 23:18:28 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1785133102; x=1785737902; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1785133107; x=1785737907; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=w1YaimAULhRxxIPWQ8++mwbsLRf1Yy9B7C9zHgWk02I=;
-        b=DwCHtCOMmRKZeGnR4fCmlDzOwolIFcDOwKb11jKkTX0BVnJNAYAMdU+7jNy6ssioA6
-         OYk3y+GBwJNGmDhM/VJyGDOZl8w2MHasPRMDuZY9PVrlQTXk0fqAw2mYncLc7fuNwAPq
-         nEaLL2kchmdYyhcJr/xrdRik3EwNq8U5zJPL454pedXS/fqcYryS4uVTYW/3fPcPCnb7
-         pJOHRlB7XW3z1xgzZ6JltRBXnnLqKjYI2T1AKBc6Ry3uY2mlc1SOQO6HgQLeI72K0R2L
-         xRXQPgZnHsIE0A6OyeaoVDrYPumM9shcoaa6SiwVwyrOhOO8J8wFOn8gg6qDbBZL/GCO
-         YF8w==
+        bh=vnAFR8Y0Xb+ZXWVIvXAn5Tg56F3CFs+3eH2bXQqqx7A=;
+        b=MSka+W0h6Vl1ixhfJjMMDMjWscGoRol3AzbLUraGGnFCYZKIdtPjQ0gxappkzmeU7e
+         VLrG484c+romSu70sISiI+eyCQn6s/aAekvkmUtTGvmNdMuRjfPT6ZbXxb+DJdkaDJ9X
+         a+Ayt1aTM+WshNmFT8DJyTUjefd+MlthAJLLsdZ4jPOFJh5b5DmWo2b9vuCJ+aLTksLD
+         SGY9MYceQrIx4S06Ur3Ly5RNGUOALjyxLHUb4kjHjvOWLKERQVRna3xVqqfFWQffUrjG
+         bOPsb3WTA+YD/yyD+UXm+TL/Qypgvhs1kV34XTSGJdV6F1g/0IvJhC0sVAMylsMTLEC8
+         qEfg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785133102; x=1785737902;
+        d=1e100.net; s=20251104; t=1785133107; x=1785737907;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=w1YaimAULhRxxIPWQ8++mwbsLRf1Yy9B7C9zHgWk02I=;
-        b=suxY7lZenOGk9II7ZxaW/dW/qeVAazOo5593OGNYDWjNxBjMecNEra+ulKhsNuDeeK
-         pEiav6keIT5OZB46GHFeuHi6EtzLTUKzrCWw2A/C5nuP1MnIbSaKEZbT+QR/YPKR6e3C
-         UpkEkai5Im9g25W/PCBs23DGFAeFz8250OwbuJbTb+aSsloNr7SGcTq4o7a1JkRb5V1Q
-         YEPZ7pTBWOq11Twjl22m8Tk4YWEzc/Rj/YaVfLulMg5yPdOJ5mehDG1TLJEN8isZkNU9
-         +fcK0JFDv28zpZe1NKcS9hayZxg7SUpaNE7UmvkiVRdHCsdIa9rI3Ia+wQgRDgHr/sXm
-         MPlQ==
-X-Forwarded-Encrypted: i=1; AHgh+RqGbHZq9wWf96OncbakI9NFto02HLt21Wev+P8YdHc4lv1M4RsgnTeIAhig6YNvQ2nPZbn+y8NevHLGTg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yz6QXyHPTtsvMLbZINgBY1zp3f1SQGSJYpSq5bdquaaIkR+E8jS
-	Nhw1mDPNYR/81w5GK/3KczBasyD63La6ENexZ5RUmA3cvyBFYhht0rJWpjZh09rls1K9yHwzKFI
-	Yu8/6oDY=
-X-Gm-Gg: AR+sD11H3KcUNUn1hG8Uz8dteM7aq5Mnhm4ATTDAdYPPgyCyRaq9eZkNuMRU1qS9dmH
-	oKW26xWIsm/JzBrqwkpjEA5PT82wFLlLQBHuKrvv6UyKFsnSYrkA7R7OzIEx8h6eiNdxeu0bUa5
-	R0wVBCU7zOomcAFluA+6fKVPnMg5IJh90j0NnPIT8RtGtlWrFAbE7IWQ8CAjwuZGnZz9Vg3g6w7
-	yDCNjoM0BJ+Pg9hDfrzx6HHAF8DKRuP2g5Hl6mr7Wc9AEzJQGZfnXRca1ST9szfcY6QZgAtw8Ym
-	e9iiPyfWUaz/S+czauvRTecwS+gLvWfV7xBiDePnaPOh/MD+ADyLGT1z4DEA9QLAjOY7qIRY50N
-	2+3o5+xxACD10TLBUneTWocwKuH7GKdIZ+5CI6/3IWKvPshAGMn9dkS1UIcaYHtf5o4qbgZrBga
-	B10ws=
-X-Received: by 2002:a05:6402:e87:b0:69c:7a0a:12f with SMTP id 4fb4d7f45d1cf-69fc0ffd8ebmr1372709a12.1.1785133102295;
-        Sun, 26 Jul 2026 23:18:22 -0700 (PDT)
+        bh=vnAFR8Y0Xb+ZXWVIvXAn5Tg56F3CFs+3eH2bXQqqx7A=;
+        b=PlllwcGcCxtE9tNI0O0RfyJGW9mcOFU1c1XFJU/tz/Jq6J/rFFF14AvR1J8smAvb5E
+         jhqxVGhE5blI9PQlPVNPboDP0CXNUqjyua9jrdLk3ma5F7Opa1E58YlihJI6QVliyvQw
+         5qKBO71Y4mliseBkzv74e7IXAkNAXzY0PqDn+dqcK1H/Xfb5P4vnlRdQoltk6IxEoAWP
+         D5QWyKc4kT979EgULrauEDTYrfneLEsQFyh3owf6lNChNmSU63kj5VAm94T3gVx1BXKs
+         kDv33eQlPuVegrO0H1r6feBHkJyg8sjdrc6P6dRT013XwabvQqSDTLpwtRTmx/ZBMQmh
+         hoPA==
+X-Forwarded-Encrypted: i=1; AHgh+Ro/W5vG1rSpKPpRPKZpxMRKwz5XU6UkU79k7RYIiyHWuEf/Iy7VbYaRE+eYHg4tGlp8EdkrBfE29e9Lmg==@lists.linux.dev
+X-Gm-Message-State: AOJu0YweNui5wjoB06Y8qQB/e1kL66VoiN8viKkSL19ZQrJ9pTjzuVw1
+	zJFrhtqQ7HyEt7HZEQcASUaa1074Y+fwkXlGGjHOJWuIB3soKBuQyzY4hVKoUkwLm/cfn0yrTj/
+	AtukLBtk=
+X-Gm-Gg: AR+sD11y5rq8/GNQKuTRPe67bfyNOcx59wMPXqWcKKxpRwNHE4lHLK4GlzJAcqar1qX
+	2gZ/fdijcvwwWZb0tGmkckmmZw8mD1ltIZZcEEAj5Pa8FzyLkX02GzEet+hYFx08v4Lc3kw9xn7
+	JH9QnCC0Oq2LHr2+/hGTzlGJbvzW1M0DRiXfzfNodgKc8+kEzZ7012OnqPytrXOVpZXkfvObWkv
+	vpJTVz5/xADVB8uqywtwGHVFOQDQfYdvAy/qAjFpL7eJvh6+F3zq6OwpV4dn1QT7V7oBMLb6hav
+	gW6eORYKLJPKL5Ov99nl5fJzM3RSMh2GurggFKZ8b460rIpSsRSuAVsnpLYGaHaJl5bfk8PKoYG
+	uuEMKzP5/0N3pYVj3s1aagOkwZ/4WFEfcu8IvRS/aSxbMW70bM55SpmNQuAGe45hLLutk1Hnz3c
+	JKzmM=
+X-Received: by 2002:a05:6402:388c:b0:698:d8d2:df38 with SMTP id 4fb4d7f45d1cf-69fc0fe9783mr3022448a12.2.1785133106870;
+        Sun, 26 Jul 2026 23:18:26 -0700 (PDT)
 Received: from p15.suse.cz ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-38f2951f0afsm2583300a91.16.2026.07.26.23.18.18
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-38f2951f0afsm2583300a91.16.2026.07.26.23.18.22
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 26 Jul 2026 23:18:21 -0700 (PDT)
+        Sun, 26 Jul 2026 23:18:25 -0700 (PDT)
 From: Heming Zhao <heming.zhao@suse.com>
 To: joseph.qi@linux.alibaba.com,
 	mark@fasheh.com,
@@ -67,9 +67,9 @@ To: joseph.qi@linux.alibaba.com,
 Cc: Heming Zhao <heming.zhao@suse.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Subject: [RFC PATCH v2 3/4] ocfs2: switch dio write path from buffer_head to iomap
-Date: Mon, 27 Jul 2026 14:17:59 +0800
-Message-ID: <20260727061802.18485-4-heming.zhao@suse.com>
+Subject: [RFC PATCH v2 4/4] ocfs2: remove legacy blockdev direct-IO path APIs
+Date: Mon, 27 Jul 2026 14:18:00 +0800
+Message-ID: <20260727061802.18485-5-heming.zhao@suse.com>
 X-Mailer: git-send-email 2.54.0
 In-Reply-To: <20260727061802.18485-1-heming.zhao@suse.com>
 References: <20260727061802.18485-1-heming.zhao@suse.com>
@@ -81,744 +81,581 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-This patch converts OCFS2's DIO write path from the legacy
-buffer_head infrastructure to the modern iomap framework.
+Since the DIO path already migrated from buffer_head mode (by using
+a_ops->direct_IO method) to iomap mode, the VFS no longer sets
+FMODE_CAN_ODIRECT automatically, so ocfs2_file_open() sets it
+explicitly.
 
-Key modifications and designs are as follows:
+The now-unused blockdev get_block/end_io machinery
+(ocfs2_lock_get_block(), ocfs2_dio_wr_get_block(), ocfs2_dio_end_io(),
+ocfs2_dio_end_io_write(), and the ocfs2_dio_write_ctxt helpers) is removed,
+and OCFS2_FS Kconfig removes LEGACY_DIRECT_IO.
 
-1. Dynamic Context Allocation:
-   Refactor 'struct ocfs2_write_ctxt' to use a flexible array 'w_desc[]'
-   instead of a fixed-size array. Dynamically allocate the context based on
-   the write length ('w_clen') in 'ocfs2_alloc_write_ctxt()'. This prevents
-   static limits overflow and optimizes kernel heap memory utilization.
-
-2. Robust Mapping and Limits:
-   Introduce 'ocfs2_dio_wr_map_blocks()' to allocate and map direct write
-   blocks. Implement a 1 MiB cap ('OCFS2_DIO_WR_MAX_MAX_BYTES') per mapping
-   call to restrict allocation granularity, preventing JBD2 transaction
-   credit exhaustion during huge asynchronous sequential writes.
-
-3. Reliable Completion Work and Fallback:
-   - Implement 'ocfs2_iomap_dio_end_io_write()' to handle metadata completion.
-     It converts UNWRITTEN extents, updates inode size (EOF), and deletes the
-     inode from the orphan directory if it was appended.
-   - Implement 'ocfs2_dio_write_end_io()' to finalize the dio lifecycle and
-     release cluster locks safely.
-   - Intercept '-ENOTBLK' errors from 'iomap_dio_rw()' caused by page cache
-     invalidation failures (due to mmap/buffered collisions). Gracefully clear
-     the error, strip the IOCB_DIRECT flag, and fall back to buffered write
-
-4. Moved ocfs2_add_inode_to_orphan():
-   - moved ocfs2_add_inode_to_orphan() from ocfs2_dio_wr_map_blocks() to
-     ocfs2_file_write_iter().
-
-5. Uncertain logic in code
-   For the following code block in ocfs2_dio_wr_map_blocks():
-   ```
-     if (extend) {
-             if (ocfs2_sparse_alloc(osb))
-                     ret = ocfs2_zero_tail(inode, di_bh, pos);
-             else
-                     ret = ocfs2_expand_nonsparse_inode(inode, di_bh, pos,
-                                                         map_len, NULL);
-             if (ret < 0) {
-                     mlog_errno(ret);
-                     goto unlock;
-             }
-     }
-   ```
-   I am not completely certain whether it is called only once per
-   ocfs2_file_write_iter(), but I believe calling it multiple times will
-   not introduce any side effects. Furthermore, testing across various
-   scenarios showed no instances of multiple calls.
-
-Assisted-by: Gemini:gemini-3.5-flash
-Assisted-by: Claude:claude-sonnet-4-5
 Co-developed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Signed-off-by: Heming Zhao <heming.zhao@suse.com>
 ---
- fs/ocfs2/aops.c           | 394 ++++++++++++++++++++++++++++++++++++--
- fs/ocfs2/buffer_head_io.c |   7 +-
- fs/ocfs2/file.c           |  91 +++++++--
- fs/ocfs2/ocfs2.h          |   2 +
- 4 files changed, 459 insertions(+), 35 deletions(-)
+ fs/ocfs2/Kconfig |   1 -
+ fs/ocfs2/aops.c  | 411 -----------------------------------------------
+ fs/ocfs2/aops.h  |  35 +---
+ fs/ocfs2/file.c  |  13 +-
+ fs/ocfs2/ocfs2.h |   5 -
+ 5 files changed, 16 insertions(+), 449 deletions(-)
 
+diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
+index bf1678a5eb01..74bc2008ef0b 100644
+--- a/fs/ocfs2/Kconfig
++++ b/fs/ocfs2/Kconfig
+@@ -9,7 +9,6 @@ config OCFS2_FS
+ 	select QUOTA_TREE
+ 	select FS_IOMAP
+ 	select FS_POSIX_ACL
+-	select LEGACY_DIRECT_IO
+ 	help
+ 	  OCFS2 is a general purpose extent based shared disk cluster file
+ 	  system with many similarities to ext3. It supports 64 bit inode
 diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-index 12f5f2e3530a..9a079436c9c0 100644
+index 9a079436c9c0..3e4a7043074a 100644
 --- a/fs/ocfs2/aops.c
 +++ b/fs/ocfs2/aops.c
-@@ -764,6 +764,8 @@ int ocfs2_map_folio_blocks(struct folio *folio, u64 *p_blkno,
- #define OCFS2_MAX_CTXT_PAGES	(OCFS2_MAX_CLUSTERSIZE / PAGE_SIZE)
- #endif
+@@ -114,19 +114,6 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
+ 	return err;
+ }
  
-+#define OCFS2_DIO_WR_MAX_MAP_BYTES	(1U << 20)	/* 1 MiB */
-+
- #define OCFS2_MAX_CLUSTERS_PER_PAGE	(PAGE_SIZE / OCFS2_MIN_CLUSTERSIZE)
- 
- struct ocfs2_unwritten_extent {
-@@ -799,8 +801,6 @@ struct ocfs2_write_ctxt {
- 	/* Type of caller. Must be one of buffer, mmap, direct.  */
- 	ocfs2_write_type_t		w_type;
- 
--	struct ocfs2_write_cluster_desc	w_desc[OCFS2_MAX_CLUSTERS_PER_PAGE];
+-static int ocfs2_lock_get_block(struct inode *inode, sector_t iblock,
+-		    struct buffer_head *bh_result, int create)
+-{
+-	int ret = 0;
+-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
 -
- 	/*
- 	 * This is true if page_size > cluster_size.
- 	 *
-@@ -850,6 +850,8 @@ struct ocfs2_write_ctxt {
- 
- 	struct list_head		w_unwritten_list;
- 	unsigned int			w_unwritten_count;
-+
-+	struct ocfs2_write_cluster_desc	w_desc[];
- };
- 
- void ocfs2_unlock_and_free_folios(struct folio **folios, int num_folios)
-@@ -917,17 +919,24 @@ static int ocfs2_alloc_write_ctxt(struct ocfs2_write_ctxt **wcp,
- 				  unsigned len, ocfs2_write_type_t type,
- 				  struct buffer_head *di_bh)
+-	down_read(&oi->ip_alloc_sem);
+-	ret = ocfs2_get_block(inode, iblock, bh_result, create);
+-	up_read(&oi->ip_alloc_sem);
+-
+-	return ret;
+-}
+-
+ int ocfs2_map_blocks(struct inode *inode, struct ocfs2_map_block *map,
+ 		    int flags)
  {
--	u32 cend;
-+	u32 w_cpos, cend, w_clen;
- 	struct ocfs2_write_ctxt *wc;
-+	size_t alloc_size;
-+
-+	w_cpos = pos >> osb->s_clustersize_bits;
-+	cend = (pos + len - 1) >> osb->s_clustersize_bits;
-+	w_clen = cend - w_cpos + 1;
-+
-+	alloc_size = sizeof(struct ocfs2_write_ctxt) +
-+		w_clen * sizeof(struct ocfs2_write_cluster_desc);
- 
--	wc = kzalloc_obj(struct ocfs2_write_ctxt, GFP_NOFS);
-+	wc = kzalloc(alloc_size, GFP_NOFS);
- 	if (!wc)
- 		return -ENOMEM;
- 
--	wc->w_cpos = pos >> osb->s_clustersize_bits;
-+	wc->w_cpos = w_cpos;
- 	wc->w_first_new_cpos = UINT_MAX;
--	cend = (pos + len - 1) >> osb->s_clustersize_bits;
--	wc->w_clen = cend - wc->w_cpos + 1;
-+	wc->w_clen = w_clen;
- 	get_bh(di_bh);
- 	wc->w_di_bh = di_bh;
- 	wc->w_type = type;
-@@ -2218,7 +2227,7 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
- 	struct ocfs2_write_cluster_desc *desc = NULL;
- 	struct ocfs2_dio_write_ctxt *dwc = NULL;
- 	struct buffer_head *di_bh = NULL;
--	u64 p_blkno;
-+	u64 p_blkno = 0;
- 	unsigned int i_blkbits = inode->i_sb->s_blocksize_bits;
- 	loff_t pos = iblock << i_blkbits;
- 	sector_t endblk = (i_size_read(inode) - 1) >> i_blkbits;
-@@ -2358,6 +2367,148 @@ static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
+@@ -2170,204 +2157,6 @@ static int ocfs2_write_end(const struct kiocb *iocb,
  	return ret;
  }
  
-+/* copy from ocfs2_dio_wr_get_block */
-+static int ocfs2_dio_wr_map_blocks(struct inode *inode,
-+			       struct ocfs2_map_block *map, int create)
-+{
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+	struct ocfs2_write_ctxt *wc;
-+	struct ocfs2_write_cluster_desc *desc = NULL;
-+	struct buffer_head *di_bh = NULL;
-+	u64 p_blkno;
-+	sector_t iblock = map->lblk;
-+	unsigned int i_blkbits = inode->i_sb->s_blocksize_bits;
-+	loff_t pos = iblock << i_blkbits;
-+	sector_t endblk = (i_size_read(inode) - 1) >> i_blkbits;
-+	unsigned int total_len = map->len << i_blkbits;
-+	unsigned int map_len;
-+	unsigned int cont_clusters = 1;
-+	int ret = 0, extend = 0, idx;
-+
-+	/*
-+	 * map->len is count in ocfs2_iomap_begin according to write
-+	 * "pos" and "end", we need map twice to return different buffer state:
-+	 * 1. area in file size, not set NEW;
-+	 * 2. area out file size, set  NEW.
-+	 *
-+	 *		   iblock    endblk
-+	 * |--------|---------|---------|---------
-+	 * |<-------area in file------->|
-+	 */
-+	if ((iblock <= endblk) &&
-+	    ((iblock + ((total_len - 1) >> i_blkbits)) > endblk))
-+		total_len = (endblk - iblock + 1) << i_blkbits;
-+
-+	/*
-+	 * Bound how much we allocate/prepare (and journal) per call. map->len
-+	 * below still reports only the physically-contiguous prefix to iomap;
-+	 * iomap calls us again for the remainder.
-+	 */
-+	map_len = min(total_len, OCFS2_DIO_WR_MAX_MAP_BYTES);
-+
-+	mlog(0, "get block of %llu at %llu:%u req %u\n",
-+			inode->i_ino, pos, map_len, total_len);
-+
-+	/*
-+	 * Because we need to change file size in ocfs2_iomap_dio_end_io_write(),
-+	 * or we may need to add it to orphan dir. So can not fall to fast path
-+	 * while file size will be changed.
-+	 */
-+	if (pos + total_len <= i_size_read(inode)) {
-+		/* This is the fast path for re-write. */
-+		ret = ocfs2_map_blocks(inode, map, OCFS2_GET_BLOCKS_CREATE);
-+		if ((map->flags & OCFS2_MAP_MAPPED) &&
-+		    !(map->flags & OCFS2_MAP_NEW) && ret == 0)
-+			goto out;
-+
-+		/* Clear state set by ocfs2_map_blocks. */
-+		map->flags = 0;
-+	} else {
-+		extend = 1;
-+	}
-+
-+	ret = ocfs2_inode_lock(inode, &di_bh, 1);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	down_write(&oi->ip_alloc_sem);
-+
-+	if (extend) {
-+		if (ocfs2_sparse_alloc(osb))
-+			ret = ocfs2_zero_tail(inode, di_bh, pos);
-+		else
-+			ret = ocfs2_expand_nonsparse_inode(inode, di_bh, pos,
-+							   map_len, NULL);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			goto unlock;
-+		}
-+	}
-+
-+	ret = ocfs2_write_begin_nolock(inode->i_mapping, pos, map_len,
-+				       OCFS2_WRITE_DIRECT, NULL,
-+				       (void **)&wc, di_bh, NULL);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto unlock;
-+	}
-+
-+	desc = &wc->w_desc[0];
-+
-+	p_blkno = ocfs2_clusters_to_blocks(inode->i_sb, desc->c_phys);
-+	BUG_ON(p_blkno == 0);
-+	p_blkno += iblock & (u64)(ocfs2_clusters_to_blocks(inode->i_sb, 1) - 1);
-+
-+	/*
-+	 * Calculate physically contiguous clusters by checking descriptor arrays.
-+	 * This strictly prevents map->len from expanding past non-contiguous physical bounds.
-+	 */
-+	for (idx = 1; idx < wc->w_clen; idx++) {
-+		if (wc->w_desc[idx].c_phys == wc->w_desc[idx - 1].c_phys + 1 &&
-+		    wc->w_desc[idx].c_needs_zero == wc->w_desc[idx - 1].c_needs_zero) {
-+			cont_clusters++;
-+		} else {
-+			break;
-+		}
-+	}
-+	map->pblk = p_blkno;
-+	/*
-+	 * Only report the mapping as UNWRITTEN when the cluster is newly
-+	 * allocated or was already unwritten (desc->c_needs_zero). Reporting
-+	 * an already-written cluster as UNWRITTEN makes the iomap direct-io
-+	 * core zero the sub-block head/tail padding, which destroys existing
-+	 * data when a sub-block write lands inside a written cluster.
-+	 */
-+	map->flags |= OCFS2_MAP_MAPPED;
-+	if (desc->c_needs_zero)
-+		map->flags |= OCFS2_MAP_UNWRITTEN;
-+	map->len = cont_clusters * ocfs2_clusters_to_blocks(inode->i_sb, 1);
-+
-+	if (desc->c_needs_zero)
-+		map->flags |= OCFS2_MAP_NEW;
-+
-+	if (iblock > endblk)
-+		map->flags |= OCFS2_MAP_NEW;
-+
-+	map->flags |= OCFS2_MAP_DEFER_COMPLETION;
-+
-+	ocfs2_free_unwritten_list(inode, &wc->w_unwritten_list);
-+	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, map_len, map_len, wc);
-+	BUG_ON(ret != map_len);
-+	ret = 0;
-+
-+unlock:
-+	up_write(&oi->ip_alloc_sem);
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(di_bh);
-+
-+out:
-+	return ret;
-+}
-+
- static int ocfs2_dio_end_io_write(struct inode *inode,
- 				  struct ocfs2_dio_write_ctxt *dwc,
- 				  loff_t offset,
-@@ -2557,6 +2708,12 @@ static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
- 				    ocfs2_dio_end_io, 0);
- }
- 
-+static int ocfs2_iomap_alloc(struct inode *inode, struct ocfs2_map_block *map,
-+			    unsigned int flags)
-+{
-+	return ocfs2_dio_wr_map_blocks(inode, map, 1);
-+}
-+
- static int ocfs2_iomap_begin(struct inode *inode, loff_t offset, loff_t length,
- 		unsigned int flags, struct iomap *iomap, struct iomap *srcmap)
- {
-@@ -2564,6 +2721,7 @@ static int ocfs2_iomap_begin(struct inode *inode, loff_t offset, loff_t length,
- 	struct ocfs2_map_block map;
- 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
- 	u8 blkbits = inode->i_blkbits;
-+	unsigned int orig_mlen;
- 
- 	if ((offset >> blkbits) > OCFS2_MAX_LOGICAL_BLOCK)
- 		return -EINVAL;
-@@ -2575,9 +2733,32 @@ static int ocfs2_iomap_begin(struct inode *inode, loff_t offset, loff_t length,
- 	map.len = min_t(loff_t, (offset + length - 1) >> blkbits,
- 			OCFS2_MAX_LOGICAL_BLOCK) - map.lblk + 1;
- 	map.flags = 0;
-+	orig_mlen = map.len;
- 
- 	if (flags & IOMAP_WRITE) {
--		/* todo */
-+		/*
-+		 * We check here if the blocks are already allocated, then we
-+		 * don't need to start a journal txn and we can directly return
-+		 * the mapping information. This could boost performance
-+		 * especially in multi-threaded overwrite requests.
-+		 */
-+		if (offset + length <= i_size_read(inode)) {
-+			down_read(&oi->ip_alloc_sem);
-+			ret = ocfs2_map_blocks(inode, &map, 0);
-+			up_read(&oi->ip_alloc_sem);
-+			/*
-+			 * For atomic writes the entire requested length should
-+			 * be mapped.
-+			 */
-+			if (map.flags & OCFS2_MAP_MAPPED) {
-+				if ((!(flags & IOMAP_ATOMIC) && ret > 0) ||
-+				   (flags & IOMAP_ATOMIC && ret >= orig_mlen)) {
-+					goto out;
-+				}
-+			}
-+			map.len = orig_mlen;
-+		}
-+		ret = ocfs2_iomap_alloc(inode, &map, flags);
- 	} else {
- 		down_read(&oi->ip_alloc_sem);
- 		ret = ocfs2_map_blocks(inode, &map, 0);
-@@ -2587,6 +2768,7 @@ static int ocfs2_iomap_begin(struct inode *inode, loff_t offset, loff_t length,
- 	if (ret < 0)
- 		return ret;
- 
-+out:
- 	/*
- 	 * Before returning to iomap, let's ensure the allocated mapping
- 	 * covers the entire requested length for atomic writes.
-@@ -2653,8 +2835,8 @@ static int ocfs2_iomap_dio_end_io(struct kiocb *iocb, ssize_t size, int error,
- 	return error;
- }
- 
--static int ocfs2_dio_end_io_r_pr(struct kiocb *iocb, ssize_t size,
--				int error, unsigned int flags)
-+static int ocfs2_iomap_dio_end_io_r_pr(struct kiocb *iocb, ssize_t size,
-+					int error, unsigned int flags)
- {
- 	if (error)
- 		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld errno:%d",
-@@ -2662,13 +2844,199 @@ static int ocfs2_dio_end_io_r_pr(struct kiocb *iocb, ssize_t size,
- 
- 	error = ocfs2_iomap_dio_end_io(iocb, size, error, 0);
- 
--bail:
- 	return error;
- }
- 
- const struct iomap_dio_ops ocfs2_iomap_dio_ops_r_pr = {
--	.end_io = ocfs2_dio_end_io_r_pr,
-+	.end_io = ocfs2_iomap_dio_end_io_r_pr,
-+};
-+
-+/* copy from ocfs2_dio_end_io_write */
-+static int ocfs2_iomap_dio_end_io_write(struct inode *inode,
-+				  loff_t offset,
-+				  ssize_t bytes)
-+{
-+	struct ocfs2_cached_dealloc_ctxt dealloc;
-+	struct ocfs2_extent_tree et;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-+	struct buffer_head *di_bh = NULL;
-+	struct ocfs2_dinode *di;
-+	struct ocfs2_alloc_context *data_ac = NULL;
-+	struct ocfs2_alloc_context *meta_ac = NULL;
-+	handle_t *handle = NULL;
-+	loff_t end = offset + bytes;
-+	int ret = 0, credits = 0;
-+	struct ocfs2_map_block map;
-+	unsigned int blkbits = inode->i_blkbits;
-+	unsigned int max_blocks;
-+	unsigned int ue_cpos = 0, ue_phys = 0, ue_len = 0;
-+	unsigned int curr_lblk, end_lblk;
-+
-+	map.lblk = offset >> blkbits;
-+	max_blocks = (bytes + offset) >> osb->s_clustersize_bits;
-+
-+	ocfs2_init_dealloc_ctxt(&dealloc);
-+
-+	ret = ocfs2_inode_lock(inode, &di_bh, 1);
-+	if (ret < 0) {
-+		mlog_errno(ret);
-+		goto out;
-+	}
-+
-+	down_write(&oi->ip_alloc_sem);
-+
-+	di = (struct ocfs2_dinode *)di_bh->b_data;
-+
-+	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
-+
-+	/* Attach dealloc with extent tree in case that we may reuse extents
-+	 * which are already unlinked from current extent tree due to extent
-+	 * rotation and merging.
-+	 */
-+	et.et_dealloc = &dealloc;
-+
-+	ret = ocfs2_lock_allocators(inode, &et, 0, (bytes >> osb->s_clustersize_bits)*2,
-+				    &data_ac, &meta_ac);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto unlock;
-+	}
-+
-+	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
-+
-+	handle = ocfs2_start_trans(osb, credits);
-+	if (IS_ERR(handle)) {
-+		ret = PTR_ERR(handle);
-+		mlog_errno(ret);
-+		goto unlock;
-+	}
-+	ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-+				      OCFS2_JOURNAL_ACCESS_WRITE);
-+	if (ret) {
-+		mlog_errno(ret);
-+		goto commit;
-+	}
-+
-+	curr_lblk = offset >> blkbits;
-+	/*
-+	 * Round the end up so the final partial block (sub-block direct I/O)
-+	 * is included; otherwise the last, partially-written cluster is left
-+	 * unwritten and reads back as zero.
-+	 */
-+	end_lblk = (offset + bytes + (1 << blkbits) - 1) >> blkbits;
-+	while (ret >= 0 && curr_lblk < end_lblk) {
-+		memset(&map, 0, sizeof(map));
-+		map.lblk += curr_lblk;
-+		map.len = end_lblk - curr_lblk;
-+
-+		ret = ocfs2_assure_trans_credits(handle, credits);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+
-+		ret = ocfs2_map_blocks(inode, &map, 0);
-+		if (ret < 0) {
-+			mlog_errno(ret);
-+			break;
-+		}
-+		if (ret == 0)
-+			break;
-+
-+		if (map.flags & OCFS2_MAP_UNWRITTEN) {
-+			ue_cpos = ocfs2_blocks_to_clusters(inode->i_sb, map.lblk);
-+			ue_phys = ocfs2_blocks_to_clusters(inode->i_sb, map.pblk);
-+			ue_len = ocfs2_clusters_for_blocks(inode->i_sb,
-+						map.lblk + map.len) - ue_cpos;
-+
-+			ret = ocfs2_mark_extent_written(inode, &et, handle,
-+					ue_cpos, ue_len,
-+					ue_phys,
-+					meta_ac, &dealloc);
-+			if (ret < 0) {
-+				mlog_errno(ret);
-+				break;
-+			}
-+		}
-+		curr_lblk += map.len;
-+	}
-+
-+	if (end > i_size_read(inode)) {
-+		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
-+		if (ret < 0)
-+			mlog_errno(ret);
-+	}
-+
-+commit:
-+	ocfs2_commit_trans(osb, handle);
-+
-+unlock:
-+	up_write(&oi->ip_alloc_sem);
-+
-+	if (data_ac)
-+		ocfs2_free_alloc_context(data_ac);
-+	if (meta_ac)
-+		ocfs2_free_alloc_context(meta_ac);
-+
-+	down_write(&oi->ip_alloc_sem);
-+	if (!ret && (di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL))) {
-+		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh, 0, 0);
-+		if (ret < 0)
-+			mlog_errno(ret);
-+	}
-+	up_write(&oi->ip_alloc_sem);
-+	ocfs2_inode_unlock(inode, 1);
-+	brelse(di_bh);
-+
-+out:
-+	ocfs2_run_deallocs(osb, &dealloc);
-+	return ret;
-+}
-+
-+static int ocfs2_dio_write_end_io(struct kiocb *iocb, ssize_t size,
-+			int error, unsigned int flags, int level)
-+{
-+	struct inode *inode = file_inode(iocb->ki_filp);
-+	loff_t offset = iocb->ki_pos;
-+	int ret = 0;
-+
-+	if (error)
-+		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld errno:%d",
-+				 (long long)size, error);
-+
-+	if (size && ((flags & IOMAP_DIO_UNWRITTEN) ||
-+		    (offset + size > i_size_read(inode)))) {
-+		ret = ocfs2_iomap_dio_end_io_write(inode, offset, size);
-+		if (ret < 0)
-+			mlog_errno(ret);
-+	}
-+
-+	error = ocfs2_iomap_dio_end_io(iocb, size, error, level);
-+
-+	return error;
-+}
-+
-+static int ocfs2_iomap_dio_end_io_w_pr(struct kiocb *iocb, ssize_t size,
-+				     int error, unsigned int flags)
-+{
-+	return ocfs2_dio_write_end_io(iocb, size, error, flags, 0);
-+}
-+
-+static int ocfs2_iomap_dio_end_io_w_ex(struct kiocb *iocb, ssize_t size,
-+				     int error, unsigned int flags)
-+{
-+	return ocfs2_dio_write_end_io(iocb, size, error, flags, 1);
-+}
-+
-+const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_pr = {
-+	.end_io = ocfs2_iomap_dio_end_io_w_pr,
-+};
-+
-+const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_ex = {
-+	.end_io = ocfs2_iomap_dio_end_io_w_ex,
- };
-+
- const struct address_space_operations ocfs2_aops = {
- 	.dirty_folio		= block_dirty_folio,
- 	.read_folio		= ocfs2_read_folio,
-diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-index 493f2209cca5..03906ab737ec 100644
---- a/fs/ocfs2/buffer_head_io.c
-+++ b/fs/ocfs2/buffer_head_io.c
-@@ -332,6 +332,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 						wait_on_buffer(bh);
- 					put_bh(bh);
- 					bhs[i] = NULL;
-+				} else if (bh && buffer_uptodate(bh)) {
-+					clear_buffer_uptodate(bh);
- 				}
- 				continue;
- 			}
-@@ -360,11 +362,8 @@ int ocfs2_read_blocks(struct ocfs2_caching_info *ci, u64 block, int nr,
- 				BUG_ON(buffer_jbd(bh));
- 				clear_buffer_needs_validate(bh);
- 				status = validate(sb, bh);
--				if (status) {
--					if (buffer_uptodate(bh))
--						clear_buffer_uptodate(bh);
-+				if (status)
- 					goto read_failure;
--				}
- 			}
- 		}
- 
-diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-index a0b3883216bc..2d78f2863acf 100644
---- a/fs/ocfs2/file.c
-+++ b/fs/ocfs2/file.c
-@@ -48,6 +48,7 @@
- #include "quota.h"
- #include "refcounttree.h"
- #include "ocfs2_trace.h"
-+#include "namei.h"
- 
- #include "buffer_head_io.h"
- 
-@@ -2378,6 +2379,8 @@ static int ocfs2_prepare_inode_for_write(struct file *file,
- static bool ocfs2_should_use_dio(struct kiocb *iocb, struct iov_iter *iter,
- 				struct inode *inode)
- {
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-+
- 	/*
- 	 * Fallback to buffered I/O if we see an inode without
- 	 * extents.
-@@ -2385,6 +2388,11 @@ static bool ocfs2_should_use_dio(struct kiocb *iocb, struct iov_iter *iter,
- 	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
- 		return false;
- 
-+	/* Fallback to buffered I/O if we do not support append dio. */
-+	if (iocb->ki_pos + iter->count > i_size_read(inode) &&
-+	    !ocfs2_supports_append_dio(osb))
-+		return false;
-+
- 	return true;
- }
- 
-@@ -2405,6 +2413,8 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 			i_size_read(inode) ? 1 : 0);
- 	int direct_io = iocb->ki_flags & IOCB_DIRECT ? 1 : 0;
- 	int nowait = iocb->ki_flags & IOCB_NOWAIT ? 1 : 0;
-+	int dio_flags = 0;
-+	ssize_t buffered;
- 
- 	trace_ocfs2_file_write_iter(inode, file, file->f_path.dentry,
- 		(unsigned long long)OCFS2_I(inode)->ip_blkno,
-@@ -2424,8 +2434,6 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 	} else
- 		inode_lock(inode);
- 
--	ocfs2_iocb_init_rw_locked(iocb);
+-struct ocfs2_dio_write_ctxt {
+-	struct list_head	dw_zero_list;
+-	unsigned		dw_zero_count;
+-	int			dw_orphaned;
+-	pid_t			dw_writer_pid;
+-};
 -
- 	/*
- 	 * Concurrent O_DIRECT writes are allowed with
- 	 * mount_option "coherency=buffered".
-@@ -2489,26 +2497,73 @@ static ssize_t ocfs2_file_write_iter(struct kiocb *iocb,
- 		saved_ki_complete = xchg(&iocb->ki_complete, NULL);
- 	}
- 
--	/* communicate with ocfs2_dio_end_io */
--	ocfs2_iocb_set_rw_locked(iocb, rw_level);
-+	if (direct_io && ocfs2_should_use_dio(iocb, from, inode)) {
-+		if (ocfs2_clusters_for_bytes(inode->i_sb, iocb->ki_pos + count) >
-+		    ocfs2_clusters_for_bytes(inode->i_sb, i_size_read(inode))) {
-+			/*
-+			 * when we are going to alloc extents beyond file size, add the
-+			 * inode to orphan dir, so we can recall those spaces when
-+			 * system crashed during write.
-+			 */
-+			ret = ocfs2_add_inode_to_orphan(osb, inode);
-+			if (ret < 0) {
-+				mlog_errno(ret);
-+				goto out;
-+			}
-+			dio_flags = IOMAP_DIO_FORCE_WAIT;
-+		}
-+		const struct iomap_dio_ops *dops = rw_level ?
-+			&ocfs2_iomap_dio_ops_w_ex : &ocfs2_iomap_dio_ops_w_pr;
-+		struct iomap_dio *dio;
-+
-+		dio = __iomap_dio_rw(iocb, from, &ocfs2_iomap_ops,
-+				     dops, dio_flags, NULL, 0);
-+		if (dio == NULL) {
-+			/* No I/O issued; rw_lock still held. */
-+			written = 0;
-+		} else if (IS_ERR(dio)) {
-+			written = PTR_ERR(dio);
-+			/*
-+			 * -EIOCBQUEUED: async I/O; end_io will drop the lock on
-+			 * completion. Any other error means no I/O started and
-+			 * end_io was not called, so the cleanup path below drops
-+			 * the lock.
-+			 */
-+			if (written == -EIOCBQUEUED)
-+				rw_level = -1;
-+		} else {
-+			/*
-+			 * Synchronous completion. iomap_dio_complete() runs
-+			 * end_io, which drops the lock unless the mapping
-+			 * bounced us back to buffered I/O (returns 0, lock
-+			 * retained).
-+			 */
-+			written = iomap_dio_complete(dio);
-+			if (written != 0)
-+				rw_level = -1;
-+		}
-+		/*
-+		 * iomap_dio_rw() returns -ENOTBLK when it could not invalidate
-+		 * the page cache for the DIO range (e.g. racing buffered/mmap
-+		 * I/O on the same file, as exercised by generic/095). Fall back
-+		 * to a buffered write for the remaining data, the same way
-+		 * ext4/xfs do, instead of leaking -ENOTBLK to userspace.
-+		 */
-+		if (written == -ENOTBLK)
-+			written = 0;
-+		if (written >= 0 && iov_iter_count(from)) {
-+			iocb->ki_flags &= ~IOCB_DIRECT;
-+			buffered = __generic_file_write_iter(iocb, from);
-+			written = direct_write_fallback(iocb, from, written, buffered);
-+		}
-+	} else {
-+		iocb->ki_flags &= ~IOCB_DIRECT;
-+		written = __generic_file_write_iter(iocb, from);
-+	}
- 
--	written = __generic_file_write_iter(iocb, from);
- 	/* buffered aio wouldn't have proper lock coverage today */
- 	BUG_ON(written == -EIOCBQUEUED && !direct_io);
- 
+-static struct ocfs2_dio_write_ctxt *
+-ocfs2_dio_alloc_write_ctx(struct buffer_head *bh, int *alloc)
+-{
+-	struct ocfs2_dio_write_ctxt *dwc = NULL;
+-
+-	if (bh->b_private)
+-		return bh->b_private;
+-
+-	dwc = kmalloc_obj(struct ocfs2_dio_write_ctxt, GFP_NOFS);
+-	if (dwc == NULL)
+-		return NULL;
+-	INIT_LIST_HEAD(&dwc->dw_zero_list);
+-	dwc->dw_zero_count = 0;
+-	dwc->dw_orphaned = 0;
+-	dwc->dw_writer_pid = task_pid_nr(current);
+-	bh->b_private = dwc;
+-	*alloc = 1;
+-
+-	return dwc;
+-}
+-
+-static void ocfs2_dio_free_write_ctx(struct inode *inode,
+-				     struct ocfs2_dio_write_ctxt *dwc)
+-{
+-	ocfs2_free_unwritten_list(inode, &dwc->dw_zero_list);
+-	kfree(dwc);
+-}
+-
+-/*
+- * TODO: Make this into a generic get_blocks function.
+- *
+- * From do_direct_io in direct-io.c:
+- *  "So what we do is to permit the ->get_blocks function to populate
+- *   bh.b_size with the size of IO which is permitted at this offset and
+- *   this i_blkbits."
+- *
+- * This function is called directly from get_more_blocks in direct-io.c.
+- *
+- * called like this: dio->get_blocks(dio->inode, fs_startblk,
+- * 					fs_count, map_bh, dio->rw == WRITE);
+- */
+-static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
+-			       struct buffer_head *bh_result, int create)
+-{
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-	struct ocfs2_write_ctxt *wc;
+-	struct ocfs2_write_cluster_desc *desc = NULL;
+-	struct ocfs2_dio_write_ctxt *dwc = NULL;
+-	struct buffer_head *di_bh = NULL;
+-	u64 p_blkno = 0;
+-	unsigned int i_blkbits = inode->i_sb->s_blocksize_bits;
+-	loff_t pos = iblock << i_blkbits;
+-	sector_t endblk = (i_size_read(inode) - 1) >> i_blkbits;
+-	unsigned len, total_len = bh_result->b_size;
+-	int ret = 0, first_get_block = 0;
+-
+-	len = osb->s_clustersize - (pos & (osb->s_clustersize - 1));
+-	len = min(total_len, len);
+-
 -	/*
--	 * deep in g_f_a_w_n()->ocfs2_direct_IO we pass in a ocfs2_dio_end_io
--	 * function pointer which is called when o_direct io completes so that
--	 * it can unlock our rw lock.
--	 * Unfortunately there are error cases which call end_io and others
--	 * that don't.  so we don't have to unlock the rw_lock if either an
--	 * async dio is going to do it in the future or an end_io after an
--	 * error has already done it.
+-	 * bh_result->b_size is count in get_more_blocks according to write
+-	 * "pos" and "end", we need map twice to return different buffer state:
+-	 * 1. area in file size, not set NEW;
+-	 * 2. area out file size, set  NEW.
+-	 *
+-	 *		   iblock    endblk
+-	 * |--------|---------|---------|---------
+-	 * |<-------area in file------->|
 -	 */
--	if ((written == -EIOCBQUEUED) || (!ocfs2_iocb_is_rw_locked(iocb))) {
--		rw_level = -1;
+-
+-	if ((iblock <= endblk) &&
+-	    ((iblock + ((len - 1) >> i_blkbits)) > endblk))
+-		len = (endblk - iblock + 1) << i_blkbits;
+-
+-	mlog(0, "get block of %llu at %llu:%u req %u\n",
+-			inode->i_ino, pos, len, total_len);
+-
+-	/*
+-	 * Because we need to change file size in ocfs2_dio_end_io_write(), or
+-	 * we may need to add it to orphan dir. So can not fall to fast path
+-	 * while file size will be changed.
+-	 */
+-	if (pos + total_len <= i_size_read(inode)) {
+-
+-		/* This is the fast path for re-write. */
+-		ret = ocfs2_lock_get_block(inode, iblock, bh_result, create);
+-		if (buffer_mapped(bh_result) &&
+-		    !buffer_new(bh_result) &&
+-		    ret == 0)
+-			goto out;
+-
+-		/* Clear state set by ocfs2_get_block. */
+-		bh_result->b_state = 0;
 -	}
 -
- 	if (unlikely(written <= 0))
- 		goto out;
+-	dwc = ocfs2_dio_alloc_write_ctx(bh_result, &first_get_block);
+-	if (unlikely(dwc == NULL)) {
+-		ret = -ENOMEM;
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	if (ocfs2_clusters_for_bytes(inode->i_sb, pos + total_len) >
+-	    ocfs2_clusters_for_bytes(inode->i_sb, i_size_read(inode)) &&
+-	    !dwc->dw_orphaned) {
+-		/*
+-		 * when we are going to alloc extents beyond file size, add the
+-		 * inode to orphan dir, so we can recall those spaces when
+-		 * system crashed during write.
+-		 */
+-		ret = ocfs2_add_inode_to_orphan(osb, inode);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto out;
+-		}
+-		dwc->dw_orphaned = 1;
+-	}
+-
+-	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	down_write(&oi->ip_alloc_sem);
+-
+-	if (first_get_block) {
+-		if (ocfs2_sparse_alloc(osb))
+-			ret = ocfs2_zero_tail(inode, di_bh, pos);
+-		else
+-			ret = ocfs2_expand_nonsparse_inode(inode, di_bh, pos,
+-							   total_len, NULL);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto unlock;
+-		}
+-	}
+-
+-	ret = ocfs2_write_begin_nolock(inode->i_mapping, pos, len,
+-				       OCFS2_WRITE_DIRECT, NULL,
+-				       (void **)&wc, di_bh, NULL);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto unlock;
+-	}
+-
+-	desc = &wc->w_desc[0];
+-
+-	p_blkno = ocfs2_clusters_to_blocks(inode->i_sb, desc->c_phys);
+-	BUG_ON(p_blkno == 0);
+-	p_blkno += iblock & (u64)(ocfs2_clusters_to_blocks(inode->i_sb, 1) - 1);
+-
+-	map_bh(bh_result, inode->i_sb, p_blkno);
+-	bh_result->b_size = len;
+-	if (desc->c_needs_zero)
+-		set_buffer_new(bh_result);
+-
+-	if (iblock > endblk)
+-		set_buffer_new(bh_result);
+-
+-	/* May sleep in end_io. It should not happen in a irq context. So defer
+-	 * it to dio work queue. */
+-	set_buffer_defer_completion(bh_result);
+-
+-	if (!list_empty(&wc->w_unwritten_list)) {
+-		struct ocfs2_unwritten_extent *ue = NULL;
+-
+-		ue = list_first_entry(&wc->w_unwritten_list,
+-				      struct ocfs2_unwritten_extent,
+-				      ue_node);
+-		BUG_ON(ue->ue_cpos != desc->c_cpos);
+-		/* The physical address may be 0, fill it. */
+-		ue->ue_phys = desc->c_phys;
+-
+-		list_splice_tail_init(&wc->w_unwritten_list, &dwc->dw_zero_list);
+-		dwc->dw_zero_count += wc->w_unwritten_count;
+-	}
+-
+-	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, len, len, wc);
+-	BUG_ON(ret != len);
+-	ret = 0;
+-unlock:
+-	up_write(&oi->ip_alloc_sem);
+-	ocfs2_inode_unlock(inode, 1);
+-	brelse(di_bh);
+-out:
+-	return ret;
+-}
+-
+-/* copy from ocfs2_dio_wr_get_block */
+ static int ocfs2_dio_wr_map_blocks(struct inode *inode,
+ 			       struct ocfs2_map_block *map, int create)
+ {
+@@ -2509,205 +2298,6 @@ static int ocfs2_dio_wr_map_blocks(struct inode *inode,
+ 	return ret;
+ }
  
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index a775c1869293..b228b10b5e71 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -551,6 +551,8 @@ struct ocfs2_map_block {
+-static int ocfs2_dio_end_io_write(struct inode *inode,
+-				  struct ocfs2_dio_write_ctxt *dwc,
+-				  loff_t offset,
+-				  ssize_t bytes)
+-{
+-	struct ocfs2_cached_dealloc_ctxt dealloc;
+-	struct ocfs2_extent_tree et;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+-	struct ocfs2_unwritten_extent *ue = NULL;
+-	struct buffer_head *di_bh = NULL;
+-	struct ocfs2_dinode *di;
+-	struct ocfs2_alloc_context *data_ac = NULL;
+-	struct ocfs2_alloc_context *meta_ac = NULL;
+-	handle_t *handle = NULL;
+-	loff_t end = offset + bytes;
+-	int ret = 0, credits = 0, batch = 0;
+-
+-	ocfs2_init_dealloc_ctxt(&dealloc);
+-
+-	/* We do clear unwritten, delete orphan, change i_size here. If neither
+-	 * of these happen, we can skip all this. */
+-	if (list_empty(&dwc->dw_zero_list) &&
+-	    end <= i_size_read(inode) &&
+-	    !dwc->dw_orphaned)
+-		goto out;
+-
+-	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+-	if (ret < 0) {
+-		mlog_errno(ret);
+-		goto out;
+-	}
+-
+-	down_write(&oi->ip_alloc_sem);
+-	di = (struct ocfs2_dinode *)di_bh->b_data;
+-
+-	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
+-
+-	/* Attach dealloc with extent tree in case that we may reuse extents
+-	 * which are already unlinked from current extent tree due to extent
+-	 * rotation and merging.
+-	 */
+-	et.et_dealloc = &dealloc;
+-
+-	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
+-				    &data_ac, &meta_ac);
+-	if (ret) {
+-		mlog_errno(ret);
+-		goto unlock;
+-	}
+-
+-	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
+-
+-	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
+-		if (!handle) {
+-			handle = ocfs2_start_trans(osb, credits);
+-			if (IS_ERR(handle)) {
+-				ret = PTR_ERR(handle);
+-				mlog_errno(ret);
+-				goto unlock;
+-			}
+-			ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
+-					OCFS2_JOURNAL_ACCESS_WRITE);
+-			if (ret) {
+-				mlog_errno(ret);
+-				goto commit;
+-			}
+-		}
+-		ret = ocfs2_assure_trans_credits(handle, credits);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto commit;
+-		}
+-		ret = ocfs2_mark_extent_written(inode, &et, handle,
+-						ue->ue_cpos, 1,
+-						ue->ue_phys,
+-						meta_ac, &dealloc);
+-		if (ret < 0) {
+-			mlog_errno(ret);
+-			goto commit;
+-		}
+-
+-		if (++batch == OCFS2_DIO_MARK_EXTENT_BATCH) {
+-			ocfs2_commit_trans(osb, handle);
+-			handle = NULL;
+-			batch = 0;
+-		}
+-	}
+-
+-	if (end > i_size_read(inode)) {
+-		if (!handle) {
+-			handle = ocfs2_start_trans(osb, credits);
+-			if (IS_ERR(handle)) {
+-				ret = PTR_ERR(handle);
+-				mlog_errno(ret);
+-				goto unlock;
+-			}
+-		}
+-		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
+-		if (ret < 0)
+-			mlog_errno(ret);
+-	}
+-
+-commit:
+-	if (handle)
+-		ocfs2_commit_trans(osb, handle);
+-unlock:
+-	up_write(&oi->ip_alloc_sem);
+-
+-	if (data_ac) {
+-		ocfs2_free_alloc_context(data_ac);
+-		data_ac = NULL;
+-	}
+-	if (meta_ac) {
+-		ocfs2_free_alloc_context(meta_ac);
+-		meta_ac = NULL;
+-	}
+-
+-	/* everything looks good, let's start the cleanup */
+-	if (!ret && dwc->dw_orphaned) {
+-		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
+-
+-		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh, 0, 0);
+-		if (ret < 0)
+-			mlog_errno(ret);
+-	}
+-	ocfs2_inode_unlock(inode, 1);
+-	brelse(di_bh);
+-out:
+-	ocfs2_run_deallocs(osb, &dealloc);
+-	ocfs2_dio_free_write_ctx(inode, dwc);
+-
+-	return ret;
+-}
+-
+-/*
+- * ocfs2_dio_end_io is called by the dio core when a dio is finished.  We're
+- * particularly interested in the aio/dio case.  We use the rw_lock DLM lock
+- * to protect io on one node from truncation on another.
+- */
+-static int ocfs2_dio_end_io(struct kiocb *iocb,
+-			    loff_t offset,
+-			    ssize_t bytes,
+-			    void *private)
+-{
+-	struct inode *inode = file_inode(iocb->ki_filp);
+-	int level;
+-	int ret = 0;
+-
+-	/* this io's submitter should not have unlocked this before we could */
+-	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
+-
+-	if (bytes <= 0)
+-		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
+-				 (long long)bytes);
+-	if (private) {
+-		if (bytes > 0)
+-			ret = ocfs2_dio_end_io_write(inode, private, offset,
+-						     bytes);
+-		else
+-			ocfs2_dio_free_write_ctx(inode, private);
+-	}
+-
+-	ocfs2_iocb_clear_rw_locked(iocb);
+-
+-	level = ocfs2_iocb_rw_locked_level(iocb);
+-	ocfs2_rw_unlock(inode, level);
+-	return ret;
+-}
+-
+-static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
+-{
+-	struct file *file = iocb->ki_filp;
+-	struct inode *inode = file->f_mapping->host;
+-	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	get_block_t *get_block;
+-
+-	/*
+-	 * Fallback to buffered I/O if we see an inode without
+-	 * extents.
+-	 */
+-	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
+-		return 0;
+-
+-	/* Fallback to buffered I/O if we do not support append dio. */
+-	if (iocb->ki_pos + iter->count > i_size_read(inode) &&
+-	    !ocfs2_supports_append_dio(osb))
+-		return 0;
+-
+-	if (iov_iter_rw(iter) == READ)
+-		get_block = ocfs2_lock_get_block;
+-	else
+-		get_block = ocfs2_dio_wr_get_block;
+-
+-	return __blockdev_direct_IO(iocb, inode, inode->i_sb->s_bdev,
+-				    iter, get_block,
+-				    ocfs2_dio_end_io, 0);
+-}
+-
+ static int ocfs2_iomap_alloc(struct inode *inode, struct ocfs2_map_block *map,
+ 			    unsigned int flags)
+ {
+@@ -3045,7 +2635,6 @@ const struct address_space_operations ocfs2_aops = {
+ 	.write_begin		= ocfs2_write_begin,
+ 	.write_end		= ocfs2_write_end,
+ 	.bmap			= ocfs2_bmap,
+-	.direct_IO		= ocfs2_direct_IO,
+ 	.invalidate_folio	= block_invalidate_folio,
+ 	.release_folio		= ocfs2_release_folio,
+ 	.migrate_folio		= buffer_migrate_folio,
+diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
+index 8dd6edd7c1a1..484b25d749d7 100644
+--- a/fs/ocfs2/aops.h
++++ b/fs/ocfs2/aops.h
+@@ -7,6 +7,12 @@
+ #define OCFS2_AOPS_H
  
- extern const struct iomap_ops ocfs2_iomap_ops;
- extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_r_pr;
+ #include <linux/fs.h>
++#include <linux/iomap.h>
++
++extern const struct iomap_ops ocfs2_iomap_ops;
++extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_r_pr;
 +extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_pr;
 +extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_ex;
  
+ int ocfs2_map_folio_blocks(struct folio *folio, u64 *p_blkno,
+ 			  struct inode *inode, unsigned int from,
+@@ -44,34 +50,5 @@ int ocfs2_get_block(struct inode *inode, sector_t iblock,
+ 		    struct buffer_head *bh_result, int create);
+ int ocfs2_map_blocks(struct inode *inode, struct ocfs2_map_block *map,
+ 		    int flags);
+-/* all ocfs2_dio_end_io()'s fault */
+-#define ocfs2_iocb_is_rw_locked(iocb) \
+-	test_bit(0, (unsigned long *)&iocb->private)
+-static inline void ocfs2_iocb_set_rw_locked(struct kiocb *iocb, int level)
+-{
+-	set_bit(0, (unsigned long *)&iocb->private);
+-	if (level)
+-		set_bit(1, (unsigned long *)&iocb->private);
+-	else
+-		clear_bit(1, (unsigned long *)&iocb->private);
+-}
+-
+-/*
+- * Using a named enum representing lock types in terms of #N bit stored in
+- * iocb->private, which is going to be used for communication between
+- * ocfs2_dio_end_io() and ocfs2_file_write/read_iter().
+- */
+-enum ocfs2_iocb_lock_bits {
+-	OCFS2_IOCB_RW_LOCK = 0,
+-	OCFS2_IOCB_RW_LOCK_LEVEL,
+-	OCFS2_IOCB_NUM_LOCKS
+-};
+-
+-#define ocfs2_iocb_init_rw_locked(iocb) \
+-	(iocb->private = NULL)
+-#define ocfs2_iocb_clear_rw_locked(iocb) \
+-	clear_bit(OCFS2_IOCB_RW_LOCK, (unsigned long *)&iocb->private)
+-#define ocfs2_iocb_rw_locked_level(iocb) \
+-	test_bit(OCFS2_IOCB_RW_LOCK_LEVEL, (unsigned long *)&iocb->private)
+ 
+ #endif /* OCFS2_FILE_H */
+diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+index 2d78f2863acf..a54f92633582 100644
+--- a/fs/ocfs2/file.c
++++ b/fs/ocfs2/file.c
+@@ -92,6 +92,13 @@ static int ocfs2_file_open(struct inode *inode, struct file *file)
+ 			      file->f_path.dentry->d_name.len,
+ 			      file->f_path.dentry->d_name.name, mode);
+ 
++	/*
++	 * Direct I/O is served through iomap_dio_rw() from
++	 * ocfs2_file_{read,write}_iter() rather than an a_ops->direct_IO
++	 * method, so advertise O_DIRECT capability explicitly here.
++	 */
++	file->f_mode |= FMODE_CAN_ODIRECT;
++
+ 	if (file->f_mode & FMODE_WRITE) {
+ 		status = dquot_initialize(inode);
+ 		if (status)
+@@ -1171,9 +1178,9 @@ int ocfs2_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
+ 	size_change = S_ISREG(inode->i_mode) && attr->ia_valid & ATTR_SIZE;
+ 	if (size_change) {
+ 		/*
+-		 * Here we should wait dio to finish before inode lock
+-		 * to avoid a deadlock between ocfs2_setattr() and
+-		 * ocfs2_dio_end_io_write()
++		 * Here we should wait for in-flight direct I/O to finish
++		 * before taking the inode lock, to avoid a deadlock between
++		 * ocfs2_setattr() and direct I/O completion.
+ 		 */
+ 		inode_dio_wait(inode);
+ 
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index b228b10b5e71..095f7ae5dded 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -549,11 +549,6 @@ struct ocfs2_map_block {
+ 	unsigned int flags;
+ };
+ 
+-extern const struct iomap_ops ocfs2_iomap_ops;
+-extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_r_pr;
+-extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_pr;
+-extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_ex;
+-
  /* Flags used by ocfs2_map_blocks() */
  #define OCFS2_GET_BLOCKS_CREATE	(0x0001)
+ 
 -- 
 2.54.0
 
