@@ -1,261 +1,518 @@
-Received: from mail-oi1-f207.google.com (mail-oi1-f207.google.com [209.85.167.207])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E221E70830
-	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Jul 2026 00:10:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.207
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 04FA438C438;
+	Thu, 30 Jul 2026 07:42:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785370223; cv=none; b=Ob8pyJSl74+4GbBFRcMqgPy+iHAn0PNuC/9rv+zDuydpesMN7VCFeN+tJgAMSiTWgv8EgwD4WE6q2GAXPe16/gRXwixVrxulLEElkkex2DdxT3jlxvc2wUFnfM36j1z1AwhqT+OV7hCD2YsFSzO9jezFaVE9Lef9aogfCVCmTFo=
+	t=1785397343; cv=none; b=e2yijy6i3YLaOq2P8c33ibY5RCkQ7UENAPAikEM3KGaRDa7gWLsWPCxBfzxsbk25g4vc6+UnE30CGQdH9H/cMS+I34cgcobtFzdA0BPffTDOAFXVAyhXHiZNkcAxYAyLTPXIVQFDHjdxTTlgFHssKFVjehxuc+0AqAdeVrtLC7c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785370223; c=relaxed/simple;
-	bh=n4R98EO+RAyhKblGQKIBYDt/JWQxRkV76xyl3IsiB78=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Pky9Yg4rZnrPN6p5SoYRvAYg7F/QltY9lIwrnt9op1wiJ9xBTBhU9iRefEmUu8Vtoodz+JXaaD5/ImWIVxenJDNvGTXELBVP3fbFLUMKm13rnInzBrVzLPeQEDi6LXnn5FOBDxO+nLJfcByYN49ClUrFOfSP6rqlpus4UHbUSkw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.207
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f207.google.com with SMTP id 5614622812f47-4ad778bacbeso1050066b6e.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 29 Jul 2026 17:10:21 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785370221; x=1785975021;
-        h=content-type:to:from:subject:message-id:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=M5YX5tMX/98Cqn5qzMKnodP/m+Ya5EooLuH+rOcJKvI=;
-        b=SMVsBAveNI89Ejz/eyMNIYrDiwaunwByiJTKfQcX3zqu4PMSl5QKGWjSyDheXGIuhD
-         SuAmuZr2by3LLPdmEBP/xiLxH4sm5iF1hYnHJLZNxzWxj05eQHe6HhLEZ4D0Gl4xuuKU
-         FAjiPaM6HxYPSxW7TKTdHmOof+AT88pl46se09GaiiwX7BomwhHecFeRAv/c2pHRCIeH
-         SbG5p6zth+qx0ws+CmoGQoO3HKGnuJ0eXydj4yODCZ8oOrueyM5yjsotI/RPRHcsDYtg
-         LK7aQqJ54MzNMjfvFqe/qnI96UyAIwIljtGFxmuMkzyHJPiv0D/wPDqsdgbXaJFaLmcY
-         3F7A==
-X-Forwarded-Encrypted: i=1; AHgh+RoE9S10DAKo3IhH9QyBhxPPiiZQf40gpI0YuDgwMCSiMGw5lr6RIiXOKUbiu70oYDjBB3oWGymq8Y3XSA==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzPtsnQjS3IMcLYfu7EUapkTTCzHPC9+A7jEKwPmLF94LTIUF+Z
-	afpgMdBAx+VHV3/qBYro4yWAwgyyMuuEWdcIgMa7SU/wzxKFqxpa6RLCR6JH6o6EjAOIds/IXQe
-	D+kn3cHCLCyFwcPEPcjrRQhngllzRjQkYvG2yC/QPSZ+ueSX5Z1qgA1si0iQ=
+	s=arc-20240116; t=1785397343; c=relaxed/simple;
+	bh=HCECpUIWcqr9dJfpq2Ab8of894A6o7IKDSkgffWfMdo=;
+	h=From:To:Cc:Subject:Message-ID:MIME-Version:Content-Type:Date; b=GKgTVZprOLu/+iBa5+OmAXXYFkPwHDyWJm473MBPZ7t2cmivhRMRjWcGs5cLzeWAaocRfmmDMk5P0RO/gzPjxVZzp2qEABxdoOH8oyj6T0X0sQl1gr3PsVYF5dJSqC5TfG6AruLhqzR39bn5aqwq6RLpARd11Hf3PIKNoxF4gHs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=ZBsHIaTo; arc=none smtp.client-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="ZBsHIaTo"
+Received: by smtp.kernel.org (Postfix) with UTF8SMTPSA id 2532A1F000E9;
+	Thu, 30 Jul 2026 07:42:21 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1785397341;
+	bh=vuDgfyERzul6SxN/KQFxKKPcYWZny8R4SyWvS+01V3c=;
+	h=From:To:Cc:Subject:Date;
+	b=ZBsHIaTo0ZXDSHv+xgxRnrG9+IFImofXfyHKe7ZFbrnQI+RZHzAJ1GVDLje7+isl9
+	 7D8fj5AvykXRJFGdBqx+yOJ6gBJJtNKyb12c/HNOPAamhXZRUp60N2Ox167w/vFj1a
+	 zLdguGzYVLshnCK32Mz9ymPjWk9ZcLGaeagRKa5EdWEGVVO3i+ILFldrev5plIPsxu
+	 37wjB6kQEIMHyZ5/39Ow60qB9x7h1Ud8S/+Y8/ChStBBPcRy08M3QvZ43ODuviKUhY
+	 Eg2lOh9d6/tp9k0Ym3M1xWGvZAVA2I7sBQUVvC/qSmA4CVpv5y27QrQNpOByjo8dY8
+	 YvAH52a+7KxaA==
+From: "syzbot" <syzbot@kernel.org>
+To: syzkaller-bugs@googlegroups.com, Krystian Kaniewski <krystianmkaniewski@gmail.com>, "Joel Becker" <jlbec@evilplan.org>, "Joseph Qi" <joseph.qi@linux.alibaba.com>, "Mark Fasheh" <mark@fasheh.com>, <ocfs2-devel@lists.linux.dev>
+Cc: linux-kernel@vger.kernel.org, syzbot@lists.linux.dev
+Subject: [PATCH] ocfs2: fix circular locking dependency in ocfs2_init_acl()
+Message-ID: <4094de06-9b69-4174-b2ee-08126dffc693@mail.kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6808:168c:b0:4a4:c73:9ed with SMTP id
- 5614622812f47-4ad87777c36mr341438b6e.15.1785370220918; Wed, 29 Jul 2026
- 17:10:20 -0700 (PDT)
-Date: Wed, 29 Jul 2026 17:10:20 -0700
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6a6a966c.86abc875.e5c3d.0055.GAE@google.com>
-Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_reflink
-From: syzbot <syzbot+e42eae29bba35810f43c@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+Date: Thu, 30 Jul 2026 07:42:21 +0000 (UTC)
 
-Hello,
+From: Krystian Kaniewski <krystianmkaniewski@gmail.com>
 
-syzbot found the following issue on:
+A lockdep warning indicates a circular locking dependency between
+`&oi->ip_xattr_sem` and `&journal->j_trans_barrier`:
 
-HEAD commit:    e2a936998ab2 Merge tag 'drm-fixes-2026-07-25' of https://g..
-git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=15e75fde580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=c05be6c9b0d36cb9
-dashboard link: https://syzkaller.appspot.com/bug?extid=e42eae29bba35810f43c
-compiler:       Debian clang version 22.1.8 (++20260613092233+e80beda6e255-1~exp1~20260613092250.77), Debian LLD 22.1.8
-
-Unfortunately, I don't have any reproducer for this issue yet.
-
-Downloadable assets:
-disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-e2a93699.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/b2992c347575/vmlinux-e2a93699.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/622a291c39d7/bzImage-e2a93699.xz
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+e42eae29bba35810f43c@syzkaller.appspotmail.com
-
-loop0: detected capacity change from 0 to 32768
-BTRFS: device fsid c9fe44da-de57-406a-8241-57ec7d4412cf devid 1 transid 8 /dev/loop0 (7:0) scanned by syz.0.0 (5321)
-BTRFS info (device loop0): first mount of filesystem c9fe44da-de57-406a-8241-57ec7d4412cf
-BTRFS info (device loop0): using crc32c checksum algorithm
-BTRFS error (device loop0): failed to load root extent
-BTRFS error (device loop0): open_ctree failed: -5
-loop0: detected capacity change from 0 to 32768
-(syz.0.0,5321,0):ocfs2_block_check_validate:402 ERROR: CRC32 failed: stored: 0xb3775c19, computed 0x2dd1c265. Applying ECC.
-(syz.0.0,5321,0):ocfs2_block_check_validate:402 ERROR: CRC32 failed: stored: 0xb3775c19, computed 0x2dd1c265. Applying ECC.
-JBD2: Ignoring recovery information on journal
-ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
-kvm: kvm [5320]: vcpu0, guest rIP: 0xfff0 Unhandled WRMSR(0xc0010001) = 0x400003
-
-======================================================
 WARNING: possible circular locking dependency detected
-syzkaller #0 Not tainted
-------------------------------------------------------
-syz.0.0/5321 is trying to acquire lock:
-ffff888013228658 (&oi->ip_alloc_sem){++++}-{4:4}, at: ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4272
+is trying to acquire lock:
+ (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_init_acl+0x2fd/0x7e0
+ fs/ocfs2/acl.c:367
 
 but task is already holding lock:
-ffff8880132286e8 (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_reflink+0x4c3/0x920 fs/ocfs2/refcounttree.c:4271
+ (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x3ab/0x700
+ fs/ocfs2/journal.c:369
 
-which lock already depends on the new lock.
+The deadlock involves two code paths: Path 1 (setxattr) where
+`ocfs2_xattr_set()` acquires `ip_xattr_sem` (write) and then starts a
+transaction, which acquires `j_trans_barrier` (read); and Path 2
+(mkdir/mknod) where `ocfs2_mknod()` starts a transaction (`j_trans_barrier`
+read) and then calls `ocfs2_init_acl()`, which attempts to acquire
+`ip_xattr_sem` (read) on the parent directory to retrieve the default ACL.
 
+Because rw_semaphores are subject to writer priority, a pending writer on
+`j_trans_barrier` (e.g., the journal commit thread) can cause Path 1 to
+block, while Path 2 is blocked waiting for Path 1 to release
+`ip_xattr_sem`.
 
-the existing dependency chain (in reverse order) is:
+The patch fixes the lock ordering by precomputing the ACL state before
+starting the OCFS2 transaction, while preserving POSIX ACL storage
+semantics and the existing inode/security initialization order. By reading
+the parent directory's default ACL and preparing the new inode's ACLs
+outside the transaction, `ip_xattr_sem` is always acquired before
+`j_trans_barrier`.
 
--> #3 (&oi->ip_xattr_sem){++++}-{4:4}:
-       down_read+0x4a/0x330 kernel/locking/rwsem.c:1574
-       ocfs2_init_acl+0x2fd/0x7e0 fs/ocfs2/acl.c:367
-       ocfs2_mknod+0x166a/0x2240 fs/ocfs2/namei.c:414
-       ocfs2_create+0x195/0x460 fs/ocfs2/namei.c:677
-       lookup_open fs/namei.c:4508 [inline]
-       open_last_lookups fs/namei.c:4608 [inline]
-       path_openat+0x133a/0x3830 fs/namei.c:4860
-       do_file_open+0x23e/0x4a0 fs/namei.c:4892
-       do_sys_openat2+0x115/0x200 fs/open.c:1368
-       do_sys_open fs/open.c:1374 [inline]
-       __do_sys_open fs/open.c:1382 [inline]
-       __se_sys_open fs/open.c:1378 [inline]
-       __x64_sys_open+0x11e/0x150 fs/open.c:1378
-       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-       do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+`struct ocfs2_acl_state` encapsulates the prepared ACL state, while
+`ocfs2_acl_init_prepare()` and `ocfs2_acl_init_release()` avoid code
+duplication between `ocfs2_mknod()` and `ocfs2_init_security_and_acl()`.
+`ocfs2_calc_xattr_init()` and `ocfs2_init_acl()` use this precomputed
+state, removing internal `ip_xattr_sem` acquisition and redundant disk
+reads.
 
--> #2 (&journal->j_trans_barrier){.+.+}-{4:4}:
-       down_read+0x4a/0x330 kernel/locking/rwsem.c:1574
-       ocfs2_start_trans+0x3ab/0x700 fs/ocfs2/journal.c:369
-       ocfs2_modify_bh+0xe3/0x4d0 fs/ocfs2/quota_local.c:101
-       ocfs2_local_read_info+0x146b/0x1830 fs/ocfs2/quota_local.c:767
-       dquot_load_quota_sb+0x76f/0xb70 fs/quota/dquot.c:2484
-       dquot_load_quota_inode+0x2dc/0x5d0 fs/quota/dquot.c:2521
-       ocfs2_enable_quotas+0x1c3/0x4a0 fs/ocfs2/super.c:930
-       ocfs2_fill_super+0x530c/0x6840 fs/ocfs2/super.c:1140
-       get_tree_bdev_flags+0x430/0x4f0 fs/super.c:1634
-       vfs_get_tree+0x92/0x2a0 fs/super.c:1694
-       fc_mount fs/namespace.c:1198 [inline]
-       do_new_mount_fc fs/namespace.c:3765 [inline]
-       do_new_mount+0x319/0xdc0 fs/namespace.c:3841
-       do_mount fs/namespace.c:4174 [inline]
-       __do_sys_mount fs/namespace.c:4390 [inline]
-       __se_sys_mount+0x31d/0x420 fs/namespace.c:4367
-       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-       do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+Additionally, remove the `ip_xattr_sem` acquisition from
+`ocfs2_xattr_set_handle()`. This function is only used while initializing a
+new inode that has not yet been inserted into the inode hash or attached to
+a dentry, meaning there is no risk of concurrent access and the lock is
+unnecessary.
 
--> #1 (sb_internal#2){.+.+}-{0:0}:
-       __lock_release kernel/locking/lockdep.c:5574 [inline]
-       lock_release+0x199/0x3c0 kernel/locking/lockdep.c:5889
-       up_write+0x2d/0x4a0 kernel/locking/rwsem.c:1687
-       inode_unlock include/linux/fs.h:1034 [inline]
-       ocfs2_free_ac_resource fs/ocfs2/suballoc.c:131 [inline]
-       ocfs2_free_alloc_context+0x97/0x1a0 fs/ocfs2/suballoc.c:145
-       ocfs2_write_begin_nolock+0x4164/0x41f0 fs/ocfs2/aops.c:1805
-       __ocfs2_page_mkwrite fs/ocfs2/mmap.c:92 [inline]
-       ocfs2_page_mkwrite+0x63d/0xb60 fs/ocfs2/mmap.c:143
-       do_page_mkwrite+0x147/0x310 mm/memory.c:3684
-       wp_page_shared mm/memory.c:4085 [inline]
-       do_wp_page+0x1973/0x4c70 mm/memory.c:4304
-       handle_pte_fault mm/memory.c:6395 [inline]
-       __handle_mm_fault mm/memory.c:6517 [inline]
-       handle_mm_fault+0x1490/0x3080 mm/memory.c:6686
-       do_user_addr_fault+0x744/0x1340 arch/x86/mm/fault.c:1394
-       handle_page_fault arch/x86/mm/fault.c:1483 [inline]
-       exc_page_fault+0x6a/0xc0 arch/x86/mm/fault.c:1536
-       asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:595
-
--> #0 (&oi->ip_alloc_sem){++++}-{4:4}:
-       check_prev_add kernel/locking/lockdep.c:3165 [inline]
-       check_prevs_add kernel/locking/lockdep.c:3284 [inline]
-       validate_chain kernel/locking/lockdep.c:3908 [inline]
-       __lock_acquire+0x1520/0x2cf0 kernel/locking/lockdep.c:5237
-       lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
-       down_write+0x96/0x200 kernel/locking/rwsem.c:1631
-       ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4272
-       ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4399
-       ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4439
-       ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
-       vfs_ioctl fs/ioctl.c:51 [inline]
-       __do_sys_ioctl fs/ioctl.c:597 [inline]
-       __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
-       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
-       do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-other info that might help us debug this:
-
-Chain exists of:
-  &oi->ip_alloc_sem --> &journal->j_trans_barrier --> &oi->ip_xattr_sem
-
- Possible unsafe locking scenario:
-
-       CPU0                    CPU1
-       ----                    ----
-  lock(&oi->ip_xattr_sem);
-                               lock(&journal->j_trans_barrier);
-                               lock(&oi->ip_xattr_sem);
-  lock(&oi->ip_alloc_sem);
-
- *** DEADLOCK ***
-
-4 locks held by syz.0.0/5321:
- #0: ffff88801c3bc450 (sb_writers#12){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:494
- #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
- #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2918 [inline]
- #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2942 [inline]
- #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: filename_create+0x200/0x370 fs/namei.c:4955
- #2: ffff8880132289a0 (&sb->s_type->i_mutex_key#24){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1024 [inline]
- #2: ffff8880132289a0 (&sb->s_type->i_mutex_key#24){+.+.}-{4:4}, at: ocfs2_vfs_reflink+0x2f8/0x450 fs/ocfs2/refcounttree.c:4396
- #3: ffff8880132286e8 (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_reflink+0x4c3/0x920 fs/ocfs2/refcounttree.c:4271
-
-stack backtrace:
-CPU: 0 UID: 0 PID: 5321 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-Call Trace:
- <TASK>
- dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
- print_circular_bug+0x2e1/0x300 kernel/locking/lockdep.c:2043
- check_noncircular+0x12e/0x150 kernel/locking/lockdep.c:2175
- check_prev_add kernel/locking/lockdep.c:3165 [inline]
- check_prevs_add kernel/locking/lockdep.c:3284 [inline]
- validate_chain kernel/locking/lockdep.c:3908 [inline]
- __lock_acquire+0x1520/0x2cf0 kernel/locking/lockdep.c:5237
- lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
- down_write+0x96/0x200 kernel/locking/rwsem.c:1631
- ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4272
- ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4399
- ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4439
- ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
- vfs_ioctl fs/ioctl.c:51 [inline]
- __do_sys_ioctl fs/ioctl.c:597 [inline]
- __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
- do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
- do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7fbc3639de99
-Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007fbc371f4fe8 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
-RAX: ffffffffffffffda RBX: 00007fbc36625fa0 RCX: 00007fbc3639de99
-RDX: 00002000000001c0 RSI: 0000000040186f04 RDI: 000000000000008c
-RBP: 00007fbc36433eaf R08: 0000000000000000 R09: 0000000000000000
-R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
-R13: 00007fbc36626038 R14: 00007fbc36625fa0 R15: 00007ffff2ca6ac8
- </TASK>
-
+Fixes: 16c8d569f570 ("ocfs2/acl: use 'ip_xattr_sem' to protect getting extended attribute")
+Assisted-by: Gemini:gemini-3.5-flash Gemini:gemini-3.1-pro-preview syzbot
+Reported-by: syzbot+4007ab5229e732466d9f@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
+Link: https://syzkaller.appspot.com/ai_job?id=cc75363d-c672-499e-8fc5-44bcdc1cee39
+Signed-off-by: Krystian Kaniewski <krystianmkaniewski@gmail.com>
 
 ---
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
+diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
+index af1e2cedb..090ec60fb 100644
+--- a/fs/ocfs2/acl.c
++++ b/fs/ocfs2/acl.c
+@@ -110,8 +110,7 @@ static void *ocfs2_acl_to_xattr(const struct posix_acl *acl, size_t *size)
+ 	return ocfs2_acl;
+ }
+ 
+-static struct posix_acl *ocfs2_get_acl_nolock(struct inode *inode,
+-					      int type,
++static struct posix_acl *ocfs2_get_acl_nolock(struct inode *inode, int type,
+ 					      struct buffer_head *di_bh)
+ {
+ 	int name_index;
+@@ -349,63 +348,105 @@ int ocfs2_acl_chmod(struct inode *inode, struct buffer_head *bh)
+  * Initialize the ACLs of a new inode. If parent directory has default ACL,
+  * then clone to new inode. Called from ocfs2_mknod.
+  */
+-int ocfs2_init_acl(handle_t *handle,
+-		   struct inode *inode,
+-		   struct inode *dir,
+-		   struct buffer_head *di_bh,
+-		   struct buffer_head *dir_bh,
+-		   struct ocfs2_alloc_context *meta_ac,
+-		   struct ocfs2_alloc_context *data_ac)
++void ocfs2_acl_init_release(struct ocfs2_acl_state *state)
++{
++	posix_acl_release(state->default_acl);
++	posix_acl_release(state->acl);
++	state->default_acl = NULL;
++	state->acl = NULL;
++}
++
++int ocfs2_acl_init_prepare(struct inode *inode, struct inode *dir,
++			   struct buffer_head *dir_bh,
++			   struct ocfs2_acl_state *state)
+ {
+ 	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+-	struct posix_acl *acl = NULL;
+-	int ret = 0, ret2;
+-	umode_t mode;
+-
+-	if (!S_ISLNK(inode->i_mode)) {
+-		if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
+-			down_read(&OCFS2_I(dir)->ip_xattr_sem);
+-			acl = ocfs2_get_acl_nolock(dir, ACL_TYPE_DEFAULT,
+-						   dir_bh);
+-			up_read(&OCFS2_I(dir)->ip_xattr_sem);
+-			if (IS_ERR(acl))
+-				return PTR_ERR(acl);
++	int ret = 0;
++
++	state->default_acl = NULL;
++	state->acl = NULL;
++	state->mode = inode->i_mode;
++
++	if (S_ISLNK(inode->i_mode))
++		return 0;
++
++	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
++		down_read(&OCFS2_I(dir)->ip_xattr_sem);
++		state->default_acl =
++			ocfs2_get_acl_nolock(dir, ACL_TYPE_DEFAULT, dir_bh);
++		up_read(&OCFS2_I(dir)->ip_xattr_sem);
++		if (IS_ERR(state->default_acl)) {
++			ret = PTR_ERR(state->default_acl);
++			state->default_acl = NULL;
++			return ret;
+ 		}
+-		if (!acl) {
+-			mode = inode->i_mode & ~current_umask();
+-			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
+-			if (ret) {
+-				mlog_errno(ret);
++		if (state->default_acl) {
++			state->acl = posix_acl_dup(state->default_acl);
++			if (!state->acl) {
++				ret = -ENOMEM;
+ 				goto cleanup;
+ 			}
++			ret = __posix_acl_create(&state->acl, GFP_NOFS,
++						 &state->mode);
++			if (ret < 0)
++				goto cleanup;
++			if (ret == 0) {
++				posix_acl_release(state->acl);
++				state->acl = NULL;
++			}
++			if (!S_ISDIR(inode->i_mode)) {
++				posix_acl_release(state->default_acl);
++				state->default_acl = NULL;
++			}
++		} else {
++			state->mode &= ~current_umask();
+ 		}
++	} else {
++		state->mode &= ~current_umask();
+ 	}
+-	if ((osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) && acl) {
+-		if (S_ISDIR(inode->i_mode)) {
++
++	return 0;
++cleanup:
++	ocfs2_acl_init_release(state);
++	return ret;
++}
++
++int ocfs2_init_acl(handle_t *handle, struct inode *inode,
++		   struct buffer_head *di_bh,
++		   struct ocfs2_alloc_context *meta_ac,
++		   struct ocfs2_alloc_context *data_ac,
++		   struct ocfs2_acl_state *state)
++{
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	int ret = 0;
++
++	if (S_ISLNK(inode->i_mode))
++		return 0;
++
++	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
++		if (S_ISDIR(inode->i_mode) && state->default_acl) {
+ 			ret = ocfs2_set_acl(handle, inode, di_bh,
+-					    ACL_TYPE_DEFAULT, acl,
+-					    meta_ac, data_ac);
++					    ACL_TYPE_DEFAULT,
++					    state->default_acl, meta_ac,
++					    data_ac);
+ 			if (ret)
+-				goto cleanup;
++				return ret;
+ 		}
+-		mode = inode->i_mode;
+-		ret = __posix_acl_create(&acl, GFP_NOFS, &mode);
+-		if (ret < 0)
+-			return ret;
++	}
+ 
+-		ret2 = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
+-		if (ret2) {
+-			mlog_errno(ret2);
+-			ret = ret2;
+-			goto cleanup;
+-		}
+-		if (ret > 0) {
+-			ret = ocfs2_set_acl(handle, inode,
+-					    di_bh, ACL_TYPE_ACCESS,
+-					    acl, meta_ac, data_ac);
++	ret = ocfs2_acl_set_mode(inode, di_bh, handle, state->mode);
++	if (ret) {
++		mlog_errno(ret);
++		return ret;
++	}
++
++	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
++		if (state->acl) {
++			ret = ocfs2_set_acl(handle, inode, di_bh,
++					    ACL_TYPE_ACCESS, state->acl,
++					    meta_ac, data_ac);
+ 		}
+ 	}
+-cleanup:
+-	posix_acl_release(acl);
++
+ 	return ret;
+ }
+diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
+index 667c6f03f..a91f9ce27 100644
+--- a/fs/ocfs2/acl.h
++++ b/fs/ocfs2/acl.h
+@@ -20,9 +20,20 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type, bool rcu);
+ int ocfs2_iop_set_acl(struct mnt_idmap *idmap, struct dentry *dentry,
+ 		      struct posix_acl *acl, int type);
+ extern int ocfs2_acl_chmod(struct inode *, struct buffer_head *);
+-extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
+-			  struct buffer_head *, struct buffer_head *,
+-			  struct ocfs2_alloc_context *,
+-			  struct ocfs2_alloc_context *);
++struct ocfs2_acl_state {
++	struct posix_acl *default_acl;
++	struct posix_acl *acl;
++	umode_t mode;
++};
++
++int ocfs2_acl_init_prepare(struct inode *inode, struct inode *dir,
++			   struct buffer_head *dir_bh,
++			   struct ocfs2_acl_state *state);
++void ocfs2_acl_init_release(struct ocfs2_acl_state *state);
++int ocfs2_init_acl(handle_t *handle, struct inode *inode,
++		   struct buffer_head *di_bh,
++		   struct ocfs2_alloc_context *meta_ac,
++		   struct ocfs2_alloc_context *data_ac,
++		   struct ocfs2_acl_state *state);
+ 
+ #endif /* OCFS2_ACL_H */
+diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+index 1277666c7..ea37a5058 100644
+--- a/fs/ocfs2/namei.c
++++ b/fs/ocfs2/namei.c
+@@ -256,6 +256,7 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
+ 	sigset_t oldset;
+ 	int did_block_signals = 0;
+ 	struct ocfs2_dentry_lock *dl = NULL;
++	struct ocfs2_acl_state acl_state = { 0 };
+ 
+ 	trace_ocfs2_mknod(dir, dentry, dentry->d_name.len, dentry->d_name.name,
+ 			  (unsigned long long)OCFS2_I(dir)->ip_blkno,
+@@ -330,10 +331,14 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
+ 		}
+ 	}
+ 
++	status = ocfs2_acl_init_prepare(inode, dir, parent_fe_bh, &acl_state);
++	if (status < 0)
++		goto leave;
++
+ 	/* calculate meta data/clusters for setting security and acl xattr */
+-	status = ocfs2_calc_xattr_init(dir, parent_fe_bh, mode,
+-				       &si, &want_clusters,
+-				       &xattr_credits, &want_meta);
++	status = ocfs2_calc_xattr_init(dir, mode, &si, &want_clusters,
++				       &xattr_credits, &want_meta,
++				       &acl_state);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+ 		goto leave;
+@@ -411,8 +416,8 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
+ 		inc_nlink(dir);
+ 	}
+ 
+-	status = ocfs2_init_acl(handle, inode, dir, new_fe_bh, parent_fe_bh,
+-			 meta_ac, data_ac);
++	status = ocfs2_init_acl(handle, inode, new_fe_bh, meta_ac, data_ac,
++				&acl_state);
+ 
+ 	if (status < 0) {
+ 		mlog_errno(status);
+@@ -477,6 +482,8 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
+ 	brelse(parent_fe_bh);
+ 	kfree(si.value);
+ 
++	ocfs2_acl_init_release(&acl_state);
++
+ 	ocfs2_free_dir_lookup_result(&lookup);
+ 
+ 	if (inode_ac)
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index fcddd3c13..86f029368 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -611,13 +611,10 @@ int ocfs2_calc_security_init(struct inode *dir,
+ 	return ret;
+ }
+ 
+-int ocfs2_calc_xattr_init(struct inode *dir,
+-			  struct buffer_head *dir_bh,
+-			  umode_t mode,
++int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
+ 			  struct ocfs2_security_xattr_info *si,
+-			  int *want_clusters,
+-			  int *xattr_credits,
+-			  int *want_meta)
++			  int *want_clusters, int *xattr_credits,
++			  int *want_meta, struct ocfs2_acl_state *acl_state)
+ {
+ 	int ret = 0;
+ 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+@@ -628,19 +625,15 @@ int ocfs2_calc_xattr_init(struct inode *dir,
+ 						     si->value_len);
+ 
+ 	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
+-		down_read(&OCFS2_I(dir)->ip_xattr_sem);
+-		acl_len = ocfs2_xattr_get_nolock(dir, dir_bh,
+-					OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT,
+-					"", NULL, 0);
+-		up_read(&OCFS2_I(dir)->ip_xattr_sem);
+-		if (acl_len > 0) {
+-			a_size = ocfs2_xattr_entry_real_size(0, acl_len);
+-			if (S_ISDIR(mode))
+-				a_size <<= 1;
+-		} else if (acl_len != 0 && acl_len != -ENODATA) {
+-			ret = acl_len;
+-			mlog_errno(ret);
+-			return ret;
++		if (acl_state->default_acl && S_ISDIR(mode)) {
++			acl_len = acl_state->default_acl->a_count *
++				  sizeof(struct ocfs2_acl_entry);
++			a_size += ocfs2_xattr_entry_real_size(0, acl_len);
++		}
++		if (acl_state->acl) {
++			acl_len = acl_state->acl->a_count *
++				  sizeof(struct ocfs2_acl_entry);
++			a_size += ocfs2_xattr_entry_real_size(0, acl_len);
+ 		}
+ 	}
+ 
+@@ -683,14 +676,33 @@ int ocfs2_calc_xattr_init(struct inode *dir,
+ 							   new_clusters);
+ 		*want_clusters += new_clusters;
+ 	}
+-	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL &&
+-	    acl_len > OCFS2_XATTR_INLINE_SIZE) {
+-		/* for directory, it has DEFAULT and ACCESS two types of acls */
+-		new_clusters = (S_ISDIR(mode) ? 2 : 1) *
+-				ocfs2_clusters_for_bytes(dir->i_sb, acl_len);
+-		*xattr_credits += ocfs2_clusters_to_blocks(dir->i_sb,
+-							   new_clusters);
+-		*want_clusters += new_clusters;
++	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
++		if (acl_state->default_acl && S_ISDIR(mode)) {
++			acl_len = acl_state->default_acl->a_count *
++				  sizeof(struct ocfs2_acl_entry);
++			if (acl_len > OCFS2_XATTR_INLINE_SIZE) {
++				new_clusters =
++					ocfs2_clusters_for_bytes(dir->i_sb,
++								 acl_len);
++				*xattr_credits +=
++					ocfs2_clusters_to_blocks(dir->i_sb,
++								 new_clusters);
++				*want_clusters += new_clusters;
++			}
++		}
++		if (acl_state->acl) {
++			acl_len = acl_state->acl->a_count *
++				  sizeof(struct ocfs2_acl_entry);
++			if (acl_len > OCFS2_XATTR_INLINE_SIZE) {
++				new_clusters =
++					ocfs2_clusters_for_bytes(dir->i_sb,
++								 acl_len);
++				*xattr_credits +=
++					ocfs2_clusters_to_blocks(dir->i_sb,
++								 new_clusters);
++				*want_clusters += new_clusters;
++			}
++		}
+ 	}
+ 
+ 	return ret;
+@@ -3483,9 +3495,10 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ }
+ 
+ /*
+- * This function only called duing creating inode
+- * for init security/acl xattrs of the new inode.
+- * All transanction credits have been reserved in mknod.
++ * This helper is only for setting initial ACL or security xattrs on an inode
++ * that is still unpublished, unhashed, and unattached to a dentry.
++ * Ordinary xattr updates must use ocfs2_xattr_set().
++ * All transaction credits have been reserved in mknod or symlink callers.
+  */
+ int ocfs2_xattr_set_handle(handle_t *handle,
+ 			   struct inode *inode,
+@@ -3542,8 +3555,6 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+ 	xis.inode_bh = xbs.inode_bh = di_bh;
+ 	di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
+-	down_write(&OCFS2_I(inode)->ip_xattr_sem);
+-
+ 	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
+ 	if (ret)
+ 		goto cleanup;
+@@ -3556,7 +3567,6 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+ 	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
+ 
+ cleanup:
+-	up_write(&OCFS2_I(inode)->ip_xattr_sem);
+ 	brelse(xbs.xattr_bh);
+ 	ocfs2_xattr_bucket_free(xbs.bucket);
+ 
+@@ -7257,6 +7267,7 @@ int ocfs2_init_security_and_acl(struct inode *dir,
+ {
+ 	int ret = 0;
+ 	struct buffer_head *dir_bh = NULL;
++	struct ocfs2_acl_state acl_state = { 0 };
+ 
+ 	ret = ocfs2_init_security_get(inode, dir, qstr, NULL);
+ 	if (ret) {
+@@ -7269,10 +7280,17 @@ int ocfs2_init_security_and_acl(struct inode *dir,
+ 		mlog_errno(ret);
+ 		goto leave;
+ 	}
+-	ret = ocfs2_init_acl(NULL, inode, dir, NULL, dir_bh, NULL, NULL);
++
++	ret = ocfs2_acl_init_prepare(inode, dir, dir_bh, &acl_state);
++	if (ret)
++		goto unlock;
++
++	ret = ocfs2_init_acl(NULL, inode, NULL, NULL, NULL, &acl_state);
+ 	if (ret)
+ 		mlog_errno(ret);
+ 
++unlock:
++	ocfs2_acl_init_release(&acl_state);
+ 	ocfs2_inode_unlock(dir, 0);
+ 	brelse(dir_bh);
+ leave:
+diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
+index 65e9aa743..5cdd6c6b4 100644
+--- a/fs/ocfs2/xattr.h
++++ b/fs/ocfs2/xattr.h
+@@ -55,9 +55,12 @@ int ocfs2_init_security_set(handle_t *, struct inode *,
+ int ocfs2_calc_security_init(struct inode *,
+ 			     struct ocfs2_security_xattr_info *,
+ 			     int *, int *, struct ocfs2_alloc_context **);
+-int ocfs2_calc_xattr_init(struct inode *, struct buffer_head *,
+-			  umode_t, struct ocfs2_security_xattr_info *,
+-			  int *, int *, int *);
++
++struct ocfs2_acl_state;
++int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
++			  struct ocfs2_security_xattr_info *si,
++			  int *want_clusters, int *xattr_credits,
++			  int *want_meta, struct ocfs2_acl_state *acl_state);
+ 
+ /*
+  * xattrs can live inside an inode, as part of an external xattr block,
+
+
+base-commit: dc59e4fea9d83f03bad6bddf3fa2e52491777482
+-- 
+See https://goo.gle/syzbot-ai-patches for information about AI-generated patches.
+You can comment on the patch as usual, syzbot will try to address
+the comments and send a new version of the patch if necessary.
 syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-syzbot will keep track of this issue. See:
-https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
-
-If the report is already addressed, let syzbot know by replying with:
-#syz fix: exact-commit-title
-
-If you want to overwrite report's subsystems, reply with:
-#syz set subsystems: new-subsystem
-(See the list of subsystem names on the web dashboard)
-
-If the report is a duplicate of another one, reply with:
-#syz dup: exact-subject-of-another-report
-
-If you want to undo deduplication, reply with:
-#syz undup
