@@ -1,632 +1,261 @@
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f207.google.com (mail-oi1-f207.google.com [209.85.167.207])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E6CFF3195EF
-	for <ocfs2-devel@lists.linux.dev>; Tue, 28 Jul 2026 06:11:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E221E70830
+	for <ocfs2-devel@lists.linux.dev>; Thu, 30 Jul 2026 00:10:21 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.207
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785219085; cv=none; b=HSZ6pmtbOBn7vXSEz0i1sFoPAcPaz4n7fiqE/aAr5ihYpyxClwpKHmxqbE0Wmd3NeZ+20zaJw+JDV8fCs+4O45wFjZ+osBEWrUaxlpDqtzWpQy9QvzirLLNe0mNPoXnDJEEIYijMqo9btcuJPbPgTSY+enocbBbQf391uFieWA4=
+	t=1785370223; cv=none; b=Ob8pyJSl74+4GbBFRcMqgPy+iHAn0PNuC/9rv+zDuydpesMN7VCFeN+tJgAMSiTWgv8EgwD4WE6q2GAXPe16/gRXwixVrxulLEElkkex2DdxT3jlxvc2wUFnfM36j1z1AwhqT+OV7hCD2YsFSzO9jezFaVE9Lef9aogfCVCmTFo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785219085; c=relaxed/simple;
-	bh=tIHIZjIqa+BYVna3/B9JDVoJNDqXDYnnkJLb9JmVDYk=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=HSTnH2/qQhqc4Y6uV+akQ5FznJlYiBEvXs9Beov1X2wetxj5yfIP+k7WAK2hFPgaXSBYpEwPnaynaAzhLIa0ax58NdVXp437FsDuM0nbWHKmV75gd9mJK5RArXDnIJV6hkcm7Jftb1uMyc7ZxLu6psQ6IUSfuRrgCTEodnw15Is=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=uB6xt381; arc=none smtp.client-ip=115.124.30.98
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="uB6xt381"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1785219077; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=DCLcl9m9pmNT5Oj2pIO6KGHPsQjim3LGfmwcjjA+QPo=;
-	b=uB6xt381l1A7xokMgtJo2Ca8KZ+caprw1W+BhnTVAtXUz+jbjWA1ndQA1eLy+F32VulvwwInKmne4rcx+4n1DRTp0UIiuQLr1fKtndJQQ1unFXpCof3eu5OwuY/oVFgHKeU80dRH+ys2e/IwFVjjaJxEMo+Iako5xeSBVy/QLog=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R261e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X7zlFZ5_1785219075;
-Received: from 30.221.129.76(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X7zlFZ5_1785219075 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 28 Jul 2026 14:11:15 +0800
-Message-ID: <22d4f8e8-e179-45a9-99ae-f858960087c9@linux.alibaba.com>
-Date: Tue, 28 Jul 2026 14:11:14 +0800
+	s=arc-20240116; t=1785370223; c=relaxed/simple;
+	bh=n4R98EO+RAyhKblGQKIBYDt/JWQxRkV76xyl3IsiB78=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=Pky9Yg4rZnrPN6p5SoYRvAYg7F/QltY9lIwrnt9op1wiJ9xBTBhU9iRefEmUu8Vtoodz+JXaaD5/ImWIVxenJDNvGTXELBVP3fbFLUMKm13rnInzBrVzLPeQEDi6LXnn5FOBDxO+nLJfcByYN49ClUrFOfSP6rqlpus4UHbUSkw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.207
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f207.google.com with SMTP id 5614622812f47-4ad778bacbeso1050066b6e.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 29 Jul 2026 17:10:21 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1785370221; x=1785975021;
+        h=content-type:to:from:subject:message-id:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=M5YX5tMX/98Cqn5qzMKnodP/m+Ya5EooLuH+rOcJKvI=;
+        b=SMVsBAveNI89Ejz/eyMNIYrDiwaunwByiJTKfQcX3zqu4PMSl5QKGWjSyDheXGIuhD
+         SuAmuZr2by3LLPdmEBP/xiLxH4sm5iF1hYnHJLZNxzWxj05eQHe6HhLEZ4D0Gl4xuuKU
+         FAjiPaM6HxYPSxW7TKTdHmOof+AT88pl46se09GaiiwX7BomwhHecFeRAv/c2pHRCIeH
+         SbG5p6zth+qx0ws+CmoGQoO3HKGnuJ0eXydj4yODCZ8oOrueyM5yjsotI/RPRHcsDYtg
+         LK7aQqJ54MzNMjfvFqe/qnI96UyAIwIljtGFxmuMkzyHJPiv0D/wPDqsdgbXaJFaLmcY
+         3F7A==
+X-Forwarded-Encrypted: i=1; AHgh+RoE9S10DAKo3IhH9QyBhxPPiiZQf40gpI0YuDgwMCSiMGw5lr6RIiXOKUbiu70oYDjBB3oWGymq8Y3XSA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzPtsnQjS3IMcLYfu7EUapkTTCzHPC9+A7jEKwPmLF94LTIUF+Z
+	afpgMdBAx+VHV3/qBYro4yWAwgyyMuuEWdcIgMa7SU/wzxKFqxpa6RLCR6JH6o6EjAOIds/IXQe
+	D+kn3cHCLCyFwcPEPcjrRQhngllzRjQkYvG2yC/QPSZ+ueSX5Z1qgA1si0iQ=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v2 4/4] ocfs2: remove legacy blockdev direct-IO path
- APIs
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, hch@lst.de,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <20260727061802.18485-1-heming.zhao@suse.com>
- <20260727061802.18485-5-heming.zhao@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260727061802.18485-5-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6808:168c:b0:4a4:c73:9ed with SMTP id
+ 5614622812f47-4ad87777c36mr341438b6e.15.1785370220918; Wed, 29 Jul 2026
+ 17:10:20 -0700 (PDT)
+Date: Wed, 29 Jul 2026 17:10:20 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6a6a966c.86abc875.e5c3d.0055.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_reflink
+From: syzbot <syzbot+e42eae29bba35810f43c@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
+
+Hello,
+
+syzbot found the following issue on:
+
+HEAD commit:    e2a936998ab2 Merge tag 'drm-fixes-2026-07-25' of https://g..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=15e75fde580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=c05be6c9b0d36cb9
+dashboard link: https://syzkaller.appspot.com/bug?extid=e42eae29bba35810f43c
+compiler:       Debian clang version 22.1.8 (++20260613092233+e80beda6e255-1~exp1~20260613092250.77), Debian LLD 22.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-e2a93699.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/b2992c347575/vmlinux-e2a93699.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/622a291c39d7/bzImage-e2a93699.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+e42eae29bba35810f43c@syzkaller.appspotmail.com
+
+loop0: detected capacity change from 0 to 32768
+BTRFS: device fsid c9fe44da-de57-406a-8241-57ec7d4412cf devid 1 transid 8 /dev/loop0 (7:0) scanned by syz.0.0 (5321)
+BTRFS info (device loop0): first mount of filesystem c9fe44da-de57-406a-8241-57ec7d4412cf
+BTRFS info (device loop0): using crc32c checksum algorithm
+BTRFS error (device loop0): failed to load root extent
+BTRFS error (device loop0): open_ctree failed: -5
+loop0: detected capacity change from 0 to 32768
+(syz.0.0,5321,0):ocfs2_block_check_validate:402 ERROR: CRC32 failed: stored: 0xb3775c19, computed 0x2dd1c265. Applying ECC.
+(syz.0.0,5321,0):ocfs2_block_check_validate:402 ERROR: CRC32 failed: stored: 0xb3775c19, computed 0x2dd1c265. Applying ECC.
+JBD2: Ignoring recovery information on journal
+ocfs2: Mounting device (7,0) on (node local, slot 0) with ordered data mode.
+kvm: kvm [5320]: vcpu0, guest rIP: 0xfff0 Unhandled WRMSR(0xc0010001) = 0x400003
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Not tainted
+------------------------------------------------------
+syz.0.0/5321 is trying to acquire lock:
+ffff888013228658 (&oi->ip_alloc_sem){++++}-{4:4}, at: ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4272
+
+but task is already holding lock:
+ffff8880132286e8 (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_reflink+0x4c3/0x920 fs/ocfs2/refcounttree.c:4271
+
+which lock already depends on the new lock.
 
 
+the existing dependency chain (in reverse order) is:
 
-On 7/27/26 2:18 PM, Heming Zhao wrote:
-> Since the DIO path already migrated from buffer_head mode (by using
-> a_ops->direct_IO method) to iomap mode, the VFS no longer sets
-> FMODE_CAN_ODIRECT automatically, so ocfs2_file_open() sets it
-> explicitly.
-> 
-> The now-unused blockdev get_block/end_io machinery
-> (ocfs2_lock_get_block(), ocfs2_dio_wr_get_block(), ocfs2_dio_end_io(),
-> ocfs2_dio_end_io_write(), and the ocfs2_dio_write_ctxt helpers) is removed,
-> and OCFS2_FS Kconfig removes LEGACY_DIRECT_IO.
-> 
-> Co-developed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->  fs/ocfs2/Kconfig |   1 -
->  fs/ocfs2/aops.c  | 411 -----------------------------------------------
->  fs/ocfs2/aops.h  |  35 +---
->  fs/ocfs2/file.c  |  13 +-
->  fs/ocfs2/ocfs2.h |   5 -
->  5 files changed, 16 insertions(+), 449 deletions(-)
-> 
-> diff --git a/fs/ocfs2/Kconfig b/fs/ocfs2/Kconfig
-> index bf1678a5eb01..74bc2008ef0b 100644
-> --- a/fs/ocfs2/Kconfig
-> +++ b/fs/ocfs2/Kconfig
-> @@ -9,7 +9,6 @@ config OCFS2_FS
->  	select QUOTA_TREE
->  	select FS_IOMAP
->  	select FS_POSIX_ACL
-> -	select LEGACY_DIRECT_IO
->  	help
->  	  OCFS2 is a general purpose extent based shared disk cluster file
->  	  system with many similarities to ext3. It supports 64 bit inode
-> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
-> index 9a079436c9c0..3e4a7043074a 100644
-> --- a/fs/ocfs2/aops.c
-> +++ b/fs/ocfs2/aops.c
-> @@ -114,19 +114,6 @@ static int ocfs2_symlink_get_block(struct inode *inode, sector_t iblock,
->  	return err;
->  }
->  
-> -static int ocfs2_lock_get_block(struct inode *inode, sector_t iblock,
-> -		    struct buffer_head *bh_result, int create)
-> -{
-> -	int ret = 0;
-> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> -
-> -	down_read(&oi->ip_alloc_sem);
-> -	ret = ocfs2_get_block(inode, iblock, bh_result, create);
-> -	up_read(&oi->ip_alloc_sem);
-> -
-> -	return ret;
-> -}
-> -
->  int ocfs2_map_blocks(struct inode *inode, struct ocfs2_map_block *map,
->  		    int flags)
->  {
-> @@ -2170,204 +2157,6 @@ static int ocfs2_write_end(const struct kiocb *iocb,
->  	return ret;
->  }
->  
-> -struct ocfs2_dio_write_ctxt {
-> -	struct list_head	dw_zero_list;
-> -	unsigned		dw_zero_count;
-> -	int			dw_orphaned;
-> -	pid_t			dw_writer_pid;
-> -};
-> -
-> -static struct ocfs2_dio_write_ctxt *
-> -ocfs2_dio_alloc_write_ctx(struct buffer_head *bh, int *alloc)
-> -{
-> -	struct ocfs2_dio_write_ctxt *dwc = NULL;
-> -
-> -	if (bh->b_private)
-> -		return bh->b_private;
-> -
-> -	dwc = kmalloc_obj(struct ocfs2_dio_write_ctxt, GFP_NOFS);
-> -	if (dwc == NULL)
-> -		return NULL;
-> -	INIT_LIST_HEAD(&dwc->dw_zero_list);
-> -	dwc->dw_zero_count = 0;
-> -	dwc->dw_orphaned = 0;
-> -	dwc->dw_writer_pid = task_pid_nr(current);
-> -	bh->b_private = dwc;
-> -	*alloc = 1;
-> -
-> -	return dwc;
-> -}
-> -
-> -static void ocfs2_dio_free_write_ctx(struct inode *inode,
-> -				     struct ocfs2_dio_write_ctxt *dwc)
-> -{
-> -	ocfs2_free_unwritten_list(inode, &dwc->dw_zero_list);
-> -	kfree(dwc);
-> -}
-> -
-> -/*
-> - * TODO: Make this into a generic get_blocks function.
-> - *
-> - * From do_direct_io in direct-io.c:
-> - *  "So what we do is to permit the ->get_blocks function to populate
-> - *   bh.b_size with the size of IO which is permitted at this offset and
-> - *   this i_blkbits."
-> - *
-> - * This function is called directly from get_more_blocks in direct-io.c.
-> - *
-> - * called like this: dio->get_blocks(dio->inode, fs_startblk,
-> - * 					fs_count, map_bh, dio->rw == WRITE);
-> - */
-> -static int ocfs2_dio_wr_get_block(struct inode *inode, sector_t iblock,
-> -			       struct buffer_head *bh_result, int create)
-> -{
-> -	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> -	struct ocfs2_write_ctxt *wc;
-> -	struct ocfs2_write_cluster_desc *desc = NULL;
-> -	struct ocfs2_dio_write_ctxt *dwc = NULL;
-> -	struct buffer_head *di_bh = NULL;
-> -	u64 p_blkno = 0;
-> -	unsigned int i_blkbits = inode->i_sb->s_blocksize_bits;
-> -	loff_t pos = iblock << i_blkbits;
-> -	sector_t endblk = (i_size_read(inode) - 1) >> i_blkbits;
-> -	unsigned len, total_len = bh_result->b_size;
-> -	int ret = 0, first_get_block = 0;
-> -
-> -	len = osb->s_clustersize - (pos & (osb->s_clustersize - 1));
-> -	len = min(total_len, len);
-> -
-> -	/*
-> -	 * bh_result->b_size is count in get_more_blocks according to write
-> -	 * "pos" and "end", we need map twice to return different buffer state:
-> -	 * 1. area in file size, not set NEW;
-> -	 * 2. area out file size, set  NEW.
-> -	 *
-> -	 *		   iblock    endblk
-> -	 * |--------|---------|---------|---------
-> -	 * |<-------area in file------->|
-> -	 */
-> -
-> -	if ((iblock <= endblk) &&
-> -	    ((iblock + ((len - 1) >> i_blkbits)) > endblk))
-> -		len = (endblk - iblock + 1) << i_blkbits;
-> -
-> -	mlog(0, "get block of %llu at %llu:%u req %u\n",
-> -			inode->i_ino, pos, len, total_len);
-> -
-> -	/*
-> -	 * Because we need to change file size in ocfs2_dio_end_io_write(), or
-> -	 * we may need to add it to orphan dir. So can not fall to fast path
-> -	 * while file size will be changed.
-> -	 */
-> -	if (pos + total_len <= i_size_read(inode)) {
-> -
-> -		/* This is the fast path for re-write. */
-> -		ret = ocfs2_lock_get_block(inode, iblock, bh_result, create);
-> -		if (buffer_mapped(bh_result) &&
-> -		    !buffer_new(bh_result) &&
-> -		    ret == 0)
-> -			goto out;
-> -
-> -		/* Clear state set by ocfs2_get_block. */
-> -		bh_result->b_state = 0;
-> -	}
-> -
-> -	dwc = ocfs2_dio_alloc_write_ctx(bh_result, &first_get_block);
-> -	if (unlikely(dwc == NULL)) {
-> -		ret = -ENOMEM;
-> -		mlog_errno(ret);
-> -		goto out;
-> -	}
-> -
-> -	if (ocfs2_clusters_for_bytes(inode->i_sb, pos + total_len) >
-> -	    ocfs2_clusters_for_bytes(inode->i_sb, i_size_read(inode)) &&
-> -	    !dwc->dw_orphaned) {
-> -		/*
-> -		 * when we are going to alloc extents beyond file size, add the
-> -		 * inode to orphan dir, so we can recall those spaces when
-> -		 * system crashed during write.
-> -		 */
-> -		ret = ocfs2_add_inode_to_orphan(osb, inode);
-> -		if (ret < 0) {
-> -			mlog_errno(ret);
-> -			goto out;
-> -		}
-> -		dwc->dw_orphaned = 1;
-> -	}
-> -
-> -	ret = ocfs2_inode_lock(inode, &di_bh, 1);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto out;
-> -	}
-> -
-> -	down_write(&oi->ip_alloc_sem);
-> -
-> -	if (first_get_block) {
-> -		if (ocfs2_sparse_alloc(osb))
-> -			ret = ocfs2_zero_tail(inode, di_bh, pos);
-> -		else
-> -			ret = ocfs2_expand_nonsparse_inode(inode, di_bh, pos,
-> -							   total_len, NULL);
-> -		if (ret < 0) {
-> -			mlog_errno(ret);
-> -			goto unlock;
-> -		}
-> -	}
-> -
-> -	ret = ocfs2_write_begin_nolock(inode->i_mapping, pos, len,
-> -				       OCFS2_WRITE_DIRECT, NULL,
-> -				       (void **)&wc, di_bh, NULL);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto unlock;
-> -	}
-> -
-> -	desc = &wc->w_desc[0];
-> -
-> -	p_blkno = ocfs2_clusters_to_blocks(inode->i_sb, desc->c_phys);
-> -	BUG_ON(p_blkno == 0);
-> -	p_blkno += iblock & (u64)(ocfs2_clusters_to_blocks(inode->i_sb, 1) - 1);
-> -
-> -	map_bh(bh_result, inode->i_sb, p_blkno);
-> -	bh_result->b_size = len;
-> -	if (desc->c_needs_zero)
-> -		set_buffer_new(bh_result);
-> -
-> -	if (iblock > endblk)
-> -		set_buffer_new(bh_result);
-> -
-> -	/* May sleep in end_io. It should not happen in a irq context. So defer
-> -	 * it to dio work queue. */
-> -	set_buffer_defer_completion(bh_result);
-> -
-> -	if (!list_empty(&wc->w_unwritten_list)) {
-> -		struct ocfs2_unwritten_extent *ue = NULL;
-> -
-> -		ue = list_first_entry(&wc->w_unwritten_list,
-> -				      struct ocfs2_unwritten_extent,
-> -				      ue_node);
-> -		BUG_ON(ue->ue_cpos != desc->c_cpos);
-> -		/* The physical address may be 0, fill it. */
-> -		ue->ue_phys = desc->c_phys;
-> -
-> -		list_splice_tail_init(&wc->w_unwritten_list, &dwc->dw_zero_list);
-> -		dwc->dw_zero_count += wc->w_unwritten_count;
-> -	}
-> -
-> -	ret = ocfs2_write_end_nolock(inode->i_mapping, pos, len, len, wc);
-> -	BUG_ON(ret != len);
-> -	ret = 0;
-> -unlock:
-> -	up_write(&oi->ip_alloc_sem);
-> -	ocfs2_inode_unlock(inode, 1);
-> -	brelse(di_bh);
-> -out:
-> -	return ret;
-> -}
-> -
-> -/* copy from ocfs2_dio_wr_get_block */
->  static int ocfs2_dio_wr_map_blocks(struct inode *inode,
->  			       struct ocfs2_map_block *map, int create)
->  {
-> @@ -2509,205 +2298,6 @@ static int ocfs2_dio_wr_map_blocks(struct inode *inode,
->  	return ret;
->  }
->  
-> -static int ocfs2_dio_end_io_write(struct inode *inode,
-> -				  struct ocfs2_dio_write_ctxt *dwc,
-> -				  loff_t offset,
-> -				  ssize_t bytes)
-> -{
-> -	struct ocfs2_cached_dealloc_ctxt dealloc;
-> -	struct ocfs2_extent_tree et;
-> -	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> -	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> -	struct ocfs2_unwritten_extent *ue = NULL;
-> -	struct buffer_head *di_bh = NULL;
-> -	struct ocfs2_dinode *di;
-> -	struct ocfs2_alloc_context *data_ac = NULL;
-> -	struct ocfs2_alloc_context *meta_ac = NULL;
-> -	handle_t *handle = NULL;
-> -	loff_t end = offset + bytes;
-> -	int ret = 0, credits = 0, batch = 0;
-> -
-> -	ocfs2_init_dealloc_ctxt(&dealloc);
-> -
-> -	/* We do clear unwritten, delete orphan, change i_size here. If neither
-> -	 * of these happen, we can skip all this. */
-> -	if (list_empty(&dwc->dw_zero_list) &&
-> -	    end <= i_size_read(inode) &&
-> -	    !dwc->dw_orphaned)
-> -		goto out;
-> -
-> -	ret = ocfs2_inode_lock(inode, &di_bh, 1);
-> -	if (ret < 0) {
-> -		mlog_errno(ret);
-> -		goto out;
-> -	}
-> -
-> -	down_write(&oi->ip_alloc_sem);
-> -	di = (struct ocfs2_dinode *)di_bh->b_data;
-> -
-> -	ocfs2_init_dinode_extent_tree(&et, INODE_CACHE(inode), di_bh);
-> -
-> -	/* Attach dealloc with extent tree in case that we may reuse extents
-> -	 * which are already unlinked from current extent tree due to extent
-> -	 * rotation and merging.
-> -	 */
-> -	et.et_dealloc = &dealloc;
-> -
-> -	ret = ocfs2_lock_allocators(inode, &et, 0, dwc->dw_zero_count*2,
-> -				    &data_ac, &meta_ac);
-> -	if (ret) {
-> -		mlog_errno(ret);
-> -		goto unlock;
-> -	}
-> -
-> -	credits = ocfs2_calc_extend_credits(inode->i_sb, &di->id2.i_list);
-> -
-> -	list_for_each_entry(ue, &dwc->dw_zero_list, ue_node) {
-> -		if (!handle) {
-> -			handle = ocfs2_start_trans(osb, credits);
-> -			if (IS_ERR(handle)) {
-> -				ret = PTR_ERR(handle);
-> -				mlog_errno(ret);
-> -				goto unlock;
-> -			}
-> -			ret = ocfs2_journal_access_di(handle, INODE_CACHE(inode), di_bh,
-> -					OCFS2_JOURNAL_ACCESS_WRITE);
-> -			if (ret) {
-> -				mlog_errno(ret);
-> -				goto commit;
-> -			}
-> -		}
-> -		ret = ocfs2_assure_trans_credits(handle, credits);
-> -		if (ret < 0) {
-> -			mlog_errno(ret);
-> -			goto commit;
-> -		}
-> -		ret = ocfs2_mark_extent_written(inode, &et, handle,
-> -						ue->ue_cpos, 1,
-> -						ue->ue_phys,
-> -						meta_ac, &dealloc);
-> -		if (ret < 0) {
-> -			mlog_errno(ret);
-> -			goto commit;
-> -		}
-> -
-> -		if (++batch == OCFS2_DIO_MARK_EXTENT_BATCH) {
-> -			ocfs2_commit_trans(osb, handle);
-> -			handle = NULL;
-> -			batch = 0;
-> -		}
-> -	}
-> -
-> -	if (end > i_size_read(inode)) {
-> -		if (!handle) {
-> -			handle = ocfs2_start_trans(osb, credits);
-> -			if (IS_ERR(handle)) {
-> -				ret = PTR_ERR(handle);
-> -				mlog_errno(ret);
-> -				goto unlock;
-> -			}
-> -		}
-> -		ret = ocfs2_set_inode_size(handle, inode, di_bh, end);
-> -		if (ret < 0)
-> -			mlog_errno(ret);
-> -	}
-> -
-> -commit:
-> -	if (handle)
-> -		ocfs2_commit_trans(osb, handle);
-> -unlock:
-> -	up_write(&oi->ip_alloc_sem);
-> -
-> -	if (data_ac) {
-> -		ocfs2_free_alloc_context(data_ac);
-> -		data_ac = NULL;
-> -	}
-> -	if (meta_ac) {
-> -		ocfs2_free_alloc_context(meta_ac);
-> -		meta_ac = NULL;
-> -	}
-> -
-> -	/* everything looks good, let's start the cleanup */
-> -	if (!ret && dwc->dw_orphaned) {
-> -		BUG_ON(dwc->dw_writer_pid != task_pid_nr(current));
-> -
-> -		ret = ocfs2_del_inode_from_orphan(osb, inode, di_bh, 0, 0);
-> -		if (ret < 0)
-> -			mlog_errno(ret);
-> -	}
-> -	ocfs2_inode_unlock(inode, 1);
-> -	brelse(di_bh);
-> -out:
-> -	ocfs2_run_deallocs(osb, &dealloc);
-> -	ocfs2_dio_free_write_ctx(inode, dwc);
-> -
-> -	return ret;
-> -}
-> -
-> -/*
-> - * ocfs2_dio_end_io is called by the dio core when a dio is finished.  We're
-> - * particularly interested in the aio/dio case.  We use the rw_lock DLM lock
-> - * to protect io on one node from truncation on another.
-> - */
-> -static int ocfs2_dio_end_io(struct kiocb *iocb,
-> -			    loff_t offset,
-> -			    ssize_t bytes,
-> -			    void *private)
-> -{
-> -	struct inode *inode = file_inode(iocb->ki_filp);
-> -	int level;
-> -	int ret = 0;
-> -
-> -	/* this io's submitter should not have unlocked this before we could */
-> -	BUG_ON(!ocfs2_iocb_is_rw_locked(iocb));
-> -
-> -	if (bytes <= 0)
-> -		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld",
-> -				 (long long)bytes);
-> -	if (private) {
-> -		if (bytes > 0)
-> -			ret = ocfs2_dio_end_io_write(inode, private, offset,
-> -						     bytes);
-> -		else
-> -			ocfs2_dio_free_write_ctx(inode, private);
-> -	}
-> -
-> -	ocfs2_iocb_clear_rw_locked(iocb);
-> -
-> -	level = ocfs2_iocb_rw_locked_level(iocb);
-> -	ocfs2_rw_unlock(inode, level);
-> -	return ret;
-> -}
-> -
-> -static ssize_t ocfs2_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
-> -{
-> -	struct file *file = iocb->ki_filp;
-> -	struct inode *inode = file->f_mapping->host;
-> -	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> -	get_block_t *get_block;
-> -
-> -	/*
-> -	 * Fallback to buffered I/O if we see an inode without
-> -	 * extents.
-> -	 */
-> -	if (OCFS2_I(inode)->ip_dyn_features & OCFS2_INLINE_DATA_FL)
-> -		return 0;
-> -
-> -	/* Fallback to buffered I/O if we do not support append dio. */
-> -	if (iocb->ki_pos + iter->count > i_size_read(inode) &&
-> -	    !ocfs2_supports_append_dio(osb))
-> -		return 0;
-> -
-> -	if (iov_iter_rw(iter) == READ)
-> -		get_block = ocfs2_lock_get_block;
-> -	else
-> -		get_block = ocfs2_dio_wr_get_block;
-> -
-> -	return __blockdev_direct_IO(iocb, inode, inode->i_sb->s_bdev,
-> -				    iter, get_block,
-> -				    ocfs2_dio_end_io, 0);
-> -}
-> -
->  static int ocfs2_iomap_alloc(struct inode *inode, struct ocfs2_map_block *map,
->  			    unsigned int flags)
->  {
-> @@ -3045,7 +2635,6 @@ const struct address_space_operations ocfs2_aops = {
->  	.write_begin		= ocfs2_write_begin,
->  	.write_end		= ocfs2_write_end,
->  	.bmap			= ocfs2_bmap,
-> -	.direct_IO		= ocfs2_direct_IO,
->  	.invalidate_folio	= block_invalidate_folio,
->  	.release_folio		= ocfs2_release_folio,
->  	.migrate_folio		= buffer_migrate_folio,
-> diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
-> index 8dd6edd7c1a1..484b25d749d7 100644
-> --- a/fs/ocfs2/aops.h
-> +++ b/fs/ocfs2/aops.h
-> @@ -7,6 +7,12 @@
->  #define OCFS2_AOPS_H
->  
->  #include <linux/fs.h>
-> +#include <linux/iomap.h>
-> +
-> +extern const struct iomap_ops ocfs2_iomap_ops;
-> +extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_r_pr;
-> +extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_pr;
-> +extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_ex;
->  
->  int ocfs2_map_folio_blocks(struct folio *folio, u64 *p_blkno,
->  			  struct inode *inode, unsigned int from,
-> @@ -44,34 +50,5 @@ int ocfs2_get_block(struct inode *inode, sector_t iblock,
->  		    struct buffer_head *bh_result, int create);
->  int ocfs2_map_blocks(struct inode *inode, struct ocfs2_map_block *map,
->  		    int flags);
-> -/* all ocfs2_dio_end_io()'s fault */
-> -#define ocfs2_iocb_is_rw_locked(iocb) \
-> -	test_bit(0, (unsigned long *)&iocb->private)
-> -static inline void ocfs2_iocb_set_rw_locked(struct kiocb *iocb, int level)
-> -{
-> -	set_bit(0, (unsigned long *)&iocb->private);
-> -	if (level)
-> -		set_bit(1, (unsigned long *)&iocb->private);
-> -	else
-> -		clear_bit(1, (unsigned long *)&iocb->private);
-> -}
-> -
-> -/*
-> - * Using a named enum representing lock types in terms of #N bit stored in
-> - * iocb->private, which is going to be used for communication between
-> - * ocfs2_dio_end_io() and ocfs2_file_write/read_iter().
-> - */
-> -enum ocfs2_iocb_lock_bits {
-> -	OCFS2_IOCB_RW_LOCK = 0,
-> -	OCFS2_IOCB_RW_LOCK_LEVEL,
-> -	OCFS2_IOCB_NUM_LOCKS
-> -};
-> -
-> -#define ocfs2_iocb_init_rw_locked(iocb) \
-> -	(iocb->private = NULL)
-> -#define ocfs2_iocb_clear_rw_locked(iocb) \
-> -	clear_bit(OCFS2_IOCB_RW_LOCK, (unsigned long *)&iocb->private)
-> -#define ocfs2_iocb_rw_locked_level(iocb) \
-> -	test_bit(OCFS2_IOCB_RW_LOCK_LEVEL, (unsigned long *)&iocb->private)
->  
->  #endif /* OCFS2_FILE_H */
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index 2d78f2863acf..a54f92633582 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -92,6 +92,13 @@ static int ocfs2_file_open(struct inode *inode, struct file *file)
->  			      file->f_path.dentry->d_name.len,
->  			      file->f_path.dentry->d_name.name, mode);
->  
-> +	/*
-> +	 * Direct I/O is served through iomap_dio_rw() from
-> +	 * ocfs2_file_{read,write}_iter() rather than an a_ops->direct_IO
-> +	 * method, so advertise O_DIRECT capability explicitly here.
-> +	 */
-> +	file->f_mode |= FMODE_CAN_ODIRECT;
+-> #3 (&oi->ip_xattr_sem){++++}-{4:4}:
+       down_read+0x4a/0x330 kernel/locking/rwsem.c:1574
+       ocfs2_init_acl+0x2fd/0x7e0 fs/ocfs2/acl.c:367
+       ocfs2_mknod+0x166a/0x2240 fs/ocfs2/namei.c:414
+       ocfs2_create+0x195/0x460 fs/ocfs2/namei.c:677
+       lookup_open fs/namei.c:4508 [inline]
+       open_last_lookups fs/namei.c:4608 [inline]
+       path_openat+0x133a/0x3830 fs/namei.c:4860
+       do_file_open+0x23e/0x4a0 fs/namei.c:4892
+       do_sys_openat2+0x115/0x200 fs/open.c:1368
+       do_sys_open fs/open.c:1374 [inline]
+       __do_sys_open fs/open.c:1382 [inline]
+       __se_sys_open fs/open.c:1378 [inline]
+       __x64_sys_open+0x11e/0x150 fs/open.c:1378
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
-This unconditionally set may include inodes with inline data.
-Though it will handle the fallback in ocfs2_should_use_dio(), it looks odd
-and slightly misleading to userspace. 
+-> #2 (&journal->j_trans_barrier){.+.+}-{4:4}:
+       down_read+0x4a/0x330 kernel/locking/rwsem.c:1574
+       ocfs2_start_trans+0x3ab/0x700 fs/ocfs2/journal.c:369
+       ocfs2_modify_bh+0xe3/0x4d0 fs/ocfs2/quota_local.c:101
+       ocfs2_local_read_info+0x146b/0x1830 fs/ocfs2/quota_local.c:767
+       dquot_load_quota_sb+0x76f/0xb70 fs/quota/dquot.c:2484
+       dquot_load_quota_inode+0x2dc/0x5d0 fs/quota/dquot.c:2521
+       ocfs2_enable_quotas+0x1c3/0x4a0 fs/ocfs2/super.c:930
+       ocfs2_fill_super+0x530c/0x6840 fs/ocfs2/super.c:1140
+       get_tree_bdev_flags+0x430/0x4f0 fs/super.c:1634
+       vfs_get_tree+0x92/0x2a0 fs/super.c:1694
+       fc_mount fs/namespace.c:1198 [inline]
+       do_new_mount_fc fs/namespace.c:3765 [inline]
+       do_new_mount+0x319/0xdc0 fs/namespace.c:3841
+       do_mount fs/namespace.c:4174 [inline]
+       __do_sys_mount fs/namespace.c:4390 [inline]
+       __se_sys_mount+0x31d/0x420 fs/namespace.c:4367
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
-> +
->  	if (file->f_mode & FMODE_WRITE) {
->  		status = dquot_initialize(inode);
->  		if (status)
-> @@ -1171,9 +1178,9 @@ int ocfs2_setattr(struct mnt_idmap *idmap, struct dentry *dentry,
->  	size_change = S_ISREG(inode->i_mode) && attr->ia_valid & ATTR_SIZE;
->  	if (size_change) {
->  		/*
-> -		 * Here we should wait dio to finish before inode lock
-> -		 * to avoid a deadlock between ocfs2_setattr() and
-> -		 * ocfs2_dio_end_io_write()
-> +		 * Here we should wait for in-flight direct I/O to finish
-> +		 * before taking the inode lock, to avoid a deadlock between
-> +		 * ocfs2_setattr() and direct I/O completion.
->  		 */
->  		inode_dio_wait(inode);
->  
-> diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-> index b228b10b5e71..095f7ae5dded 100644
-> --- a/fs/ocfs2/ocfs2.h
-> +++ b/fs/ocfs2/ocfs2.h
-> @@ -549,11 +549,6 @@ struct ocfs2_map_block {
->  	unsigned int flags;
->  };
->  
-> -extern const struct iomap_ops ocfs2_iomap_ops;
-> -extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_r_pr;
-> -extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_pr;
-> -extern const struct iomap_dio_ops ocfs2_iomap_dio_ops_w_ex;
-> -
->  /* Flags used by ocfs2_map_blocks() */
->  #define OCFS2_GET_BLOCKS_CREATE	(0x0001)
->  
+-> #1 (sb_internal#2){.+.+}-{0:0}:
+       __lock_release kernel/locking/lockdep.c:5574 [inline]
+       lock_release+0x199/0x3c0 kernel/locking/lockdep.c:5889
+       up_write+0x2d/0x4a0 kernel/locking/rwsem.c:1687
+       inode_unlock include/linux/fs.h:1034 [inline]
+       ocfs2_free_ac_resource fs/ocfs2/suballoc.c:131 [inline]
+       ocfs2_free_alloc_context+0x97/0x1a0 fs/ocfs2/suballoc.c:145
+       ocfs2_write_begin_nolock+0x4164/0x41f0 fs/ocfs2/aops.c:1805
+       __ocfs2_page_mkwrite fs/ocfs2/mmap.c:92 [inline]
+       ocfs2_page_mkwrite+0x63d/0xb60 fs/ocfs2/mmap.c:143
+       do_page_mkwrite+0x147/0x310 mm/memory.c:3684
+       wp_page_shared mm/memory.c:4085 [inline]
+       do_wp_page+0x1973/0x4c70 mm/memory.c:4304
+       handle_pte_fault mm/memory.c:6395 [inline]
+       __handle_mm_fault mm/memory.c:6517 [inline]
+       handle_mm_fault+0x1490/0x3080 mm/memory.c:6686
+       do_user_addr_fault+0x744/0x1340 arch/x86/mm/fault.c:1394
+       handle_page_fault arch/x86/mm/fault.c:1483 [inline]
+       exc_page_fault+0x6a/0xc0 arch/x86/mm/fault.c:1536
+       asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:595
 
+-> #0 (&oi->ip_alloc_sem){++++}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3165 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+       validate_chain kernel/locking/lockdep.c:3908 [inline]
+       __lock_acquire+0x1520/0x2cf0 kernel/locking/lockdep.c:5237
+       lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+       down_write+0x96/0x200 kernel/locking/rwsem.c:1631
+       ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4272
+       ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4399
+       ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4439
+       ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
+       vfs_ioctl fs/ioctl.c:51 [inline]
+       __do_sys_ioctl fs/ioctl.c:597 [inline]
+       __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
+       do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+       do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &oi->ip_alloc_sem --> &journal->j_trans_barrier --> &oi->ip_xattr_sem
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&oi->ip_xattr_sem);
+                               lock(&journal->j_trans_barrier);
+                               lock(&oi->ip_xattr_sem);
+  lock(&oi->ip_alloc_sem);
+
+ *** DEADLOCK ***
+
+4 locks held by syz.0.0/5321:
+ #0: ffff88801c3bc450 (sb_writers#12){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:494
+ #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
+ #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2918 [inline]
+ #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2942 [inline]
+ #1: ffff8880132325a0 (&type->i_mutex_dir_key#8/1){+.+.}-{4:4}, at: filename_create+0x200/0x370 fs/namei.c:4955
+ #2: ffff8880132289a0 (&sb->s_type->i_mutex_key#24){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1024 [inline]
+ #2: ffff8880132289a0 (&sb->s_type->i_mutex_key#24){+.+.}-{4:4}, at: ocfs2_vfs_reflink+0x2f8/0x450 fs/ocfs2/refcounttree.c:4396
+ #3: ffff8880132286e8 (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_reflink+0x4c3/0x920 fs/ocfs2/refcounttree.c:4271
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 5321 Comm: syz.0.0 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ print_circular_bug+0x2e1/0x300 kernel/locking/lockdep.c:2043
+ check_noncircular+0x12e/0x150 kernel/locking/lockdep.c:2175
+ check_prev_add kernel/locking/lockdep.c:3165 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3284 [inline]
+ validate_chain kernel/locking/lockdep.c:3908 [inline]
+ __lock_acquire+0x1520/0x2cf0 kernel/locking/lockdep.c:5237
+ lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5868
+ down_write+0x96/0x200 kernel/locking/rwsem.c:1631
+ ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4272
+ ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4399
+ ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4439
+ ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
+ vfs_ioctl fs/ioctl.c:51 [inline]
+ __do_sys_ioctl fs/ioctl.c:597 [inline]
+ __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
+ do_syscall_x64 arch/x86/entry/syscall_64.c:63 [inline]
+ do_syscall_64+0x174/0x580 arch/x86/entry/syscall_64.c:94
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fbc3639de99
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fbc371f4fe8 EFLAGS: 00000246 ORIG_RAX: 0000000000000010
+RAX: ffffffffffffffda RBX: 00007fbc36625fa0 RCX: 00007fbc3639de99
+RDX: 00002000000001c0 RSI: 0000000040186f04 RDI: 000000000000008c
+RBP: 00007fbc36433eaf R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007fbc36626038 R14: 00007fbc36625fa0 R15: 00007ffff2ca6ac8
+ </TASK>
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
