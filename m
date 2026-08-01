@@ -1,64 +1,64 @@
-Received: from mail-yw1-f174.google.com (mail-yw1-f174.google.com [209.85.128.174])
+Received: from mail-yw1-f178.google.com (mail-yw1-f178.google.com [209.85.128.178])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D049238F654
-	for <ocfs2-devel@lists.linux.dev>; Sat,  1 Aug 2026 22:01:20 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.174
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF6E63B14B7
+	for <ocfs2-devel@lists.linux.dev>; Sat,  1 Aug 2026 22:01:24 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785621685; cv=none; b=mJLwrLfa10ypQ+bVkNckT75DaIlwSgXO7OYy9noh8yUT8pKmi+gPQCJFUjkHmC+ajvO9RQOu8ghq8O8xJt1N9R89dMps8LWYReC5Lyur+1Rwnz8ndvw3ogNqYndd9YIdUG4zFvk2Vo8KHbkUK1QnSFNH1DJ2oHYtR5EEpBouev4=
+	t=1785621689; cv=none; b=peyRtWo13dBe0c0V3aN6whruDmydcjgfUcEtzVMbzHzFoNBXlKjQpl5OD7/Z9DrWtfusO8as9untVMO87BbpMOqH4P9mS8byVQa/ewhlCpXJvLAA0r++JQT9CteQnDOZiFvPExVLkWbJKG/UNz3JtybKgAJ4UiPFrcxx1REiP8o=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785621685; c=relaxed/simple;
-	bh=rmASDDjzyu7ORP+REJJAPqpbg4Lkmrb9SobBQ2fdR4s=;
+	s=arc-20240116; t=1785621689; c=relaxed/simple;
+	bh=B1aGoafSodbJHnZvQa4U88gzZAbdOk4anLe8al4k4+M=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=UsVTMCCBYOqDZAsDahdn24SQEoFn0lrxIr7++BmIMbAhYRuK5nlhWf8cOSp/677p8s96OIc8Z92f7qYfMvDTSiNRSgCLFivQMk2bJZT+2IRyRBkAeEeTq9WUGyl1tf3zmM/szcF5VpyP5o+iALZQpaLDqP98f2D6t5a1MAKMi9k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=isyW+sg4; arc=none smtp.client-ip=209.85.128.174
+	 MIME-Version; b=NM8hZyLQiIDuVjUCU+f01eNurNUlXao9Z9y7SEg6DrQImYJyQkRZKqbqwg1yUdX4eqUJL1O6k2Sq1AI2asVB6OKT7NZOg5nIU6wi9SdrWx3Wy/eQgyejdDyjVqCNd+amsjFoOL8i3nPxhBSbErg434Gep1CaneRS3EsGpHS5VTI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=k5StGMmE; arc=none smtp.client-ip=209.85.128.178
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="isyW+sg4"
-Received: by mail-yw1-f174.google.com with SMTP id 00721157ae682-8143daf89c7so20626407b3.1
-        for <ocfs2-devel@lists.linux.dev>; Sat, 01 Aug 2026 15:01:20 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="k5StGMmE"
+Received: by mail-yw1-f178.google.com with SMTP id 00721157ae682-81e86df8987so30976487b3.3
+        for <ocfs2-devel@lists.linux.dev>; Sat, 01 Aug 2026 15:01:24 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785621680; x=1786226480; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1785621684; x=1786226484; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=CmPK9JWvOViXyoDvMWnuptWNftqO/5jbHBuyoy5p9Iw=;
-        b=isyW+sg4exUe0eJuoaiW1IG3vvGFE7BuzcE5fB7mmZ+segKul8vWhmoQFyCM1rLE9A
-         tznsrrqV4k5aKG5qeq9cMq/HN0hJzNTfMwCjjEpNdgpKc8zv1C35wrqLjp9JhDSYMgLu
-         i2bDZ7rvnGGd5IQjYkJDV1OgquFK+UncJC+fasbpDTOOwo2z2Wtrss+7PghJctVkbtXq
-         QwW8rIA60spW6MHQIbvp1A8ePv9hYgK8Ql2pHI1Lp8thZH0RIXOJqdOk8rda8h++Iy75
-         fEw+pJ/aWyd7uiZSiXQDqyWKmFvs/dAtFG8EKvLeZqaAeKGqjwVO1fk2xbVgHI7o2bHK
-         GNng==
+        bh=fFKjhKiLwW7000gY04FDp9HuhYK5pnv34+ERWpP83n8=;
+        b=k5StGMmExexjd5YCUONucz1DfZ0WwihyRmtU2k663dKxbRL3nE1lUKOImgZ6v8Sy4g
+         iekkJL+LK/khdoC/jcpu+O+YyS+Phi+Hg8mFobfJ5yJmjVV2uAx2FZs1xrtPJFz3GoYA
+         h4Ega+k9l8eR3PE5Q20Errp+SCtG40cT+cN4HQg08d2IZ79kcBimx4WKBzRVoHZnn7RO
+         5Watl/kVFOKdEpP9aQHLSQNEbOTLo56vyARBLjdif40EB34VRMPoaAGo2KTvufzVr0zm
+         bPiIa9vKYE4We8aEJFnUtmtG5mGoewgOnwgn4K6Q3i2/xwshNW1dNFBAGQMAqLrB6cEs
+         01mg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785621680; x=1786226480;
+        d=1e100.net; s=20251104; t=1785621684; x=1786226484;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=CmPK9JWvOViXyoDvMWnuptWNftqO/5jbHBuyoy5p9Iw=;
-        b=fyPrH18sI4/eQXb/ucWrkV+z2SmRt4K2sXVMsAObaSyHuynnF0h9NP1ThH50eDlPHi
-         816HFVy7SQk6mycAlpI+15Sy7nksskpZsASP1YcFXhhxodrNxmDoXJRLzjb7ehqRaWua
-         +wgSwSCVs54oqnwPl0MDL5FJHfoFw5pGOytC3bT+EqVr75LGa8gFo0h5qpR+o3oo/hkK
-         YKpCF8cBpo3WRd0pL6J4w9picNC5A3lYiZSzxyDHE9+M4q3RGC2Uow/7XwbIj+kfXbOF
-         OXlSnbhG6EDJ8/A+OdVqL+lvTlzOJKlHMGMVN8Xfol3YROK3QMYP7ywU4iiTEOI4Jz7b
-         3wgQ==
-X-Forwarded-Encrypted: i=1; AHgh+RoaGEnJgzKd/q7hfTnH2czvOschAWrJpLS3ZyKPnByq6Gzr6/pcKwbFWlUVSQp75gfgKxt4G2m9W+x90w==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yw7aoYYP5kFWXGoQP1Dp1cdogCpXArP7PLmWKw3nKo6UzWDYZ60
-	kgaQh2p/FehAOa+txAERm4gAYmwPOVRIcVYtOFpbIG/zFDxHBDMPHGhM
-X-Gm-Gg: AR+sD10joSPt3kq4cZ1r8MZ2awZmmSmiHx45k9aVgCQ/kuILvE5Acj68Gnl8s3F7Ati
-	Zn4DzdmRejyOoXjDg0+pYCZeG0swn2MtZkFbCNN4AymfeODZe3TKWJPkBKuOsp8N+TSKjjBt2OT
-	YG+xSupNxQL6tIfbZk4HZjx0sgJrxkBjNgI2DXP1+0VYM3poKua1X0IwXJd2CAJiwNh4vQF0ora
-	bDD14uo/j7EFGV+fWciNH6V7ihT3THoOmu4MCx+U7bEWTquMgRW0ol/UvGN7MqLJ4ZzIXW6uRhk
-	hdSmIM7IXHLm+dDMb6eaZSAeYc7CHY5cXPN+fa18dvR64N4XMP6CE8P7GU1NjHqW1B2tEXzrDmc
-	5NWSgFoWGUMbD7FG5fqgle89nEB7jXPTpr2wslCZE/cpCJjpCA9uyT7nnwAOJ5ikdbfN12Zy/ln
-	zm5r/izbAw94oDSa4F6cnEf0AE5j0KRIVPo+N9LWzQub39GbAq3+R7JoyC7ShuedtU64vl/AKEp
-	KkuVWA=
-X-Received: by 2002:a05:690c:dcb:b0:81e:d009:1956 with SMTP id 00721157ae682-81fd4a21566mr79336867b3.12.1785621679620;
-        Sat, 01 Aug 2026 15:01:19 -0700 (PDT)
+        bh=fFKjhKiLwW7000gY04FDp9HuhYK5pnv34+ERWpP83n8=;
+        b=aRbdS2rXf+dQrBhIClJ663KOiA3nFj/K0vGSm58RBliFoPMRukS32rTiVMkjTXDTzr
+         yUQeJ6geGHA9ZRcSss3O+93dZ9zxKR8V1cfBjAZbFIE3pIOwWktDJ4T/IugRme5NQVsw
+         VRxrmnK5mfDOS4JA/CqRDFSylzUfXh+zCcCnAXxBZzizfp1p1wf66zFJM0EVXH+CfCfc
+         svNGxYJtnHOx2zzrGPQDu6Tyz1tKkcz+7z60VUS2/ltjF2rv6Pc3cf/57crO/Jl00Hri
+         A4VdTrNVskugU5POBuW5ioLLI+yHC9PTEM3ZrpST1wrcrxmYfG/0bnXj6Spc1Gp0k2gC
+         Cdkw==
+X-Forwarded-Encrypted: i=1; AHgh+RqDirXbTaNO6ICycd+A5JzmNDN8ukvfy4hYvz9xds0tvO/a+UKYVhMJcjU61hz6qi/Q6gAvKDXHXJlyGw==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yx8SVkj2us85WDQEDbZBtezFtwmb9mbAljIOBnPQGlCbF0PyxB4
+	qupZYIw+tt4yDbIW/UoMd8NMlYdyqGFEEX0kT/664tn1GjgXzsJdcfPx
+X-Gm-Gg: AR+sD10PnE1j713TvMqjqn3SFnGrxHcX/MbgwqOBJUHhm4/09uuwTftV2T4SRWZFyQz
+	B7Tg0FLcVhzi1B+p6YyjXMNEF01gsHpWSJHpzlxGx5MWW9ZoXIxkmVIp1aSB1MMuzI+hjQxg6Zs
+	HKGlokc+G06ysd3wwwmsVzPxxFAl2NS/TT7CEescFkq59h7Llv9W0rVH32Bw+iDvUFJU+WfdGxm
+	586XzH9tJrDB1PDtjPGdfajyg9XQ+zt9rTQ3i64XWRNGDCeXC7/lNX8s7kjKNbh/lzmK+e+BTaF
+	znw0Xa6AslK2edrzn3INDZJEVITr1i325ITDlg/yCHF8uylIxNDzxIf23qlrjteOVGfqX8Nw89+
+	AsdlH16QJzTDy9SELQLTsEDzTDfYmANH2JlOQ/YxKPCbp7O6cTyIR3BtBmzUVEb8A1p6T1LQtIy
+	1qFH7NZfVDWUD77TOp1mTzhyiMskQtGal4v7rDXaj5qqv/fPp/4u1U0T1rkgaSpghd4enmBvI9P
+	DN9CZ0=
+X-Received: by 2002:a05:690c:d8f:b0:80d:a249:4854 with SMTP id 00721157ae682-81fd4b59a06mr68933057b3.17.1785621683893;
+        Sat, 01 Aug 2026 15:01:23 -0700 (PDT)
 Received: from syssplab.cs.fiu.edu (nat1.cs.fiu.edu. [131.94.134.89])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-81fcd0d6fbbsm29903767b3.25.2026.08.01.15.01.17
+        by smtp.gmail.com with ESMTPSA id 00721157ae682-81fcd0d6fbbsm29903767b3.25.2026.08.01.15.01.21
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 01 Aug 2026 15:01:19 -0700 (PDT)
+        Sat, 01 Aug 2026 15:01:23 -0700 (PDT)
 From: Chao Shi <coshi036@gmail.com>
 To: Jan Kara <jack@suse.cz>,
 	Christian Brauner <brauner@kernel.org>,
@@ -86,9 +86,9 @@ Cc: Theodore Ts'o <tytso@mit.edu>,
 	linux-karma-devel@lists.sourceforge.net,
 	linux-kernel@vger.kernel.org,
 	Chao Shi <coshi036@gmail.com>
-Subject: [PATCH 07/19] adfs: check for a directory write error with buffer_write_io_error()
-Date: Sat,  1 Aug 2026 18:00:51 -0400
-Message-ID: <b688ce1ef8805684f8c529b8934406ddf6e34da5.1785621505.git.coshi036@gmail.com>
+Subject: [PATCH 10/19] exfat: check for a directory write error with buffer_write_io_error()
+Date: Sat,  1 Aug 2026 18:00:54 -0400
+Message-ID: <debeabce46c73ff63152dbdb67eba64d60c45c98.1785621505.git.coshi036@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <cover.1785621505.git.coshi036@gmail.com>
 References: <cover.1785621505.git.coshi036@gmail.com>
@@ -100,14 +100,15 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-adfs_dir_sync() spots a failed write by testing BH_Req together with
-!BH_Uptodate.  That relies on the write completion handler clearing
-BH_Uptodate on error, which this series removes: a buffer whose write
-failed still holds the data the filesystem asked to be written, so
-declaring it not up to date is wrong and makes callers re-read it.
+exfat_update_bhs() waits for the writes it issued and then tests
+!buffer_uptodate() to find the ones that failed.  That relies on the write
+completion handler clearing BH_Uptodate on error, which this series
+removes: a buffer whose write failed still holds the data the filesystem
+asked to be written, so declaring it not up to date is wrong and makes
+callers re-read it.
 
-BH_Write_EIO says exactly what this code wants to know, and it implies
-BH_Req, so the pair collapses into one test.
+Test BH_Write_EIO, which is what the completion handler sets and what this
+code actually wants to know.
 
 No behaviour change today - a failed write sets BH_Write_EIO and clears
 BH_Uptodate together.  It stops being a no-op at the end of the series,
@@ -115,22 +116,22 @@ where the new test is the one that still works.
 
 Signed-off-by: Chao Shi <coshi036@gmail.com>
 ---
- fs/adfs/dir.c | 2 +-
+ fs/exfat/misc.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/adfs/dir.c b/fs/adfs/dir.c
-index 11afa9e157aa..b8cc6a697a05 100644
---- a/fs/adfs/dir.c
-+++ b/fs/adfs/dir.c
-@@ -191,7 +191,7 @@ static int adfs_dir_sync(struct adfs_dir *dir)
- 	for (i = dir->nr_buffers - 1; i >= 0; i--) {
- 		struct buffer_head *bh = dir->bhs[i];
- 		sync_dirty_buffer(bh);
--		if (buffer_req(bh) && !buffer_uptodate(bh))
-+		if (buffer_write_io_error(bh))
+diff --git a/fs/exfat/misc.c b/fs/exfat/misc.c
+index 6f11a96a4ffa..dfd0bbf31c94 100644
+--- a/fs/exfat/misc.c
++++ b/fs/exfat/misc.c
+@@ -187,7 +187,7 @@ int exfat_update_bhs(struct buffer_head **bhs, int nr_bhs, int sync)
+ 
+ 	for (i = 0; i < nr_bhs && sync; i++) {
+ 		wait_on_buffer(bhs[i]);
+-		if (!err && !buffer_uptodate(bhs[i]))
++		if (!err && buffer_write_io_error(bhs[i]))
  			err = -EIO;
  	}
- 
+ 	return err;
 -- 
 2.43.0
 
