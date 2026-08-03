@@ -1,63 +1,63 @@
-Received: from mail-pf1-f179.google.com (mail-pf1-f179.google.com [209.85.210.179])
+Received: from mail-pf1-f172.google.com (mail-pf1-f172.google.com [209.85.210.172])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7222D1DDC33
-	for <ocfs2-devel@lists.linux.dev>; Mon,  3 Aug 2026 03:00:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.179
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F6C211CBA
+	for <ocfs2-devel@lists.linux.dev>; Mon,  3 Aug 2026 03:00:52 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.172
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785726049; cv=none; b=Jlu2z8YkVm5IrR1OWbG/xCbY3OaUK4rIevQpLKDjJROsDdDAskiGaPwT6IUJLUnMeZJzH75lsmcvulK2ZkNPSqXKYrtDWO4sFQJXM05wrkdOq821Sp9jA1M/zVYlVIV9gb6xMOuj+9NDVEZD3xNqGCowhZHyscW+FN1m+ATm7Eo=
+	t=1785726054; cv=none; b=QLvt6CIbbPzR1QThdanP5pSk3nk/ws5ELg7xjMSbGqdG3OlSqLSyESdHCRobRsi/VrFD48tN6Kvrff1rINKxax2LSYuIV9vRiJrt/2ANswT6oErHYNQBKEvTLlx3nGfdyGn3WRz7e+xZutzuvnrQkloBBsJcSAnqUNSMmUtRjD0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785726049; c=relaxed/simple;
-	bh=IL4PPdL89KrYlb+3vsLpx0jYYpLzXSAWBppKnDP13KU=;
+	s=arc-20240116; t=1785726054; c=relaxed/simple;
+	bh=xCj9Wo0LyTH8jhmyJf20NsQdndMxCAqsBnt9oKDNl5Y=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=hw8rMNPrA9xUDqExslzmcFh/RetR8pKMHs57E+wZAysqx8SFPDuZVfnz1M9yPKGfQ1lHjs8Ekg7l5M1WHcinQyt9LcAvtFYj8TRHiGQlb8l6fT1Wy+6HpyxH6sD8OqSsO+/emWzZjUNuSDEt7696O0/bg2Nu5qiPZ2hdZqZKtdo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=oipfUuvs; arc=none smtp.client-ip=209.85.210.179
+	 MIME-Version; b=VJ85tTemTRjKBDx7QYyOTazUlLnnWswvi4WgVTWauGeprmQAROFaS5Y5Zb4E7kkKLLih0FwoU3Gx4XqdpkEb7Ll7PDqWGinIIVHpm46OllQ5+ED9sE2+4sbST1DO3Jn9ZZf8qtsdqHAkcOEzb2lJv9f2GIkW3RekGv2+KUdaazU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=qFywJ4O/; arc=none smtp.client-ip=209.85.210.172
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="oipfUuvs"
-Received: by mail-pf1-f179.google.com with SMTP id d2e1a72fcca58-84e84a6c4bfso2408942b3a.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 02 Aug 2026 20:00:48 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="qFywJ4O/"
+Received: by mail-pf1-f172.google.com with SMTP id d2e1a72fcca58-84867f07d63so3389166b3a.2
+        for <ocfs2-devel@lists.linux.dev>; Sun, 02 Aug 2026 20:00:52 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785726048; x=1786330848; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1785726052; x=1786330852; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=X9ddKkl1cDb08a4csiFm959vb9khfkPCLClK+RZwmRE=;
-        b=oipfUuvsV5m9LXJxxzbDg/IycWQtbqu8X3yCfwe4YQAaUQip8JrJJzZJ4lAXM/JgH9
-         ttbm5GdVoBxkelaRKHB0ILvTE5xWumDm2om79ymCV5zH3WOG6/HVVT3XpSPAbwSPnI1Y
-         qP4FDvw29Ajpt/SXRMFOFtJBJn7Hq2Gc6JMIMxiSoMfm/PcCW6YOIY4Hh7XXJQxX8YHC
-         buBOLjujDntIqKLHzZBF6UImlu2yqxOaXQrlzVa2pfvD1GJMcTUwTcgJIfdoxX8Hdtey
-         dxtDLd458Ytw5iD8wnlSuRdikKSgH0ah8uQmyDv13jd1wD1Sl/93jrJgUSw3LIkJRd4q
-         J0tw==
+        bh=VWJ8xLFcXVUc0SNvEud0LPLdtHNvViXl8nMczowYX88=;
+        b=qFywJ4O/5eOOyB8YoJMxpA+V2JwqG+Ye6NSnxLUKVrwIU9dfsqI4QZ1H8LvhgvPdiw
+         SQc5tUCJUF0Lz57y5Qu0NJsRSy54lx2e5zqIzhkxLFmx0fpr+W0dnMBpnRSy60NoXlub
+         v4CSkiL4vF8gdz/LvEHTFvtrRBBny9xVb9oc+igCIAtiTM+2rXPnFaq6XrJloEAcD3J4
+         fZMDy7ofNFUDm0+KL5It23seZBPICOMNoHeHbql8TLbALvT72HicEFbHvdRnceu6LfMi
+         hzZWgDLPJqOtqMA8hPvwF85N0VBt90XGfG07w89NSvSkKxhjLiy6lGAtHRkkQF83qmWd
+         K2EQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785726048; x=1786330848;
+        d=1e100.net; s=20251104; t=1785726052; x=1786330852;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=X9ddKkl1cDb08a4csiFm959vb9khfkPCLClK+RZwmRE=;
-        b=N1peQlOsLAAaFm0eWvbshVHwl5je7UWsLSLVEtMePfz4BBEwPdNPSWMujqsS2RSRRi
-         6TLK47Xkk9Q/Yd5ZcFYqTxNxL2LCWA0Aj3hv1i+WqP+eQN77HxhZPVvJss2342MLv9p+
-         RwPOHbmHQ3wt2KXhfb/SN+u9/j2FnX7QYFS+h7tLFAb5TV+O/CwT10BX58mCRmWd0hfN
-         kK/wSO6YQaS/eyW1jZi3m1WmyZb6Pe81/BTKUTV1H0jypz2mIGVB6hL+05jrhdEkcR2I
-         auqmAyBVxScOjjE2lkIz+Dqo8I5FluV24ApTMDJyfuHJ4/RF2NoyH6E/h0D/7QO1ZmWk
-         Zz/g==
-X-Gm-Message-State: AOJu0Yy30VakewFgVFvJSf6gHmGyxb6GsJyznUiOCLil0I7qgZsTpEGn
-	4FfbMY1JxzQxbRtwJ04CGvX+gfJ1uNh8a7L70PuijXjJAdDPqkQ+N3+E
-X-Gm-Gg: AR+sD127+oY8Qy/z1L5zcSTXiilqV2vpfzb9Qt0arMOvL7b8oHHcqZer8Y1IqZvkb4n
-	Y+D86eEcWlb2J0soPDMDGfQ9AZImYkXIWwFCWOm5sc4mzianbZ2Gea4A0nuH/BVNS1iQODhwXZ+
-	bAz1PHPVwgB4OThauU1t69Wv/DT4xaUa0WbUPoN0m4lAxWyqKxneafx+qV3jSiTvcekmO7UTX4Z
-	7DH/hOUGLRY22QPZmVplwpz/aagwnlgDXEkb+IiRvxvTZMA9kGbABYimnaM8JNYiKQhzOW8Zs63
-	A6qoS3/35ZH+LixIYlTz1LNXIAv1xf0TKPapDnx+icPUYneW3+dMh3MOWZkkyVRLXbGEXop/t0B
-	SQ3P4TSXgFSkxf4rX+fAFaFNzFCUwDS3QTQ1MCLFvXiPb9RhBTHyQR9PbiUxL7q5sJtlZ/M/JRw
-	b8EHhdnxl4ETLRaj9hmTITMPk+nx6viYj5PKu/F8C0H+5xgL8Zqi3TEo7HreMrI4xm828t4m2SV
-	G7K8D87VXqmx5fXnph8pGfPfn+jeA==
-X-Received: by 2002:a05:6a00:22d1:b0:848:7bbd:2851 with SMTP id d2e1a72fcca58-84ed74bdcf0mr8930419b3a.29.1785726047593;
-        Sun, 02 Aug 2026 20:00:47 -0700 (PDT)
+        bh=VWJ8xLFcXVUc0SNvEud0LPLdtHNvViXl8nMczowYX88=;
+        b=bzyr1m1Ugz2dzQpcga2rHjzhdOnrTTwk1bd7WKQ3oLMhz7mbrqOc1S0QtBYJwZxBf8
+         dylZIH9ZTvXeMk006IpQI8tfjvaJUH1AMIWESNhZX5EWD2qkl4LZ5EvWqZl3k4UiAWIJ
+         EPJdTmYwYWItVYoVPkZP5VWTnL8VfjD71jezsHTz38tE3yDdpu9SZ/mrHegz1PiLWly7
+         oGuR3++5juLMU+mD18DvrJX2JuhD5uADoomMyFYd4dlUKEG/JJEqTKgzWVAHTWVHUwJX
+         0f35RiI/eii4qCQ/h8rd954U9s4gXFCRSeMS1FLH+NSFfMAP1VjkRroEqhVVLVNXHrqD
+         INFA==
+X-Gm-Message-State: AOJu0YyXDSfpH7hdCciDqiQSPLcgdYInKFC1jwKNM1Zx5htsBCXtOVk1
+	MwH3njS7e7SPfOXUGFlpUsJD17oT0kYM0gWZ5XA9/vgI60OO9a5yZA17
+X-Gm-Gg: AR+sD11kn1XkadsXY9b1kTMLf+AcirM29+/LvixTgkHITnnrGUrT19mYh6UJi0pusbm
+	Lxbnji5CFX2yod8a4yHa9pqAmjg62z/SblD7GGqUIDvMooNXw3ofNOhIdz1jzdcduNdjKxG+ySA
+	KS9N5O/kFWhtJtsPvdDXLJHRAXLjVvyZAXU1kT900Oz3bsUmJZ8bewBt7US+XjBxq2ayvPtTqCF
+	/zSmtz8B+oY92TS5dLAtYvSAHGuvykSaKaZJ4xmFTXtDwRp4pKkGi9FKPCbm5QY9wkej8skzVwR
+	9ZVAz3WFH0neysaruOQ+W2N12Cv4XZhx253YC9bLsYkt3zuVSWE6QlxSBiaYINIUJ8hwM7eAfC9
+	hz8l8Rc9n+qu3Xjs7etYfLV+CT2KDLKGAiQbCJiCXJUUlD8ph6zHKshws3ll3Therr+Ip4aMz/l
+	nvU7EBWa/lKjlSoZfdVV3pn2toqrXxXXMcDyZVlvd2JJ8O68O6hx2Ka9PkevHSA8rsHR4Oao3ue
+	33SHawQ64RikV8tdtxcbmcEWKEwDKvwSz4agbkE
+X-Received: by 2002:a05:6a00:2788:b0:847:b16b:46d9 with SMTP id d2e1a72fcca58-84ee4851d1fmr7449689b3a.34.1785726052315;
+        Sun, 02 Aug 2026 20:00:52 -0700 (PDT)
 Received: from gmail.com ([138.199.21.246])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-84edc29f2b9sm2962878b3a.35.2026.08.02.20.00.43
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-84edc29f2b9sm2962878b3a.35.2026.08.02.20.00.47
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 02 Aug 2026 20:00:47 -0700 (PDT)
+        Sun, 02 Aug 2026 20:00:51 -0700 (PDT)
 From: ZhengYuan Huang <gality369@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
@@ -70,9 +70,9 @@ Cc: ocfs2-devel@lists.linux.dev,
 	zzzccc427@gmail.com,
 	tom442288@tuta.io,
 	ZhengYuan Huang <gality369@gmail.com>
-Subject: [PATCH 1/2] ocfs2: validate orphan slot during inode read
-Date: Mon,  3 Aug 2026 11:00:06 +0800
-Message-ID: <20260803030007.3993199-2-gality369@gmail.com>
+Subject: [PATCH 2/2] ocfs2: validate DIO orphan slot during inode read
+Date: Mon,  3 Aug 2026 11:00:07 +0800
+Message-ID: <20260803030007.3993199-3-gality369@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20260803030007.3993199-1-gality369@gmail.com>
 References: <20260803030007.3993199-1-gality369@gmail.com>
@@ -85,10 +85,10 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
 [BUG]
-A corrupted dinode with OCFS2_ORPHANED_FL can carry an
-i_orphaned_slot outside the mounted filesystem slot range.
-ocfs2_wipe_inode() uses it to index osb_orphan_wipes before looking
-up the orphan directory, causing an out-of-bounds memory access.
+A corrupted append-DIO dinode (high byte at offset 0xa1 
+corrupted from 0 to 1) can carry an i_dio_orphaned_slot
+outside the mounted filesystem slot range and trigger a 
+use-after-free error:
 
 BUG: KASAN: slab-use-after-free in ocfs2_get_system_file_inode+0x780/0x820 fs/ocfs2/sysfile.c:102
 Read of size 8 at addr ffff88800b767c00 by task kworker/u8:3/85
@@ -107,33 +107,34 @@ Call Trace:
  ...
 
 [CAUSE]
-ocfs2_validate_inode_block() validates i_suballoc_slot but leaves
-the active ordinary orphan slot unchecked. Downstream consumers
-assume that the value is smaller than osb->max_slots.
+ocfs2_del_inode_from_orphan() uses i_dio_orphaned_slot to index the
+slot-local system inode cache. The dinode validator does not check
+this active slot, so an out-of-range value produces an invalid cache
+entry pointer that is dereferenced as an inode pointer.
 
 [FIX]
-Reject an active i_orphaned_slot outside the slot range during
-dinode validation, before the inode reaches orphan wipe processing.
+Reject an active i_dio_orphaned_slot outside the slot range during
+dinode validation, before DIO orphan recovery can consume it.
 
-Fixes: b4df6ed8db0c ("[PATCH] ocfs2: fix orphan recovery deadlock")
+Fixes: 06ee5c75b575 ("ocfs2: add functions to add and remove inode in orphan dir")
 Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
 ---
  fs/ocfs2/inode.c | 8 ++++++++
  1 file changed, 8 insertions(+)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 41db7dd39ed9..358ab3535366 100644
+index 358ab3535366..180107a11046 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -1528,6 +1528,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+@@ -1536,6 +1536,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
  		goto bail;
  	}
  
-+	if ((le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
-+	    le16_to_cpu(di->i_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
-+		rc = ocfs2_error(sb, "Invalid dinode %llu: orphaned slot %u\n",
++	if ((le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
++	    le16_to_cpu(di->i_dio_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
++		rc = ocfs2_error(sb, "Invalid dinode %llu: DIO orphaned slot %u\n",
 +				 (unsigned long long)bh->b_blocknr,
-+				 le16_to_cpu(di->i_orphaned_slot));
++				 le16_to_cpu(di->i_dio_orphaned_slot));
 +		goto bail;
 +	}
 +
