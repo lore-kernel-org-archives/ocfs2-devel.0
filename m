@@ -1,68 +1,66 @@
-Received: from mail-pf1-f172.google.com (mail-pf1-f172.google.com [209.85.210.172])
+Received: from mail-pf1-f182.google.com (mail-pf1-f182.google.com [209.85.210.182])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F6C211CBA
-	for <ocfs2-devel@lists.linux.dev>; Mon,  3 Aug 2026 03:00:52 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.172
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9EFAF3358B9
+	for <ocfs2-devel@lists.linux.dev>; Mon,  3 Aug 2026 03:11:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.182
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785726054; cv=none; b=QLvt6CIbbPzR1QThdanP5pSk3nk/ws5ELg7xjMSbGqdG3OlSqLSyESdHCRobRsi/VrFD48tN6Kvrff1rINKxax2LSYuIV9vRiJrt/2ANswT6oErHYNQBKEvTLlx3nGfdyGn3WRz7e+xZutzuvnrQkloBBsJcSAnqUNSMmUtRjD0=
+	t=1785726692; cv=none; b=TyJJGYcSXeBlHnshUnxckQ/E90rw9QuNAwyI+ouZ0UddVzykkMCxOL+zkRwzGTcJSNVL5hoNXt/yeks7Z9icIjf8yRWo9f99WLVfSaPQkOoZLVTl7i9+l0zy0DnIQEKPod2n5cAYn975dND4fF+2OUxuyaAPcN7ZmF80+plt++M=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785726054; c=relaxed/simple;
-	bh=xCj9Wo0LyTH8jhmyJf20NsQdndMxCAqsBnt9oKDNl5Y=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=VJ85tTemTRjKBDx7QYyOTazUlLnnWswvi4WgVTWauGeprmQAROFaS5Y5Zb4E7kkKLLih0FwoU3Gx4XqdpkEb7Ll7PDqWGinIIVHpm46OllQ5+ED9sE2+4sbST1DO3Jn9ZZf8qtsdqHAkcOEzb2lJv9f2GIkW3RekGv2+KUdaazU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=qFywJ4O/; arc=none smtp.client-ip=209.85.210.172
+	s=arc-20240116; t=1785726692; c=relaxed/simple;
+	bh=0jxhpiy+to/ITrgWlDtmvBfGJrV5Jq/iRYsgjH9IhIE=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=k2n6AuU86IyoIUVNRjgpBLdsi6k0ayiWQwsY3GZBj0LscYR2TmOm8ojy0DPkaQpnOza8D5CKGR8ZogTfei4CHJKk2HShCqDQHHtLGfPKbN2Zi3V838z6EeDZGQINl4Rgx8pDn/m/cssMZFUYYihTnwBJIF3HsU3GaH/RsUn93fo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=nUKZ8prO; arc=none smtp.client-ip=209.85.210.182
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="qFywJ4O/"
-Received: by mail-pf1-f172.google.com with SMTP id d2e1a72fcca58-84867f07d63so3389166b3a.2
-        for <ocfs2-devel@lists.linux.dev>; Sun, 02 Aug 2026 20:00:52 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="nUKZ8prO"
+Received: by mail-pf1-f182.google.com with SMTP id d2e1a72fcca58-848479c9bd5so2309257b3a.3
+        for <ocfs2-devel@lists.linux.dev>; Sun, 02 Aug 2026 20:11:30 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785726052; x=1786330852; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=VWJ8xLFcXVUc0SNvEud0LPLdtHNvViXl8nMczowYX88=;
-        b=qFywJ4O/5eOOyB8YoJMxpA+V2JwqG+Ye6NSnxLUKVrwIU9dfsqI4QZ1H8LvhgvPdiw
-         SQc5tUCJUF0Lz57y5Qu0NJsRSy54lx2e5zqIzhkxLFmx0fpr+W0dnMBpnRSy60NoXlub
-         v4CSkiL4vF8gdz/LvEHTFvtrRBBny9xVb9oc+igCIAtiTM+2rXPnFaq6XrJloEAcD3J4
-         fZMDy7ofNFUDm0+KL5It23seZBPICOMNoHeHbql8TLbALvT72HicEFbHvdRnceu6LfMi
-         hzZWgDLPJqOtqMA8hPvwF85N0VBt90XGfG07w89NSvSkKxhjLiy6lGAtHRkkQF83qmWd
-         K2EQ==
+        d=gmail.com; s=20251104; t=1785726690; x=1786331490; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=r/saykZZ/5vcW+2cy8muslZqFNi+RNrcC1xh2TUTBUI=;
+        b=nUKZ8prOdK8CmajGAthUwqh7g+9CUSeTaxifRT7I+j4bQpU+mXCejcDYGmboB9ZJlm
+         P26cvek1EmzIs0nXIl4Je72pYtVQ5QFRH8OXXRn9rTVZpYlhwhp6BJsvS9i8Fzr9kYqR
+         2yWiPQeGt8f9IlJTO2qwRNTqNWfAgpbtZ7BUSl5W2NmRi/4V+kzzXWuKAnnuGVSq2kR7
+         Pewp4yUARnInQbob7gXTKPXLAB5q+CEUa2MBLUrJZEOn5DqPphXPqln7RMT6oOtjAhC4
+         16utJi1pXO+HX3fHInk1ZwG1195pQOGTvJdmKCA7LqbtW00h6ipNVXvxjJLT/m3lvyMS
+         B0tg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785726052; x=1786330852;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=VWJ8xLFcXVUc0SNvEud0LPLdtHNvViXl8nMczowYX88=;
-        b=bzyr1m1Ugz2dzQpcga2rHjzhdOnrTTwk1bd7WKQ3oLMhz7mbrqOc1S0QtBYJwZxBf8
-         dylZIH9ZTvXeMk006IpQI8tfjvaJUH1AMIWESNhZX5EWD2qkl4LZ5EvWqZl3k4UiAWIJ
-         EPJdTmYwYWItVYoVPkZP5VWTnL8VfjD71jezsHTz38tE3yDdpu9SZ/mrHegz1PiLWly7
-         oGuR3++5juLMU+mD18DvrJX2JuhD5uADoomMyFYd4dlUKEG/JJEqTKgzWVAHTWVHUwJX
-         0f35RiI/eii4qCQ/h8rd954U9s4gXFCRSeMS1FLH+NSFfMAP1VjkRroEqhVVLVNXHrqD
-         INFA==
-X-Gm-Message-State: AOJu0YyXDSfpH7hdCciDqiQSPLcgdYInKFC1jwKNM1Zx5htsBCXtOVk1
-	MwH3njS7e7SPfOXUGFlpUsJD17oT0kYM0gWZ5XA9/vgI60OO9a5yZA17
-X-Gm-Gg: AR+sD11kn1XkadsXY9b1kTMLf+AcirM29+/LvixTgkHITnnrGUrT19mYh6UJi0pusbm
-	Lxbnji5CFX2yod8a4yHa9pqAmjg62z/SblD7GGqUIDvMooNXw3ofNOhIdz1jzdcduNdjKxG+ySA
-	KS9N5O/kFWhtJtsPvdDXLJHRAXLjVvyZAXU1kT900Oz3bsUmJZ8bewBt7US+XjBxq2ayvPtTqCF
-	/zSmtz8B+oY92TS5dLAtYvSAHGuvykSaKaZJ4xmFTXtDwRp4pKkGi9FKPCbm5QY9wkej8skzVwR
-	9ZVAz3WFH0neysaruOQ+W2N12Cv4XZhx253YC9bLsYkt3zuVSWE6QlxSBiaYINIUJ8hwM7eAfC9
-	hz8l8Rc9n+qu3Xjs7etYfLV+CT2KDLKGAiQbCJiCXJUUlD8ph6zHKshws3ll3Therr+Ip4aMz/l
-	nvU7EBWa/lKjlSoZfdVV3pn2toqrXxXXMcDyZVlvd2JJ8O68O6hx2Ka9PkevHSA8rsHR4Oao3ue
-	33SHawQ64RikV8tdtxcbmcEWKEwDKvwSz4agbkE
-X-Received: by 2002:a05:6a00:2788:b0:847:b16b:46d9 with SMTP id d2e1a72fcca58-84ee4851d1fmr7449689b3a.34.1785726052315;
-        Sun, 02 Aug 2026 20:00:52 -0700 (PDT)
+        d=1e100.net; s=20251104; t=1785726690; x=1786331490;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=r/saykZZ/5vcW+2cy8muslZqFNi+RNrcC1xh2TUTBUI=;
+        b=ItdQbmaR+FN1vwcWXMG1vWFbcnh5pQ411ON4zrDz5pbpc+2UB3N222CWltVuRqg9AK
+         Pv/a5itHKv7GqPZTziEnrJmGrA+whCWoy414M4W0WSdTkJFQHOnYREr52bMpS0uLlTkC
+         PUynjqZ7pPH83TWo4C2YUHd4s/nTr9tHCy0vNglSnPfPuaLW2XqtuEJyNcgK+B49E+vk
+         tMumN9NOImo3LLZHwABCAVhVzH+ogfyxk9PfpQmyYLPXnBvGgMMYFd9fcPsbVClAtn0q
+         CwyPWVHG7+sA/3ZaKT97z7eDWKv7aL/1vlAcFlxmetnj/fZK73cro1qrKaboN14RRg80
+         FdgA==
+X-Gm-Message-State: AOJu0Yy+F5jfeXxPe7uD99P8klTt6PmdtDUQk8YMWTfZjZBRdnkG/PF+
+	9AoySNYKUuOVTrZPlQMq3oi+cFXzL1JuYZ8XdaEzPe4rI4btur9C63fB
+X-Gm-Gg: AR+sD11kkZHqzltZ/ZwfYhSRYX0JAI5W6a+kARINYU+n4IPP2a1tVgHFHdikDFVLoU8
+	GIR4UQKTi3v8zTay6HQeBQ2Rt7iXnxiFrK+KzTlXgWZGcYqyIVu5Yv45YO+XoOHyagFJ/4qXkfw
+	qQbnzBBbp8WM25iIwQ5KOcpTgVuXhOhUELSlgCfD/UOQ+xwVHwNHh+P8hNzep+e6fS4gRURlvmN
+	TU/pezPE6BcM9vb5Sgdw+Nodw68uPqjlAJtFiNdIT8b/qEt2ZYuNX6CdR+ldUjLnXcWAs8DXCiB
+	lJ4jJCJ2CA5OjZN1ksBYYUxD7f29bjNJo7Jvei/AbbseqxIoZ7puClrzaB73wfklv7xUiAMzxyK
+	/dxDqaN7WafardkUoUoBhfjrkm6SKfCcDBQtFL1HDP2SMFOAU6wsr4wQaPOQ1MaTMuG/zk7BP9w
+	em8yPl4y9wkIdIYa96MQ62A8fiSj/0zXN+w838YSwAPJ1Ccy31EvyWePYhbjO/KIKwDp2udynbF
+	rVRkZzgIudlakxkH+JfXjG4WJ2tDg==
+X-Received: by 2002:a05:6a00:3d12:b0:84e:216d:7e52 with SMTP id d2e1a72fcca58-84ee479b0c4mr6605134b3a.14.1785726689723;
+        Sun, 02 Aug 2026 20:11:29 -0700 (PDT)
 Received: from gmail.com ([138.199.21.246])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-84edc29f2b9sm2962878b3a.35.2026.08.02.20.00.47
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cbe39ea0a73sm2979886a12.23.2026.08.02.20.11.25
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 02 Aug 2026 20:00:51 -0700 (PDT)
+        Sun, 02 Aug 2026 20:11:29 -0700 (PDT)
 From: ZhengYuan Huang <gality369@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
-	akpm@linux-foundation.org
+	tao.ma@oracle.com
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	baijiaju1990@gmail.com,
@@ -70,12 +68,10 @@ Cc: ocfs2-devel@lists.linux.dev,
 	zzzccc427@gmail.com,
 	tom442288@tuta.io,
 	ZhengYuan Huang <gality369@gmail.com>
-Subject: [PATCH 2/2] ocfs2: validate DIO orphan slot during inode read
-Date: Mon,  3 Aug 2026 11:00:07 +0800
-Message-ID: <20260803030007.3993199-3-gality369@gmail.com>
+Subject: [PATCH] ocfs2: validate global bitmap cl_bpc before resize
+Date: Mon,  3 Aug 2026 11:11:16 +0800
+Message-ID: <20260803031116.3994362-1-gality369@gmail.com>
 X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260803030007.3993199-1-gality369@gmail.com>
-References: <20260803030007.3993199-1-gality369@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -85,62 +81,75 @@ MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
 [BUG]
-A corrupted append-DIO dinode (high byte at offset 0xa1 
-corrupted from 0 to 1) can carry an i_dio_orphaned_slot
-outside the mounted filesystem slot range and trigger a 
-use-after-free error:
+A corrupted global bitmap inode can make online group extension scan past
+the end of a group descriptor bitmap:
 
-BUG: KASAN: slab-use-after-free in ocfs2_get_system_file_inode+0x780/0x820 fs/ocfs2/sysfile.c:102
-Read of size 8 at addr ffff88800b767c00 by task kworker/u8:3/85
+BUG: KASAN: use-after-free in _find_next_bit+0xef/0x120 lib/find_bit.c:157
+Read of size 8 at addr ffff888021b52000 by task syz.0.34/409
 Call Trace:
+ <TASK>
  ...
- ocfs2_get_system_file_inode+0x780/0x820 fs/ocfs2/sysfile.c:102
- ocfs2_wipe_inode+0x292/0xf70 fs/ocfs2/inode.c:840
- ocfs2_delete_inode fs/ocfs2/inode.c:1155 [inline]
- ocfs2_evict_inode+0x6c9/0x1170 fs/ocfs2/inode.c:1295
- evict+0x38e/0x8f0 fs/inode.c:810
- iput_final fs/inode.c:1914 [inline]
- iput fs/inode.c:1966 [inline]
- iput+0x55b/0x8b0 fs/inode.c:1926
- ocfs2_recover_orphans+0x610/0xe40 fs/ocfs2/journal.c:2374
- ocfs2_complete_recovery+0x5af/0xd00 fs/ocfs2/journal.c:1373
+ _find_next_bit+0xef/0x120 lib/find_bit.c:157
+ find_next_bit include/linux/find.h:73 [inline]
+ find_next_bit_le include/linux/find.h:518 [inline]
+ ocfs2_find_max_contig_free_bits+0x53/0xb0 fs/ocfs2/suballoc.c:1292
+ ocfs2_update_last_group_and_inode fs/ocfs2/resize.c:127 [inline]
+ ocfs2_group_extend+0x83e/0x1ae0 fs/ocfs2/resize.c:350
+ ocfs2_ioctl+0x175/0x6e0 fs/ocfs2/ioctl.c:869
+ vfs_ioctl fs/ioctl.c:51 [inline]
+ __do_sys_ioctl fs/ioctl.c:597 [inline]
+ __se_sys_ioctl fs/ioctl.c:583 [inline]
+ __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
  ...
 
 [CAUSE]
-ocfs2_del_inode_from_orphan() uses i_dio_orphaned_slot to index the
-slot-local system inode cache. The dinode validator does not check
-this active slot, so an out-of-range value produces an invalid cache
-entry pointer that is dereferenced as an inode pointer.
+ocfs2_group_extend() trusts the global bitmap dinode's cl_bpc value.
+If its high byte corrupted from zero to 0xc9 makes cl_bpc 51457.
+Extending by seven clusters narrows their product to a u16 value of
+32519 and raises a 2048-bit group to 34567 bits, beyond its 32256-bit
+bitmap. The subsequent maximum-free-run scan then reads into the next
+page.
 
 [FIX]
-Reject an active i_dio_orphaned_slot outside the slot range during
-dinode validation, before DIO orphan recovery can consume it.
+Reject a global bitmap whose cl_bpc is not one before using it in any
+resize arithmetic. The global allocator has exactly one bitmap bit per
+cluster, so this validates the invariant at the cold online-resize
+boundary and reports metadata corruption instead of enlarging bg_bits
+past the descriptor.
 
-Fixes: 06ee5c75b575 ("ocfs2: add functions to add and remove inode in orphan dir")
+Fixes: d659072f7368 ("[PATCH 1/2] ocfs2: Add group extend for online resize")
 Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
 ---
- fs/ocfs2/inode.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ fs/ocfs2/resize.c | 9 ++++++++-
+ 1 file changed, 8 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 358ab3535366..180107a11046 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1536,6 +1536,14 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		goto bail;
+diff --git a/fs/ocfs2/resize.c b/fs/ocfs2/resize.c
+index 6375d5035972..556aaa319621 100644
+--- a/fs/ocfs2/resize.c
++++ b/fs/ocfs2/resize.c
+@@ -311,6 +311,14 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
+ 		goto out_unlock;
  	}
  
-+	if ((le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
-+	    le16_to_cpu(di->i_dio_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
-+		rc = ocfs2_error(sb, "Invalid dinode %llu: DIO orphaned slot %u\n",
-+				 (unsigned long long)bh->b_blocknr,
-+				 le16_to_cpu(di->i_dio_orphaned_slot));
-+		goto bail;
++	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
++	if (cl_bpc != 1) {
++		ret = ocfs2_error(main_bm_inode->i_sb,
++				  "Invalid global bitmap bits per cluster %u\n",
++				  cl_bpc);
++		goto out_unlock;
 +	}
 +
- 	/*
- 	 * Reject dinodes whose i_mode does not name one of the seven
- 	 * canonical POSIX file types.  ocfs2_populate_inode() copies
+ 	if (le16_to_cpu(fe->id2.i_chain.cl_cpg) !=
+ 		ocfs2_group_bitmap_size(osb->sb, 0,
+ 					osb->s_feature_incompat) * 8) {
+@@ -332,7 +340,6 @@ int ocfs2_group_extend(struct inode * inode, int new_clusters)
+ 	}
+ 	group = (struct ocfs2_group_desc *)group_bh->b_data;
+ 
+-	cl_bpc = le16_to_cpu(fe->id2.i_chain.cl_bpc);
+ 	if (le16_to_cpu(group->bg_bits) / cl_bpc + new_clusters >
+ 		le16_to_cpu(fe->id2.i_chain.cl_cpg)) {
+ 		ret = -EINVAL;
 -- 
 2.43.0
 
