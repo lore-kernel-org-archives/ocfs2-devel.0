@@ -1,219 +1,120 @@
-Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from casper.infradead.org (casper.infradead.org [90.155.50.34])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E45EB1DDC33
-	for <ocfs2-devel@lists.linux.dev>; Tue,  4 Aug 2026 11:28:16 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AB72E3E6DD5;
+	Tue,  4 Aug 2026 14:07:10 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=90.155.50.34
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785842898; cv=none; b=oIXGZc1qoHmRdFUjQlZnG8vypV734NaH6aXV19mRBzTYZWrsVLJIthseY0q8gCDMDL9YQLOlbx7WXhYQO8tbiKgmkAHimYnEQlJ3yhJ08P52J/K//sYQm3eVJitWIe6MPzOlzbnZL/HDuyRpID3/JdN8csFKTmIfVrikKLIu728=
+	t=1785852434; cv=none; b=h7AKsUpDlx96k18p82FIEU/FmOqDI9PoEhg+D14IHV32s9nD4sod2QcubzzfTxIbc6KxP1H+8hFpG9X3cn8KDbjHRac//h7djJxl+pCRDVF6+5yiyt2HUKDdTV037TqRh5dRtlytcghKpL4hB3s3VXRrIB7SbaX6hF43z3Soyrw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785842898; c=relaxed/simple;
-	bh=KO2OV2STES7nLJI5YcagXubEzsSjxF6ir1qysG34SFI=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=RsyhF6cimHsUd0JhWkXSdBuY/QbFwEXVR2NDdbk89m8IKMiLRyjYV4DlDn18gQpxhAPebiryyuL8AXAEhf5qxq5Nethx0TFH9J3MJIUXif+XlBm2qmxc4DuTlJ0koEugJOui49lHQN/GI3UtSxIj1WXDtzVnuCL0Y7K/fve+mLY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=bQvvODt0; arc=none smtp.client-ip=209.85.214.178
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1785852434; c=relaxed/simple;
+	bh=Bm5Vnjc63amehXyOZ5PfBGvIgD0AdigchQjFXrx5X/c=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=codxBbYfninI5kqceKiL2o4VTqJDMf7BVgP5xB4H2LN9zy+e40sK1RlOjWVOynDHNirifn3/4MUq3NQQgz/HLf0CvnTmeUPol1XwfDSkcgijPl5Mi4pwn5pXnq8zDW3pz/BeAYG73sVC9Lt+Oir0qmo47C8xZ14TySCDEgDtwxY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org; spf=pass smtp.mailfrom=infradead.org; dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b=ZxZ+jWDS; arc=none smtp.client-ip=90.155.50.34
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=infradead.org
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=infradead.org
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="bQvvODt0"
-Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-2caf228a910so32970955ad.2
-        for <ocfs2-devel@lists.linux.dev>; Tue, 04 Aug 2026 04:28:16 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785842896; x=1786447696; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=wLGM4HsxB9QNmi4xynGNGSDdZvCkfUWtP8BwxzK2OkI=;
-        b=bQvvODt0C2N5YgpOvgRTmomrjLnb6cVH21fSQ/Q9yHB8GydBjG8ughkBZAWpr7UZXQ
-         CiWiklLp5B0ZCt9A+hNWMBN/xPADf9RWIkgl6lmWJTq8SSfmmTRypnK3Ua/9lPCpdt5U
-         aWOH3Jp0GoqAuY2ziXs5kjJV31BqmxV3jdU+S6PZ9GIjgzv0BisJtuVd8Ou3fIJ0n4jg
-         ggr2myjy6vyh9t1UrunEU/NcJrIl5rG27fmwI2AOopyqg/zt3FCkGWWQ9dcdFGkgeK3X
-         v1YRNK66xwQ37Vnltnc6lHRQqGrEPGxLqrhg9JOuCaXnRQXp5WKzcyneXyQAIiHiDyhE
-         DTJw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785842896; x=1786447696;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=wLGM4HsxB9QNmi4xynGNGSDdZvCkfUWtP8BwxzK2OkI=;
-        b=pAWbdOqJN7h11NbgkJelE388Um2i6dXLbtTVBErzB5LWs33hOdkkaKeciLVi+2jzPw
-         GPRqIVhFfiFZncDtmRkNEpy7kdvDJZi5JklDxzHeZEWam8qavQggDoEJe2shhpDbGhbG
-         MyoD+5P/PolXUADaeEWycRSXIdqkCUP3+YnTuLBlEgNmMz0u7co5Y0EEfy1O+GOyH/GG
-         ULI4XUEezH3Ym1y671pzlgDksUqzEs3QtmNflBkmsz18JZCGp2EQwvVh1+0OSAOYXs2s
-         sNdaunzPU1yiFJn836/PNgTxBS0m2mPvBwysxkryywOSFxSS+ZEAANsU8sOJHmIWNYJ2
-         yiAw==
-X-Gm-Message-State: AOJu0YwEJjRWt1ZmByANpCVkjE/54kDBN4OLHWD+Qpyahn1oIP8q1N+M
-	sqmidKpGmLoGLDowf8GtYjZl5kKuEOXHRQHp4DNXauvYfQsjlJRnvS/G
-X-Gm-Gg: AR+sD10i5gl4t8+RXm+Npe97BbFkFbFfy93XiisdX7Dz8J9ROwtXvuX4j8IQYgEMAbd
-	KameyBkHRCfax3ysUOM2zfVNxF+NDOd/QVugHYDL4uvtJJv0MgzWvzu3Dm1F8zA+OBoEDJX2eIf
-	5TuDYu/JohwEhQSsjoZB+pvhXl/DTSm7zh/7xvqm8T1ksxEf+WPtx5Tn3C3/ducLBLY7o1auFdr
-	9qNxi5W0+8P+i75RP5hKW6bsgFQIwK5NQSgUVomWIzaCmBBegD00gS6dvZCp+DzqvW1RNLuvMZ5
-	KdKyrSdhBYcgCqdy4FX4l0J5p9xfUyHr9zQkXXqXW3SNZoJ+aKKVj8c4inifh1WwkCgpJqSlLnl
-	Hzze3DwFlmjBktRioil1tIofznqtdGibI2XWGm6ke2RwZ6hkRLMhUfWeJlZ+1nBlPP5GIi/reuC
-	ZidfUCzyIXCqwglLYkQ+5M6gCTTFRhymnxRHhr716/0Yu93ug+TCF4CL6vLV9E+3tTDuDByA51b
-	hAVLbS+kZhOm/mEttKESIjX8nQgRA==
-X-Received: by 2002:a17:902:ce0b:b0:2cc:f4d4:299f with SMTP id d9443c01a7336-2d05229b34fmr146593905ad.27.1785842895912;
-        Tue, 04 Aug 2026 04:28:15 -0700 (PDT)
-Received: from gmail.com ([138.199.21.246])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d0a9f936e2sm5751595ad.2.2026.08.04.04.28.12
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 04 Aug 2026 04:28:15 -0700 (PDT)
-From: ZhengYuan Huang <gality369@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	r33s3n6@gmail.com,
-	zzzccc427@gmail.com,
-	ZhengYuan Huang <gality369@gmail.com>
-Subject: [PATCH] ocfs2: reject inconsistent local xattr entries
-Date: Tue,  4 Aug 2026 19:28:06 +0800
-Message-ID: <20260804112806.1219362-1-gality369@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (2048-bit key) header.d=infradead.org header.i=@infradead.org header.b="ZxZ+jWDS"
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
+	d=infradead.org; s=casper.20170209; h=In-Reply-To:Content-Type:MIME-Version:
+	References:Message-ID:Subject:Cc:To:From:Date:Sender:Reply-To:
+	Content-Transfer-Encoding:Content-ID:Content-Description;
+	bh=6F+JwN7DO/cd0y1I7bzDtc5rv4FM9PTauEYvrCLg2R4=; b=ZxZ+jWDSIo89DonIl351mZ1aKN
+	C8M1WIyMLHeQP9vUNH778dS9Vj5V7H6SteQhtNNJy2BTQE1+zjtcaQ8PrQfKmDW+tH64c/2lJIx5J
+	/TOtGEGQrpnofoFUfT/WWL0Cv+GbnIIdqCj2GXk2CGMZRCh6SPvwrX9rqI4/CUjnksBFXXGaBhOJq
+	qra1V3IGRbnAnLNmJq9onijewsXstNFJ3aQxGvPDmdTulS27dOlm1p6q8VRTzlCnSSwI1rxIqb7SD
+	LYOtWhQtngxle5bdUDKicIhmAj76xqeZLYNdlNU5olvVQcjM9g+ddP1bq4LuD3cDkrwDnzWOSdsjL
+	JFKpbBbA==;
+Received: from willy by casper.infradead.org with local (Exim 4.99.1 #2 (Red Hat Linux))
+	id 1wrFnI-00000003xve-3IqV;
+	Tue, 04 Aug 2026 14:07:00 +0000
+Date: Tue, 4 Aug 2026 15:07:00 +0100
+From: Matthew Wilcox <willy@infradead.org>
+To: Jan Kara <jack@suse.cz>
+Cc: Chao Shi <coshi036@gmail.com>, Christian Brauner <brauner@kernel.org>,
+	Alexander Viro <viro@zeniv.linux.org.uk>,
+	linux-fsdevel@vger.kernel.org, Theodore Ts'o <tytso@mit.edu>,
+	Andreas Dilger <adilger.kernel@dilger.ca>,
+	Baokun Li <libaokun@linux.alibaba.com>,
+	Ojaswin Mujoo <ojaswin@linux.ibm.com>,
+	Ritesh Harjani <ritesh.list@gmail.com>,
+	Zhang Yi <yi.zhang@huawei.com>, Bob Copeland <me@bobcopeland.com>,
+	Namjae Jeon <linkinjeon@kernel.org>,
+	Sungjong Seo <sj1557.seo@samsung.com>,
+	Yuezhang Mo <yuezhang.mo@sony.com>,
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Andreas Gruenbacher <agruenba@redhat.com>,
+	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+	gfs2@lists.linux.dev, linux-karma-devel@lists.sourceforge.net,
+	linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 02/19] buffer: allow a buffer_head to point at memory
+ outside the page cache
+Message-ID: <anHyBATDe8yQEFNi@casper.infradead.org>
+References: <cover.1785621505.git.coshi036@gmail.com>
+ <41c6fee66724e374d4682124a1eb80041e22efb9.1785621505.git.coshi036@gmail.com>
+ <z5jfe6bsxhgqqgjtxcm7ass2fslc4ynizvpmzlqxtr6rrfaopu@fxzntlxafmxj>
+ <anDW5UTbF2d0EQmr@casper.infradead.org>
+ <74ts4lwsq73mce3rvc7imisot436742ykzahnogysnbklot45b@q3nhfq55knx3>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <74ts4lwsq73mce3rvc7imisot436742ykzahnogysnbklot45b@q3nhfq55knx3>
 
-[BUG]
-A corrupt OCFS2 xattr entry can set OCFS2_XATTR_ENTRY_LOCAL while
-keeping xe_value_size larger than OCFS2_XATTR_INLINE_SIZE.Once
-that entry reaches namevalue_size_xe(), the filesystem trips over:
+On Tue, Aug 04, 2026 at 10:07:39AM +0200, Jan Kara wrote:
+> > Yes, agreed.  I think it's fine to add in some 'if (!bh->b_folio)'
+> > tests, but only where they're needed for the occasional consumer.  This
+> > really is a rare (but legitimate) case.
+> 
+> Yes. If we were to write this code from scratch, I'd rather push for
+> forming and submitting the bio directly instead of trying to bend the bh
+> layer for these temporary bhs. Eventually we might want to do this cleanup
+> anyway (since bhs don't really buy us much in this path) but not in this
+> patch set.
 
-kernel BUG at fs/ocfs2/xattr.c:231!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-RIP: 0010:namevalue_size_xe fs/ocfs2/xattr.c:231 [inline]
-RIP: 0010:ocfs2_xa_block_wipe_namevalue+0x2e4/0x330 fs/ocfs2/xattr.c:1638
-Call Trace:
- ocfs2_xa_wipe_namevalue fs/ocfs2/xattr.c:1470 [inline]
- ocfs2_xa_remove_entry+0xae/0x1d0 fs/ocfs2/xattr.c:1941
- ocfs2_xa_remove fs/ocfs2/xattr.c:2043 [inline]
- ocfs2_xa_set+0x11a8/0x30a0 fs/ocfs2/xattr.c:2247
- ocfs2_xattr_ibody_set+0x302/0xc50 fs/ocfs2/xattr.c:2795
- __ocfs2_xattr_set_handle+0x7e6/0xdb0 fs/ocfs2/xattr.c:3416
- ocfs2_xattr_set+0x1447/0x2610 fs/ocfs2/xattr.c:3650
- ocfs2_xattr_security_set+0x37/0x50 fs/ocfs2/xattr.c:7241
- __vfs_removexattr+0x14d/0x1d0 fs/xattr.c:518
- cap_inode_killpriv+0x29/0x50 security/commoncap.c:355
- security_inode_killpriv+0x105/0x220 security/security.c:2724
- setattr_prepare+0x147/0x8a0 fs/attr.c:219
- ocfs2_setattr+0x504/0x1fd0 fs/ocfs2/file.c:1148
- notify_change+0x4b5/0x1030 fs/attr.c:546
- do_truncate+0x1d2/0x230 fs/open.c:68
- handle_truncate fs/namei.c:3596 [inline]
- do_open fs/namei.c:3979 [inline]
- path_openat+0x260f/0x2ce0 fs/namei.c:4134
- do_filp_open+0x1f6/0x430 fs/namei.c:4161
- do_sys_openat2+0x117/0x1c0 fs/open.c:1437
- ...
+I think that would be better, but it is out of scope.
 
-[CAUSE]
-namevalue_size_xe() assumes on-disk xattr entries keep the local flag
-and value size consistent, but OCFS2 does not reject an entry that
-claims local storage for a value larger than the inline limit before
-handing that entry to namevalue_size_xe().
+> > > >  static void buffer_set_crypto_ctx(struct bio *bio, const struct buffer_head *bh,
+> > > >  				  gfp_t gfp_mask)
+> > > >  {
+> > > > -	const struct address_space *mapping = folio_mapping(bh->b_folio);
+> > > > +	const struct address_space *mapping;
+> > > >  
+> > > >  	/*
+> > > >  	 * The ext4 journal (jbd2) can submit a buffer_head it directly created
+> > > > -	 * for a non-pagecache page.  fscrypt doesn't care about these.
+> > > > +	 * for memory that is not in the page cache at all.  fscrypt doesn't
+> > > > +	 * care about these.
+> > > >  	 */
+> > > > +	if (!bh->b_folio)
+> > > > +		return;
+> > > > +	mapping = folio_mapping(bh->b_folio);
+> > > >  	if (!mapping)
+> > > >  		return;
+> > 
+> > Do we want to call folio_mapping() here?  The only case where I can see
+> > this being useful is if we attach a buffer_head to an anonymous folio,
+> > and I don't see a good reason to do that.  I think this can just be
+> > 
+> > 	mapping = bh->b_folio->mapping;
+> 
+> For all I know yes, bh->b_folio->mapping should be enough here. But I
+> thought folio_mapping() is kind of preferred to open-coding?
 
-The exact-match lookup path can return such an entry through xs->here,
-and bucket defragmentation and splitting can also walk the corrupt entry
-directly while reorganizing metadata.
+It rather depends on the path we're talking about.  Looking at the
+implementation of folio_mapping(), it's actually mildly dangerous
+to call folio_mapping() in this path.  If we were ever to point a
+buffer_head at some memory on a page in swap cache, we'd get a pointer
+to a swap_address_space.  I think we'd safely crash in that case because
+mapping->host would be NULL, but in other contexts doing things to a
+swap mapping would be quite bad.
 
-[FIX]
-Add a small validator for the local/value_size invariant and call it in
-the paths that feed disk entries to namevalue_size_xe(): exact-match
-lookup, bucket lookup results, bucket defragmentation, and bucket
-splitting.
-
-Corrupt metadata is now reported with ocfs2_error() and -EFSCORRUPTED
-instead of crashing the kernel with BUG_ON().
-
-Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
----
-No Fixes tag was added because this is more like a defensive check
-that is long overdue, not a regression that can be clearly attributed
-to a specific introduction commit.
----
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 86cfd4c2adf9..63b1e55b242f 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -237,6 +237,23 @@ static int namevalue_size_xe(struct ocfs2_xattr_entry *xe)
- 	return namevalue_size(xe->xe_name_len, value_len);
- }
- 
-+static int ocfs2_validate_xattr_entry(struct inode *inode,
-+				      struct ocfs2_xattr_entry *xe)
-+{
-+	u64 value_len = le64_to_cpu(xe->xe_value_size);
-+
-+	if (value_len > OCFS2_XATTR_INLINE_SIZE &&
-+	    ocfs2_xattr_is_local(xe)) {
-+		ocfs2_error(inode->i_sb,
-+			    "Inode %llu has corrupt xattr entry: local value_size %llu\n",
-+			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			    value_len);
-+		return -EFSCORRUPTED;
-+	}
-+
-+	return 0;
-+}
-+
- 
- static int ocfs2_xattr_bucket_get_name_value(struct super_block *sb,
- 					     struct ocfs2_xattr_header *xh,
-@@ -1099,6 +1116,7 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
- 	struct ocfs2_xattr_entry *entry;
- 	size_t name_len;
- 	int i, name_offset, cmp = 1;
-+	int ret;
- 
- 	if (name == NULL)
- 		return -EINVAL;
-@@ -1121,6 +1139,11 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
- 				return -EFSCORRUPTED;
- 			}
- 			cmp = memcmp(name, (xs->base + name_offset), name_len);
-+			if (!cmp) {
-+				ret = ocfs2_validate_xattr_entry(inode, entry);
-+				if (ret)
-+					return ret;
-+			}
- 		}
- 		if (cmp == 0)
- 			break;
-@@ -3823,6 +3846,9 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
- 
- 		xe_name = bucket_block(bucket, block_off) + new_offset;
- 		if (!memcmp(name, xe_name, name_len)) {
-+			ret = ocfs2_validate_xattr_entry(inode, xe);
-+			if (ret)
-+				break;
- 			*xe_index = i;
- 			*found = 1;
- 			ret = 0;
-@@ -4463,6 +4489,10 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	xe = xh->xh_entries;
- 	end = OCFS2_XATTR_BUCKET_SIZE;
- 	for (i = 0; i < le16_to_cpu(xh->xh_count); i++, xe++) {
-+		ret = ocfs2_validate_xattr_entry(inode, xe);
-+		if (ret)
-+			goto out;
-+
- 		offset = le16_to_cpu(xe->xe_name_offset);
- 		len = namevalue_size_xe(xe);
- 
-@@ -4745,6 +4775,10 @@ static int ocfs2_divide_xattr_bucket(struct inode *inode,
- 	name_value_len = 0;
- 	for (i = 0; i < start; i++) {
- 		xe = &xh->xh_entries[i];
-+		ret = ocfs2_validate_xattr_entry(inode, xe);
-+		if (ret)
-+			goto out;
-+
- 		name_value_len += namevalue_size_xe(xe);
- 		if (le16_to_cpu(xe->xe_name_offset) < name_offset)
- 			name_offset = le16_to_cpu(xe->xe_name_offset);
--- 
-2.43.0
+So I think this should just be folio->mapping; don't risk getting a
+pointer to a swap mapping.
