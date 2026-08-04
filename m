@@ -1,527 +1,154 @@
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pj1-f45.google.com (mail-pj1-f45.google.com [209.85.216.45])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CF1703FADFD;
-	Tue,  4 Aug 2026 06:36:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 05F2341D205
+	for <ocfs2-devel@lists.linux.dev>; Tue,  4 Aug 2026 06:45:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785825375; cv=none; b=aB24VyrKwQB/uV33Q0U5v2I7OEoGnhpDhDqGdYxRZOrlyHp46/BebQ1c08bnStvi0pT66KoJvMoqzJph6W4wIENMi6PnHiBt+GUbRcUMx/rtT4NpkzqiBPsyUd+dlYdXbl3E8CtFV9Uctl+vAA1I6NyKw71pBvRJNGkVn4PaZ88=
+	t=1785825926; cv=none; b=S6A399UoE7g2VFj/UobNe4S71TW9F6dCb6lBRLzArhjbLvIVjwf3MVgR548YYMnz0/2HymudeuKcaHrIk3k8k2n9ilEohAG9WaUksJkVavKAcR4NeJluucYNGTgxnkq4yOlFRDZn+jPVKFEarLeqQ6o1hbdew+squaIOc1agTpY=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785825375; c=relaxed/simple;
-	bh=1nu7MCghf8EnTXHq9nkl7aNDn6uCtPxmvo3IOfqCYWU=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=umibOidf/djEJHKde4UDDBE1Meiig7+F4m7UGZnUNtB/QRU/HVEnVuyQnUHbGsfaV7HEB/bWi123MydAH22nnxK1AIpH7X2gCqv4+XK96mDJ7fPMqc6U+9FCpql3k4aN2r7AqYsVaYisi+Lub7hYYKIliVYqQ2KofZT34rMzVdw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=K6omRzJv; arc=none smtp.client-ip=115.124.30.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1785825926; c=relaxed/simple;
+	bh=CP/QiDGE1eTcMdAzoQy/MuB8aGnZqOPRGI3EmSy9FvU=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=XYXtcWjzYCyMulKPlEq+pbSBZOFMblWpsM6m413YrQKHmsmyJB/WAgsqiksyvGghniERqqiO3RlAx4CrSQyEAN5wc4JPzFMkxhonU08tPmU1BLp80c0op7v6OK6IsEMk7OqzRzdRVgxvgILoK/BE6dUTF1HOtFPt9R+yvyxreTs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=MC4W6b78; arc=none smtp.client-ip=209.85.216.45
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="K6omRzJv"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1785825364; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=EWX7mfH9rNFRR4DQrB+AxMKw0bmkEltXSsKC4HTX0+I=;
-	b=K6omRzJvLBbNLb1HCq6VXw2NE+4T0AOY20zCkUJy55xVEda2lMigIEHVN7ZYofu6yI3lncTF9z/fVykbkNUzzCt6WxVTlsn5PGXZfcVN/L7u5dbaDxDFFT6pgRhR3t1VYtj7YpmYM8C0bplg2o4kD2ZqPQvHfkhviyicrihovmE=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R561e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0X8MwMul_1785825362;
-Received: from 30.221.129.86(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X8MwMul_1785825362 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 04 Aug 2026 14:36:02 +0800
-Message-ID: <f98ff905-74bf-4017-a673-fd28f30f11d3@linux.alibaba.com>
-Date: Tue, 4 Aug 2026 14:36:02 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="MC4W6b78"
+Received: by mail-pj1-f45.google.com with SMTP id 98e67ed59e1d1-38f0f132f56so482442a91.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 03 Aug 2026 23:45:23 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1785825923; x=1786430723; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=AH3vppyjD/gVbDWLVTc33GyNBGQ7brJNCu8pjSkSL2g=;
+        b=MC4W6b789FXn2U2RyU74YIPG+OGp7BplSE6EuOLA1t/PlV1BzShu10aOt7HsL8MKx6
+         MNNqAMiaFiemUP4P5bDfchFUr375KaM25AjzldEuCppHkB5ccd1h20lGuC4RtRjb36pG
+         FucFJFe7x/08kmKmb9pdA8H1jRrHSB/td+DRHmmOz6VBEpwnLKtOL/RYbppQ8ekhOM5w
+         I63QZdmRk908t5G32YUvjf6li8+BEogFS52hp6BfKtRSjowyLx3k9ZXs/3yk98rm7N9V
+         zAE+B5nyS+QFf7GoVMd6EYm3AQvRU7lO6i8pQ0luUAujb24JF1p4yEr8elzh7JpkQ0cX
+         d4Fg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1785825923; x=1786430723;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=AH3vppyjD/gVbDWLVTc33GyNBGQ7brJNCu8pjSkSL2g=;
+        b=f4dnbAMEYX5EFvpAkxmhJuiw3tgw+Wzkllv4K7KUTdLflF0wNpfgTXrTfZ08uM3TR5
+         GYMjx5sUtXm+LDoLj+srQWxK6axTUnO1EtDaFUqHXDyw4fFf8ywbEoHS+6dQzJjSM8bB
+         7D8x7BGHFfCZXBosl62xWYQFFxzNPSm6zsEo3YxyrZjnoregxMsFUDXsXrcsZPJV9ZRl
+         NLcbtzGbeUDDE2Xb4B5dnrUp8xJBo84S34clI1y0xFDi00vdXrElZOsYUsD7B0vENXli
+         QcVlWhjpgJXEFpUj9GoYmgx4a2RDeZKj8aGMhkYlNrHzexNxJwECx2/WceQcXRatfcDb
+         BY+w==
+X-Gm-Message-State: AOJu0Yyprg9ixFHEWgLltdmFcMWXbPgXqky09+2iCvAerVc2RRlGVIS5
+	CLVIHKP8/ffGdjlijYRST5ZtW8fMbcE7bpslQ5WJXb6+YLialwpqT3qw
+X-Gm-Gg: AR+sD13MSGVlV2jd9ncHRcqiTk0F58l8NipvFDLBtSvX0Aw/7ooFJfKh7KkoNDsGVGy
+	+Qc7JIOfLzq2I+6v7bsxl6ImjzkvlRYcVj87w70zg+YF3/YbAS3hWApNtGw2+HX4Qq2JfsNZYvL
+	L/DxqMu9HvzXpF+rq+G0cjbQuuWB6nAWCLPRKBv7YKNEbJ/kc+O5AKrpsKXAxrrxCjR+zL+M2zt
+	dPVOkJM7UCSTJYoI0B+LKMsWwVw+ZLufn/yJzC3+a2KmFlhSkPG2pJYwZmbLnUp2T8/4B6bicWJ
+	1lc1Dgv4CHFMa8yBzge3HztfAZhp55QFU1u4NKbZtPPXqWLgJSYjT/DBlhe8x6I3V1UrRa80RLO
+	z4Of+y0/lGvcfYI7ESMXES6MA92aY1ZlcQaIQ6wvLP8mzzliEqe8EBoi1c4WYI0mUPxOZJylQfc
+	C2dICdUDMR/zEEKVtl8CZ90p6UfkSeoiQXWQtg+B86Rbh/+bQgPXUC0Nac3QgdDPJTFSFDX24u8
+	b6uJTde0oAKkpjrdEjMeEutg1+wiA==
+X-Received: by 2002:a17:90b:3cc5:b0:37f:d265:18d2 with SMTP id 98e67ed59e1d1-38fec00df2emr1699403a91.7.1785825923109;
+        Mon, 03 Aug 2026 23:45:23 -0700 (PDT)
+Received: from gmail.com ([138.199.21.246])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-38febfdae78sm841640a91.4.2026.08.03.23.45.18
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 03 Aug 2026 23:45:22 -0700 (PDT)
+From: ZhengYuan Huang <gality369@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	r33s3n6@gmail.com,
+	zzzccc427@gmail.com,
+	tom442288@tuta.io,
+	ZhengYuan Huang <gality369@gmail.com>
+Subject: [PATCH v2] ocfs2: validate global bitmap cl_bpc before resize
+Date: Tue,  4 Aug 2026 14:44:45 +0800
+Message-ID: <20260804064445.766072-1-gality369@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix circular locking dependency in
- ocfs2_init_acl()
-To: syzbot <syzbot@kernel.org>,
- Krystian Kaniewski <krystianmkaniewski@gmail.com>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- syzkaller-bugs@googlegroups.com, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, syzbot@lists.linux.dev
-References: <4094de06-9b69-4174-b2ee-08126dffc693@mail.kernel.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <4094de06-9b69-4174-b2ee-08126dffc693@mail.kernel.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+[BUG]
+A corrupted global bitmap inode can make online group extension scan past
+the end of a group descriptor bitmap:
 
+BUG: KASAN: use-after-free in _find_next_bit+0xef/0x120 lib/find_bit.c:157
+Read of size 8 at addr ffff888021b52000 by task syz.0.34/409
+Call Trace:
+ ...
+ _find_next_bit+0xef/0x120 lib/find_bit.c:157
+ find_next_bit include/linux/find.h:73 [inline]
+ find_next_bit_le include/linux/find.h:518 [inline]
+ ocfs2_find_max_contig_free_bits+0x53/0xb0 fs/ocfs2/suballoc.c:1292
+ ocfs2_update_last_group_and_inode fs/ocfs2/resize.c:127 [inline]
+ ocfs2_group_extend+0x83e/0x1ae0 fs/ocfs2/resize.c:350
+ ocfs2_ioctl+0x175/0x6e0 fs/ocfs2/ioctl.c:869
+ vfs_ioctl fs/ioctl.c:51 [inline]
+ __do_sys_ioctl fs/ioctl.c:597 [inline]
+ __se_sys_ioctl fs/ioctl.c:583 [inline]
+ __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
+ ...
 
-On 7/30/26 3:42 PM, syzbot wrote:
-> From: Krystian Kaniewski <krystianmkaniewski@gmail.com>
-> 
-> A lockdep warning indicates a circular locking dependency between
-> `&oi->ip_xattr_sem` and `&journal->j_trans_barrier`:
-> 
-> WARNING: possible circular locking dependency detected
-> is trying to acquire lock:
->  (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_init_acl+0x2fd/0x7e0
->  fs/ocfs2/acl.c:367
-> 
-> but task is already holding lock:
->  (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x3ab/0x700
->  fs/ocfs2/journal.c:369
-> 
-> The deadlock involves two code paths: Path 1 (setxattr) where
-> `ocfs2_xattr_set()` acquires `ip_xattr_sem` (write) and then starts a
-> transaction, which acquires `j_trans_barrier` (read); and Path 2
-> (mkdir/mknod) where `ocfs2_mknod()` starts a transaction (`j_trans_barrier`
-> read) and then calls `ocfs2_init_acl()`, which attempts to acquire
-> `ip_xattr_sem` (read) on the parent directory to retrieve the default ACL.
-> 
-> Because rw_semaphores are subject to writer priority, a pending writer on
-> `j_trans_barrier` (e.g., the journal commit thread) can cause Path 1 to
-> block, while Path 2 is blocked waiting for Path 1 to release
-> `ip_xattr_sem`.
-> 
-> The patch fixes the lock ordering by precomputing the ACL state before
-> starting the OCFS2 transaction, while preserving POSIX ACL storage
-> semantics and the existing inode/security initialization order. By reading
-> the parent directory's default ACL and preparing the new inode's ACLs
-> outside the transaction, `ip_xattr_sem` is always acquired before
-> `j_trans_barrier`.
-> 
-> `struct ocfs2_acl_state` encapsulates the prepared ACL state, while
-> `ocfs2_acl_init_prepare()` and `ocfs2_acl_init_release()` avoid code
-> duplication between `ocfs2_mknod()` and `ocfs2_init_security_and_acl()`.
-> `ocfs2_calc_xattr_init()` and `ocfs2_init_acl()` use this precomputed
-> state, removing internal `ip_xattr_sem` acquisition and redundant disk
-> reads.
-> 
-> Additionally, remove the `ip_xattr_sem` acquisition from
-> `ocfs2_xattr_set_handle()`. This function is only used while initializing a
-> new inode that has not yet been inserted into the inode hash or attached to
-> a dentry, meaning there is no risk of concurrent access and the lock is
-> unnecessary.
-> 
-> Fixes: 16c8d569f570 ("ocfs2/acl: use 'ip_xattr_sem' to protect getting extended attribute")
-> Assisted-by: Gemini:gemini-3.5-flash Gemini:gemini-3.1-pro-preview syzbot
-> Reported-by: syzbot+4007ab5229e732466d9f@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=4007ab5229e732466d9f
-> Link: https://syzkaller.appspot.com/ai_job?id=cc75363d-c672-499e-8fc5-44bcdc1cee39
-> Signed-off-by: Krystian Kaniewski <krystianmkaniewski@gmail.com>
+[CAUSE]
+ocfs2_group_extend() consumes the global bitmap dinode's cl_bpc value in
+resize arithmetic. The existing inode validation checked cl_bpc only for
+non-global chain allocators, so a corrupted global bitmap value could reach
+the resize path. With cl_bpc changed from 1 to 51457, extending by seven
+clusters wraps the u16 bit count and grows a 2048-bit group to 34567 bits,
+exceeding its 32256-bit bitmap capacity.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> 
-> ---
-> diff --git a/fs/ocfs2/acl.c b/fs/ocfs2/acl.c
-> index af1e2cedb..090ec60fb 100644
-> --- a/fs/ocfs2/acl.c
-> +++ b/fs/ocfs2/acl.c
-> @@ -110,8 +110,7 @@ static void *ocfs2_acl_to_xattr(const struct posix_acl *acl, size_t *size)
->  	return ocfs2_acl;
->  }
->  
-> -static struct posix_acl *ocfs2_get_acl_nolock(struct inode *inode,
-> -					      int type,
-> +static struct posix_acl *ocfs2_get_acl_nolock(struct inode *inode, int type,
->  					      struct buffer_head *di_bh)
->  {
->  	int name_index;
-> @@ -349,63 +348,105 @@ int ocfs2_acl_chmod(struct inode *inode, struct buffer_head *bh)
->   * Initialize the ACLs of a new inode. If parent directory has default ACL,
->   * then clone to new inode. Called from ocfs2_mknod.
->   */
-> -int ocfs2_init_acl(handle_t *handle,
-> -		   struct inode *inode,
-> -		   struct inode *dir,
-> -		   struct buffer_head *di_bh,
-> -		   struct buffer_head *dir_bh,
-> -		   struct ocfs2_alloc_context *meta_ac,
-> -		   struct ocfs2_alloc_context *data_ac)
-> +void ocfs2_acl_init_release(struct ocfs2_acl_state *state)
-> +{
-> +	posix_acl_release(state->default_acl);
-> +	posix_acl_release(state->acl);
-> +	state->default_acl = NULL;
-> +	state->acl = NULL;
-> +}
-> +
-> +int ocfs2_acl_init_prepare(struct inode *inode, struct inode *dir,
-> +			   struct buffer_head *dir_bh,
-> +			   struct ocfs2_acl_state *state)
->  {
->  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> -	struct posix_acl *acl = NULL;
-> -	int ret = 0, ret2;
-> -	umode_t mode;
-> -
-> -	if (!S_ISLNK(inode->i_mode)) {
-> -		if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-> -			down_read(&OCFS2_I(dir)->ip_xattr_sem);
-> -			acl = ocfs2_get_acl_nolock(dir, ACL_TYPE_DEFAULT,
-> -						   dir_bh);
-> -			up_read(&OCFS2_I(dir)->ip_xattr_sem);
-> -			if (IS_ERR(acl))
-> -				return PTR_ERR(acl);
-> +	int ret = 0;
-> +
-> +	state->default_acl = NULL;
-> +	state->acl = NULL;
-> +	state->mode = inode->i_mode;
-> +
-> +	if (S_ISLNK(inode->i_mode))
-> +		return 0;
-> +
-> +	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-> +		down_read(&OCFS2_I(dir)->ip_xattr_sem);
-> +		state->default_acl =
-> +			ocfs2_get_acl_nolock(dir, ACL_TYPE_DEFAULT, dir_bh);
-> +		up_read(&OCFS2_I(dir)->ip_xattr_sem);
-> +		if (IS_ERR(state->default_acl)) {
-> +			ret = PTR_ERR(state->default_acl);
-> +			state->default_acl = NULL;
-> +			return ret;
->  		}
-> -		if (!acl) {
-> -			mode = inode->i_mode & ~current_umask();
-> -			ret = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
-> -			if (ret) {
-> -				mlog_errno(ret);
-> +		if (state->default_acl) {
-> +			state->acl = posix_acl_dup(state->default_acl);
-> +			if (!state->acl) {
-> +				ret = -ENOMEM;
->  				goto cleanup;
->  			}
-> +			ret = __posix_acl_create(&state->acl, GFP_NOFS,
-> +						 &state->mode);
-> +			if (ret < 0)
-> +				goto cleanup;
-> +			if (ret == 0) {
-> +				posix_acl_release(state->acl);
-> +				state->acl = NULL;
-> +			}
-> +			if (!S_ISDIR(inode->i_mode)) {
-> +				posix_acl_release(state->default_acl);
-> +				state->default_acl = NULL;
-> +			}
-> +		} else {
-> +			state->mode &= ~current_umask();
->  		}
-> +	} else {
-> +		state->mode &= ~current_umask();
->  	}
-> -	if ((osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) && acl) {
-> -		if (S_ISDIR(inode->i_mode)) {
-> +
-> +	return 0;
-> +cleanup:
-> +	ocfs2_acl_init_release(state);
-> +	return ret;
-> +}
-> +
-> +int ocfs2_init_acl(handle_t *handle, struct inode *inode,
-> +		   struct buffer_head *di_bh,
-> +		   struct ocfs2_alloc_context *meta_ac,
-> +		   struct ocfs2_alloc_context *data_ac,
-> +		   struct ocfs2_acl_state *state)
-> +{
-> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
-> +	int ret = 0;
-> +
-> +	if (S_ISLNK(inode->i_mode))
-> +		return 0;
-> +
-> +	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-> +		if (S_ISDIR(inode->i_mode) && state->default_acl) {
->  			ret = ocfs2_set_acl(handle, inode, di_bh,
-> -					    ACL_TYPE_DEFAULT, acl,
-> -					    meta_ac, data_ac);
-> +					    ACL_TYPE_DEFAULT,
-> +					    state->default_acl, meta_ac,
-> +					    data_ac);
->  			if (ret)
-> -				goto cleanup;
-> +				return ret;
->  		}
-> -		mode = inode->i_mode;
-> -		ret = __posix_acl_create(&acl, GFP_NOFS, &mode);
-> -		if (ret < 0)
-> -			return ret;
-> +	}
->  
-> -		ret2 = ocfs2_acl_set_mode(inode, di_bh, handle, mode);
-> -		if (ret2) {
-> -			mlog_errno(ret2);
-> -			ret = ret2;
-> -			goto cleanup;
-> -		}
-> -		if (ret > 0) {
-> -			ret = ocfs2_set_acl(handle, inode,
-> -					    di_bh, ACL_TYPE_ACCESS,
-> -					    acl, meta_ac, data_ac);
-> +	ret = ocfs2_acl_set_mode(inode, di_bh, handle, state->mode);
-> +	if (ret) {
-> +		mlog_errno(ret);
-> +		return ret;
-> +	}
-> +
-> +	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-> +		if (state->acl) {
-> +			ret = ocfs2_set_acl(handle, inode, di_bh,
-> +					    ACL_TYPE_ACCESS, state->acl,
-> +					    meta_ac, data_ac);
->  		}
->  	}
-> -cleanup:
-> -	posix_acl_release(acl);
-> +
->  	return ret;
->  }
-> diff --git a/fs/ocfs2/acl.h b/fs/ocfs2/acl.h
-> index 667c6f03f..a91f9ce27 100644
-> --- a/fs/ocfs2/acl.h
-> +++ b/fs/ocfs2/acl.h
-> @@ -20,9 +20,20 @@ struct posix_acl *ocfs2_iop_get_acl(struct inode *inode, int type, bool rcu);
->  int ocfs2_iop_set_acl(struct mnt_idmap *idmap, struct dentry *dentry,
->  		      struct posix_acl *acl, int type);
->  extern int ocfs2_acl_chmod(struct inode *, struct buffer_head *);
-> -extern int ocfs2_init_acl(handle_t *, struct inode *, struct inode *,
-> -			  struct buffer_head *, struct buffer_head *,
-> -			  struct ocfs2_alloc_context *,
-> -			  struct ocfs2_alloc_context *);
-> +struct ocfs2_acl_state {
-> +	struct posix_acl *default_acl;
-> +	struct posix_acl *acl;
-> +	umode_t mode;
-> +};
-> +
-> +int ocfs2_acl_init_prepare(struct inode *inode, struct inode *dir,
-> +			   struct buffer_head *dir_bh,
-> +			   struct ocfs2_acl_state *state);
-> +void ocfs2_acl_init_release(struct ocfs2_acl_state *state);
-> +int ocfs2_init_acl(handle_t *handle, struct inode *inode,
-> +		   struct buffer_head *di_bh,
-> +		   struct ocfs2_alloc_context *meta_ac,
-> +		   struct ocfs2_alloc_context *data_ac,
-> +		   struct ocfs2_acl_state *state);
->  
->  #endif /* OCFS2_ACL_H */
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index 1277666c7..ea37a5058 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -256,6 +256,7 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
->  	sigset_t oldset;
->  	int did_block_signals = 0;
->  	struct ocfs2_dentry_lock *dl = NULL;
-> +	struct ocfs2_acl_state acl_state = { 0 };
->  
->  	trace_ocfs2_mknod(dir, dentry, dentry->d_name.len, dentry->d_name.name,
->  			  (unsigned long long)OCFS2_I(dir)->ip_blkno,
-> @@ -330,10 +331,14 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
->  		}
->  	}
->  
-> +	status = ocfs2_acl_init_prepare(inode, dir, parent_fe_bh, &acl_state);
-> +	if (status < 0)
-> +		goto leave;
-> +
->  	/* calculate meta data/clusters for setting security and acl xattr */
-> -	status = ocfs2_calc_xattr_init(dir, parent_fe_bh, mode,
-> -				       &si, &want_clusters,
-> -				       &xattr_credits, &want_meta);
-> +	status = ocfs2_calc_xattr_init(dir, mode, &si, &want_clusters,
-> +				       &xattr_credits, &want_meta,
-> +				       &acl_state);
->  	if (status < 0) {
->  		mlog_errno(status);
->  		goto leave;
-> @@ -411,8 +416,8 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
->  		inc_nlink(dir);
->  	}
->  
-> -	status = ocfs2_init_acl(handle, inode, dir, new_fe_bh, parent_fe_bh,
-> -			 meta_ac, data_ac);
-> +	status = ocfs2_init_acl(handle, inode, new_fe_bh, meta_ac, data_ac,
-> +				&acl_state);
->  
->  	if (status < 0) {
->  		mlog_errno(status);
-> @@ -477,6 +482,8 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
->  	brelse(parent_fe_bh);
->  	kfree(si.value);
->  
-> +	ocfs2_acl_init_release(&acl_state);
-> +
->  	ocfs2_free_dir_lookup_result(&lookup);
->  
->  	if (inode_ac)
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index fcddd3c13..86f029368 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -611,13 +611,10 @@ int ocfs2_calc_security_init(struct inode *dir,
->  	return ret;
->  }
->  
-> -int ocfs2_calc_xattr_init(struct inode *dir,
-> -			  struct buffer_head *dir_bh,
-> -			  umode_t mode,
-> +int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
->  			  struct ocfs2_security_xattr_info *si,
-> -			  int *want_clusters,
-> -			  int *xattr_credits,
-> -			  int *want_meta)
-> +			  int *want_clusters, int *xattr_credits,
-> +			  int *want_meta, struct ocfs2_acl_state *acl_state)
->  {
->  	int ret = 0;
->  	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
-> @@ -628,19 +625,15 @@ int ocfs2_calc_xattr_init(struct inode *dir,
->  						     si->value_len);
->  
->  	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-> -		down_read(&OCFS2_I(dir)->ip_xattr_sem);
-> -		acl_len = ocfs2_xattr_get_nolock(dir, dir_bh,
-> -					OCFS2_XATTR_INDEX_POSIX_ACL_DEFAULT,
-> -					"", NULL, 0);
-> -		up_read(&OCFS2_I(dir)->ip_xattr_sem);
-> -		if (acl_len > 0) {
-> -			a_size = ocfs2_xattr_entry_real_size(0, acl_len);
-> -			if (S_ISDIR(mode))
-> -				a_size <<= 1;
-> -		} else if (acl_len != 0 && acl_len != -ENODATA) {
-> -			ret = acl_len;
-> -			mlog_errno(ret);
-> -			return ret;
-> +		if (acl_state->default_acl && S_ISDIR(mode)) {
-> +			acl_len = acl_state->default_acl->a_count *
-> +				  sizeof(struct ocfs2_acl_entry);
-> +			a_size += ocfs2_xattr_entry_real_size(0, acl_len);
-> +		}
-> +		if (acl_state->acl) {
-> +			acl_len = acl_state->acl->a_count *
-> +				  sizeof(struct ocfs2_acl_entry);
-> +			a_size += ocfs2_xattr_entry_real_size(0, acl_len);
->  		}
->  	}
->  
-> @@ -683,14 +676,33 @@ int ocfs2_calc_xattr_init(struct inode *dir,
->  							   new_clusters);
->  		*want_clusters += new_clusters;
->  	}
-> -	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL &&
-> -	    acl_len > OCFS2_XATTR_INLINE_SIZE) {
-> -		/* for directory, it has DEFAULT and ACCESS two types of acls */
-> -		new_clusters = (S_ISDIR(mode) ? 2 : 1) *
-> -				ocfs2_clusters_for_bytes(dir->i_sb, acl_len);
-> -		*xattr_credits += ocfs2_clusters_to_blocks(dir->i_sb,
-> -							   new_clusters);
-> -		*want_clusters += new_clusters;
-> +	if (osb->s_mount_opt & OCFS2_MOUNT_POSIX_ACL) {
-> +		if (acl_state->default_acl && S_ISDIR(mode)) {
-> +			acl_len = acl_state->default_acl->a_count *
-> +				  sizeof(struct ocfs2_acl_entry);
-> +			if (acl_len > OCFS2_XATTR_INLINE_SIZE) {
-> +				new_clusters =
-> +					ocfs2_clusters_for_bytes(dir->i_sb,
-> +								 acl_len);
-> +				*xattr_credits +=
-> +					ocfs2_clusters_to_blocks(dir->i_sb,
-> +								 new_clusters);
-> +				*want_clusters += new_clusters;
-> +			}
-> +		}
-> +		if (acl_state->acl) {
-> +			acl_len = acl_state->acl->a_count *
-> +				  sizeof(struct ocfs2_acl_entry);
-> +			if (acl_len > OCFS2_XATTR_INLINE_SIZE) {
-> +				new_clusters =
-> +					ocfs2_clusters_for_bytes(dir->i_sb,
-> +								 acl_len);
-> +				*xattr_credits +=
-> +					ocfs2_clusters_to_blocks(dir->i_sb,
-> +								 new_clusters);
-> +				*want_clusters += new_clusters;
-> +			}
-> +		}
->  	}
->  
->  	return ret;
-> @@ -3483,9 +3495,10 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
->  }
->  
->  /*
-> - * This function only called duing creating inode
-> - * for init security/acl xattrs of the new inode.
-> - * All transanction credits have been reserved in mknod.
-> + * This helper is only for setting initial ACL or security xattrs on an inode
-> + * that is still unpublished, unhashed, and unattached to a dentry.
-> + * Ordinary xattr updates must use ocfs2_xattr_set().
-> + * All transaction credits have been reserved in mknod or symlink callers.
->   */
->  int ocfs2_xattr_set_handle(handle_t *handle,
->  			   struct inode *inode,
-> @@ -3542,8 +3555,6 @@ int ocfs2_xattr_set_handle(handle_t *handle,
->  	xis.inode_bh = xbs.inode_bh = di_bh;
->  	di = (struct ocfs2_dinode *)di_bh->b_data;
->  
-> -	down_write(&OCFS2_I(inode)->ip_xattr_sem);
-> -
->  	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
->  	if (ret)
->  		goto cleanup;
-> @@ -3556,7 +3567,6 @@ int ocfs2_xattr_set_handle(handle_t *handle,
->  	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
->  
->  cleanup:
-> -	up_write(&OCFS2_I(inode)->ip_xattr_sem);
->  	brelse(xbs.xattr_bh);
->  	ocfs2_xattr_bucket_free(xbs.bucket);
->  
-> @@ -7257,6 +7267,7 @@ int ocfs2_init_security_and_acl(struct inode *dir,
->  {
->  	int ret = 0;
->  	struct buffer_head *dir_bh = NULL;
-> +	struct ocfs2_acl_state acl_state = { 0 };
->  
->  	ret = ocfs2_init_security_get(inode, dir, qstr, NULL);
->  	if (ret) {
-> @@ -7269,10 +7280,17 @@ int ocfs2_init_security_and_acl(struct inode *dir,
->  		mlog_errno(ret);
->  		goto leave;
->  	}
-> -	ret = ocfs2_init_acl(NULL, inode, dir, NULL, dir_bh, NULL, NULL);
-> +
-> +	ret = ocfs2_acl_init_prepare(inode, dir, dir_bh, &acl_state);
-> +	if (ret)
-> +		goto unlock;
-> +
-> +	ret = ocfs2_init_acl(NULL, inode, NULL, NULL, NULL, &acl_state);
->  	if (ret)
->  		mlog_errno(ret);
->  
-> +unlock:
-> +	ocfs2_acl_init_release(&acl_state);
->  	ocfs2_inode_unlock(dir, 0);
->  	brelse(dir_bh);
->  leave:
-> diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-> index 65e9aa743..5cdd6c6b4 100644
-> --- a/fs/ocfs2/xattr.h
-> +++ b/fs/ocfs2/xattr.h
-> @@ -55,9 +55,12 @@ int ocfs2_init_security_set(handle_t *, struct inode *,
->  int ocfs2_calc_security_init(struct inode *,
->  			     struct ocfs2_security_xattr_info *,
->  			     int *, int *, struct ocfs2_alloc_context **);
-> -int ocfs2_calc_xattr_init(struct inode *, struct buffer_head *,
-> -			  umode_t, struct ocfs2_security_xattr_info *,
-> -			  int *, int *, int *);
-> +
-> +struct ocfs2_acl_state;
-> +int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
-> +			  struct ocfs2_security_xattr_info *si,
-> +			  int *want_clusters, int *xattr_credits,
-> +			  int *want_meta, struct ocfs2_acl_state *acl_state);
->  
->  /*
->   * xattrs can live inside an inode, as part of an external xattr block,
-> 
-> 
-> base-commit: dc59e4fea9d83f03bad6bddf3fa2e52491777482
+[FIX]
+Validate cl_bpc in ocfs2_validate_inode_block() for every chain allocator,
+including the global bitmap, against the value derived from the
+filesystem's cluster and block sizes. This rejects the corrupted dinode
+when it is read and removes the resize-local check that incorrectly assumed
+cl_bpc is always one. The resize path still uses the validated value for
+its arithmetic.
+
+Fixes: d659072f7368 ("[PATCH 1/2] ocfs2: Add group extend for online resize")
+Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
+---
+v2:
+- Derive the expected cl_bpc from the filesystem block and cluster sizes.
+- Extend the existing inode-block validation to cover the global bitmap.
+- Remove the resize-local hardcoded cl_bpc check.
+---
+---
+ fs/ocfs2/inode.c | 9 ++++-----
+ 1 file changed, 4 insertions(+), 5 deletions(-)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 41db7dd39ed9..0e1f9ae0eb73 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1683,12 +1683,11 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 					 le16_to_cpu(cl->cl_next_free_rec));
+ 			goto bail;
+ 		}
+-		if (OCFS2_SB(sb)->bitmap_blkno &&
+-		    OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
+-		    le16_to_cpu(cl->cl_bpc) != bpc) {
+-			rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
++		if (le16_to_cpu(cl->cl_bpc) != bpc) {
++			rc = ocfs2_error(sb,
++					 "Invalid dinode %llu: bits per cluster %u (expected %u)\n",
+ 					 (unsigned long long)bh->b_blocknr,
+-					 le16_to_cpu(cl->cl_bpc));
++					 le16_to_cpu(cl->cl_bpc), bpc);
+ 			goto bail;
+ 		}
+ 	}
+-- 
+2.43.0
 
