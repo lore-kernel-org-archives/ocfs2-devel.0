@@ -1,189 +1,148 @@
-Received: from mail-pj1-f41.google.com (mail-pj1-f41.google.com [209.85.216.41])
+Received: from mail-wm1-f52.google.com (mail-wm1-f52.google.com [209.85.128.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 06B3B3DC861
-	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 07:56:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.41
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6077B3E5EDB
+	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 08:49:27 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785916593; cv=none; b=GqSESUn6REu06hro8jc/SKPVyfUFMRKmgcyYel14Uc7EG1vOvcpztjgNPKYO1A9vnS9ks3yGwsiz5HyPnifBkKYKkFNOZ9sAfaiXmjkqAihR1Bx4UA2gXthwGvktV3RWo3z8QTz6EaHb6ymFh7jNeADqymyuqCKBW/w4p+pl2WQ=
+	t=1785919768; cv=none; b=hDMsOw35c3DCFeahA5ElHsZ01zWjOEEh+wQWCJN9AH8m1nJPNt6r5sCVc8yfbLg2cXJKlpJtDBMG487BadFO4aTtJL/UFi6jmPdo+9fSro8EIBWLayzopNcAzzQRy3IDM6SfS7jEcwsJZ7HKlJjPJFEpPHOqKrrk2540KFP/txw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785916593; c=relaxed/simple;
-	bh=1tsZOP1cJe1vBjHWkYNRr+dqkrAkT4Whnc/9jiAlbZ4=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=VdCtPVG63uj8z/UdEHH4GsbCmb62r9E2BwKsHTzUnq6E5OqOBEWC2cfA0eDHGDQ7Cq9l8c/qQc38rff0mFiGcS9xqIkkzt7XrQtHCNm3lG9CsjngT3FhZpxHZvyjscjU+eYkMvwqZl/Gz+cQRB2OVtVOBFbI5Q38+G02ObTFCaE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ESR8vysA; arc=none smtp.client-ip=209.85.216.41
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1785919768; c=relaxed/simple;
+	bh=T4YE/eGnsv3t/rKH3kRrdoat5725qTujmUDheDsuNX0=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=m05VSPZMTUFszH5YGIFKy5YN+LLw3/ZFs7xcKl+54Q8h39g4MeNUWsmFbuXE0VTq61WmZtwu+LCL90f63iJ9s8/Jw6TKqRCltUTXyHZDvezG6NlJjQP2iM9wIjMHygp27cu6SQQ4Rzc8o2gfE0FKhPHY1KQlE7SkCjdoKpA1c4g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=dX5Oqrqb; arc=none smtp.client-ip=209.85.128.52
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ESR8vysA"
-Received: by mail-pj1-f41.google.com with SMTP id 98e67ed59e1d1-38dd55ad76cso782991a91.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 00:56:31 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="dX5Oqrqb"
+Received: by mail-wm1-f52.google.com with SMTP id 5b1f17b1804b1-490791a3e92so746315e9.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 01:49:27 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785916591; x=1786521391; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=0WUaISw6qk3Jf0zcCDZtifF5pf/akYlS+Jfhu1wJBuI=;
-        b=ESR8vysAsof4jPS0yh5bZoT6ifxMpwy1Xoa49ocX93WTv6LRxPW90qUEIwGUe2pMq9
-         qHCMbjwpxl0VVwLgDYyn9GpXCsSjEqzTRo0Iu4Uq2qDuvfqkk/iSKBufcrnCwDaT3wPd
-         YbBO2gOkttACPzcp/6Q6R8ZYCPdKVfCC5jgsGHb8TiZguQckCWpq4m7aLhRitROZaXG1
-         jNZHiN0o6+STWGmZFSVzoJpLu2xRJ72QvZNMLYcKbYTpQ62s/jOqNX4mhlNX38b1cMw/
-         IYWiVu2XbQlIA0OlA45C6yejy7MDpAWCjIa6yspQl0ZZXDUNsfizjOd0tyhiskJluJRX
-         uh8g==
+        d=suse.com; s=google; t=1785919766; x=1786524566; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=EfjKHFvdiIekXPyIJtfsuWIiX/n/M+UVlVb3uUnbRMI=;
+        b=dX5Oqrqbo2+D/qWKWuD+ooGr5snbnshss+FtTjmRQlN7XDKDCA5oU+1WGW+i82YUJg
+         YEKmVJGaDh23NJsQusXbCPyvVI7+apLrWTwyxnZMtIK3vPSLUJwOjsxUdYYqV2wsaADz
+         Vyy+sjGObjvejJS/P2DgzkCYqgkYH6YYCdkN6cebYG+u+pq/Y46PsViQ+wMkqdYwwIVA
+         tBXzpxA+QTjJALN5BWiwQYO59bxfcbyQcaXB0bAhZFENyv9RPEqspGt9BOWsgPJPSjpG
+         al7D9mRYt9vUlaSOIODLWVsVaAVRceODm+pZeu6p+fBHeXNiQUMIjkjrhnDFCHXyp7To
+         dQrA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785916591; x=1786521391;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=0WUaISw6qk3Jf0zcCDZtifF5pf/akYlS+Jfhu1wJBuI=;
-        b=P9q1dd0pubzArdsge0FX3PtwUb8L6LH3o7fMQKqzdFGaLH5cn4pHid/i1vE5q0QAat
-         jBS/urcl6NedTe7SfDnYDtn2zjkO0FlJ3oxuxPJK9EEc7dIsOa83f29UC1YjmaLPt4Ob
-         /orXZ0R+IpKSabFYfTmmQEtx2AAOftAcy6PJBgl7LMW41uTYuta+1Ir0mRyPwum2KV+U
-         MHf2AW2GmZmVHu4rVdUoFJXHAPEpGYx0QJfO6tATBQxEU4ip179szwuNw/1jOlllKLxb
-         MM7bBJ2QHKPkfPr2jqwitnA/txhtV/+jWYlQLALpF002jkO9nv4mBIyp78GKPs7nVNGA
-         wizQ==
-X-Forwarded-Encrypted: i=1; AHgh+Rpj+mA7ItNSjS1eVYGUn+SptHShhuKmG+Bycta7eqJosJXZk2tNqwjeM48LwHG5+aYYGb4Ouicouc+I8w==@lists.linux.dev
-X-Gm-Message-State: AOJu0YwTJ++WJadsj/oEsvyx9YIOuX/MwbM5r8uVJZaNjiJaSlaFXvMv
-	XYdeVbr9JLIpdf0q8V4UTzPOfv6d4IeADIguu/S3NNdKzly7t7gSA/TZ
-X-Gm-Gg: AR+sD11lP0H4ymS14XtIFF/XnZZzHkYfUvYQd/Nt43fB7Ud8zuP1NGICRmLFCMHNeGf
-	GfQlQxiDKVNljcCzt7af9l3mHQ5//hcCQgtaEBJlzK2r0+TdOZK4vihcvy+yhZTe+KBPS8jEmPR
-	tdglHheNVMsp4813VmUdmfMn+LLW7GUdKeVMjiDG17QNYxLyg2ibCN3O8xq7unpU2rto8m1FxbE
-	T4KwIHDfSsb4MNIcGf3MOnd135wG9Mizaj3SfCs3Ci8uoFTEtYGMexSU31Y9pEWJEstcBDH98UG
-	UBi5ZgBhAjz8kLLcUDqvJUW568F8F7V9VSKT8aT0h/Jas68SYbC8OhZXdeeQykBjC96FlvYwz+o
-	NpJoyjhEuW/M+7RZzIFSApgnWi06dOBU2q7NzBB06vbDcM90gekPnE0F+hzwqwwNGtcaYy03lTp
-	pedL6SLN7ymuyDNSLrNFDEKRK0MpktnoVkQfeeGaDgdPxTjX7X9ZytuHrchUqgZ1axfFohFn+By
-	8VgODxUHBY6N9ZHnYyhXJtIUP3rLFgB2b7mdCBNNkMKwB4JytXBlpBCIqd3pVTwwndK66cD8YAB
-	j8+pNAWg7ktmDKYvxY7XXurrhKtNMyEnmZyTUHKOvS79am2qa5Ow
-X-Received: by 2002:a17:90b:17cc:b0:387:d5bd:622f with SMTP id 98e67ed59e1d1-3903c6fce95mr2091676a91.18.1785916591024;
-        Wed, 05 Aug 2026 00:56:31 -0700 (PDT)
-Received: from spider.bream-herring.ts.net ([103.252.203.158])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-38febffb2ecsm3770582a91.8.2026.08.05.00.56.28
+        d=1e100.net; s=20251104; t=1785919766; x=1786524566;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=EfjKHFvdiIekXPyIJtfsuWIiX/n/M+UVlVb3uUnbRMI=;
+        b=FQ3bJHrNt+u2dc5rGPOEk0dGOj/ihOa5y+Wo3VRrkYexMFD5XVfAxC8L4epC7Eu4Ki
+         OIIVuQy4nLj1wi7VuA7Lkf/rjOnvv5RMKVYrmmXiB0YzOEcEV1cr3BvO+d2QQmHpiw23
+         jcV7mD06fagbz78x2rVeaANZ5k9AMCZi13ZfWFeWV1Bh26u1NPh1xfK3ZdMRgyJnkymL
+         3ycduzNymJohm0EWLMEUR5ZqSRIYWoU7UAFsMft5bHR8bCAWMCtQbbSgVxXK4kyWGNhg
+         A06IjU8vVVmVDthRTu2InX0TQtXzklaX2ozkCQiKAn6VVrhkzzsGOziRbyaB1EdItHkf
+         50yQ==
+X-Gm-Message-State: AOJu0YzNW4SeHsQx7tjZ5RE3isWfY3lK4MNbQrWvQ5GQjwMwpbhodi1/
+	ihUe/4Ko8YWHYEG5p/6LJAcD8JvpJxR69fs0iUpVr6SqEETrVVHCZM/lZyiXd2OnqQo=
+X-Gm-Gg: AR+sD11W5p5nJt4tSijWg1v4S8d0IoHqDLvRbnkb6goFc+wBS3dbcf5hoDsjj8X+QoT
+	IQdB8mEbRf/58A5Glh3KD48c6qhvH8nCMhaVon7HcxNLojTz0A0KKk8oJtUHGROfK2GZ/aD/8fw
+	RkGxxS4JQm58VOKvSiUD3FOMRkh/E2iN7SEKL9aYJef0lp8BjjtgQhTj0GPeQJ3kMZ8tmqIavHN
+	KnMPlhtHEcyo4tZKyl3Ft37BkZ+hTH2q9WM4MiIg8fkkQYRc4LDdtEVmMFNyBE99CjoQSVEI19a
+	rMkoikt3HDEoNMjIYDjeEgvLu0HG5T5Qk+Qtsr12jr0nyOduMM9qr/NL64b6remgQ/wnMIrmdH+
+	3SNTk5l/J58iCZRz1niYpfhQ4KqcKnFNzL4FfdGX8OA6ECVS2Za1XpYwhJLvaBY7UbzNZ/iQr6F
+	XiEtnkLiCX3pjPdd6ZydAsPnDNeFwII2EPJ2RtlTfgdSTEBQ8jTu50HYpUn4g=
+X-Received: by 2002:a05:600c:1550:b0:493:ad11:6d5c with SMTP id 5b1f17b1804b1-4994e7cf0dcmr26391075e9.4.1785919765638;
+        Wed, 05 Aug 2026 01:49:25 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3903f5fd0fesm1209890a91.2.2026.08.05.01.49.23
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 05 Aug 2026 00:56:30 -0700 (PDT)
-From: Matthias Goergens <matthias.goergens@gmail.com>
-To: Heming Zhao <heming.zhao@suse.com>
-Cc: Matthias Goergens <matthias.goergens@gmail.com>,
-	ocfs2-devel@lists.linux.dev,
-	mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	glass.su@suse.com,
-	akpm@linux-foundation.org,
-	linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org
-Subject: Re: [PATCH] ocfs2: fix cached cluster count after suballocator reclaim
-Date: Wed,  5 Aug 2026 15:56:25 +0800
-Message-ID: <20260805075625.3518094-1-matthias.goergens@gmail.com>
-X-Mailer: git-send-email 2.55.0
-In-Reply-To: <anLkDGTDDzVDMijK@p15>
-References: <20260805070837.3390148-1-matthias.goergens@gmail.com> <anLkDGTDDzVDMijK@p15>
+        Wed, 05 Aug 2026 01:49:24 -0700 (PDT)
+Date: Wed, 5 Aug 2026 16:49:19 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Matthias Goergens <matthias.goergens@gmail.com>
+Cc: ocfs2-devel@lists.linux.dev, mark@fasheh.com, jlbec@evilplan.org, 
+	joseph.qi@linux.alibaba.com, glass.su@suse.com, akpm@linux-foundation.org, 
+	linux-kernel@vger.kernel.org, stable@vger.kernel.org
+Subject: Re: [PATCH] ocfs2: fix cached cluster count after suballocator
+ reclaim
+Message-ID: <anL1pYKZK8UqYwsI@p15>
+References: <20260805070837.3390148-1-matthias.goergens@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260805070837.3390148-1-matthias.goergens@gmail.com>
 
-Hello Heming,
+The code looks good to me. However, the commit log needs some revision.
 
-On Wed, Aug 05, 2026 at 03:38:05PM +0800, Heming Zhao wrote:
-> Could you share your test case, I want to reproduce the issue and verify the
-> fix.
+On Wed, Aug 05, 2026 at 03:08:37PM +0800, Matthias Goergens wrote:
+> When reclaiming a suballocator block group, first reduce the on-disk
+> cluster count by cl_cpg.  The current code then subtracts that new count
+> from the old cached count.
 
-Sure.  The test runs in a QEMU guest on a snapshot-only virtio disk (the
-host image is never modified).  The image is a clean 256 MiB single-node
-local OCFS2 filesystem made with ocfs2-tools 1.8.9:
+The current code then sbtracts that new count (fe->i_clusters) from the old
+cached count (OCFS2_I(alloc_inode)->ip_clusters).
+> 
+> For an allocator with N groups, that leaves the cache at
 
-    truncate --size=256M accounting.ocfs2
-    mkfs.ocfs2 -F -N 1 -M local accounting.ocfs2
+For an allocator with N block groups, that leaves the cache at
+> 
+>     N * cl_cpg - (N - 1) * cl_cpg = cl_cpg
 
-The guest runs the small program below: mount with
-heartbeat=none,localflocks, create 10,000 empty files, sync, then unlink
-them all, sync.  That drives four suballocator reclaims on this image.
+     N * cl_cpg - (N * cl_cpg - cl_cpg) = cl_cpg
 
-To observe the accounting I used a temporary diagnostic, added immediately
-after the ip_clusters update in _ocfs2_reclaim_suballoc_to_main() (not part
-of the submitted patch):
+     i.e.:
+      ->ip_clusters -= (fe->i_clusters - cl->cl_cgp)
+      => ->ip_clusters equal to cl_cpg
+> 
+> regardless of N.  This happens to be correct when reclaiming from two
+> groups, but undercounts the clusters from three groups onwards.  The
 
-    pr_warn("OCFS2_RECLAIM_ACCOUNTING old=%u disk=%u cache=%u cpg=%u\n",
-            tmp_used, le32_to_cpu(fe->i_clusters),
-            OCFS2_I(alloc_inode)->ip_clusters, le16_to_cpu(cl->cl_cpg));
+s/groups/block groups/
 
-On the stock kernel the first reclaim already leaves the cache at 512
-while the disk holds 2048, and later reclaims underflow the cache.  With
-the patch the cache matches the disk at every reclaim: 2048, 1536, 1024,
-512.
+> incorrect cache value is also used immediately to update i_blocks.
+> 
+> Assign the updated on-disk count to the cache, matching the allocation and
+> inode refresh paths.
+> 
+> In a QEMU test using a clean 256 MiB OCFS2 image and a 10,000-file
+> create/delete workload, the first buggy reclaim left the on-disk and cached
 
-The guest reproducer (statically linked, run as init in a minimal
-initramfs):
-
-    #define _GNU_SOURCE
-
-    #include <errno.h>
-    #include <fcntl.h>
-    #include <stdio.h>
-    #include <string.h>
-    #include <sys/mount.h>
-    #include <sys/stat.h>
-    #include <unistd.h>
-
-    #define FILE_LIMIT 10000
-
-    int main(void)
-    {
-        int created = 0;
-
-        if (mkdir("/mnt", 0777) && errno != EEXIST) {
-            perror("mkdir /mnt");
-            return 1;
-        }
-        if (mount("/dev/vda", "/mnt", "ocfs2", MS_NODIRATIME,
-                  "heartbeat=none,localflocks")) {
-            perror("mount /dev/vda");
-            return 1;
-        }
-        if (chdir("/mnt")) {
-            perror("chdir /mnt");
-            return 1;
-        }
-
-        puts("ACCOUNTING_TEST: mounted; creating files");
-        for (int i = 0; i < FILE_LIMIT; i++) {
-            char path[32];
-            int fd;
-
-            snprintf(path, sizeof(path), "inode-%05d", i);
-            fd = open(path, O_CREAT | O_EXCL | O_RDWR, 0600);
-            if (fd < 0) {
-                printf("ACCOUNTING_TEST: create failed at %d: %s\n",
-                       i, strerror(errno));
-                break;
-            }
-            close(fd);
-            created++;
-        }
-        sync();
-
-        printf("ACCOUNTING_TEST: unlinking %d files\n", created);
-        for (int i = created - 1; i >= 0; i--) {
-            char path[32];
-
-            snprintf(path, sizeof(path), "inode-%05d", i);
-            if (unlink(path)) {
-                printf("ACCOUNTING_TEST: unlink failed at %d: %s\n",
-                       i, strerror(errno));
-                return 1;
-            }
-        }
-        sync();
-        puts("ACCOUNTING_TEST: complete");
-        return 0;
-    }
-
-I also have the full harness (image builder, initramfs builder, QEMU
-runner with a log-checking mode) if you want it; happy to post it or send
-it privately.
+create/delete workload, the first buggy reclaim left the on-disk (fe->i_cluster)
+and cached (->ip_clusters)
 
 Thanks,
-Matthias
+Heming
+
+> counts at 2048 and 512 clusters respectively; later reclaims underflowed
+> the cache.  With this change, the cache matched the on-disk count across
+> all four reclaims: 2048, 1536, 1024, and 512 clusters.
+> 
+> Fixes: 4a54331616b3 ("ocfs2: give ocfs2 the ability to reclaim suballocator free bg")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Matthias Goergens <matthias.goergens@gmail.com>
+> ---
+>  fs/ocfs2/suballoc.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
+> index a4a2b87a45fe3..20c3aec6b9873 100644
+> --- a/fs/ocfs2/suballoc.c
+> +++ b/fs/ocfs2/suballoc.c
+> @@ -2759,7 +2759,7 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
+>  	fe->i_clusters = cpu_to_le32(tmp_used - le16_to_cpu(cl->cl_cpg));
+>  
+>  	spin_lock(&OCFS2_I(alloc_inode)->ip_lock);
+> -	OCFS2_I(alloc_inode)->ip_clusters -= le32_to_cpu(fe->i_clusters);
+> +	OCFS2_I(alloc_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
+>  	fe->i_size = cpu_to_le64(ocfs2_clusters_to_bytes(alloc_inode->i_sb,
+>  					     le32_to_cpu(fe->i_clusters)));
+>  	spin_unlock(&OCFS2_I(alloc_inode)->ip_lock);
+> -- 
+> 2.55.0
+> 
