@@ -1,95 +1,95 @@
-Received: from mail-ed1-f54.google.com (mail-ed1-f54.google.com [209.85.208.54])
+Received: from mail-ot1-f50.google.com (mail-ot1-f50.google.com [209.85.210.50])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A5A73CB2E9
-	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 20:30:51 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.54
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44B2C3D3CEB
+	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 20:33:23 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.210.50
 ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785961854; cv=pass; b=hYfH3lSvgXfBjvAE+WSyP5mHdAcZx44iNPYlIpQszF3HCqWyfYoW+YmoGBrdw1w3PohELCxp23kHeUCwwlgzFp/bA206Qonv3gD4rYMIS0dU2UrLA/5fNZ0itVs2FL16Otsh7BQbvXL2k05HoWlHOZZyuF+G15OMzVx+jbTGTe0=
+	t=1785962004; cv=pass; b=H+87BbRMh7Flp/+lzonwT1JeMXowmYXART69QOK+6YT7mhIANvK6uD2G1WOonxhoWx6eQOikrTZnRR0d0o7lRidEg0utUZzDSBg4WojGNbXMgFNh2D/BOCyMZuWjAoDrSp5lOlRf2mOQpHVL6FhhzVYwc3Zruzi+3/3vUe0lP4s=
 ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785961854; c=relaxed/simple;
-	bh=f8z1M1nzjLf68Sy9PkkSF+yweuJVjVDeAp0nHMvwWIM=;
+	s=arc-20240116; t=1785962004; c=relaxed/simple;
+	bh=GI8C7x7/1X74WCp4xq6Tj+lGkjg4R7DvkuG6i1NAga4=;
 	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=NEbhpsqNELzchGdY/D0N+KjX15fBK5KFknUuUt2quth7pRd8etKMxHXzSFIZp7m9rfN2iQ5ky8ek/3G/Y0CVpvwh07k1bEIyJOqoh9jsH3pbRHTFvpI9byyJRDxgqTb/vJpG3nvPOhmxcPaPAJgIfA4DeGSWscyokDW0XylPgPk=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=sfesb6z1; arc=pass smtp.client-ip=209.85.208.54
+	 To:Cc:Content-Type; b=saXhXbkbpq7E0LRl+EciVyoEAsZ8yFC+o94SX3VRsMIcrw/3vbP0OEDNusMe7sJAQGMIFh07NQrZEdMC2QxEO9UxbuwC2ykUreBUqaJCDyf2tpqI+ZeUIJaO5jFtSdFbo8tDpKCM1AjUUYtaxA6D0dZx6O3D3VR97uYk3AA408c=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ZtMJQsTp; arc=pass smtp.client-ip=209.85.210.50
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="sfesb6z1"
-Received: by mail-ed1-f54.google.com with SMTP id 4fb4d7f45d1cf-6a18e24ad25so509470a12.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 13:30:51 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1785961849; cv=none;
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ZtMJQsTp"
+Received: by mail-ot1-f50.google.com with SMTP id 46e09a7af769-7eb545db3afso1077697a34.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 13:33:23 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1785962002; cv=none;
         d=google.com; s=arc-20260327;
-        b=Nu5KgME9llML6i61fG6iP52zA2MarO/8LdV7w3i0kRFnGKwJoJa5Kam9ufb8pjZUfm
-         nCi48KetDCBfrzCXmnqx6Z0Xk4yI4rDczrRNk+0b6Ppqh31OvDwFdMCTBQnJ6iSfSWUa
-         AIcAaeSGrvEKlcxQh+Vm4eEY0xgeWK/2TxbmAhXu/nJDwAfVTM1nt1V8V72HMVwYjyjD
-         bnHZs0FGGymeBCiuKWCt+lnt/Q16GnpMWYHSuzLPmTMvhCzNZtlOMIX/Fyf//8juMGx/
-         6k1z/YkVsVgOb1zEdafcINEiWNa5X2vFM/zlKYUPjckH5F6ef1g1MZ4CrFZX3PmWPvgi
-         tsUQ==
+        b=VwVnB5eyQw/JbYtZAD4199/sqXacKdzchW0XGBMeqHRmvnwkroxyTxyxolRcbTlyUB
+         bulRtUuNkItbEXGn2NpNKEeEjKeevjHKQZt4anOOUE3xzBy/4BP+wKM2Rkru9BbRcSgV
+         N81XKi5VpwUQr+FG9DEsXQtSU3Uf0+mZNgkpYJYDA4kohAsEx6n7RAu+wY9YOQX9m5MQ
+         LmaMQDtd2bpKZ7osRp/RxdESbusTdfOTsJlm+4l2sn8DFoxjPk9OERrMCzw7spB29vb4
+         ADK3eTc9af1H2hIVdVvFmNCsQ5WsL4agtU/8+Nwbq+BeQtq8mWEXOWMC+9iDne5fFOlF
+         6XzA==
 ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
         h=content-transfer-encoding:cc:to:subject:message-id:date:from
          :in-reply-to:references:mime-version:dkim-signature;
-        bh=ukL6w1a2HyKi8WGdg/EkyTugmN726KV6XvHTOGb21IA=;
-        fh=9ZlyTx30+olMqUjRodipnirp2I7Ib8sZYykzPq+Ekpo=;
-        b=BxEKxI8WpNKHuCGq4++WMhKVB7iwbWYYuGgclADoVBN+xa3yt4h5K8zykc1Vg5eeVv
-         5TpdEro2KE0t4kNKuMO+ZsDmSjhKLfKPiM5/jUk9wUkRpV27sDvskNJt3eqF2VSRyQiI
-         xx5Ukt8NyYjtzKyyfM+m196A8K6ailop99eYGqfUJOxx9KdV9IswfHI0+rlHYUm/emc3
-         /iHWCdHOFmhEtsB7PaxEd+ESwHPbwrtJdJ8fd/6jy9KdHe/p1TrMckneB1yiPPjxFQlN
-         kzUzfL0lphRrFBEPTdxSL8x8a21k8dznFx3OrlsQSepeCv0PDKekJXvbY8T55gZw0AmN
-         nJZQ==;
+        bh=WXwiR/pZJKH9ofJG0kWfM6Ol7KNG5CJwWwWByT6iJt0=;
+        fh=7wtSiPV9uZZBmSoUY/GnTS/eQfq0E5MBpb/DaOyW4G4=;
+        b=Q+vBcHvVSTLQdcpjr3uHJ8DXRpRm/eKqeEB4HW+w46YNlDkMx3U1iaj2dkDY3koFiy
+         xcG4dhZN8+sV3F55HobWsqfWrgmd+3n1OvW2pCFL5Njg/hfCg5Ps1D/36mLtfTqUse+8
+         zpICI3GYEP8Tn0Oe2ZcyJCR7Epi71oMCeg+3mmOM1QBPMy5T0HChdJnQ7ZOeWkLUD80z
+         xgKe2UZ+tnI42woTxhbWmuumzDl43c43bPJLfXOL6E0aCIJygRIjsV+cOPqaDka9rmSX
+         4EiCjOHK2A3LPburd+L4SgKq09CfAn/ArOEU6bFpmEOpzKJIxs+JGK/8KWcnhgfM+IPu
+         Wbog==;
         darn=lists.linux.dev
 ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785961849; x=1786566649; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1785962002; x=1786566802; darn=lists.linux.dev;
         h=content-transfer-encoding:content-type:cc:to:subject:message-id
          :date:from:in-reply-to:references:mime-version:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=ukL6w1a2HyKi8WGdg/EkyTugmN726KV6XvHTOGb21IA=;
-        b=sfesb6z1qdYYp7waQUxddHNAy70DKqYWWPQNBhu08PcWpyW+0a+X90OlzilB3uPwew
-         X5J2OmUBTf8DG5FGwuU1hEE7QuB2WzCpmqAXh/v9gBgAUjw8w1onE5dyvZvMJnFQ+hOF
-         CmIjRi77lMa43xaRwQvltI2BD6svfz7i+3iRa5kgVqu3oTbXtiAi9dXo1icob3WeLBaq
-         zGTyBe09snDSo6zbfZbO+lS1htD5A1FnCp4saqpl+RYUHl7FbWi9hOvJMOK1SequZnQK
-         Dn2m/7h0u4dm65ic0QdvfQ4LgvrGOVpfp6TexYboKUvb3MvJdneLstM2KvhS8Wls3YWG
-         YLGw==
+        bh=WXwiR/pZJKH9ofJG0kWfM6Ol7KNG5CJwWwWByT6iJt0=;
+        b=ZtMJQsTpd3sBDCxI5ojveVuIgw0oKSs5g+lzA5Np/uhRhOq87XEW80hAYS7rfl73gx
+         u8J8VzHmnWIBIGvxfnJfJA2gdRQx4UgjW6ttFzos18iFzm+rIWCQvq0t2vVEGsC5Z1Wx
+         +UWsIEuQ551oYvYMIawS8M1gNe5fqL4h51Ga6UUd5UD45TIZLCP44ibkIqyuMXyQGvul
+         4ahhxRx6ch11f4xuz8Ugy9oOuqZ+J8z1Wk+Y4uxisq8F/QRImBchJGK3/3PCG3yHIFuw
+         +Q/rF7bjkYnBaoJcYcYxCsspG+BaSHzDDa8yJv+ABh1cZ08aLvBx+5GsW+7vunuZtnnv
+         2Adg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785961849; x=1786566649;
+        d=1e100.net; s=20251104; t=1785962002; x=1786566802;
         h=content-transfer-encoding:content-type:cc:to:subject:message-id
          :date:from:in-reply-to:references:mime-version:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=ukL6w1a2HyKi8WGdg/EkyTugmN726KV6XvHTOGb21IA=;
-        b=JZPIt5wyeViwuQPTtkV3Pwmy62mCT99Eswo66toDl0cUhiJJ3dmhd72r/sNlTcUBNA
-         9HSumgdYefIiAm2VgMGqxc0K+Y1w93AMM0QPyinPxs+lDz0j4u7fFKkCCr4CnEODB+Uh
-         PiP/aWjX2Rdw0LqKGK2/MrkTe7NqKuPSvRFa2THrgjmO9j7nx2DY3bj6aWV3CRdI0cUh
-         LztNefgeoX4flBSRmpaUD7EMwFyKZjYRhyvsf5BvfIuoF7c+rfxT9ts3JcVCTUqSp25p
-         Bd3bqAK1j/VXcuaonqNxnq7kTndmpDD8y6qHTR3GRvTU2AEREuDk8eodVZvTRsnwpIyT
-         0ykw==
-X-Forwarded-Encrypted: i=1; AHgh+Rp2P0KA4wxBJ9izNuIYRAHBuVc7uO5sLqz0MKNEMM5ndO1FmYYKzqfvYVUjL4MksIAA26XhP94T2Q8fVg==@lists.linux.dev
-X-Gm-Message-State: AOJu0YxKXk6gpqEGauzQm2botarM7gFKHcHVrkai1I1nANauEMNt6Nrq
-	c4rX7cNlhbpQD37LXvPP3kKX+N9CjO5xQf3NVYe1zTiPwkPuhRGAmBJ0RmSI9VoaxEsoALFMVIT
-	TIO3u4GVJoDvfQYrdYm1Ko14vTd6A/qs=
-X-Gm-Gg: AR+sD1097S2Dyq1IP6xsmQbbeXNfWG46VncK9LYyTMXVKo2KaAtlIb31ZQIv6dS4BHk
-	MhkkMk01kDtCLYfAGnVx/1dd1sKd3o/OSXMUQq39CAUaSlYUo6gKBn0nToU9MlUtwpF3m9Vi48X
-	BvtqYVp/5kjKjxaQDB4YyPpqz2811H3qCUVipqwwDEZ+Ic0mEOxtOs/jjEk2Ek5H9+UMBVkYlxT
-	HpE1JZLodFimuVBwfTHw1c4CjMUKIIZzu5bjakXsMA4OBpJzuPXzRIp9pc27aUxuT6D6aJmotgR
-	WUE7RuufUsQgFOCPVh+WdJFoJDuIsMPSMXjr+sgeds2M
-X-Received: by 2002:a05:6402:50ca:b0:698:3469:fa99 with SMTP id
- 4fb4d7f45d1cf-6a14effe17bmr5079698a12.0.1785961849170; Wed, 05 Aug 2026
- 13:30:49 -0700 (PDT)
+        bh=WXwiR/pZJKH9ofJG0kWfM6Ol7KNG5CJwWwWByT6iJt0=;
+        b=ODbwh4uvH2WQJBCgzzberMFNB6j3gmFmjKzx1A1Cdpeg/GPOWiscUtyntVi6LLS41a
+         3vJA3nmL+UUcs/Djud2bhseQanOJiDUVpBFYtVOMCakzGvMhs9fzwLkZLrSwwj8i+Lk3
+         ByDQHLt5+j7RkbVC89f8e2KgAVMrR9zVZHra7btD1eTJ9ZCo7xbja+8dBkhlhOOaYN03
+         jfFPvEA3fIVmf2taTpmueQA72tAPteaB1MHNrPla1nGJ7JF+sBLDG8CFEPV8p0iBbQMx
+         XjlZuaSl2AciPQijzHry4DI3lTTjPZU8WH/nHoSWYl4wnFT2xn1ArSP5uAOdQ1DZM2PY
+         JNTQ==
+X-Forwarded-Encrypted: i=1; AHgh+RpBay4WdohEW5VGQeh0s4ku8vQu79D4PJJeJHQ4yeRdpD1e3/2v66aVLLHe/MftTY3JRzkFXSeDsE4Lew==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyTBWsOCzRRA28GwihPGTnahZfkbWaQj60SqwBvMI9lqOWQ8ckR
+	a48LV3uOs46FwNV2hVItc79DWyAPMCXf3ZJmGjIuT2e9MgH703cqe0K7IINJdyjNAXliqzxvbe0
+	lgSoUV0aGRfElF/u85a7YM96bvca3SiE=
+X-Gm-Gg: AR+sD10zQ8gW2ayrh+l37AGdWPBLO3r5JXWVNnw2ThvUr2VdAzZ8Fx4KQo1eryPWY0t
+	d5YMRMB76Wg/msSYpoRUfShYobgBfAPUr2S9cAaXAk1s8ksROP7TMGQkC1kztJuK/t6DA2f6o/W
+	oFnoYAUwSQ71AsycT5iupK4jP+0/3RdyGRPjoJ9mewbrO0xxqrJUGFhE+ejjYA2A8gncRo0rBkf
+	NRZB1en6LAkctkvpF4j1bHE4spu8IEG7XMl4Uwdj2WwDQZxjq3j2AKM/gvy+84UCL7goRuaCSRX
+	XOUiG9P7NDQw4usTP2vT3N4Qc4YSm1LggE/Ro+GMmAYF
+X-Received: by 2002:a05:6820:4b8e:b0:6a1:4a27:cd22 with SMTP id
+ 006d021491bc7-6ae968d0ddbmr5568777eaf.0.1785962002030; Wed, 05 Aug 2026
+ 13:33:22 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <cover.1785621505.git.coshi036@gmail.com> <bd2c982e7c91fcfdb8a326ae8166853351398aa2.1785621505.git.coshi036@gmail.com>
- <zr3we2xntqhn7ieev2khdkqvoi44vrkyd5hhgxjol2bggcllhr@g4wpvgfolwni>
-In-Reply-To: <zr3we2xntqhn7ieev2khdkqvoi44vrkyd5hhgxjol2bggcllhr@g4wpvgfolwni>
+References: <cover.1785621505.git.coshi036@gmail.com> <f0e0fd8516487b774d8cf1384949a0c616921fbd.1785621505.git.coshi036@gmail.com>
+ <ppnbgcljrjb5wqqvqiyh254wkunfutydykgbi7zheuf2mfdjqv@j6lngn5vywxj> <7qfbpj66hdtxc23lox63hqss42yo5xz2dazigf7nwdorplmec5@vv6jsnqa6viu>
+In-Reply-To: <7qfbpj66hdtxc23lox63hqss42yo5xz2dazigf7nwdorplmec5@vv6jsnqa6viu>
 From: Chris S <coshi036@gmail.com>
-Date: Wed, 5 Aug 2026 16:30:38 -0400
-X-Gm-Features: AUfX_mw_SS8RGdpRx5YbwF50WJ1pFJNPD4n9XzsvkEDLkwiQIoG_VK4piD_G0XA
-Message-ID: <CACd_6n0ZrHf+oGmZbvvAnMZHRDKhsV0DjHiLBPFGsuO0=Nd4Jg@mail.gmail.com>
-Subject: Re: [PATCH 13/19] ocfs2: check for a metadata write error with buffer_write_io_error()
+Date: Wed, 5 Aug 2026 16:33:07 -0400
+X-Gm-Features: AUfX_mwz8K3T1Z_fWdMufWIMTQu1kthOhf45o3aWABfKf2Yu8afHwh21AjQl4bU
+Message-ID: <CACd_6n2fBNVQF3UXth_WxGWHMLm7SysDbcQ3PrJc32nDfpMwCQ@mail.gmail.com>
+Subject: Re: [PATCH 16/19] jbd2: report journal write errors with BH_Write_EIO
 To: Jan Kara <jack@suse.cz>
 Cc: Christian Brauner <brauner@kernel.org>, Alexander Viro <viro@zeniv.linux.org.uk>, 
 	Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org, 
@@ -106,118 +106,96 @@ Cc: Christian Brauner <brauner@kernel.org>, Alexander Viro <viro@zeniv.linux.org
 Content-Type: text/plain; charset="UTF-8"
 Content-Transfer-Encoding: quoted-printable
 
-Agreed, and thanks for the tag.
+Done in v2, and 'success' it is - thanks for the follow-up, that is what
+fs/buffer.c calls it.
 
-ocfs2-devel and the ocfs2 maintainers are on Cc for v2, and the cover lette=
-r
-calls this out by name so it does not get lost in a 21 patch series.
+        if (!success)
+                   mark_buffer_write_io_error(bh);
 
-To be concrete about what they are being asked to look at.
-ocfs2_write_block() has never removed a block from the cluster uptodate
-cache when its write failed, and the comment it carries today says why: the
-buffer is not marked locally up-to-date, so the stale cache entry can do no
-harm.  That reasoning stops holding at patch 20.  ocfs2_read_blocks()
-decides whether to go to disk on the cluster cache alone, so it skips the
-read either way; today it then fails the !buffer_uptodate(bh) test and
-returns -EIO, but once the buffer stays up to date that read succeeds and
-hands back the in-memory copy - the right data, but data that never reached
-the disk, and another node reading the same block will not see it.
-
-I do not have a cluster set up to test this on at the moment, so I would
-rather ask than assume.  If it turns out to be a problem for ocfs2, I am
-happy to fix it in the next version.
+Patch 21 adds a clear_buffer_write_io_error() to the success side, so the
+final shape has both arms again, but nothing touches BH_Uptodate either way=
+.
 
 Best,
 Chao
 
-On Tue, Aug 4, 2026 at 4:49=E2=80=AFAM Jan Kara <jack@suse.cz> wrote:
+On Tue, Aug 4, 2026 at 5:10=E2=80=AFAM Jan Kara <jack@suse.cz> wrote:
 >
-> On Sat 01-08-26 18:00:57, Chao Shi wrote:
-> > ocfs2_write_block() and ocfs2_write_super_or_backup() detect a failed w=
-rite
-> > by looking at BH_Uptodate afterwards.  That relies on the write complet=
-ion
-> > handler clearing BH_Uptodate on error, which this series removes: a buf=
-fer
-> > whose write failed still holds the data the filesystem asked to be writ=
-ten,
-> > so declaring it not up to date is wrong and makes callers re-read it.
+> On Tue 04-08-26 10:54:37, Jan Kara wrote:
+> > On Sat 01-08-26 18:01:00, Chao Shi wrote:
+> > > The journal's own write completion handler,
+> > > journal_end_buffer_io_sync(), reports a failed write by clearing
+> > > BH_Uptodate, and the three places that wait for journal writes look f=
+or
+> > > that.  This series is removing that convention: a buffer whose write =
+failed
+> > > still holds the data that was supposed to reach the disk, and saying =
+it is
+> > > not up to date makes callers rewrite, re-read or WARN over data that =
+was
+> > > never wrong.
+> > >
+> > > Set BH_Write_EIO instead, with mark_buffer_write_io_error(), and test=
+ it in
+> > > journal_wait_on_commit_record() and in the two commit-phase waits.
+> > >
+> > > The two changes have to go together, because commit phase 4 waits on =
+a
+> > > mixed list: descriptor blocks are submitted with
+> > > journal_end_buffer_io_sync(), while revoke blocks go through
+> > > write_dirty_buffer() and land in bh_end_write().  bh_end_write() alre=
+ady
+> > > sets BH_Write_EIO, so converting the consumer alone would keep workin=
+g for
+> > > revoke blocks and silently stop detecting failed descriptor writes.  =
+With
+> > > the handler converted, both halves of the list report the same way.
+> > >
+> > > mark_buffer_write_io_error() is safe on all of these buffers.  The sh=
+adow
+> > > buffers from jbd2_journal_write_metadata_buffer() have no folio and n=
+o
+> > > associated mapping, so it does nothing beyond setting the flag.  Desc=
+riptor
+> > > and commit blocks are ordinary buffers on the journal device, and mar=
+king
+> > > the journal's mapping with the error is what write_dirty_buffer() alr=
+eady
+> > > does for revoke blocks on the same device.
+> > >
+> > > Signed-off-by: Chao Shi <coshi036@gmail.com>
+> > > ---
+> > >  fs/jbd2/commit.c | 8 ++++----
+> > >  1 file changed, 4 insertions(+), 4 deletions(-)
+> > >
+> > > diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
+> > > index 60273cddf434..8912786ebebb 100644
+> > > --- a/fs/jbd2/commit.c
+> > > +++ b/fs/jbd2/commit.c
+> > > @@ -39,7 +39,7 @@ static void journal_end_buffer_io_sync(struct bio *=
+bio)
+> > >     if (uptodate)
+> > >             set_buffer_uptodate(bh);
+> > >     else
+> > > -           clear_buffer_uptodate(bh);
+> > > +           mark_buffer_write_io_error(bh);
 > >
-> > Test BH_Write_EIO instead.  Note that ocfs2_write_block()'s test is the
-> > positive one, so the sense has to be inverted rather than the flag simp=
-ly
-> > swapped.
+> > There's no need to set uptodate flag here at all (all callers set it be=
+fore
+> > submitting IO). So you can just simplify this to:
 > >
-> > The comment in ocfs2_write_block()'s error arm needs updating for the s=
-ame
-> > reason.  It said the clustered uptodate information did not have to be
-> > removed because the buffer was not marked locally uptodate; after this
-> > series it is, so the reason no longer holds.  Not advertising the block=
- to
-> > the cluster is still the right thing to do - the data is in memory but =
-not
-> > on disk - so only the justification changes, not the behaviour.
+> >       if (!uptodate)
+> >               mark_buffer_write_io_error(bh);
 > >
-> > No behaviour change today - a failed write sets BH_Write_EIO and clears
-> > BH_Uptodate together.  It stops being a no-op at the end of the series,
-> > where the new test is the one that still works.
-> >
-> > Signed-off-by: Chao Shi <coshi036@gmail.com>
+> > Also I'd rename the local variable from 'uptodate' to 'ioerr' or someth=
+ing
+> > like that.
 >
-> This looks ok to me so feel free to add:
->
-> Reviewed-by: Jan Kara <jack@suse.cz>
->
-> but it would be good to get a feedback from ocfs2 maintainers whether the
-> logic change in ocfs2_write_block() where we now keep the cluster cache
-> block uptodate after write IO error doesn't break some expectations of
-> ocfs2.
+> Sorry, not 'ioerr' but rather 'success'. I can see fs/buffer.c names it l=
+ike
+> that.
 >
 >                                                                 Honza
->
-> > ---
-> >  fs/ocfs2/buffer_head_io.c | 12 +++++++-----
-> >  1 file changed, 7 insertions(+), 5 deletions(-)
-> >
-> > diff --git a/fs/ocfs2/buffer_head_io.c b/fs/ocfs2/buffer_head_io.c
-> > index 7bfe377af2df..733ceda79ca1 100644
-> > --- a/fs/ocfs2/buffer_head_io.c
-> > +++ b/fs/ocfs2/buffer_head_io.c
-> > @@ -66,12 +66,14 @@ int ocfs2_write_block(struct ocfs2_super *osb, stru=
-ct buffer_head *bh,
-> >
-> >       wait_on_buffer(bh);
-> >
-> > -     if (buffer_uptodate(bh)) {
-> > +     if (!buffer_write_io_error(bh)) {
-> >               ocfs2_set_buffer_uptodate(ci, bh);
-> >       } else {
-> > -             /* We don't need to remove the clustered uptodate
-> > -              * information for this bh as it's not marked locally
-> > -              * uptodate. */
-> > +             /*
-> > +              * The buffer still holds what we tried to write, but it =
-did
-> > +              * not reach the disk, so don't advertise it to the clust=
-er
-> > +              * as up to date.
-> > +              */
-> >               ret =3D -EIO;
-> >               mlog_errno(ret);
-> >       }
-> > @@ -446,7 +448,7 @@ int ocfs2_write_super_or_backup(struct ocfs2_super =
-*osb,
-> >
-> >       wait_on_buffer(bh);
-> >
-> > -     if (!buffer_uptodate(bh)) {
-> > +     if (buffer_write_io_error(bh)) {
-> >               ret =3D -EIO;
-> >               mlog_errno(ret);
-> >       }
-> > --
-> > 2.43.0
-> >
 > --
 > Jan Kara <jack@suse.com>
 > SUSE Labs, CR
