@@ -1,103 +1,214 @@
-Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f53.google.com (mail-ed1-f53.google.com [209.85.208.53])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2CE64466B1B
-	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 12:20:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785932440; cv=none; b=Dj6RXeve/G/kMzGy8Kj/+bWQBdKFLx2Zo1jGVPHnMvLyzjDH2nOJ9YD/mZ1tx65v5F+L77e0/8l60VBoaZUL0hC6dyBX9k6TevYsmTvGsSxsP49KzidKBMky3YuX5WKHgUFF1dXP+XPPJIERUiQwunw+xWu/17/vvqNLUIEOcXM=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785932440; c=relaxed/simple;
-	bh=4YJTDVeOeIRLjPdssMiKpCtEkXBGtAE7s1KHPClF8Ts=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=e1riSlHcDQek9uXcXadzqiTASD4Kbdwocqd1GZ2JxUuU7KDWsM13sGScHTrfnQQtiILYaKdgnLuYmDeLlGxKZqz12buYRMlfeSzZy9pQ+SvN327kPqoOu94/Qk7fTf68TvhfWKKWpSyTZ1gISx9qLqgbaNEP5/vjVjTCjQZRMwo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=RmnRsxAU; arc=none smtp.client-ip=115.124.30.112
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A7502357CF4
+	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 17:42:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.53
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1785951736; cv=pass; b=Fgh07OPoI0CTChPAGvN/GCnBsSDzJUof0DEYVK/PClM2qN2VdRlqwQDDsCAUBdxNUqn5IWNb3NpihdFREbKr/aYdARqIxs4dCvHk3gTQacYvkFN1ZjdnEIAgte7rzcFyBFkNC3VZUECAEi4H9J7V3ejXMN24b/BflnKNqCxMWE4=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1785951736; c=relaxed/simple;
+	bh=EyaYqKudXSYNb2x8/wPi+3HpDy7w6KyE/JUWlmLyn/Y=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=IVlj8Qc3ceLwElz09N1BQcTZ/1uXpo+Ibgm/YGt1GcbKXR3cm9ZN9PPZCXetHD6I11x+S4AADgJZOKOXg6jXn8ICviooXMb+8p2eDDgbdDElbGt3+gGiwU264WVYI2e+hB64oOrGMKFFdfEgv9i7lLN2In7SOVdRfzsQWsbfzMY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=coG4oOB2; arc=pass smtp.client-ip=209.85.208.53
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="RmnRsxAU"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1785932433; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=6Q520ukcQ1Nk1m20jSH/LeAVwsrTmKfiKDR865ByMFY=;
-	b=RmnRsxAUbIPn3hFQgGGF5SsuU0V8Z/2M/18dI5nvV4U1d+aKvO4HPjcrExRpxWxQl6rqgDnRBQLNZxb2mQ2XlKd1eIDadATstn5dSefTlXg2wZG1wx3nLU5slb9YONLQCEr1HPkoqAFV/K0Td0ztugKTFiIV3GmCFpm39HIbEWo=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X8R8OgX_1785932432;
-Received: from 30.166.0.128(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X8R8OgX_1785932432 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 05 Aug 2026 20:20:32 +0800
-Message-ID: <1de59a4f-49be-4f3f-b11f-6cf38cd31222@linux.alibaba.com>
-Date: Wed, 5 Aug 2026 20:20:29 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="coG4oOB2"
+Received: by mail-ed1-f53.google.com with SMTP id 4fb4d7f45d1cf-6a0a0466d12so238191a12.0
+        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 10:42:14 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1785951733; cv=none;
+        d=google.com; s=arc-20260327;
+        b=TGLhEnC9/XzcdQXJ91Q0Hs42AVASmNkWQOjrVDO8IKh9wEiCij8GYeBVGrSoDB3lWU
+         rAUm9ZgEGAu2J2NH0ooSvXrpty4VYU15DEw3VXjDSpBEUxmpJcyhiYg047ZvbPRLB/Rv
+         a29mMPtIFO7OQMjj2kcIv/Wa8ncKgzxbZzC13iJFrnn+UZO3ni/LYmt3BVToPeVHqkPd
+         XHdBNH5/wODMF6mBjmWl8RsVoNSEAloGqze1x+tk54U0q6v9mclM0tGrT4sdwSC5D/+X
+         lWezjugbSrT/dg5Se6Byrm3xf0zFP+E61mqldL+/ojPNeAUfJS0E7qT8kL5zjxMZtVBn
+         DaDg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=BXreRkBEGbHPBEEBrdZNIuUhCIMHTazKQC4iCv4R03M=;
+        fh=ZoCf1mu3AdVXVmT/XcsX0xOKPWHoJMPj2tUl5X2maHc=;
+        b=Ni1nCt9ujYvm1dL77l97N0A5D2ifgRPSq+BQ5f8vIBJcyHnghuoZD1KiU0oyH7JINN
+         ih7kyFHmiHw6G8txCaWen+8ShxCfCFOeroIftWBAxgNhbpm+Iu2cGra0A7emRWN9Hn6S
+         6of6WsX4MocHc0zOJHHa0KU1vtnL19GUNXNPQ/qMJ7sD4Bro62Atf9aPQv8SHLbO84vf
+         IU8rn1UOifUEls+dMvSykzbqN7qwE17ttpnMdV6yTLAj8xBWwJDWhY/IXWOsp64398j+
+         1mkJDQ4m0LorGFiOhIP8q6ZXcXlZ8G99F1GmLZwlhv6JjOXZpKk5nrmP3o8iB/esGhWK
+         KkXg==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1785951733; x=1786556533; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=BXreRkBEGbHPBEEBrdZNIuUhCIMHTazKQC4iCv4R03M=;
+        b=coG4oOB2TpWBhsiHkQYLDFvPMmsPNLpXhTxsGWtiiN2DeYx5dy6J2Wh9dU0p4CUwj7
+         6lmDz2/4B5Ya3YBbD26g8/DcJvT677LXWuFdmGPJ9mRwyHXh2EQ9UaXYSp63vxrUY5nR
+         SMP4ac1p6EFsm2f4qeI62YlmSAQ6eseCjxWo3WdaFfD6/lO797/0LYH6s0iFfapUaAIl
+         JkQZPL2He6X/kw35iblNGBWSbu7uDScV5gF/JSjZksEq9xObw5UjJFI91C1LqQGPgNSv
+         gxSe8D9z9Ki/JqnGC0/RNMx3jjNjt80kBlE/ZXr+cBPP3dRS4jG0Qix7KzOdXWG9/nrr
+         DTYg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1785951733; x=1786556533;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=BXreRkBEGbHPBEEBrdZNIuUhCIMHTazKQC4iCv4R03M=;
+        b=h/P+JSkpM3Tw1XpfSZktjBYGA6t1BNpglrKc3G2dE3xfSkv1Qvit1iqQNHWjKoZfd5
+         /WOuIlYuiMX/8gSya/lHzytPumCZ/8bATOujOUl+aX8ClMFAoBhngqpMXuK7NzO6CKQf
+         Cotghep9DJ32acPE13hNHGZq9iwHJNQMXDwiysUEE044pQi68YHOXG6VQF2tLQzW8q6C
+         fS/LP8h2TXpCcJL5rtbte5bIMax4SQjFAKFurCC/hWlVumWEAXn+fWRx46u9PQMD7pfh
+         uk9pGSxuAT7DGJtTBUt4STJGqURnBu+XnzSDZB1CWKEePJ3KrdBApKDsPDLPatDgUlAs
+         mOKQ==
+X-Forwarded-Encrypted: i=1; AHgh+RrfmsHamoSMVKONLygw2lraGNTLFBQH1toC1e0Lg9sEq5HJUBp04lPODYncphXZQJh0N6DhMrLsYUmItg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yz7Tyltp2o7NS8wd8jyoHtB5CvfSkKhWFjAU5LTBm99XtHVPvFd
+	KwbcApOwk5FW1StcDgLTg7tEdcgbRVyRpwHg51xfWqcFwWPfOChBs+rItp+5DTRQO9IvU7WZ2Ob
+	P0guHZhyTfYKSlGLQw4lHuW4+KaUEfxM=
+X-Gm-Gg: AR+sD12drkwsEPPLgxRjcbWAshoKd3wlYkDb+ZLAvfozSD7Uu+3hfzlEHshbwcqLBfz
+	lqhc1hX94UxUZTuLwy6ne+fa4EWRYz6Gm3HuH0wYJU5t/L6nlm0efmRjqUDt3g3p5OPCSHG8hJT
+	ntK5K/k1HdVq3Xe24t0U/RsSiJHr40TT5C8wq20z8E28IrN2vCxLE++CpCT9b20Pk31YHWKmCwj
+	xRv5D8Pcsf6zlbgw1HeYEy3uuiD+Sfi7+KKhNm0z+PrmZqfQAQzRkfQ1UoZDlCqhslhitQVnFw4
+	iUqm5UVf0swboOaa/z2w7EtXu+k/KIuwUR4D+W9OeQFI
+X-Received: by 2002:a05:6402:4586:b0:69f:c929:b88 with SMTP id
+ 4fb4d7f45d1cf-6a18f0a9fbdmr501901a12.5.1785951732581; Wed, 05 Aug 2026
+ 10:42:12 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: fix cached cluster count after suballocator
- reclaim
-To: Matthias Goergens <matthias.goergens@gmail.com>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: heming.zhao@suse.com, mark@fasheh.com, jlbec@evilplan.org,
- glass.su@suse.com, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <20260805070837.3390148-1-matthias.goergens@gmail.com>
- <anL1pYKZK8UqYwsI@p15> <20260805113920.385959-1-matthias.goergens@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260805113920.385959-1-matthias.goergens@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+References: <cover.1785621505.git.coshi036@gmail.com> <41c6fee66724e374d4682124a1eb80041e22efb9.1785621505.git.coshi036@gmail.com>
+ <z5jfe6bsxhgqqgjtxcm7ass2fslc4ynizvpmzlqxtr6rrfaopu@fxzntlxafmxj>
+ <anDW5UTbF2d0EQmr@casper.infradead.org> <74ts4lwsq73mce3rvc7imisot436742ykzahnogysnbklot45b@q3nhfq55knx3>
+ <anHyBATDe8yQEFNi@casper.infradead.org> <CACd_6n0zcg85_p=+dcVK__SECdom8K01BBsdzakuwJ1ibMhKJQ@mail.gmail.com>
+In-Reply-To: <CACd_6n0zcg85_p=+dcVK__SECdom8K01BBsdzakuwJ1ibMhKJQ@mail.gmail.com>
+From: Chris S <coshi036@gmail.com>
+Date: Wed, 5 Aug 2026 13:42:00 -0400
+X-Gm-Features: AUfX_mzn0laRrr3SVV705RV57FVYpzTyUQWOE8QEtN7_m8lMA0sJaYZzNUqNq2w
+Message-ID: <CACd_6n0hCFbEnJwKbMoR5qxdQoRoicKA8OE+Th6HshkL-NiKsA@mail.gmail.com>
+Subject: Re: [PATCH 02/19] buffer: allow a buffer_head to point at memory
+ outside the page cache
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, 
+	"Theodore Ts'o" <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, 
+	Baokun Li <libaokun@linux.alibaba.com>, Ojaswin Mujoo <ojaswin@linux.ibm.com>, 
+	Ritesh Harjani <ritesh.list@gmail.com>, Zhang Yi <yi.zhang@huawei.com>, 
+	Bob Copeland <me@bobcopeland.com>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, linux-ext4@vger.kernel.org, 
+	ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
+	linux-karma-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
+Correcting myself: it is not the kmem_cache pointer that lands at that
+offset.  SLAB_MATCH(compound_info, slab_cache) puts slab_cache at word 1,
+while ->mapping is word 3, so what a slab folio has there is slab_list.prev=
+.
+Not an address_space either way, so the reason for splitting the patch
+stands, but I named the wrong field.
 
+Best,
+Chao
 
-On 8/5/26 7:39 PM, Matthias Goergens wrote:
-> When reclaiming a suballocator block group, first reduce the on-disk
-> cluster count by cl_cpg.  The current code then subtracts that new
-> count (fe->i_clusters) from the old cached count
-> (OCFS2_I(alloc_inode)->ip_clusters).
-> 
-> For an allocator with N block groups, that leaves the cache at
-> 
->     N * cl_cpg - (N * cl_cpg - cl_cpg) = cl_cpg
-> 
-> i.e. ip_clusters -= (fe->i_clusters - cl_cpg) leaves ip_clusters equal
-> to cl_cpg regardless of N.  This happens to be correct when reclaiming
-> from two block groups, but undercounts the clusters from three block
-> groups onwards.  The incorrect cache value is also used immediately to
-> update i_blocks.
-> 
-> Assign the updated on-disk count to the cache, matching the allocation
-> and inode refresh paths.
-> 
-> In a QEMU test using a clean 256 MiB OCFS2 image and a 10,000-file
-> create/delete workload, the first buggy reclaim left the on-disk
-> (fe->i_clusters) and cached (ip_clusters) counts at 2048 and 512
-> clusters respectively; later reclaims underflowed the cache.  With this
-> change, the cache matched the on-disk count across all four reclaims:
-> 2048, 1536, 1024, and 512 clusters.
-> 
-> Fixes: 4a54331616b3 ("ocfs2: give ocfs2 the ability to reclaim suballocator free bg")
-> Cc: stable@vger.kernel.org
-> Signed-off-by: Matthias Goergens <matthias.goergens@gmail.com>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
-> 
-> v2: commit-log wording revisions suggested by Heming Zhao; code unchanged.
->  fs/ocfs2/suballoc.c | 2 +-
->  1 file changed, 1 insertion(+), 1 deletion(-)
-> 
-> diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-> index a4a2b87a45fe3..20c3aec6b9873 100644
-> --- a/fs/ocfs2/suballoc.c
-> +++ b/fs/ocfs2/suballoc.c
-> @@ -2759,7 +2759,7 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
->  	fe->i_clusters = cpu_to_le32(tmp_used - le16_to_cpu(cl->cl_cpg));
->  
->  	spin_lock(&OCFS2_I(alloc_inode)->ip_lock);
-> -	OCFS2_I(alloc_inode)->ip_clusters -= le32_to_cpu(fe->i_clusters);
-> +	OCFS2_I(alloc_inode)->ip_clusters = le32_to_cpu(fe->i_clusters);
->  	fe->i_size = cpu_to_le64(ocfs2_clusters_to_bytes(alloc_inode->i_sb,
->  					     le32_to_cpu(fe->i_clusters)));
->  	spin_unlock(&OCFS2_I(alloc_inode)->ip_lock);
-
+On Tue, Aug 4, 2026 at 7:06=E2=80=AFPM Chris S <coshi036@gmail.com> wrote:
+>
+> Agreed, and done - but not in this patch, which is worth flagging because=
+ it
+> is not obvious.
+>
+> folio_mapping() is doing two jobs here.  The one you are objecting to is =
+the
+> swap cache mapping.  The other is that it returns NULL for a slab folio, =
+and
+> that is the only reason this path is safe for jbd2's shadow buffers today=
+ -
+> they are the slab-backed buffers this series is getting rid of, and they =
+do
+> reach buffer_set_crypto_ctx() through __bh_submit().
+>
+> So doing it in this patch would leave one commit where shadow buffers sti=
+ll
+> sit on slab folios, and this code reads folio->mapping directly, i.e., ha=
+nds
+> fscrypt a struct kmem_cache and dereferences ->host on it.  Fine at the e=
+nd
+> of the series, broken in the middle of it.
+>
+> v2 does it as its own patch 4, after the jbd2 change.
+>
+> Chao
+>
+> On Tue, Aug 4, 2026 at 10:07=E2=80=AFAM Matthew Wilcox <willy@infradead.o=
+rg> wrote:
+> >
+> > On Tue, Aug 04, 2026 at 10:07:39AM +0200, Jan Kara wrote:
+> > > > Yes, agreed.  I think it's fine to add in some 'if (!bh->b_folio)'
+> > > > tests, but only where they're needed for the occasional consumer.  =
+This
+> > > > really is a rare (but legitimate) case.
+> > >
+> > > Yes. If we were to write this code from scratch, I'd rather push for
+> > > forming and submitting the bio directly instead of trying to bend the=
+ bh
+> > > layer for these temporary bhs. Eventually we might want to do this cl=
+eanup
+> > > anyway (since bhs don't really buy us much in this path) but not in t=
+his
+> > > patch set.
+> >
+> > I think that would be better, but it is out of scope.
+> >
+> > > > > >  static void buffer_set_crypto_ctx(struct bio *bio, const struc=
+t buffer_head *bh,
+> > > > > >                                   gfp_t gfp_mask)
+> > > > > >  {
+> > > > > > -       const struct address_space *mapping =3D folio_mapping(b=
+h->b_folio);
+> > > > > > +       const struct address_space *mapping;
+> > > > > >
+> > > > > >         /*
+> > > > > >          * The ext4 journal (jbd2) can submit a buffer_head it =
+directly created
+> > > > > > -        * for a non-pagecache page.  fscrypt doesn't care abou=
+t these.
+> > > > > > +        * for memory that is not in the page cache at all.  fs=
+crypt doesn't
+> > > > > > +        * care about these.
+> > > > > >          */
+> > > > > > +       if (!bh->b_folio)
+> > > > > > +               return;
+> > > > > > +       mapping =3D folio_mapping(bh->b_folio);
+> > > > > >         if (!mapping)
+> > > > > >                 return;
+> > > >
+> > > > Do we want to call folio_mapping() here?  The only case where I can=
+ see
+> > > > this being useful is if we attach a buffer_head to an anonymous fol=
+io,
+> > > > and I don't see a good reason to do that.  I think this can just be
+> > > >
+> > > >     mapping =3D bh->b_folio->mapping;
+> > >
+> > > For all I know yes, bh->b_folio->mapping should be enough here. But I
+> > > thought folio_mapping() is kind of preferred to open-coding?
+> >
+> > It rather depends on the path we're talking about.  Looking at the
+> > implementation of folio_mapping(), it's actually mildly dangerous
+> > to call folio_mapping() in this path.  If we were ever to point a
+> > buffer_head at some memory on a page in swap cache, we'd get a pointer
+> > to a swap_address_space.  I think we'd safely crash in that case becaus=
+e
+> > mapping->host would be NULL, but in other contexts doing things to a
+> > swap mapping would be quite bad.
+> >
+> > So I think this should just be folio->mapping; don't risk getting a
+> > pointer to a swap mapping.
