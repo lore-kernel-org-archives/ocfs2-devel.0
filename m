@@ -1,32 +1,32 @@
-Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D3D04457BE
-	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 11:54:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EA545448D06
+	for <ocfs2-devel@lists.linux.dev>; Wed,  5 Aug 2026 11:57:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785930873; cv=none; b=aE+1RU/UbYBBgXtY0O/JuFO1D4KUVHTdKKOufeH3clC+tgGRYqzF72f0a6J8AY2ui0YxDmJ4hHXh8/5U4dnCssSGavVeeF9yutjGw+tw0djWXm4OYuKi2tm/ZXi+K/6ur/lD+hVHuJz/8AR0M9ww24FvfWdfP5958fZwG8o4NMI=
+	t=1785931048; cv=none; b=BIAcD5XVKD0bORvRoTUb0dJYYbMzuX4/vI69toFEGLDLJCCfJ6RSgIVPHGsVG+TWBjh3dgglyfueEypzgintB6gHaSE2e26tt6AtN6P6TImJKd/aRrLIgEI09jCGwVR+CsqiNETuoN6MPbo73EYK3dQY0CFvwJb4pYckfKA44cU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785930873; c=relaxed/simple;
-	bh=clSvkIBiwdDj/QSuG34dj/T2wZpYjH8NakaA/pwbf6s=;
+	s=arc-20240116; t=1785931048; c=relaxed/simple;
+	bh=4btE81SFB3B68clJllL2qnGYI9lNf8ilu8J16k30se0=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=axAGnB5/URfqhyS/lOlzqmzxyX3TXajcUeR4culNdBRuVPfrYy2azOIAB4l+oWThgePVv6/dzUPgwmcO9P9iim8+dFht5N6IbyDNaJfB8Oj114SkwQKP7L5F7GoQQVGFuPy4uLYa7LQqtP3x9AsKyumZRBzCUICsQQ+mkrBOpaA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=vbQEgVHO; arc=none smtp.client-ip=115.124.30.133
+	 In-Reply-To:Content-Type; b=iPS4BmWwWGv9nSTr/3tktS2zYtSys9WBVoLiV9Jzy2SBA7w29q8/SQsGIiqC3kOtRWqwidpIY3IgY5o6f2Juhudk9uVXuRn6/pLXzGu0EX282b6xKLcENVYHQu0KzmUkUjBp3JtDHbY3I7wnCeP+SYLhfoBUuu9KVeD+bwQZDxg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=jlAqhzHY; arc=none smtp.client-ip=115.124.30.110
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="vbQEgVHO"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="jlAqhzHY"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1785930861; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=SXlY95cXkalBPhj3r9TBpIr5tSLnahxKwBsJ1qB732A=;
-	b=vbQEgVHO02V3/zPaZUelBdAYDy5psxH7TJS2qfAnYiM5g4/TGopRIm+z6P2J1YYwqhFX5/S3VHQB1lVAjvzdipilw7iju3x59BHCe+JmNGtw7uwgxt6ZGjNXOGi3glg8mnK9iyfwGwupKdsGyCn/ABzjYb2owHdO/cuXIQyjV1A=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R371e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0X8R8I.G_1785930860;
-Received: from 30.166.0.128(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X8R8I.G_1785930860 cluster:ay36)
+	t=1785931037; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=rSpzLh9oL6ZAuX/k/uebDpikNR0tCXbM0Qe+6i6sJlc=;
+	b=jlAqhzHYShbQVCTWwvo9V1PoxAl33cZho/fv7roR6jb4Evw+9XyhtMhpd+baFrlrqXJF6L0u8ZSVATWcdNB3JZITnaFKiIyPtN3aFbaI2bUTvxK3Me27JNxUQACbL9EZkMqMVr+m2S5cVAAzZKEgG55eY4x6/dsrmojThwT2Lvg=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X8RD6oh_1785931035;
+Received: from 30.166.0.128(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X8RD6oh_1785931035 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Wed, 05 Aug 2026 19:54:20 +0800
-Message-ID: <a7f2e697-ee2b-4548-a16d-ce9a10bde14b@linux.alibaba.com>
-Date: Wed, 5 Aug 2026 19:54:17 +0800
+          Wed, 05 Aug 2026 19:57:16 +0800
+Message-ID: <f23fdf09-6e6a-4291-a47d-fb86705fd206@linux.alibaba.com>
+Date: Wed, 5 Aug 2026 19:57:13 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,93 +34,159 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: validate global bitmap cl_bpc before resize
+Subject: Re: [PATCH] ocfs2: reject inconsistent local xattr entries
 To: ZhengYuan Huang <gality369@gmail.com>
 Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
  linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, r33s3n6@gmail.com,
- zzzccc427@gmail.com, tom442288@tuta.io, Heming Zhao <heming.zhao@suse.com>
-References: <20260804064445.766072-1-gality369@gmail.com>
+ zzzccc427@gmail.com
+References: <20260804112806.1219362-1-gality369@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260804064445.766072-1-gality369@gmail.com>
+In-Reply-To: <20260804112806.1219362-1-gality369@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-
-
-On 8/4/26 2:44 PM, ZhengYuan Huang wrote:
-> [BUG]
-> A corrupted global bitmap inode can make online group extension scan past
-> the end of a group descriptor bitmap:
-> 
-> BUG: KASAN: use-after-free in _find_next_bit+0xef/0x120 lib/find_bit.c:157
-> Read of size 8 at addr ffff888021b52000 by task syz.0.34/409
-> Call Trace:
->  ...
->  _find_next_bit+0xef/0x120 lib/find_bit.c:157
->  find_next_bit include/linux/find.h:73 [inline]
->  find_next_bit_le include/linux/find.h:518 [inline]
->  ocfs2_find_max_contig_free_bits+0x53/0xb0 fs/ocfs2/suballoc.c:1292
->  ocfs2_update_last_group_and_inode fs/ocfs2/resize.c:127 [inline]
->  ocfs2_group_extend+0x83e/0x1ae0 fs/ocfs2/resize.c:350
->  ocfs2_ioctl+0x175/0x6e0 fs/ocfs2/ioctl.c:869
->  vfs_ioctl fs/ioctl.c:51 [inline]
->  __do_sys_ioctl fs/ioctl.c:597 [inline]
->  __se_sys_ioctl fs/ioctl.c:583 [inline]
->  __x64_sys_ioctl+0x197/0x1e0 fs/ioctl.c:583
->  ...
-> 
-> [CAUSE]
-> ocfs2_group_extend() consumes the global bitmap dinode's cl_bpc value in
-> resize arithmetic. The existing inode validation checked cl_bpc only for
-> non-global chain allocators, so a corrupted global bitmap value could reach
-> the resize path. With cl_bpc changed from 1 to 51457, extending by seven
-> clusters wraps the u16 bit count and grows a 2048-bit group to 34567 bits,
-> exceeding its 32256-bit bitmap capacity.
-> 
-> [FIX]
-> Validate cl_bpc in ocfs2_validate_inode_block() for every chain allocator,
-> including the global bitmap, against the value derived from the
-> filesystem's cluster and block sizes. This rejects the corrupted dinode
-> when it is read and removes the resize-local check that incorrectly assumed
-> cl_bpc is always one. The resize path still uses the validated value for
-> its arithmetic.
-
-It seems a stale message here.
+This conflicts with the following commit in linux-next:
+ocfs2: fix circular locking dependency in ocfs2_init_acl()
 
 Thanks,
 Joseph
+
+On 8/4/26 7:28 PM, ZhengYuan Huang wrote:
+> [BUG]
+> A corrupt OCFS2 xattr entry can set OCFS2_XATTR_ENTRY_LOCAL while
+> keeping xe_value_size larger than OCFS2_XATTR_INLINE_SIZE.Once
+> that entry reaches namevalue_size_xe(), the filesystem trips over:
 > 
-> Fixes: d659072f7368 ("[PATCH 1/2] ocfs2: Add group extend for online resize")
+> kernel BUG at fs/ocfs2/xattr.c:231!
+> Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+> RIP: 0010:namevalue_size_xe fs/ocfs2/xattr.c:231 [inline]
+> RIP: 0010:ocfs2_xa_block_wipe_namevalue+0x2e4/0x330 fs/ocfs2/xattr.c:1638
+> Call Trace:
+>  ocfs2_xa_wipe_namevalue fs/ocfs2/xattr.c:1470 [inline]
+>  ocfs2_xa_remove_entry+0xae/0x1d0 fs/ocfs2/xattr.c:1941
+>  ocfs2_xa_remove fs/ocfs2/xattr.c:2043 [inline]
+>  ocfs2_xa_set+0x11a8/0x30a0 fs/ocfs2/xattr.c:2247
+>  ocfs2_xattr_ibody_set+0x302/0xc50 fs/ocfs2/xattr.c:2795
+>  __ocfs2_xattr_set_handle+0x7e6/0xdb0 fs/ocfs2/xattr.c:3416
+>  ocfs2_xattr_set+0x1447/0x2610 fs/ocfs2/xattr.c:3650
+>  ocfs2_xattr_security_set+0x37/0x50 fs/ocfs2/xattr.c:7241
+>  __vfs_removexattr+0x14d/0x1d0 fs/xattr.c:518
+>  cap_inode_killpriv+0x29/0x50 security/commoncap.c:355
+>  security_inode_killpriv+0x105/0x220 security/security.c:2724
+>  setattr_prepare+0x147/0x8a0 fs/attr.c:219
+>  ocfs2_setattr+0x504/0x1fd0 fs/ocfs2/file.c:1148
+>  notify_change+0x4b5/0x1030 fs/attr.c:546
+>  do_truncate+0x1d2/0x230 fs/open.c:68
+>  handle_truncate fs/namei.c:3596 [inline]
+>  do_open fs/namei.c:3979 [inline]
+>  path_openat+0x260f/0x2ce0 fs/namei.c:4134
+>  do_filp_open+0x1f6/0x430 fs/namei.c:4161
+>  do_sys_openat2+0x117/0x1c0 fs/open.c:1437
+>  ...
+> 
+> [CAUSE]
+> namevalue_size_xe() assumes on-disk xattr entries keep the local flag
+> and value size consistent, but OCFS2 does not reject an entry that
+> claims local storage for a value larger than the inline limit before
+> handing that entry to namevalue_size_xe().
+> 
+> The exact-match lookup path can return such an entry through xs->here,
+> and bucket defragmentation and splitting can also walk the corrupt entry
+> directly while reorganizing metadata.
+> 
+> [FIX]
+> Add a small validator for the local/value_size invariant and call it in
+> the paths that feed disk entries to namevalue_size_xe(): exact-match
+> lookup, bucket lookup results, bucket defragmentation, and bucket
+> splitting.
+> 
+> Corrupt metadata is now reported with ocfs2_error() and -EFSCORRUPTED
+> instead of crashing the kernel with BUG_ON().
+> 
 > Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
 > ---
-> v2:
-> - Derive the expected cl_bpc from the filesystem block and cluster sizes.
-> - Extend the existing inode-block validation to cover the global bitmap.
-> - Remove the resize-local hardcoded cl_bpc check.
+> No Fixes tag was added because this is more like a defensive check
+> that is long overdue, not a regression that can be clearly attributed
+> to a specific introduction commit.
 > ---
-> ---
->  fs/ocfs2/inode.c | 9 ++++-----
->  1 file changed, 4 insertions(+), 5 deletions(-)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 41db7dd39ed9..0e1f9ae0eb73 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -1683,12 +1683,11 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  					 le16_to_cpu(cl->cl_next_free_rec));
->  			goto bail;
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 86cfd4c2adf9..63b1e55b242f 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -237,6 +237,23 @@ static int namevalue_size_xe(struct ocfs2_xattr_entry *xe)
+>  	return namevalue_size(xe->xe_name_len, value_len);
+>  }
+>  
+> +static int ocfs2_validate_xattr_entry(struct inode *inode,
+> +				      struct ocfs2_xattr_entry *xe)
+> +{
+> +	u64 value_len = le64_to_cpu(xe->xe_value_size);
+> +
+> +	if (value_len > OCFS2_XATTR_INLINE_SIZE &&
+> +	    ocfs2_xattr_is_local(xe)) {
+> +		ocfs2_error(inode->i_sb,
+> +			    "Inode %llu has corrupt xattr entry: local value_size %llu\n",
+> +			    (unsigned long long)OCFS2_I(inode)->ip_blkno,
+> +			    value_len);
+> +		return -EFSCORRUPTED;
+> +	}
+> +
+> +	return 0;
+> +}
+> +
+>  
+>  static int ocfs2_xattr_bucket_get_name_value(struct super_block *sb,
+>  					     struct ocfs2_xattr_header *xh,
+> @@ -1099,6 +1116,7 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
+>  	struct ocfs2_xattr_entry *entry;
+>  	size_t name_len;
+>  	int i, name_offset, cmp = 1;
+> +	int ret;
+>  
+>  	if (name == NULL)
+>  		return -EINVAL;
+> @@ -1121,6 +1139,11 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
+>  				return -EFSCORRUPTED;
+>  			}
+>  			cmp = memcmp(name, (xs->base + name_offset), name_len);
+> +			if (!cmp) {
+> +				ret = ocfs2_validate_xattr_entry(inode, entry);
+> +				if (ret)
+> +					return ret;
+> +			}
 >  		}
-> -		if (OCFS2_SB(sb)->bitmap_blkno &&
-> -		    OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
-> -		    le16_to_cpu(cl->cl_bpc) != bpc) {
-> -			rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
-> +		if (le16_to_cpu(cl->cl_bpc) != bpc) {
-> +			rc = ocfs2_error(sb,
-> +					 "Invalid dinode %llu: bits per cluster %u (expected %u)\n",
->  					 (unsigned long long)bh->b_blocknr,
-> -					 le16_to_cpu(cl->cl_bpc));
-> +					 le16_to_cpu(cl->cl_bpc), bpc);
->  			goto bail;
->  		}
->  	}
+>  		if (cmp == 0)
+>  			break;
+> @@ -3823,6 +3846,9 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
+>  
+>  		xe_name = bucket_block(bucket, block_off) + new_offset;
+>  		if (!memcmp(name, xe_name, name_len)) {
+> +			ret = ocfs2_validate_xattr_entry(inode, xe);
+> +			if (ret)
+> +				break;
+>  			*xe_index = i;
+>  			*found = 1;
+>  			ret = 0;
+> @@ -4463,6 +4489,10 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
+>  	xe = xh->xh_entries;
+>  	end = OCFS2_XATTR_BUCKET_SIZE;
+>  	for (i = 0; i < le16_to_cpu(xh->xh_count); i++, xe++) {
+> +		ret = ocfs2_validate_xattr_entry(inode, xe);
+> +		if (ret)
+> +			goto out;
+> +
+>  		offset = le16_to_cpu(xe->xe_name_offset);
+>  		len = namevalue_size_xe(xe);
+>  
+> @@ -4745,6 +4775,10 @@ static int ocfs2_divide_xattr_bucket(struct inode *inode,
+>  	name_value_len = 0;
+>  	for (i = 0; i < start; i++) {
+>  		xe = &xh->xh_entries[i];
+> +		ret = ocfs2_validate_xattr_entry(inode, xe);
+> +		if (ret)
+> +			goto out;
+> +
+>  		name_value_len += namevalue_size_xe(xe);
+>  		if (le16_to_cpu(xe->xe_name_offset) < name_offset)
+>  			name_offset = le16_to_cpu(xe->xe_name_offset);
 
