@@ -1,280 +1,201 @@
-Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ACE8B3F88B8
-	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 08:50:30 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.170
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 16435429CFB
+	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 09:49:49 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786006232; cv=none; b=FlVVdoMe3+jksQmqeAtKwtqTf/H8rPubq6XFvLG/g7tQ+dnUkEKMlVFNgKXu8ng4VQSq2+3Mklt5+1mA8QevrprxWlWZcroYNJvEQe3l5jiVbN4v/DK3IKY5tCM9Rbnnw67GPcXx9V0ISucLJ9JoXkzm+N7TAXsndRl6i6hVeMg=
+	t=1786009791; cv=none; b=OsjsTUn2XDj9vu7ZnBRmTlDRTFygIECoPg6i8+InTtDLWiCtmaHNGpPEKV2CS4O1Wnf55oL7K3aNO3LiaM7xkj+R1RLMn1T3YvTXowS+rdBcbkUixQF1gF5BnElNWYea5tNQL7QfegXZ14+DU9aKdqEiHt8EP2m6ZhNk7f8oHig=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786006232; c=relaxed/simple;
-	bh=im1LKzQmgi06AfOhesBf58dj0k46LJNJXNlhFQaVK20=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=jgFVrU0kFLnOxbhjdEl4WEil5Vb9ApGjuUWqJB7UKdHadDuee82aQay8g4wvCZi1iNsudUkFWQd9gDDFpPeNFWWuLkwx8AU55wssODekvaHvEMEmPU1tb0RhNHiRl0DQpJ5gaH6L0ddVEge/vGCQEoJSDR6UxdglJHDmvIurXKA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=lvSxMTTm; arc=none smtp.client-ip=209.85.214.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1786009791; c=relaxed/simple;
+	bh=PyyR5u0EwuW47gTLnNkcMk78neRvuMUXDXEXfBD8Y0g=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=O6Qztlp755h3xkD7sqck2Lju6j60Es2Pk0zyBkkhHVM1i4J0htuunS6FPXcizoDEfUSMOUCVRz2VuXURFQ2/5JPjG1ui2+SyeVIGsenrP1FuDKeWMaG0usE4qTAkTWL9+N4+71yvZzOeGCEQ/sPtPZR/AnOie6MKmsyjpqSHzQo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=vMEJTmnk; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=5bhgTQsY; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=qZMkqYPW; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=m8Ox6hDw; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="lvSxMTTm"
-Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-2ceab75934dso25688865ad.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 06 Aug 2026 01:50:30 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786006230; x=1786611030; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=h/tm6kDS4XdRMjbHSlDUXWElUUdP/MBkRMA0J1fvkHw=;
-        b=lvSxMTTmngOGVIGRDGfawv6H75JRBrFyWTLzWMKiLDSGxtPo3Sq9zRVAN5H00Uz1Tv
-         z/5NNZvrcs2bZ7eGD4vmAnxCAx3F94CTlhXD6kU73KXzKpZeZFuC+3O9c2149J6NJ5sT
-         Rw5odExtbYxRYWoZEQsL9VdyuC3dPnghaOSoFMu9OUey3NehUacKBnubQBDQr6z8DpUc
-         CCBe9q2rp3p5UOA8UR4RmLn7SINBMxTvt6kWNkSdfUBHdLadofNzbGm0b1Dt4TOoIWfK
-         NuxenAaHfzrCKi9GiCaQO9hQ4uBEyGoVnPkrfZsOlEJD3SY79xiiXgsgGc7gw86Vz8BL
-         3aZg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786006230; x=1786611030;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=h/tm6kDS4XdRMjbHSlDUXWElUUdP/MBkRMA0J1fvkHw=;
-        b=bk5E8eg4mgsvvpuI5tg5bcZU2mqj23bc5XjdfqluanpTl3xftwsHa4YiyXIyU9HvGR
-         1y1jMlwrZ/RUGG2KSbNmtD8ckPVHGH4/RYk6oy+iWVA+aMy474rhMCm60TT1HjO21WXQ
-         oZ+S8eXr/AYCQ4MysrZGKtcTOOtGPXETAdkWCe7m8glIcY/gVvTCz1PEf+J8X0sQEGT2
-         cyw8lBedhz4TX+OjXuwFjLWaD9SBwtoUtMv6YIZYCzY2bw3uWA/icq8kFMKCM3y5qCXm
-         j34Aod5gtdIxw1ronCjVJfrWW6PpnCtLWB1gHrWe6BCTFsMJ0W5QZPWk6NagcmrVMKb0
-         QSeQ==
-X-Gm-Message-State: AOJu0YwyU619UZsoncscbxKr/ipdFGv5VLGVjXg7wtjIshfPe540Lt1a
-	N9G/t3UoqH5yDetYP52w/tRJ+kWeDMceOKcbd8c+a77os/9p7HVCSvC8N4FqE0P/lLk=
-X-Gm-Gg: AR+sD11J/UIJeTsFN/7dlaCZiX9odMwojbfIAf/KteG7yCkffx09A1p9088JR9gqXQd
-	ZnwHC1Ua2RBqsMAUrs9ZlKIP53UBxu+AxWsW+w/keSblopooK2oIPpeMGrx0vpIzgo2s3B/EsIf
-	VgOcM7Zan0AiTuwA5x4Hb5WlqBW9m5iZRmC+0A2MxWv6LtUAwgItNodshnCKdGowW/cuz2YR4ts
-	yz4VYYNQI0aqXnvzHKqQ5hKu+Xuk4ITINnFt7weP9MP3JMCRbRNbNFyfRz1IJRIgKXjPQP8Xt46
-	s2mo9RK23hWOWqA6nabBxubQZklcEiJaeHoTIT+ZIPBBHBNS30TaQYAaAWuHHMIm2HNKLnTMsfT
-	8Zau7+TUAeMJUx2TQS7PLhnEwKklgbsi9ELInIY4TrimDxDZydpafUP9HaISipLhq/49RlJjB6H
-	zNocpuHrq0cOpMdgRE3GfPOWfCQ7CS31VajHkz3k3sr/s4n48yLHfwR+yJetKsZw2XbBMwwiwTJ
-	YUoJQf4Y6N31eBxNRXH83Gm9rNQEQ==
-X-Received: by 2002:a17:903:3c48:b0:2ce:7563:70a5 with SMTP id d9443c01a7336-2d0ca70d53bmr167187695ad.6.1786006229885;
-        Thu, 06 Aug 2026 01:50:29 -0700 (PDT)
-Received: from gmail.com ([138.199.21.246])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d0a9ff4f33sm28948195ad.25.2026.08.06.01.50.25
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 06 Aug 2026 01:50:29 -0700 (PDT)
-From: ZhengYuan Huang <gality369@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	r33s3n6@gmail.com,
-	zzzccc427@gmail.com,
-	ZhengYuan Huang <gality369@gmail.com>
-Subject: [PATCH v2] ocfs2: reject inconsistent local xattr entries
-Date: Thu,  6 Aug 2026 16:50:12 +0800
-Message-ID: <20260806085012.2650042-1-gality369@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="vMEJTmnk";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="5bhgTQsY";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="qZMkqYPW";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="m8Ox6hDw"
+Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id E6EA37FF7E;
+	Thu,  6 Aug 2026 09:49:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1786009784; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=zA/GI9E1r/G2Vxu4AUDo+MgvMEhwayxaYlFyHlnEBPg=;
+	b=vMEJTmnkBN1paRd8FHiK0iLFXlsafaMqzlP9MvEWRlENhr5Bl1DOg0ERrTDz4aJw7JK5mU
+	9ebZxWqDJLTp1WEg+Ls+1HWX4Va1SmgFe7x9AbkuI6fOXPumVnnB4xxh5KbtU2sNJj6LDU
+	39ZyOLsatVi4+pGu3MolfrfmKJ7mf68=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1786009784;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=zA/GI9E1r/G2Vxu4AUDo+MgvMEhwayxaYlFyHlnEBPg=;
+	b=5bhgTQsYFRB2PdwSfxp09LNiLQ3SMBRHdKWkkNh1i5uFKtmHFO3imvB8dYmtF9pkanNiqj
+	+jK+H5RiZxzJ7vBQ==
+Authentication-Results: smtp-out1.suse.de;
+	none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1786009779; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=zA/GI9E1r/G2Vxu4AUDo+MgvMEhwayxaYlFyHlnEBPg=;
+	b=qZMkqYPWY1LWkYz6IjTs+xFfKSlaH7Ot9q3pFfZY1WrV3PUGg0qAm1Xwf73HziSOVPYy1R
+	P6In0yRlU596GsmbfMuKjOYNowjO5pdqmL0C2vQElZfrlq8ILWZ01pEolDgElqcsecNTcu
+	5yOqQaF34IqQ8fxvChuzU+uGndf2hKI=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1786009779;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 in-reply-to:in-reply-to:references:references;
+	bh=zA/GI9E1r/G2Vxu4AUDo+MgvMEhwayxaYlFyHlnEBPg=;
+	b=m8Ox6hDwOQ0m1VhpEEqw1o89dApl0UlW9A+gEXghE5La8D7GLoIwRa+eveGZ7EHpz7g2Jh
+	In+7XDxrJDE7iPDA==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id DD50C779BF;
+	Thu,  6 Aug 2026 09:49:39 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id dTUCNrNYdGrvPwAAD6G6ig
+	(envelope-from <jack@suse.cz>); Thu, 06 Aug 2026 09:49:39 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 8CABAA13B1; Thu, 06 Aug 2026 11:49:31 +0200 (CEST)
+Date: Thu, 6 Aug 2026 11:49:31 +0200
+From: Jan Kara <jack@suse.cz>
+To: Zhan Xusheng <zhanxusheng1024@gmail.com>
+Cc: Theodore Ts'o <tytso@mit.edu>, 
+	Andreas Dilger <adilger.kernel@dilger.ca>, Joseph Qi <joseph.qi@linux.alibaba.com>, Jan Kara <jack@suse.cz>, 
+	Baokun Li <libaokun@linux.alibaba.com>, Ojaswin Mujoo <ojaswin@linux.ibm.com>, 
+	Ritesh Harjani <ritesh.list@gmail.com>, Zhang Yi <yi.zhang@huawei.com>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Andrew Morton <akpm@linux-foundation.org>, 
+	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
+	zhanxusheng@xiaomi.com, stable@vger.kernel.org
+Subject: Re: [PATCH 1/2] ext4: fix readdir position truncation on 32-bit
+ kernels
+Message-ID: <jodqssdetawej6xytscjgfia72awx4exvjhdorksgiimrpfilw@nddk3kvjipn4>
+References: <20260806022044.167962-1-zhanxusheng@xiaomi.com>
+ <20260806022044.167962-2-zhanxusheng@xiaomi.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260806022044.167962-2-zhanxusheng@xiaomi.com>
+X-Spam-Score: -2.30
+X-Spam-Level: 
+X-Spam-Flag: NO
+X-Spamd-Result: default: False [-2.30 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	SUSPICIOUS_RECIPS(1.50)[];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	URIBL_BLOCKED(0.00)[suse.cz:email,imap1.dmz-prg2.suse.org:helo,suse.com:email,xiaomi.com:email];
+	MISSING_XM_UA(0.00)[];
+	TAGGED_RCPT(0.00)[];
+	ARC_NA(0.00)[];
+	RCPT_COUNT_TWELVE(0.00)[17];
+	MIME_TRACE(0.00)[0:+];
+	FREEMAIL_TO(0.00)[gmail.com];
+	FREEMAIL_ENVRCPT(0.00)[gmail.com];
+	TO_DN_SOME(0.00)[];
+	FROM_HAS_DN(0.00)[];
+	FREEMAIL_CC(0.00)[mit.edu,dilger.ca,linux.alibaba.com,suse.cz,linux.ibm.com,gmail.com,huawei.com,fasheh.com,evilplan.org,linux-foundation.org,vger.kernel.org,lists.linux.dev,xiaomi.com];
+	RCVD_COUNT_THREE(0.00)[3];
+	FROM_EQ_ENVFROM(0.00)[];
+	RCVD_TLS_LAST(0.00)[];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,suse.com:email,suse.cz:email,xiaomi.com:email]
 
-[BUG]
-A corrupt OCFS2 xattr entry can set OCFS2_XATTR_ENTRY_LOCAL while
-keeping xe_value_size larger than OCFS2_XATTR_INLINE_SIZE. When that
-entry reaches namevalue_size_xe(), the filesystem hits its BUG_ON:
+On Thu 06-08-26 10:20:43, Zhan Xusheng wrote:
+> In ext4_readdir(), the directory cookie position is rebuilt with
+> 
+> 	ctx->pos = (ctx->pos & ~(sb->s_blocksize - 1)) | offset;
+> 
+> `ctx->pos` is loff_t (signed 64-bit), while `sb->s_blocksize` is
+> unsigned long.  On 32-bit kernels unsigned long is 32-bit, so the mask
+> 
+> 	~(sb->s_blocksize - 1)
+> 
+> is computed as a 32-bit unsigned value (e.g. 0xfffff000 for a 4 KiB
+> block size).  In the AND expression with the 64-bit `ctx->pos`, that
+> unsigned operand is zero-extended to 64 bits per the usual arithmetic
+> conversions, yielding 0x00000000fffff000.  The high 32 bits of
+> `ctx->pos` are silently cleared, even though directory size is
+> allowed to exceed 4 GiB on 32-bit (s_maxbytes for ext4 is many TiB).
+> 
+> When readdir() crosses the 4 GiB boundary on a 32-bit kernel the
+> position is reset back into the first 4 GiB block, making the
+> re-validation path re-enumerate already-returned dirents indefinitely.
+> 
+> ext4_readdir() reaches this linear path for non-indexed directories, and
+> as the fallback after ext4_dx_readdir() returns ERR_BAD_DX_DIR, so a
+> directory large enough to cross 4 GiB can hit it.
+> 
+> This is the same class of bug that commit 3dce5bb82c97 ("exfat: Fix
+> bitwise operation having different size") fixed in exfat.  Cast the
+> operand to loff_t so the mask is 64-bit before the AND:
+> 
+> 	ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1)) | offset;
+> 
+> 64-bit kernels are unaffected (unsigned long is 64-bit there, no
+> truncation occurs).
+> 
+> The truncation was confirmed with a freestanding 32-bit test program
+> mirroring the kernel expression: input ctx->pos = 0x100000100 produces
+> output 0x100 with the unfixed expression and 0x100000100 with the
+> cast.
+> 
+> Fixes: ac27a0ec112a ("[PATCH] ext4: initial copy of files from ext3")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Zhan Xusheng <zhanxusheng@xiaomi.com>
 
-kernel BUG at fs/ocfs2/xattr.c:231!
-Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
-RIP: 0010:namevalue_size_xe fs/ocfs2/xattr.c:231 [inline]
-RIP: 0010:ocfs2_xa_block_wipe_namevalue+0x2e4/0x330 fs/ocfs2/xattr.c:1638
-Call Trace:
- ocfs2_xa_wipe_namevalue fs/ocfs2/xattr.c:1470 [inline]
- ocfs2_xa_remove_entry+0xae/0x1d0 fs/ocfs2/xattr.c:1941
- ocfs2_xa_remove fs/ocfs2/xattr.c:2043 [inline]
- ocfs2_xa_set+0x11a8/0x30a0 fs/ocfs2/xattr.c:2247
- ocfs2_xattr_ibody_set+0x302/0xc50 fs/ocfs2/xattr.c:2795
- __ocfs2_xattr_set_handle+0x7e6/0xdb0 fs/ocfs2/xattr.c:3416
- ocfs2_xattr_set+0x1447/0x2610 fs/ocfs2/xattr.c:3650
- ocfs2_xattr_security_set+0x37/0x50 fs/ocfs2/xattr.c:7241
- __vfs_removexattr+0x14d/0x1d0 fs/xattr.c:518
- cap_inode_killpriv+0x29/0x50 security/commoncap.c:355
- security_inode_killpriv+0x105/0x220 security/security.c:2724
- setattr_prepare+0x147/0x8a0 fs/attr.c:219
- ocfs2_setattr+0x504/0x1fd0 fs/ocfs2/file.c:1148
- notify_change+0x4b5/0x1030 fs/attr.c:546
- do_truncate+0x1d2/0x230 fs/open.c:68
- handle_truncate fs/namei.c:3596 [inline]
- do_open fs/namei.c:3979 [inline]
- path_openat+0x260f/0x2ce0 fs/namei.c:4134
- do_filp_open+0x1f6/0x430 fs/namei.c:4161
- do_sys_openat2+0x117/0x1c0 fs/open.c:1437
- ...
+I'll note this is a very theoretical issue. I don't think your life it long
+enough to create a 4GB non-indexed directory in ext4 :) (due to quadratic
+complexity of the adding of directory entry). But the fix is right so feel
+free to add:
 
-[CAUSE]
-namevalue_size_xe() assumes that local entries contain an inline value
-no larger than OCFS2_XATTR_INLINE_SIZE. Existing xattr metadata
-validation only checks whether the value fits the storage region, and
-cached entries can reach lookup and bucket maintenance paths without a
-semantic check. A corrupt entry can therefore be passed to
-namevalue_size_xe().
+Reviewed-by: Jan Kara <jack@suse.cz>
 
-[FIX]
-Validate the local/value-size invariant in the existing flat and bucket
-metadata validators and before accepting matched entries or traversing
-bucket entries in paths that call namevalue_size_xe(). Return an OCFS2
-corruption error instead of firing the assertion.
+								Honza
 
-Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
----
-v2:
-- Rebase onto the ACL lock-order fix in linux-next.
-- Reuse the existing xattr metadata validators.
-- Keep validation in cached lookup and bucket maintenance paths.
----
- fs/ocfs2/xattr.c | 53 +++++++++++++++++++++++++++++++++++++++++-------
- 1 file changed, 46 insertions(+), 7 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 35bcbb0ff607..e955126e4d7d 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -237,6 +237,21 @@ static int namevalue_size_xe(struct ocfs2_xattr_entry *xe)
- 	return namevalue_size(xe->xe_name_len, value_len);
- }
- 
-+static int ocfs2_validate_xattr_entry(struct super_block *sb, u64 blkno,
-+				      struct ocfs2_xattr_entry *xe)
-+{
-+	u64 value_len = le64_to_cpu(xe->xe_value_size);
-+
-+	if (value_len > OCFS2_XATTR_INLINE_SIZE &&
-+	    ocfs2_xattr_is_local(xe))
-+		return ocfs2_error(sb,
-+				   "Invalid local xattr in block %llu: value size %llu\n",
-+				   (unsigned long long)blkno,
-+				   (unsigned long long)value_len);
-+
-+	return 0;
-+}
-+
- 
- static int ocfs2_xattr_bucket_get_name_value(struct super_block *sb,
- 					     struct ocfs2_xattr_header *xh,
-@@ -992,7 +1007,7 @@ static int ocfs2_validate_xattr_entries_flat(struct super_block *sb, u64 blkno,
- 	size_t entries_limit = region_size;
- 	size_t nv_limit = region_size;
- 	size_t max_entries;
--	int i;
-+	int i, ret;
- 
- 	if (region_size < sizeof(*xh))
- 		return ocfs2_error(sb,
-@@ -1012,6 +1027,11 @@ static int ocfs2_validate_xattr_entries_flat(struct super_block *sb, u64 blkno,
- 		struct ocfs2_xattr_entry *xe = &xh->xh_entries[i];
- 		size_t name_offset = le16_to_cpu(xe->xe_name_offset);
- 		size_t value_offset;
-+		u64 value_len = le64_to_cpu(xe->xe_value_size);
-+
-+		ret = ocfs2_validate_xattr_entry(sb, blkno, xe);
-+		if (ret)
-+			return ret;
- 
- 		if (name_offset > nv_limit ||
- 		    xe->xe_name_len > nv_limit - name_offset)
-@@ -1026,8 +1046,7 @@ static int ocfs2_validate_xattr_entries_flat(struct super_block *sb, u64 blkno,
- 					   (unsigned long long)blkno, i);
- 
- 		if (ocfs2_xattr_is_local(xe)) {
--			if (le64_to_cpu(xe->xe_value_size) >
--			    nv_limit - value_offset)
-+			if (value_len > nv_limit - value_offset)
- 				return ocfs2_error(sb,
- 						   "Invalid xattr in block %llu: entry %d value is out of bounds\n",
- 						   (unsigned long long)blkno,
-@@ -1112,7 +1131,7 @@ static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
- 	size_t entries_limit = sb->s_blocksize;
- 	size_t nv_limit = sb->s_blocksize;
- 	size_t max_entries;
--	int i;
-+	int i, ret;
- 
- 	if (region_size < sizeof(*xh))
- 		return ocfs2_error(sb,
-@@ -1140,6 +1159,11 @@ static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
- 		size_t block_off = name_offset >> sb->s_blocksize_bits;
- 		size_t block_offset = name_offset % nv_limit;
- 		size_t value_offset;
-+		u64 value_len = le64_to_cpu(xe->xe_value_size);
-+
-+		ret = ocfs2_validate_xattr_entry(sb, blkno, xe);
-+		if (ret)
-+			return ret;
- 
- 		if (name_offset >= region_size || block_off >= bucket->bu_blocks)
- 			return ocfs2_error(sb,
-@@ -1158,8 +1182,7 @@ static int ocfs2_validate_xattr_bucket(struct ocfs2_xattr_bucket *bucket,
- 					   (unsigned long long)blkno, i);
- 
- 		if (ocfs2_xattr_is_local(xe)) {
--			if (le64_to_cpu(xe->xe_value_size) >
--			    nv_limit - value_offset)
-+			if (value_len > nv_limit - value_offset)
- 				return ocfs2_error(sb,
- 						   "Invalid xattr bucket %llu: entry %d value is out of bounds\n",
- 						   (unsigned long long)blkno,
-@@ -1307,7 +1330,7 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
- {
- 	struct ocfs2_xattr_entry *entry;
- 	size_t name_len;
--	int i, name_offset, cmp = 1;
-+	int i, name_offset, cmp = 1, ret;
- 
- 	if (name == NULL)
- 		return -EINVAL;
-@@ -1330,6 +1353,12 @@ static int ocfs2_xattr_find_entry(struct inode *inode, int name_index,
- 				return -EFSCORRUPTED;
- 			}
- 			cmp = memcmp(name, (xs->base + name_offset), name_len);
-+			if (!cmp) {
-+				ret = ocfs2_validate_xattr_entry(inode->i_sb,
-+								 OCFS2_I(inode)->ip_blkno, entry);
-+				if (ret)
-+					return ret;
-+			}
- 		}
- 		if (cmp == 0)
- 			break;
-@@ -4041,6 +4070,10 @@ static int ocfs2_find_xe_in_bucket(struct inode *inode,
- 
- 		xe_name = bucket_block(bucket, block_off) + new_offset;
- 		if (!memcmp(name, xe_name, name_len)) {
-+			ret = ocfs2_validate_xattr_entry(inode->i_sb,
-+							 OCFS2_I(inode)->ip_blkno, xe);
-+			if (ret)
-+				break;
- 			*xe_index = i;
- 			*found = 1;
- 			ret = 0;
-@@ -4681,6 +4714,9 @@ static int ocfs2_defrag_xattr_bucket(struct inode *inode,
- 	xe = xh->xh_entries;
- 	end = OCFS2_XATTR_BUCKET_SIZE;
- 	for (i = 0; i < le16_to_cpu(xh->xh_count); i++, xe++) {
-+		ret = ocfs2_validate_xattr_entry(inode->i_sb, blkno, xe);
-+		if (ret)
-+			goto out;
- 		offset = le16_to_cpu(xe->xe_name_offset);
- 		len = namevalue_size_xe(xe);
- 
-@@ -4963,6 +4999,9 @@ static int ocfs2_divide_xattr_bucket(struct inode *inode,
- 	name_value_len = 0;
- 	for (i = 0; i < start; i++) {
- 		xe = &xh->xh_entries[i];
-+		ret = ocfs2_validate_xattr_entry(inode->i_sb, blk, xe);
-+		if (ret)
-+			goto out;
- 		name_value_len += namevalue_size_xe(xe);
- 		if (le16_to_cpu(xe->xe_name_offset) < name_offset)
- 			name_offset = le16_to_cpu(xe->xe_name_offset);
+> ---
+>  fs/ext4/dir.c | 2 +-
+>  1 file changed, 1 insertion(+), 1 deletion(-)
+> 
+> diff --git a/fs/ext4/dir.c b/fs/ext4/dir.c
+> index 17edd678fa87..8113f43d4989 100644
+> --- a/fs/ext4/dir.c
+> +++ b/fs/ext4/dir.c
+> @@ -252,7 +252,7 @@ static int ext4_readdir(struct file *file, struct dir_context *ctx)
+>  							    sb->s_blocksize);
+>  			}
+>  			offset = i;
+> -			ctx->pos = (ctx->pos & ~(sb->s_blocksize - 1))
+> +			ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1))
+>  				| offset;
+>  			info->cookie = inode_query_iversion(inode);
+>  		}
+> -- 
+> 2.43.0
+> 
 -- 
-2.43.0
-
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
