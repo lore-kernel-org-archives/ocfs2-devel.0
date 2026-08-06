@@ -1,111 +1,114 @@
-Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 933664477F3
-	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 10:23:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C8E91347C6
+	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 12:19:53 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786011832; cv=none; b=HlPgD3zbYGLF4T8kqUhxtOo6lO+JSPSSwBczEHoRFv5ufcHswU/T6cUKZYoa8iWn6gonN7qgWdujhXaRZcm+hASGgs7FqZRdUDxzwhMETfRhHx7gy01BkQxHxWPUxGbJXoWkRyF92e5J5pV6+7DNiSo5A6sfFaCerFzXHsb0gMI=
+	t=1786018795; cv=none; b=L2ne+m81mVQcXGF9Z0K7pwOCOblvwzDtlNbM1O+U1hFMnxVs2fh+H6dbZlsu6MzES+d1a/dLg/FclY8J8Id3LUktz9VMfL1GQ/5JXUt3xmrtDrTs/FbVA/S0woXmsu8hHVwGFua16UTdmHJiHnj78+9i0RKDYbpqNDL94ZDiPp4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786011832; c=relaxed/simple;
-	bh=C5I84RxSp8Qlh8ciQKGh+oj6KPnpAtnfSJGidFpFAWg=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=XDiD+M+SaqHYItgqL5nXTpmzLRmUizwhlOtl2ej1bh2pTEQXssCZN0k0jll0wiAgqJ+nNtNSMrfVgQQp2QgF+AdcI7LX9GMOAxXprmnnW80HISStpc8mU2i1imBLnXjomPTsTCvU9B9cHWFTJu0wug/vCa3JT7s2xlnRxBZ0j70=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=O9U0qmxO; arc=none smtp.client-ip=115.124.30.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1786018795; c=relaxed/simple;
+	bh=DPjC/XUsb1t1FfD1UtBXd6Tk4nUS0H0u5FpONqPdWlE=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=BZfDN6o+fWmWg6UiDnCNGrMB4MKJyFGk6++ZrdzGwC6XVR3NoUAktJLa9vBp46ooFMhbkVAAngBzBmKdKNrbZRBol37K65juDcA+dndV/MZk4RQ22C2vNtg2vvuz14EBc6K1rdcwpBbe2QsJSRorf+CUPBbkh2fSX8iY/35jH6c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Sa32Ada7; arc=none smtp.client-ip=209.85.214.178
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="O9U0qmxO"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1786011822; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=KxCQEIJTEpu2HLskEO3anQPPaiXW2MuwM7tILXssSfM=;
-	b=O9U0qmxOLi2agZnPDHmAPZrpE2BQjvCmR+fCV49PVaF4b9qOniHJjX/sZbFZ/Y3l3BWZWNu6FdwfQ4XHFS5iRN89GKdTA3rBd1yUdh7a1x4Hn7hZiZO5xewB6Co4ZPTGSDJP/ujuNEgOTr5vzwf0zuZ+vm+qvMWO9dGRT/ljPEU=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=16;SR=0;TI=SMTPD_---0X8TmP1U_1786011820;
-Received: from 30.221.129.97(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X8TmP1U_1786011820 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 06 Aug 2026 18:23:41 +0800
-Message-ID: <5849a28b-ffaa-420f-b173-d8a085d9c61f@linux.alibaba.com>
-Date: Thu, 6 Aug 2026 18:23:40 +0800
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Sa32Ada7"
+Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-2cfff5f88dbso30800655ad.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 06 Aug 2026 05:19:53 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1786018793; x=1786623593; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=EHf13P6YsR58/KQsbVmunk9uOUOKSoj8vz8XVVNfxwk=;
+        b=Sa32Ada7F/4WcN5ujQMfStRj8kdmt/3Jt2+PvNQlEfEfzOh4s/4nBQK7Aya63RWCuC
+         4NEWl77270tkidf7CuKxBLbqLQl07ILn50Rn1SE427LqEgjJnAcejUdE6NaM39n4lrJT
+         XB8T7KvPDHPvVMDq11mBp1w4W4dFsvpzxK9MzP4qkwl5Immzi9SNRgIQgKJ1q1CSGXkc
+         xaTO0vhAXQpZjsSHQoSy9k7mY8CGw53RwTBaB/wRCft9Ckf8c/vVapiuWbTuy9o+NIgu
+         syYW6RPwCv1g/8cPRDTNY8EDtfybMIIX2iDq0Hk7XxfLlj9Ur+9Ze+8omBg93Q3XiUqr
+         Ga8g==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1786018793; x=1786623593;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to:content-type;
+        bh=EHf13P6YsR58/KQsbVmunk9uOUOKSoj8vz8XVVNfxwk=;
+        b=BGq+5ObjfZJi+vy1w0M1iSunfbrMp3Oljy+c82CHBvsHLR9B4M/AgDfynBrDZC8PJH
+         0TkoGdSxwspMfnRyM7QAZsSy4r1voF0Q40QJmGBvi+V74jxA8K09RUJKoCybWiBWj4oo
+         4vnBfgRAQZui62l62RdiODlntf11Rnp/Tc1ZKAtXQ2vKwymgyV5UMTkFmX28GFC+FU05
+         t1+ebq+l7cI8lgbPnqprN/iCx+4iL4mKXHi2choHWL8LLAyeDqmss3PtOZEKt6X9mChM
+         qstKBE14JFQwpAvRJUrDyAiKcsOSTEHtdQAGFJhBZKNugo4jZS1PcinXXK/8AnSqViPk
+         kAnA==
+X-Forwarded-Encrypted: i=1; AHgh+RqIUvfRID2EPS4Eed9rqH1hi2hLIigvAxAJh1pr259qKtu75IQ614QD0mFPf6zuOulsgXm7dh2Jq1n0aQ==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yxp9N5k1rTHZzsyLp1J5xKRJ8Pu2wSioQ0iWF8mRiLayTx3kg/A
+	hnAOmQ7pm40da1GZ4VZ/MwTQ5D90HRhrvkF2QMMo+pIeg1fWNlp/zvIP
+X-Gm-Gg: AR+sD11mqqmTLxFRNDlHrGFmgzZ5YDBMt5WMLYZQTjnWSg8astf0lQ0dXfbl0gEFDle
+	M35ccgjtCTGGF1HI7eadLQ7MAKhAusH6xWgHUntoQ8Q8DirQbReEBarxXG35+tmYtCfLpUhFr2Y
+	gGoBj1PrHfEqmFgt0c8+LjTsi4YxxXivpVOekFNKnKzpK0FPGgwbAPuXnZJJrzRrN5TJgIhHvP1
+	vIeJsZqjIFqRjlXxF8l+IPAgK900JR2f1fiQJ3t5yBcUrdrwIimEx30+YXNf4kiTXtQBqcjkfDt
+	BYPKa5UjD4ni6Xm0FZe4SYbExIH8mdrKQ0FI8EcI3Pyh5oGbU9rvZh4Wj2ndK5DYYAZutzJYzSZ
+	K8qXvcWRg2FpDPH+QrBdcRfamjMrwfiujX+EeO2o4nRRy01NxezT9uBZ4QkYHlnaR0pxLLVKMR0
+	HScUZc4S0qkPKKaczLs4sDzQklCX4sSxippH9+mYvE/3kSztIy4xtFlJkp1uZw49Jc/OQbp7S5
+X-Received: by 2002:a17:902:ea01:b0:2c9:bf82:dd11 with SMTP id d9443c01a7336-2d0ca71b505mr151599115ad.7.1786018792958;
+        Thu, 06 Aug 2026 05:19:52 -0700 (PDT)
+Received: from osman.mioffice.cn ([43.224.245.178])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d0aa012bdfsm30708275ad.33.2026.08.06.05.19.48
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 06 Aug 2026 05:19:52 -0700 (PDT)
+From: Zhan Xusheng <zhanxusheng1024@gmail.com>
+X-Google-Original-From: Zhan Xusheng <zhanxusheng@xiaomi.com>
+To: Andrew Morton <akpm@linux-foundation.org>
+Cc: Zhan Xusheng <zhanxusheng1024@gmail.com>,
+	Theodore Ts'o <tytso@mit.edu>,
+	Andreas Dilger <adilger.kernel@dilger.ca>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Jan Kara <jack@suse.cz>,
+	Baokun Li <libaokun@linux.alibaba.com>,
+	Ojaswin Mujoo <ojaswin@linux.ibm.com>,
+	Ritesh Harjani <ritesh.list@gmail.com>,
+	Zhang Yi <yi.zhang@huawei.com>,
+	Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	linux-ext4@vger.kernel.org,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	zhanxusheng@xiaomi.com
+Subject: Re: [PATCH 0/2] fs: fix readdir position truncation on 32-bit kernels
+Date: Thu,  6 Aug 2026 20:19:41 +0800
+Message-ID: <20260806121943.956665-1-zhanxusheng@xiaomi.com>
+X-Mailer: git-send-email 2.43.0
+In-Reply-To: <20260805213946.88284a99d4e6e7410101de73@linux-foundation.org>
+References: <20260806022044.167962-1-zhanxusheng@xiaomi.com> <20260805213946.88284a99d4e6e7410101de73@linux-foundation.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 2/2] ocfs2: fix readdir position truncation on 32-bit
- kernels
-To: Andrew Morton <akpm@linux-foundation.org>,
- Zhan Xusheng <zhanxusheng1024@gmail.com>
-Cc: Theodore Ts'o <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>,
- Jan Kara <jack@suse.cz>, Baokun Li <libaokun@linux.alibaba.com>,
- Ojaswin Mujoo <ojaswin@linux.ibm.com>, Ritesh Harjani
- <ritesh.list@gmail.com>, Zhang Yi <yi.zhang@huawei.com>,
- Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, zhanxusheng@xiaomi.com, stable@vger.kernel.org
-References: <20260806022044.167962-1-zhanxusheng@xiaomi.com>
- <20260806022044.167962-3-zhanxusheng@xiaomi.com>
- <20260805214202.a644393ef2f28ffb30090ff4@linux-foundation.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260805214202.a644393ef2f28ffb30090ff4@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+From: Zhan Xusheng <zhanxusheng1024@gmail.com>
 
+On Wed, 5 Aug 2026 21:39:46 -0700 Andrew Morton <akpm@linux-foundation.org> wrote:
+> I'm suspecting that AI was used in this work.  If so, please see the
+> "Assisted-by" info in Documentation/process/submitting-patches.rst.
 
-On 8/6/26 12:42 PM, Andrew Morton wrote:
-> On Thu,  6 Aug 2026 10:20:44 +0800 Zhan Xusheng <zhanxusheng1024@gmail.com> wrote:
-> 
->> In ocfs2_dir_foreach_blk_el(), the directory cookie position is
->> rebuilt with
->>
->> 	ctx->pos = (ctx->pos & ~(sb->s_blocksize - 1)) | offset;
->>
->> `ctx->pos` is loff_t (signed 64-bit), while `sb->s_blocksize` is
->> unsigned long.  On 32-bit kernels unsigned long is 32-bit, so the mask
->>
->> 	~(sb->s_blocksize - 1)
->>
->> is computed as a 32-bit unsigned value (e.g. 0xfffff000 for a 4 KiB
->> block size).  In the AND expression with the 64-bit `ctx->pos`, that
->> unsigned operand is zero-extended to 64 bits per the usual arithmetic
->> conversions, yielding 0x00000000fffff000.  The high 32 bits of
->> `ctx->pos` are silently cleared, even though directory size is
->> allowed to exceed 4 GiB.
->>
->> When readdir() crosses the 4 GiB boundary on a 32-bit kernel the
->> position is reset back into the first 4 GiB block, making the
->> re-validation path re-enumerate already-returned dirents indefinitely.
->>
->> This is ocfs2_dir_foreach_blk_el(), the extent-list readdir path taken
->> for all non-inline directories, so a directory large enough to cross
->> 4 GiB reaches it.
->>
->> This is the same class of bug that commit 3dce5bb82c97 ("exfat: Fix
->> bitwise operation having different size") fixed in exfat, and the
->> fix mirrors the equivalent ext4 fix in this series.  Cast the operand
->> to loff_t so the mask is 64-bit before the AND:
->>
->> 	ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1)) | offset;
->>
->> 64-bit kernels are unaffected.
-> 
-> AI review had no comment on your change, but it might have found a
-> bunch of unrelated ocfs2 issues:
-> 
-> 	https://sashiko.dev/#/patchset/20260806022044.167962-1-zhanxusheng@xiaomi.com
+You are right, and thank you for the pointer. I used an AI coding
+assistant for the analysis and drafting of this work. Per
+Documentation/process/coding-assistants.rst the tag is:
 
-It looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+	Assisted-by: Kiro:claude-opus-4.8
 
-For the issues founded by sashiko, I'd rather track them in a separate
-thread.
-So Xusheng, could you please send a new fix for that? It seems enough
-to do the same check like ocfs2_check_dir_entry(). e.g.
+Could you please add that to the ocfs2 patch you picked up? I will
+include it on all future submissions. Apologies for omitting it here.
 
-i + OCFS2_DIR_REC_LEN(1) <= sb->s_blocksize
+> Yeah, probably best to send these as separate standalone patches.
+
+Understood; I will send unrelated fixes as separate standalone patches
+from now on.
 
 Thanks,
-Joseph
+Zhan Xusheng
