@@ -1,64 +1,64 @@
-Received: from mail-vs1-f54.google.com (mail-vs1-f54.google.com [209.85.217.54])
+Received: from mail-vk1-f173.google.com (mail-vk1-f173.google.com [209.85.221.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7B9843B71B5
-	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 16:59:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.217.54
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0732744C4E4
+	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 16:59:14 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786035554; cv=none; b=DZt/UZQ2UVygdUdrxpeJHJ+6OcR0+iYIc3/1ZwxZEZuOJZV3Xa42MJGOLmn1ZYI3+7MENNbwQ/iSMeK0ZF6h1TlmyLW7EggtnLI2JCVANtpq1cJSHEJ2mj66f+2RQYgG/dLpW7cp/V/K8ZsBPfqV1LJBV0Xv9PB1ZcR0VKvZ1oM=
+	t=1786035556; cv=none; b=rvHrm8GW9J9/xfL9gbgiyJ7moIldp43XL2RBwtIJqVVGzz1C11UTqd03e31nHMSWodoEmiDA8VcsHXuS3UQLNMydx3yYXvI8Nf1VyqGiAszLYZp9vPLdGBjX65iDfaD/g5dzghOGiE4+oVU05igR8QPCSEkO6MXlnqwV/XgB++A=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786035554; c=relaxed/simple;
-	bh=nXfjVTs2WwI7r48njT1474MNwTWULNnJflHmHfHsQpo=;
+	s=arc-20240116; t=1786035556; c=relaxed/simple;
+	bh=5Z1GSiO2bc0sbRA3/0yuB6INnEL0uS+pxP2xPMYMvWY=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=XFnSVjgGEpseYjjyGn+A02yfsSEIgUkhBhNp5eE7Aov5dLJ68/iBm30cjqsMsEV68GEraBfQJF3xWDZ0U5Gt0i2TxcfgbwUce8DZM8CXJzSkMcPgzZDJOWB6PSQDhG7VWjMx+8BLfYbpgcTDsdB3KQk8mWo53pziAaHJS2ZDuTw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=fCRvVQMZ; arc=none smtp.client-ip=209.85.217.54
+	 MIME-Version; b=O7Z0SvrJNV9Y0z5EE+XWI1OXIC6lWGzC1hkwCwMMDQmZ2VbFd4BgyQbTjkfPSgErWC8swc9mradHRI0u1zYrlDQ/ljk8/m/+37lVibJ6hdEwh59n2e1VLEnaPqx9o+EaeFtnFCC68EAgXYzsNdBj4udCkKZAmS/04WwofQpGSog=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Ls4w5axF; arc=none smtp.client-ip=209.85.221.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="fCRvVQMZ"
-Received: by mail-vs1-f54.google.com with SMTP id ada2fe7eead31-754ac74c495so704033137.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 06 Aug 2026 09:59:12 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Ls4w5axF"
+Received: by mail-vk1-f173.google.com with SMTP id 71dfb90a1353d-5bf959b820cso1630882e0c.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 06 Aug 2026 09:59:14 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786035551; x=1786640351; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1786035554; x=1786640354; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=/lKy66WaG7+TnlzmHpXjsimPtvzEbNlkmMtBXzg/7M8=;
-        b=fCRvVQMZr9I2CMTg3SFoKEhw2GUV+Mz8+YvukLUjETqYV4teu9VJG2jYVQE4U7jxXi
-         28uf/xzfVxDnHPnwLIN3dVwOGQPI38pYZOxGaXi+DEsQ82fG0AT+c+vsbV7SG+jEU+Se
-         Uw4YOfuotVt8IPke7iL0TSIF7KYJfcWbpVHIYT4ByWXEiF9GIRet4NqnwY2pJAUtWmPm
-         Win1tOC46+8HoRst8YuEQGkmdbFYONl9H5v8uMMT5CEZnLYZr61ZWD81VFsS81P7xEou
-         1AaWVzniUixpPJ1vXWZEQEvcqBIJxQsbwvVTiAeN1YzbTMS97mkHKev1Y9binyTvmvpm
-         s0eA==
+        bh=Ft6ziQssPBfawpI3vOIh0QGxtSEYHeudqaZ7dvpKRmU=;
+        b=Ls4w5axFxevzpyOKUIuKow7vRD+SCOwxPG67r0vkRpURfIqYW1Svufrd+wY3Izw2fh
+         cFVNDdShz5oSoBWhUSPi6p9XLwVpkaY9qrud5Mt1f9KKOVLJAlDr28tKsMAAfShwUdMm
+         EibNVLu4cMG86bfM66H95CiFMPdewcR/tAjARQJQ+b+eqXVJOFUdwTgD890hgXXpNkkW
+         QLCL9PY8AGlP+QBog1gervFpEqbuLtSJy9TRoPkDJ6Rdcq33T+zyRAGPwbX7bNzWyOZI
+         py4mY4Bp2RsS27ht6b0guZMs17W38a32UC5ZD3/F6q7TqO3+7MwSffQjRlL9Psi8pqm3
+         xESQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786035551; x=1786640351;
+        d=1e100.net; s=20251104; t=1786035554; x=1786640354;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=/lKy66WaG7+TnlzmHpXjsimPtvzEbNlkmMtBXzg/7M8=;
-        b=FMckcywxeOoI8xTTMbyFLnpEU83Hd70cSRNspFA5t3wPy7/8neNbIQkr9kUpRYhUJK
-         kWwy7osBN2H7HHD/eBqTBQGQXZaHzc+FdiNdHTQGRknW2pTuaCVmJJU4Lg2Ioal6OWk3
-         LuSiVwhLsizSVDxAoFJUtoK/x2zFSnewoRlCNAi0lIk/yBs3yRouezHOIHVbmqRv2zw2
-         RoYWtHLc8zUSDDyJZjolO8aNmgR6dwRVuK216nzGiyWpZeqsFPYZPmMmdltAqTO2qUbQ
-         y6rQSc5XpjVxcybOp2k/azjkETxR+az1Zvnp8iy47ckTNniMgR8ghqsl5sI7bc55inVK
-         zKHw==
-X-Forwarded-Encrypted: i=1; AHgh+Rq+w8LatOPAM5A+F1/bOgAa3P8gF5J19qUqQ3Y0nfPNh6q4YpiH+WJ99np9rzn9JmoHboQSeZyBXXMkLQ==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yz5cO/yd8rytjV7jHyoU2GgZqgMmkJlZHtdaZWPaX6rKrMZ1Zx+
-	YO6YEpjv0c1/3u6/jHuxJ0cXuIg6lBD0/SK0m+L30GA+zI3ss8VJVsqV
-X-Gm-Gg: AR+sD135GcFeit1O5rtofcQeCDlZOwxHZrL5/pGldW59Eh0b/I8s9NKnPIe5QjAi55b
-	pCoHOcJR/h9eAEA5JFIoupxYtY7HtV+7hviDN1S9XJ7CI50lrE4aFITXpteYkzlTLpr7EhtjShn
-	1gWYreWZfViFB3J/m7DHpR0djWgGqZCPUI20nK/Ac8eux7BVJNHT/SBBDd0VR1a6qAJmc2y7GZc
-	hYUYL30ijcfvMDXUQRjfqrjwm5twBIIq4i55zhmJKqXw28DNROxlZT4/YhZQbfW/9KJua5Pvi4T
-	YLZ39zQEUpBX81EP1uGFT6mT0xnGFBhh57torYaqbGytAJ21SorHOZHOWZkwHfF5jAud9hRNOWb
-	Zkz4ZyDRrBYIHNAf2WWSn3vj/+jSQlTiUMaF4RYxCGickYFZAQf41UrgIiAPCgL2w8mjW3V7Pnp
-	mNr1zDvSU+BIvqVATk1XwiFYdXSN9vTvHwFZ7HNt5Jm0AbZdh/5jm4XUe15o3Yn8PLh+/6Yje4u
-	elCKhk=
-X-Received: by 2002:a05:6102:f09:b0:6f0:3ba3:7d84 with SMTP id ada2fe7eead31-760e77f0ff5mr4020392137.5.1786035551228;
-        Thu, 06 Aug 2026 09:59:11 -0700 (PDT)
+        bh=Ft6ziQssPBfawpI3vOIh0QGxtSEYHeudqaZ7dvpKRmU=;
+        b=etwSpnpQ0G7jyVpQturVd4/KuOn5Dw0FMXbsI0uM/AR6z+Ji6X7x9BZQqXV9UBinik
+         g9bdlae3AyEe0HSPaYXgAijJJ3haaCtYvAisynCJVsHxGkYVZZ1LBblgp3bRy3SaZp/3
+         8pQmKy+Rlmoxo6noaO95r2s6JoLE7yf4lS016txvfX8z9n4rgnbbrpod6C2lv24Kp7H2
+         up/y4i2S3BKbhYM+uKboA16FJUicpV/cY0Hp3eCWXjo6sFY3u4fpACjgXYRNTPJJYeQC
+         kljH96qg/n4GjLMHgnTY5IaUFBYmXMmqz+GVVtzF/58AaHHdKkJu5vSj+OAZ+sHpRl0o
+         ocQw==
+X-Forwarded-Encrypted: i=1; AHgh+RoeRcHoZ7i+g+rHUzyKwIH6oZ3rQteaNmmgVftR0MSfvTL5dNM9k9qtct9XqoZHdRDg7bxph+Z9EfMvXg==@lists.linux.dev
+X-Gm-Message-State: AOJu0Yxxp6neAIVpDUPibW/4azrChnZmM7icGAou/Q14WLfZAAWDP3fI
+	7sZqoSgY6osQolKgMqAbSrK8d1NsM7dlzk54O1W/wu7txKfHOI32knZf
+X-Gm-Gg: AR+sD12Z3QH9Xlt64ONh+muFT7VeSlL0xeWYaDv4Nze/U3SVHd9Sb3he1VoGz/Oy1Xd
+	z/jftrgm2CECfM6XFG/Zlt3KfLDpTJPpYz2n0oXYFtPWZURUqyYt+nm9/ViGqXcioem7OCtY4Oi
+	GoOZrX02ce4qUbHnwnET9K72quVXkb7L+h2RbXp1YmaWVbBcgYKQGMFpmbsv74zLsyyUztMYQnN
+	5uQpOpnlf5pDmFhR9s5WpBZojQtCFBRyH+4jqhs2lvYs58td/Fbhq8X995xENWw10me3d6Xy4KV
+	clL7tV5ly7w3ErlsJ++6XOjmGfhK/IYunJ3oJIS8+r/6Ku239Md1lU5IosPXaP2B4VnYWl8Qfz9
+	8VdXrTc3mnzFOFBIkGIbWnQbbP4MyNUMRN7fhHARZ9zpgKEgOvdJU4GkguJgA8cESNMryWD6yGN
+	j8tNSVBDOxdH7PPMeS2OklGvmmR0OHTlER6TRtF3a2g3fFSfguWuiCwRw/QQyjWxordU7AXijv2
+	/dx8l4=
+X-Received: by 2002:a05:6122:1c85:b0:5bd:8c84:59aa with SMTP id 71dfb90a1353d-5c3d9162e78mr2479549e0c.8.1786035553890;
+        Thu, 06 Aug 2026 09:59:13 -0700 (PDT)
 Received: from syssplab.cs.fiu.edu (nat1.cs.fiu.edu. [131.94.134.89])
-        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5c3d05c594fsm3706321e0c.8.2026.08.06.09.59.09
+        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5c3d05c594fsm3706321e0c.8.2026.08.06.09.59.12
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 06 Aug 2026 09:59:10 -0700 (PDT)
+        Thu, 06 Aug 2026 09:59:13 -0700 (PDT)
 From: Chao Shi <coshi036@gmail.com>
 To: Jan Kara <jack@suse.cz>,
 	Christian Brauner <brauner@kernel.org>,
@@ -87,9 +87,9 @@ Cc: Theodore Ts'o <tytso@mit.edu>,
 	linux-kernel@vger.kernel.org,
 	Chao Shi <coshi036@gmail.com>,
 	Weidong Zhu <weizhu@fiu.edu>
-Subject: [PATCH v2 04/21] buffer: read the folio's mapping directly in buffer_set_crypto_ctx()
-Date: Thu,  6 Aug 2026 12:58:27 -0400
-Message-ID: <3fe72ec37bf8491a69031db5f3ba1319da935b97.1785951556.git.coshi036@gmail.com>
+Subject: [PATCH v2 05/21] buffer: clear BH_Write_EIO when a buffer is forgotten
+Date: Thu,  6 Aug 2026 12:58:28 -0400
+Message-ID: <ebe0b4f179ccdac7a9400fe2611623ce218c8d87.1785951556.git.coshi036@gmail.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <cover.1785951556.git.coshi036@gmail.com>
 References: <cover.1785951556.git.coshi036@gmail.com>
@@ -101,38 +101,40 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-folio_mapping() was doing two jobs here.  One was to turn a slab folio into
-NULL, which is what made this safe for jbd2's shadow buffers; the previous
-patch removed the need for that by giving those buffers no folio at all.
+BH_Write_EIO records that the last write of this buffer failed.  It is
+cleared when the buffer is written again, but a filesystem freeing a
+metadata block never writes it again.  It calls bforget() and hands the
+block back to the allocator, so the flag outlives the block it refers to.
 
-The other is a hazard.  folio_mapping() maps a folio in the swap cache to
-its swap_address_space, so if a buffer_head were ever attached to such a
-folio this would hand fscrypt a swap mapping and dereference ->host on it.
-There is no reason to want that here: this path wants the file's mapping or
-nothing.
+That does not matter much today, because the write error is also recorded
+by clearing BH_Uptodate and the buffer is discarded soon after.  It starts
+to matter in the rest of this series, which stops clearing BH_Uptodate on
+write error and makes BH_Write_EIO the way a failed metadata write is
+reported.
 
-Read ->mapping directly.  Buffers with no folio are already handled above.
+bforget() is where a filesystem says it no longer cares about this
+buffer's contents, so clear the error there alongside the dirty flag.
 
-Suggested-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+Suggested-by: Jan Kara <jack@suse.cz>
 Acked-by: Weidong Zhu <weizhu@fiu.edu>
 Signed-off-by: Chao Shi <coshi036@gmail.com>
+Reviewed-by: Jan Kara <jack@suse.cz>
 ---
- fs/buffer.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ fs/buffer.c | 1 +
+ 1 file changed, 1 insertion(+)
 
 diff --git a/fs/buffer.c b/fs/buffer.c
-index 04fcc34e4fa6..2851830995d8 100644
+index 2851830995d8..381690479520 100644
 --- a/fs/buffer.c
 +++ b/fs/buffer.c
-@@ -1108,7 +1108,7 @@ static void buffer_set_crypto_ctx(struct bio *bio, const struct buffer_head *bh,
- 	 */
- 	if (!bh->b_folio)
- 		return;
--	mapping = folio_mapping(bh->b_folio);
-+	mapping = bh->b_folio->mapping;
- 	if (!mapping)
- 		return;
- 	fscrypt_set_bio_crypt_ctx(bio, mapping->host,
+@@ -1091,6 +1091,7 @@ EXPORT_SYMBOL(__brelse);
+ void __bforget(struct buffer_head *bh)
+ {
+ 	clear_buffer_dirty(bh);
++	clear_buffer_write_io_error(bh);
+ 	remove_assoc_queue(bh);
+ 	__brelse(bh);
+ }
 -- 
 2.43.0
 
