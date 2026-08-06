@@ -1,64 +1,64 @@
-Received: from mail-pf1-f173.google.com (mail-pf1-f173.google.com [209.85.210.173])
+Received: from mail-pg1-f180.google.com (mail-pg1-f180.google.com [209.85.215.180])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0F5A338E8BE
-	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 02:21:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4CE4C3624CF
+	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 02:21:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1785982863; cv=none; b=SyapaI/UolBeE1t9R2l6tq67iyy5y4x35ygsjA6qNnqcaecRfW6KACJBcBltRFQPCTRq6cpdyZLi+3LxJpR7+W1UeWFOYhW60ut8qheSeO8gaKL0ED0IwE740pdziINppFXzqgnLQX+fogskiHu5Zu7ZyoUiDzBQewoH/jgIFEw=
+	t=1785982870; cv=none; b=P6unJhDYraPJrMQ1+DhiFeTMVDYvc9K8CEoEsRolZs5eMw08jAsFytUdYwTXmWh6nXKGN3tNJ2kplngYA7D7rfAmKw9xRNzf7L107xk60LrlWq0v2ekF0WMEnHWCaz80Pn+I6i2TWhH7eBCT/hHfAqas2tfkSjFYARBNJxNH/5Y=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1785982863; c=relaxed/simple;
-	bh=cWjV8h1cQrtdcyPgxMG0qe7pvsvyiL4napaYUUAF7JY=;
+	s=arc-20240116; t=1785982870; c=relaxed/simple;
+	bh=aElr+oM8GmnVf2UqrRKSwUcnpHH/Ir6i4A3hxs7+FYE=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=BGO+fZhvLJ1HEe+Au7h+H7djM12EDb1fD8NSd9LENmXBAtMdyC6FjPW+VmPhHtzcerT11wl/tzRLeYPF+B3u6WG2YGgSr1twCjSdzFMho1Nh0y3B4BZMQgL1nPQqErmOEsukRUDjiJNJ7YzlsJntxZhMM0KDS7rnZwHSCy3Sgnw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=j/Y8MXkj; arc=none smtp.client-ip=209.85.210.173
+	 MIME-Version; b=ALnUtqbcSPq9ZwB4+482ndrzDE3j9IVa/W2ii5lnOdb1l+oUG+zS7D3ywMnY2e16CUVZWk6ICWJ8vbWjZe3qPhJA65S2sZW7vPUKCQaavkvmWRIVklaAV5GtmpptUuk2iyw+M4kzurixyZZ8X88PpmxIZBH1fPjuzY5lrrIMV8A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=g+bGTpzh; arc=none smtp.client-ip=209.85.215.180
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="j/Y8MXkj"
-Received: by mail-pf1-f173.google.com with SMTP id d2e1a72fcca58-84862b0d5aeso2030809b3a.2
-        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 19:21:01 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="g+bGTpzh"
+Received: by mail-pg1-f180.google.com with SMTP id 41be03b00d2f7-ca957432c7fso1589146a12.1
+        for <ocfs2-devel@lists.linux.dev>; Wed, 05 Aug 2026 19:21:08 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1785982861; x=1786587661; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1785982867; x=1786587667; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=8rrR7xn4oTTUbhGxl5QbDi5ytS4GenrW393UJoeG+oc=;
-        b=j/Y8MXkjVL+dVnidZmYrFgejCadkG8yosvXyI7tRb+X3JJ8s2Y+o6r9pnnvjh/CHKy
-         /NX6ARHCYWlfBOfSOm85aOkkRYYzM0AkWsJL8rE5b3QDvgBbJeFLMl9LSRLnMXT3Xyro
-         KM1mNxzJcjtYyZkO/u1BjOnTM0Hlunrq4BFRAx3vLj3n7eo11UcyonCT3Em9KkfmvAWn
-         DyU1/gpxSkHGVu+L+wfVgkNcTCG3f1o5LBGgQREfbF5QwLNAavmSKmUqJt8EzG+3IxOu
-         wi1SBLZ8J8Dg/wH3hgq8T+bdWBbkICvSNzVp9zP9dceJLgl0uT0FuptMGOSv1SjcrRIP
-         ezkw==
+        bh=t9bmjwDcDA8gcdpbpxOdxxL0d4dzraqR1O53qZdgMcs=;
+        b=g+bGTpzhsajK5Kmd3Os2sIqyj81T22smmewtC5ICxasnzakgeYrDWgx19KX2gMCkQm
+         8iygeP+lMLaPTqQOby+cfugqWkD5axCcsJa9LuspsjmSTy9UxzKtS8MSZra2JfPcXDpH
+         e0HcdZnk7r+obGqvjmFxhZM1FjyNOriqNSs5XntRJMez6dR9beT+/8JIhhjc6vUhPduO
+         WuqvIyuMHFf6FcVT/dgQRfYczv4q2D61zMf+btokisrv2AATnru9CZXBiROKt+LtB8y+
+         Qu4uikZe9xY60YoqVxQDF9OCxZOqjm0OeYAPcKpo5QoA0WZS39aPc6tXsWOv1LcZUG4Q
+         QCAg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1785982861; x=1786587661;
+        d=1e100.net; s=20251104; t=1785982867; x=1786587667;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=8rrR7xn4oTTUbhGxl5QbDi5ytS4GenrW393UJoeG+oc=;
-        b=pyWYGXOxRAgQbk6aNl7lSlMa1kd9nCifCo2O6cY60qzF7D0F4zUN1qcArEahZOkDv6
-         QzQW+dK8PzOx1OZc/Amyl3zkccA+w8iCGiZ9tKkSdICPu6aGhdU/qinqwfFbAeLNDeka
-         sQEVOWuBSRi0mMnc91XJC2ICBZK7DfmMrna9+w3PtDGKrOoKrxaQb8VJ2hiQlbBj0l8c
-         cH6nuH9ltUKXdcx4n/0kipCnYdl7QrZeDdkN2u/49UbR8RR+mmG0xhruyNDtE9qxCIsU
-         EpaF7/baVmlzLr3OcXzXhOKZNxk5R2Vi5K4CWQmLOd3yssKdyqHx6jWpeZOIVlJTZAiw
-         ej+w==
-X-Forwarded-Encrypted: i=1; AHgh+RpVTugjOdNyh75sWkcLY/i7Hgm9TWzDf6ghzu+T/BVI2wrRBqcWy32CyQHvlBGhiGjM5GxnBsBWGxZhjg==@lists.linux.dev
-X-Gm-Message-State: AOJu0Ywmv8my7WUEBlASx/W/Aw/v+A1aMZL0l9pyYCvpa9O7liFxPSzQ
-	V5MfkFjm6PV+I+m7Po7aZkpBhMKAhKyQxr1cjd3Aq7MElCK5zlxw9L+8
-X-Gm-Gg: AR+sD11gOMRVncFsoF9RxkcqS6ag/zcAHsc05p/ycjwS6+25R/YNfZsmxcWa1twtR1D
-	En56lIM9d+D/oNMpX83so07lekkvJzyt2Sf9Tvc4UzJOSghYaUus8NRf0nFaDTYKs6/HxXlMJPg
-	ucOH4sjPdb0WbV88BqSmsy67mwQN3KJdwlUYLKOEMSPEAxDszV9E3QDYS99vzWBC1JVehwTxs12
-	JNJTWSGVmzcSg8fJHp4RSUoMtOEp4Z75u3EDDC+96AsZ4zSmk5jiedFqfzaFozDYM8wW4I3HgCW
-	rlE9L+zoqgYxZly8AAWVQQ2UMM8Gh4FPZ0hw+5ELPqk/qGmJpQPowWVLEszDKNTbA1bIGDqSqWJ
-	kBDcF+VTCpg7Q+CdJ/jbUXXZX0dWcS1Mc91VIvKwKFbEzTOy1IINld2Wsoc2QP/7ZnReoN8jeks
-	JYsXw4opAL45xkJdwKgs/Ba8dFrWGIlTowlK52D5YeHMFoma7TeLXkoJ076+cGm/Bm1C5uCJceJ
-	HTv8t9T/1E=
-X-Received: by 2002:a05:6a00:240a:b0:84e:538:476e with SMTP id d2e1a72fcca58-84f2e0ed7fdmr11031006b3a.32.1785982860876;
-        Wed, 05 Aug 2026 19:21:00 -0700 (PDT)
+        bh=t9bmjwDcDA8gcdpbpxOdxxL0d4dzraqR1O53qZdgMcs=;
+        b=LoOI/R54X9VcY9cCXvwP2scvweszytqMwKbtCGgAIVKvxDgMK05rbobCuohdC0B//0
+         tzknc4u54CtlSSy40N/RXBpQkKYvfqgh8sp6JEVUGPHr7GLOUe5tmYYpN79K1rordmlf
+         o/9U4Y+lvxb4E4K5FAgRcqAOlebY4B8ULRKflHCvtSnqUn3rXd2miaWic/52fihDoCoc
+         qpfJYdf+MbYIsuTfq3RwM2ZhFtaE1FLPk0DFWzKj9uWsXUl7GiJAQFz2eqFGIWHwhHFr
+         pf/MxijjB0dVOeSf/kGh3vWpfhVoTKAktYAyFiw8K8Ba1toJZblpNAUpmQfQ0dp/EYhz
+         aT/Q==
+X-Forwarded-Encrypted: i=1; AHgh+RoFroOXq4s+zZ96bY+M+gpM+RTcG4+iTdoe4BvzpnsjemZVNJNwtU7mZrg3YEeqegVv+7ynrCfhehdJ2A==@lists.linux.dev
+X-Gm-Message-State: AOJu0YzD+e+NiHBXieT4B8E+gwKq3LFE3WDf8gWMI1T98tT8wxqHBHUG
+	enak8+JXusEJiE+/N3GTQOFTzpCFmueb4G9FDnj5e8UlykFCOwk892f7
+X-Gm-Gg: AR+sD12KjJPEjehWcTZrDu/IQjUTbqHKkCSfaGdTWNVpzS11R+yCkgK+EVujSH2EIfx
+	hget9WGabWeLDz6PJuuvBk6TrDqH/j0LG0FYzGpi7JuaMwrTCsKDraEoL31a8dGOdQH+YMuxApk
+	qDeBkizpok90AjPgUQkG923KTM6Ap0k5z8ZnuG+B8VYrrMwwoC5U08MBv4fF+5nfTtXj3Ido+Ex
+	pUEgd9voI1G65TKi5YvezFR2PseuiOM6rJqy0em8RWRYUzEEMgg+d46JnUClFoxt70uAPvtiQRb
+	sRZf3Wt2hEBfuzd1okqktnIiXjgp4fTfsYT+KSLO+jwLm0WBH2H6JtLrd8KCaK+ZYElLWska6z5
+	z6VsVBnNwukcBpqUlnK4dS8abnoMLCfwBDmzWSxzWEDYcyY70KMYIlcGm1lXY/vgmNkELG5Gzo9
+	NlYPIGM5pSXIC0MSkwREvO7c7KissRx9fnc9AteMGsqoG4QWT+vZ5MNzvVS4b5f/GHD9EkkyV63
+	AbHPU5+0jo=
+X-Received: by 2002:a05:6a00:9a9:b0:837:e9cc:d474 with SMTP id d2e1a72fcca58-84f2dfcdcb6mr12615394b3a.2.1785982867454;
+        Wed, 05 Aug 2026 19:21:07 -0700 (PDT)
 Received: from osman.mioffice.cn ([43.224.245.178])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-84f4538ba99sm323012b3a.9.2026.08.05.19.20.56
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-84f4538ba99sm323012b3a.9.2026.08.05.19.21.02
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 05 Aug 2026 19:21:00 -0700 (PDT)
+        Wed, 05 Aug 2026 19:21:06 -0700 (PDT)
 From: Zhan Xusheng <zhanxusheng1024@gmail.com>
 X-Google-Original-From: Zhan Xusheng <zhanxusheng@xiaomi.com>
 To: Theodore Ts'o <tytso@mit.edu>,
@@ -77,9 +77,9 @@ Cc: Jan Kara <jack@suse.cz>,
 	linux-kernel@vger.kernel.org,
 	zhanxusheng@xiaomi.com,
 	stable@vger.kernel.org
-Subject: [PATCH 1/2] ext4: fix readdir position truncation on 32-bit kernels
-Date: Thu,  6 Aug 2026 10:20:43 +0800
-Message-ID: <20260806022044.167962-2-zhanxusheng@xiaomi.com>
+Subject: [PATCH 2/2] ocfs2: fix readdir position truncation on 32-bit kernels
+Date: Thu,  6 Aug 2026 10:20:44 +0800
+Message-ID: <20260806022044.167962-3-zhanxusheng@xiaomi.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20260806022044.167962-1-zhanxusheng@xiaomi.com>
 References: <20260806022044.167962-1-zhanxusheng@xiaomi.com>
@@ -91,7 +91,8 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-In ext4_readdir(), the directory cookie position is rebuilt with
+In ocfs2_dir_foreach_blk_el(), the directory cookie position is
+rebuilt with
 
 	ctx->pos = (ctx->pos & ~(sb->s_blocksize - 1)) | offset;
 
@@ -105,49 +106,44 @@ block size).  In the AND expression with the 64-bit `ctx->pos`, that
 unsigned operand is zero-extended to 64 bits per the usual arithmetic
 conversions, yielding 0x00000000fffff000.  The high 32 bits of
 `ctx->pos` are silently cleared, even though directory size is
-allowed to exceed 4 GiB on 32-bit (s_maxbytes for ext4 is many TiB).
+allowed to exceed 4 GiB.
 
 When readdir() crosses the 4 GiB boundary on a 32-bit kernel the
 position is reset back into the first 4 GiB block, making the
 re-validation path re-enumerate already-returned dirents indefinitely.
 
-ext4_readdir() reaches this linear path for non-indexed directories, and
-as the fallback after ext4_dx_readdir() returns ERR_BAD_DX_DIR, so a
-directory large enough to cross 4 GiB can hit it.
+This is ocfs2_dir_foreach_blk_el(), the extent-list readdir path taken
+for all non-inline directories, so a directory large enough to cross
+4 GiB reaches it.
 
 This is the same class of bug that commit 3dce5bb82c97 ("exfat: Fix
-bitwise operation having different size") fixed in exfat.  Cast the
-operand to loff_t so the mask is 64-bit before the AND:
+bitwise operation having different size") fixed in exfat, and the
+fix mirrors the equivalent ext4 fix in this series.  Cast the operand
+to loff_t so the mask is 64-bit before the AND:
 
 	ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1)) | offset;
 
-64-bit kernels are unaffected (unsigned long is 64-bit there, no
-truncation occurs).
+64-bit kernels are unaffected.
 
-The truncation was confirmed with a freestanding 32-bit test program
-mirroring the kernel expression: input ctx->pos = 0x100000100 produces
-output 0x100 with the unfixed expression and 0x100000100 with the
-cast.
-
-Fixes: ac27a0ec112a ("[PATCH] ext4: initial copy of files from ext3")
+Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
 Cc: stable@vger.kernel.org
 Signed-off-by: Zhan Xusheng <zhanxusheng@xiaomi.com>
 ---
- fs/ext4/dir.c | 2 +-
+ fs/ocfs2/dir.c | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/fs/ext4/dir.c b/fs/ext4/dir.c
-index 17edd678fa87..8113f43d4989 100644
---- a/fs/ext4/dir.c
-+++ b/fs/ext4/dir.c
-@@ -252,7 +252,7 @@ static int ext4_readdir(struct file *file, struct dir_context *ctx)
- 							    sb->s_blocksize);
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index d7fc3cccf2f4..c30a86856d5b 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -1917,7 +1917,7 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+ 				i += le16_to_cpu(de->rec_len);
  			}
  			offset = i;
 -			ctx->pos = (ctx->pos & ~(sb->s_blocksize - 1))
 +			ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1))
  				| offset;
- 			info->cookie = inode_query_iversion(inode);
+ 			*f_version = inode_query_iversion(inode);
  		}
 -- 
 2.43.0
