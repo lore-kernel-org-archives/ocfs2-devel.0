@@ -1,223 +1,187 @@
-Received: from mail-vk1-f178.google.com (mail-vk1-f178.google.com [209.85.221.178])
+Received: from mail-ed1-f45.google.com (mail-ed1-f45.google.com [209.85.208.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id CBA95480975
-	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 17:00:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.178
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786035615; cv=none; b=nSkojlmMmzOzLaCTrXsoRKI/u5aRXd/NZKwDFnb5UE7ZdKP2gCTfJ8pkHib5xd+xpdmdwodP/9antixX5Tj/uoB3EYtoULJnvLfJBpJPMmVTN3teWsUgZTD0h3GS3WU6cuwBZiTWsmnX64fuG4P3/L1qVbdYfCB+WaA3SxA4LJg=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786035615; c=relaxed/simple;
-	bh=K9/W1FO8N8xTnhyFws4RenGjtbgDOPBPnEUZbmmiB0U=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=O3Lj9wHno91c1+DkN6tkd6WoUTW7uBNYFrT9Gv50Z5sFqsmumX8nIdgTcxZ0/jtL1iuakDYE4rR1bHP95wsjPeZiUCyuYJDhO7SEmFKB4EZCtgdu07369R39I7wV7PrGkL9iENN2C3s0RU5EpNY4BMAUTyHkNkDLJY7dUV0rnw0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=OrY7T4lc; arc=none smtp.client-ip=209.85.221.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E9CBE372B58
+	for <ocfs2-devel@lists.linux.dev>; Thu,  6 Aug 2026 19:46:30 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.45
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1786045592; cv=pass; b=op374DnPTzcB04HDZERLzmIOI3zolpDOs6zdCf2mCOY4WdS/8hTkR9/ewD5Xm8VGWZ3f5ETWZoqtohSj9PW8wch+y8nXZ4chLUwv/FFA9nM1BB7nNhJXacl51HBVrLuHI58Lx80s09acgg+YAziJK0202M4xH5J9LKjhIiNj3as=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1786045592; c=relaxed/simple;
+	bh=/grpQlkFIsjOtZJ9kjTYgO1M00ZnDq0iZMthC0cITsY=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=ZS2YOHB1WdZ9rxXA58a/Z1rzulF0D/FQuoZVX522vZA60TIstLGAPL+z5XYObSnRAP8l7yWYONX/U066LXuydod53n9RElwxHjRsmqft0Vnu5W/CiYiPlbpJW9na03zjUHCkBQLaW6ONHj9leK8Fv8Erb7CBZOSMG0SA7VVmoNY=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Uom3yPLo; arc=pass smtp.client-ip=209.85.208.45
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="OrY7T4lc"
-Received: by mail-vk1-f178.google.com with SMTP id 71dfb90a1353d-5c276bfce7eso1727131e0c.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 06 Aug 2026 10:00:13 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Uom3yPLo"
+Received: by mail-ed1-f45.google.com with SMTP id 4fb4d7f45d1cf-6a0c8283146so4281105a12.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 06 Aug 2026 12:46:30 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1786045589; cv=none;
+        d=google.com; s=arc-20260327;
+        b=mXplgISUcNYmekV9OYqxLZxvZVDNUCRhBtht0XNEFTBJKYEQcc9AHYyvccrzeYlg0H
+         CJs8m9WI1LgQozNzu8nGpDRuJnivOmf6pAdIllEG0ABszta0pk7xfOdkRBsjlQXrnnBE
+         BNu69/JbKruw2lIt6f45pS1wN8c88OztMic34YiWwXk08T/eDwx2a40O2yN6VmTMM0hg
+         eDdtlmDfgQV9xWsv/MBn3qgINXUo2uJTx3YfL4jnK9EuPpydcRaQZmuLOjDgROjuXRXf
+         xG/j3bRmTOf8hkHP1/PleMh/I2POJKCzCiViKpCQ0UrS2czwrC1AmA8YvqkjowKcxp+J
+         YPmw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=nLbIcjJWlLYm7ckgJdCevI6JSBS4OVTbw09CC4o45Ao=;
+        fh=yVzwEpqh6e//D97hY+VwOctbBCsoegDd8NIc2zP8nPs=;
+        b=jVUhOszoRW8zO5vzguzYsF4c0V4O1Wcib2zt7NTiTO+f3h+I/izcwwop9I4mX5qgVk
+         Ip0uCfvmGzFLowhr/zVQ+AWDW9ADd7hko/dgQaPEUa3vn9y7BAoNEdw2y15EeZevod3E
+         AgCNVZtMXTP/XnjxLOtwe1x1dQ9VVryALvsQ7tYCEKFJv+CexqXSKPmCT3vmd1kELAaY
+         ySQ/kDmzOop0E/uwFXcWRqh/xv2i+I/dxE+x0ChSxqiF/wcPOdIeVa95CelBRJwWbdj7
+         xeV1lZ7mNu+N12ND3S2Upi4W+2QqDgTELGctPoWftCMmPmzW12a43CCVTwKZhhIvIAwb
+         RGsA==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786035613; x=1786640413; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=dBfFE9yENSRT1Ltqp2iNdGevVOH72zBv0XCWLRoCCcc=;
-        b=OrY7T4lcusKj7sxBh/MV5dYorYC2F/HeFZIwRQCrQD+bEDsLdmx3JC+kstL5pHQ4Av
-         4M0QWyXlUcy0goweRJB9yz7sToTO9HEmbGmpQN9wHyAEAy9LTYhykVTV07YLvwTugjMi
-         bo0e3jRpS+JGWUPP/GTRcS2iDIUp2QmemO3SwXvO+JR2+eoVU5HKWywJaN8WkAqyOFgc
-         lGtP33pNYQqb+s/L1kE1CX/lVTrGL+M3uNKB/XV/9ICMHci6azMzRNKHgDIjOdez0A89
-         Fo73DhneeeUdUleh25z8Yd0IxQFfwOSENeuT5XpMgASWsXX9H6U34Fv6eISwx58GcNW6
-         kOlw==
+        d=gmail.com; s=20251104; t=1786045589; x=1786650389; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=nLbIcjJWlLYm7ckgJdCevI6JSBS4OVTbw09CC4o45Ao=;
+        b=Uom3yPLomjQUm3dlw+y8epgpPjcds4dFu6+z19dRsW+L+EKZRfCPqqAk2QzbyT9x97
+         7+9a0Q+Iqn59DngeEHkgIz67rLrbt5MuSS6YylHK8qQEaYSb/0b2kz7qmsQkv5H68+lk
+         XlzVY3DoEBE0rfgihKotaxQhYer/bs+i/SIwjGCaMd1pN+CK8qDy7AU025rBF/lgS4P5
+         DdVGNc/A2zgyAgC71TzWbtXEb5ucW6NqwPts+beBB5rVy2g0cFnQZaAmIf94jABtmBgs
+         UAAlGDeC9tsWwbP+KTn0a8dElsmm8sbRDboEwxmcWh8YOVgJS0Q3AhQ4Etnom5IdrYpr
+         LCng==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786035613; x=1786640413;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=dBfFE9yENSRT1Ltqp2iNdGevVOH72zBv0XCWLRoCCcc=;
-        b=gKjbwQQF8lAYHHP3fJ4/JkzjF3GuN4f3bDXTmFmucix2TujgWfeXOn/S6r7A9rUeoU
-         8CjNgCK9XD7D2XtvveEXZcNqSv80LU7JfGtul7ng6MRmaOlJ7ANj2NVQJA/99YvdxxmN
-         7PKoWmCK2zOfNLUq39mSCkWYG2XPMX00QxB0IWkL4x4Rp4W8nMkzu5Vr+ur/yfI7Frqp
-         qzVZev8JwxcUurTQGhAN29A8+5fmO3VSWtVgmwCmzED5zU8nS7VXYT1WYaeFru5x1EHM
-         quP57/qAoHq2ohWovU3k8qyME5lSQHkuQ3yuw1X4MpfD2Yn+Ejp4aF0gYeOM6oHRSX/X
-         LQBg==
-X-Forwarded-Encrypted: i=1; AHgh+RqR5PwlDhYOeeA5vfsw201NFEE4Bkw/U5zokhZfcEzyAKQL8OnEGy2vrTSRnVBp2DX3PDMY+R7YZ1R8eA==@lists.linux.dev
-X-Gm-Message-State: AOJu0Yy8XY0v0f0TM/9vV5oXthnLFlCLWAqhC3FI2llEWwxwDbFQN/zt
-	fDi+1d3rx/oWhVLN8zWfPHhDjeyGTrURRHFyIqo/lGpe83YLXklQffqd
-X-Gm-Gg: AR+sD11FukxPOOO4FuFDm1880EV4FdRGP8J9kLHP87F0Xya6mLXRGqCMLkEZYC34T/w
-	PdRvucq9JkyfIZ3yooz+ceJ1XAuc2Ievr+/VJ/ty+cIsApJaCxa6SasClkULZpXeT3JVex+ZJCo
-	MPfGLMX4YnyBJB67e5GJ+dZ2oxE3RMXLpGrM5Q/yf5Knp9cMJmE17qeAXvR9PG4t6FN30hiDvXI
-	f3V8Ly1Xqc42/rhfAhJCNWbYECKLU/OOomiepFS5gsW+/IryZMvrrWUIUbR2+68Jfzz6Duu+d+u
-	7CAU6Ra/NoccTi8nsRDD1GsgXjdU3oW3VPg6ESKJ4JUPWz5hXaarzH2WFk35Umt+gi4zAzjzjMu
-	Lf+PEVNiE5C4fZUpWqhYZK0A8sJSSCsamOC9UMK9TtLsMLHJ/EasFqc34m4FXqGBzsqWBaRCeWE
-	E+zTaUusso3sn/ZU6nIkLlZY6TeYY0USzAufIFBsOouPLFqNIVEw+pYrhkK8ORrY3eL6PuHA32b
-	mxePjE=
-X-Received: by 2002:a05:6122:d96:b0:5a4:7e8b:3171 with SMTP id 71dfb90a1353d-5c3d91e6c7amr2524108e0c.11.1786035612662;
-        Thu, 06 Aug 2026 10:00:12 -0700 (PDT)
-Received: from syssplab.cs.fiu.edu (nat1.cs.fiu.edu. [131.94.134.89])
-        by smtp.gmail.com with ESMTPSA id 71dfb90a1353d-5c3d05c594fsm3706321e0c.8.2026.08.06.10.00.11
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 06 Aug 2026 10:00:12 -0700 (PDT)
-From: Chao Shi <coshi036@gmail.com>
-To: Jan Kara <jack@suse.cz>,
-	Christian Brauner <brauner@kernel.org>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Matthew Wilcox <willy@infradead.org>,
-	linux-fsdevel@vger.kernel.org
-Cc: Theodore Ts'o <tytso@mit.edu>,
-	Andreas Dilger <adilger.kernel@dilger.ca>,
-	Baokun Li <libaokun@linux.alibaba.com>,
-	Ojaswin Mujoo <ojaswin@linux.ibm.com>,
-	Ritesh Harjani <ritesh.list@gmail.com>,
-	Zhang Yi <yi.zhang@huawei.com>,
-	Zhang Yi <yi.zhang@huaweicloud.com>,
-	Bob Copeland <me@bobcopeland.com>,
-	Namjae Jeon <linkinjeon@kernel.org>,
-	Sungjong Seo <sj1557.seo@samsung.com>,
-	Yuezhang Mo <yuezhang.mo@sony.com>,
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Andreas Gruenbacher <agruenba@redhat.com>,
-	linux-ext4@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev,
-	gfs2@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Chao Shi <coshi036@gmail.com>,
-	Weidong Zhu <weizhu@fiu.edu>
-Subject: [PATCH v2 21/21] buffer: clear BH_Write_EIO when a write succeeds, not when one starts
-Date: Thu,  6 Aug 2026 12:58:44 -0400
-Message-ID: <1c976fd191aa6e99dbe65d6a1ec63f8706cc0dfa.1785951556.git.coshi036@gmail.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <cover.1785951556.git.coshi036@gmail.com>
-References: <cover.1785951556.git.coshi036@gmail.com>
+        d=1e100.net; s=20251104; t=1786045589; x=1786650389;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=nLbIcjJWlLYm7ckgJdCevI6JSBS4OVTbw09CC4o45Ao=;
+        b=az1xm6TV58nxeJ0BmCitXabE3zlzBwGRNrtUJWsUAtzN2sCvZ9EYXzItDyGZL0DcYP
+         oOAMG2qtOPk7jDiuIsT5hpMCYeVmHbqqN57rirnfiulg/aWEPvLk2hAwPneM3wXNZ9Yz
+         GnekQKASAc6yQPTt6k8+ZSGNSzGxmCI/fnaoogkqk60doZL0DnoQ8cP4ttubN969xkKE
+         sgxlHXWK1oWrPo1LH98xpDnsl29rNXL2nnFDGCJSDnjBWbUwgNyIPdvATxLaXD9yWZNn
+         zOaGGG6zpSc1SwrURnoybixdPKOAGXa2F9lAJtgCgPjuV0xTeb93Cpbp4TcZGRtxbrOk
+         Fy0w==
+X-Forwarded-Encrypted: i=1; AHgh+RruL4XCO9DVehfA8eHq2tueUXjqdze+EqTmeydP6CNYU6EUN659sFfbboySHAv3fTLrROslwfJaD7R82g==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyvKWOv/bIB7gv7CL9HSRL0HA2Vg+Kt7UhxGR0D3UyEIfr0uzjg
+	dVHOkQBvr8n3xGVoUQF0m5hIXZ/25vwVmwH9EEVOEpGQGySR3HveUzF85CzL0SI+X3j+6t4iMKX
+	7sMeD98+acVjTzG+m8laCMPJAtnAU0tA=
+X-Gm-Gg: AR+sD13BMDUtWjosnexBoc/VqALppVezvnX/ZkiT5XBy7ar8qWUq6EZCNiI4rSJZail
+	Rhti9F3LVrdAC6DtpmmiaF+Pw0jbMJTFFliboteXG+i8nrHvp75TCoUkOt06ZBfI2MAbq4LCOmQ
+	RRuphmgD09jvhiOtNuQwXuVIIKYgsUeZd8F3U5CSu9SVzbteuKHSgyPCtAbYWYPigHIQ1u8XOgk
+	WlQtJQarqc6onOIA/Q3NVT9JmVd34I7f8atYvdLkSbaw+l4O6JSf+u96kEEG2v1uSVlXiTQwdVp
+	Mc3uJD7W7qYo3jYa/cFIDcpe9Y6QAlHXq132NPzyhOTL
+X-Received: by 2002:a05:6402:a5ca:20b0:6a1:8ec3:764b with SMTP id
+ 4fb4d7f45d1cf-6a18ec37760mr3594879a12.17.1786045589025; Thu, 06 Aug 2026
+ 12:46:29 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+References: <cover.1785621505.git.coshi036@gmail.com> <2824f30bbc43e6a0b318564fa641228e9a096e37.1785621505.git.coshi036@gmail.com>
+ <anDZ5YG-Ljflv7Vm@casper.infradead.org> <anFYf1iKrNLAjJMw@casper.infradead.org>
+ <CACd_6n2GY2RRQPeKtJEuVkHcSBN-Ne2gJdHRfwxg2i=OT06MFg@mail.gmail.com> <anOf4vNU_XPvyhb0@casper.infradead.org>
+In-Reply-To: <anOf4vNU_XPvyhb0@casper.infradead.org>
+From: Chris S <coshi036@gmail.com>
+Date: Thu, 6 Aug 2026 15:46:17 -0400
+X-Gm-Features: AUfX_my3MOnB94S3irinQYPvJ_IWdDZWDeP-gGrdJ_Rtf7S3jrdVnkhoJS9GiKE
+Message-ID: <CACd_6n2pHtu3aKWc0TbQ04BEwa7Loqcug_=5i5KGo9w_-tZBGw@mail.gmail.com>
+Subject: Re: [PATCH 03/19] jbd2: point the shadow buffer at the frozen data directly
+To: Matthew Wilcox <willy@infradead.org>
+Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, linux-fsdevel@vger.kernel.org, 
+	"Theodore Ts'o" <tytso@mit.edu>, Andreas Dilger <adilger.kernel@dilger.ca>, 
+	Baokun Li <libaokun@linux.alibaba.com>, Ojaswin Mujoo <ojaswin@linux.ibm.com>, 
+	Ritesh Harjani <ritesh.list@gmail.com>, Zhang Yi <yi.zhang@huawei.com>, 
+	Bob Copeland <me@bobcopeland.com>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, linux-ext4@vger.kernel.org, 
+	ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
+	linux-karma-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-BH_Write_EIO is cleared in __bh_submit(), when a buffer that has been
-written before is submitted for write again.  That is early: it says the
-error is gone at the moment we start trying to fix it, rather than when we
-have.
+folio_vmap() sounds like the right shape, and nothing in this series is
+waiting on it, so there is no hurry from my side.
 
-It also loses errors.  A task whose write fails sets the flag and then goes
-to look at it; if another task redirties the buffer and resubmits it in
-between, the submission clears the flag and the first task sees no error at
-all.  Neither of them is doing anything wrong.
+One thing worth settling before anyone writes it, because it decides what
+the callers have to look like: kmap_local_folio() documents "Context: Can
+be invoked from any context" and has no failure return, while vmap() does
+might_sleep() and returns NULL on failure.  So folio_vmap() would inherit
+the weaker contract from the one case that needs it, and every caller would
+have to be written for may-sleep and may-fail even though on !HIGHMEM
+neither can ever happen.  That costs the jbd2 commit path nothing - both
+checksum callers run under jbd2_journal_commit_transaction() in kjournald2,
+which sleeps freely - but it is not free everywhere, so this may want to be
+two entry points rather than one.
 
-Clear it on successful write completion instead, in the end io handlers -
-the same four the rest of this series has been converting, plus gfs2's,
-which already marked errors this way.  Then the flag means what it says:
-the last write of this buffer that finished, failed.  A resubmission no
-longer hides an error that has not been fixed yet, and one that has been
-fixed clears the flag when the data reaches the disk.
+Glad to talk it through, and happy to write it if that would help.  I
+already owe you a look at the bs>PAGE_SIZE callers once this series
+settles, and this is the same errand, so it would be no extra work for me
+to start there.  Entirely your call.
 
-__bh_submit() keeps setting BH_Req, which is what the rest of the tree
-reads it for.
+Best,
+Chao
 
-Suggested-by: Jan Kara <jack@suse.cz>
-Acked-by: Weidong Zhu <weizhu@fiu.edu>
-Signed-off-by: Chao Shi <coshi036@gmail.com>
----
- fs/buffer.c           | 15 +++++++--------
- fs/ext4/fast_commit.c |  1 +
- fs/gfs2/lops.c        |  2 ++
- fs/jbd2/commit.c      |  4 +++-
- 4 files changed, 13 insertions(+), 9 deletions(-)
-
-diff --git a/fs/buffer.c b/fs/buffer.c
-index 425fbfe72ad1..68ea0ef8470e 100644
---- a/fs/buffer.c
-+++ b/fs/buffer.c
-@@ -202,7 +202,9 @@ void bh_end_write(struct bio *bio)
- 	struct buffer_head *bh;
- 	bool success = bio_endio_bh(bio, &bh);
- 
--	if (!success) {
-+	if (success) {
-+		clear_buffer_write_io_error(bh);
-+	} else {
- 		buffer_io_error(bh, ", lost sync page write");
- 		mark_buffer_write_io_error(bh);
- 	}
-@@ -433,7 +435,9 @@ void bh_end_async_write(struct bio *bio)
- 	BUG_ON(!buffer_async_write(bh));
- 
- 	folio = bh->b_folio;
--	if (!success) {
-+	if (success) {
-+		clear_buffer_write_io_error(bh);
-+	} else {
- 		buffer_io_error(bh, ", lost async page write");
- 		mark_buffer_write_io_error(bh);
- 	}
-@@ -1114,7 +1118,6 @@ static void __bh_submit(struct buffer_head *bh, blk_opf_t opf,
- 		enum rw_hint write_hint, struct writeback_control *wbc,
- 		bio_end_io_t end_bio)
- {
--	const enum req_op op = opf & REQ_OP_MASK;
- 	struct bio *bio;
- 
- 	BUG_ON(!buffer_locked(bh));
-@@ -1122,11 +1125,7 @@ static void __bh_submit(struct buffer_head *bh, blk_opf_t opf,
- 	BUG_ON(buffer_delay(bh));
- 	BUG_ON(buffer_unwritten(bh));
- 
--	/*
--	 * Only clear out a write error when rewriting
--	 */
--	if (test_set_buffer_req(bh) && (op == REQ_OP_WRITE))
--		clear_buffer_write_io_error(bh);
-+	set_buffer_req(bh);
- 
- 	if (buffer_meta(bh))
- 		opf |= REQ_META;
-diff --git a/fs/ext4/fast_commit.c b/fs/ext4/fast_commit.c
-index a2028fbd4540..95998827ff01 100644
---- a/fs/ext4/fast_commit.c
-+++ b/fs/ext4/fast_commit.c
-@@ -209,6 +209,7 @@ static void ext4_end_buffer_io_sync(struct bio *bio)
- 	if (success) {
- 		ext4_debug("%s: Block %lld written",
- 			   __func__, bh->b_blocknr);
-+		clear_buffer_write_io_error(bh);
- 	} else {
- 		ext4_debug("%s: Block %lld write failed",
- 			   __func__, bh->b_blocknr);
-diff --git a/fs/gfs2/lops.c b/fs/gfs2/lops.c
-index 3df6e4b7e8b9..7440e5b72f8a 100644
---- a/fs/gfs2/lops.c
-+++ b/fs/gfs2/lops.c
-@@ -179,6 +179,8 @@ static void gfs2_end_log_write_bh(struct gfs2_sbd *sdp, struct folio *folio,
- 	do {
- 		if (error)
- 			mark_buffer_write_io_error(bh);
-+		else
-+			clear_buffer_write_io_error(bh);
- 		unlock_buffer(bh);
- 		next = bh->b_this_page;
- 		size -= bh->b_size;
-diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
-index cd7ef783bd36..ebf6ba58ff4d 100644
---- a/fs/jbd2/commit.c
-+++ b/fs/jbd2/commit.c
-@@ -36,7 +36,9 @@ static void journal_end_buffer_io_sync(struct bio *bio)
- 	struct buffer_head *orig_bh = bh->b_private;
- 
- 	BUFFER_TRACE(bh, "");
--	if (!success)
-+	if (success)
-+		clear_buffer_write_io_error(bh);
-+	else
- 		mark_buffer_write_io_error(bh);
- 	if (orig_bh) {
- 		clear_and_wake_up_bit(BH_Shadow, &orig_bh->b_state);
--- 
-2.43.0
-
+On Wed, Aug 5, 2026 at 4:41=E2=80=AFPM Matthew Wilcox <willy@infradead.org>=
+ wrote:
+>
+> On Wed, Aug 05, 2026 at 03:02:05PM -0400, Chris S wrote:
+> > Thank you so much.
+> > Taken, with a change: the helper needs a matching unmap, and must not m=
+ap
+> > the folio-less case at all.
+> >
+> > static inline void *kmap_local_bh(const struct buffer_head *bh)
+> > {
+> > if (!bh->b_folio)
+> > return bh->b_data;
+> > return kmap_local_folio(bh->b_folio, bh_offset(bh));
+> > }
+> >
+> > static inline void kunmap_local_bh(const struct buffer_head *bh, void *=
+addr)
+> > {
+> > if (bh->b_folio)
+> > kunmap_local(addr);
+> > }
+>
+> Ah, I hadn't considered that option.  Yes, I think this is the right
+> approach.  Thanks!
+>
+> > Two reasons.  kmap_local_page(virt_to_page(bh->b_data)) loses the offse=
+t
+> > within the page, and b_frozen_data is kmalloc(b_size), which is only
+> > guaranteed page aligned when the block size is at least PAGE_SIZE.
+>
+> Yeah; my bad.  I should have added in PAGE_MASK(bh->b_data) to that,
+> but what you have is better.
+>
+> > The second one is your other point.  With CONFIG_DEBUG_KMAP_LOCAL_FORCE=
+_MAP,
+> > __kmap_local_page_prot() maps even a lowmem page, one page at a time.  =
+So
+> > mapping memory that is already permanently mapped would walk this path
+> > straight into the bs>PS problem you just described, which it is otherwi=
+se
+> > immune to - b_data covers the whole block whatever its size.  Returning
+> > b_data and calling kunmap_local() on it anyway is not an option either:
+> > kunmap_local_indexed() WARNs on an address outside the fixmap range und=
+er
+> > that config.  Hence the pair.
+> >
+> > On the bs>PS folio path itself: agreed it is real and predates this ser=
+ies.
+> > I would rather not fold a fix into this one, but I will take it - I'll =
+look
+> > at it separately once this has settled.
+>
+> I've been considering adding a folio_vmap() which would be a nop for
+> !highmem, kmap_local() for order-0 highmem folios and vmap() for
+> large highmem folios.  It's not reached the top of my todo list yet.
