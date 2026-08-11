@@ -1,64 +1,64 @@
-Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
+Received: from mail-pl1-f171.google.com (mail-pl1-f171.google.com [209.85.214.171])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1C404392C46
-	for <ocfs2-devel@lists.linux.dev>; Tue, 11 Aug 2026 02:43:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F3DC396D1C
+	for <ocfs2-devel@lists.linux.dev>; Tue, 11 Aug 2026 02:43:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.171
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786416239; cv=none; b=MuP78pjY2EN3PRb6YZOI6pIcjoauDbdmf0/VbYu4xIYexeqzdsAuoVmlJUn3l2XHs7eHOY/02T8scJ9xHeVDNAATKWl3W7H32JwMsSSfvD96LWVpj6JifhGdjSzYWMutCjpXqCXIKh1sSuQGZxJYjQ9ipgO56Iw69XOt5hwnt/I=
+	t=1786416244; cv=none; b=tR7Ucfyl8ynDa1/EucrlbJ5GY131gFdAqJQJlMW3O1EbN/g6egPZC89TG6BEJeM0LT57kj+Yu38RhiEzqjy+vFd9PSASzoseBuRSUSiqX8LhVICtH/VxfUOHeZb0WcAAXCprav0QXg+RUObkmfo+IpzIyOo2uifTdPzohPPcs50=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786416239; c=relaxed/simple;
-	bh=WYEkUN4XgLmb2QSzxZbiGMtSGYajLh3kk1LmW6qb5KA=;
+	s=arc-20240116; t=1786416244; c=relaxed/simple;
+	bh=Zuczg2SkP/5ojRcZFRKQ4ku4YS+3+DzDOBTJc2/A9Po=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=SM6yULSXUDqL6crS8SQrExEnM5XbdQ8xLPucZCjCQfbBuU0K8V7Gxsk3gM2BBWZcey0s0ZfelubD1Hhg5SkT66xRWK4jIXH4KOexblLSQo9yq7aroOsZaLQe+YjkaiBYTtstF+wafu0w8rdoxkrRsPC/5diWopDhm5N3nyXoqYw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Lg75sR5W; arc=none smtp.client-ip=209.85.214.178
+	 MIME-Version; b=PWAen3KFSLEBKdvtJphm4kvGBBTEUIQP6J9SZZ57XefQLnhsR40obix89a8jCauYcup+Jhw38z8hpkIrTT/V0wLRTBHjaL5jj/eR4u6jCjv4UZYjaNRobG3UJftc7PB6qNdtB8Y83U86EvmQI7Qvwgz6N54piLuGqsG+c4StCe0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=TML2o1bA; arc=none smtp.client-ip=209.85.214.171
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Lg75sR5W"
-Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-2cc73e322dbso28423285ad.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 10 Aug 2026 19:43:54 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="TML2o1bA"
+Received: by mail-pl1-f171.google.com with SMTP id d9443c01a7336-2ceab75934dso29530225ad.2
+        for <ocfs2-devel@lists.linux.dev>; Mon, 10 Aug 2026 19:43:58 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786416231; x=1787021031; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1786416236; x=1787021036; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=6rsMUA23aPPjN53adP0mvTSV6XbtGX1aRtlR4t+CMFI=;
-        b=Lg75sR5W8hcKJvYz8pLhc0Xy2pTd2lL6NRw9LNoZsal2VIu1EbKTYdIHoCNMo1ClUd
-         x7NTxXtd8y5+Vd13ktKQl2+wDBmASlGc6k3faQr1zYhs7+GTPnzgSp7sNoTqPCIKKaUx
-         NUVRk5azKDkL0yoAkkQVdKR0sz0xIMt6SMeSwQ5RzizBaMFPJVwlBm1nZ4eLB9QYcRHh
-         eKpvyLAQQQ8WefzfJ7YO45X2lu3NOhJUxWFNqlCNUw7/m3dvrYZh9DkiX8bYXEdu60B/
-         ds84QYbb7GtSMU48ioSqkYAE+DnXJbSkGdD+hVt8P2OnKzyZM/Q+/t4kSjHgq8Dz7Um6
-         xClQ==
+        bh=uFGDd6MJX6QKx/u+FjV9oJmCytT4Rq2gvVt/3A3Rh9w=;
+        b=TML2o1bAD38cUq8e6NLR0MP6uFY9ny/wvov+s/TKGJb5/+p2i1Y2gX2qqJ5mVHOFLm
+         0MAFcBWONNK1KltMTecphu0VI/X3W3jJ5Q6BjZ3FnttPLvMHFuyY9dukshH9uKKaP4k9
+         vSMnrZKDNuBFoclHGwybt89IwelM2Zij57zGpp0NiR5NJiF4gvzpoQqpuXrrkHk2qkh0
+         7CgovLEvb3XsjL+kNzO5ufMCkq95v4LEoPoLOui/I5Qu2Ru82vUMELhHNmEvmcSp7tI6
+         cHylL8c8NxyhkKZ+G28+VHhsF4youo62abF5qAEw22RLGJ5RY+Wnh6OU4X0ElH0u9iZf
+         gi1w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786416231; x=1787021031;
+        d=1e100.net; s=20251104; t=1786416236; x=1787021036;
         h=content-transfer-encoding:mime-version:references:in-reply-to
          :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
          :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=6rsMUA23aPPjN53adP0mvTSV6XbtGX1aRtlR4t+CMFI=;
-        b=eoBLSV1qRKvuSdkQIEM0iq6Jl34YDKchBbhu5X3iyda6WtlHYKtDUZ581loVA9//9G
-         ubHSFwJeHCjcjJgKr3cDjrgFtNJDHkV2IOhW4xWlXTArXYnaPDp2cInvC3nF+wWZBZ/M
-         sQ/68SV+NBnGGE6FdnfKC6eFtBY9xzSQqjE1S4PX4Cu/JKC2Jhw7dPP/yxadwo0bdN23
-         FfHCKY4GYG6q1YDSbr34rTyAuLo6r5N181rwM6K2MDb9748SPGmYRm/TZ6BA7Hn5MAne
-         9UXBT9iuu9JQOGcQ/k+uSCUT2Bb6gJEmOZ5qqSoq0UJcZTo04h2XEvpeCe61lwqhFG0L
-         X7Xg==
-X-Forwarded-Encrypted: i=1; AHgh+Rqi46IcTo/3TjhZiTNUkyWL4f26sPKRT4o8jTARLUzozE12tsx1Sk4BQXQEFKe+82mkU0Y761QfycV45Q==@lists.linux.dev
-X-Gm-Message-State: AOJu0YzY0h2wBFcY/OluEo9LNT0AQUCYlkqEQPUBRcuTa7i3c2xDxFy7
-	BT5VduXZVSHMEyEvgV1sUCFxZojt6wYKeud4zvob5wRWiT6c5BpxLWWV
-X-Gm-Gg: AR+sD13P7bzM5Wch1k0FKva78MQLvnLaQ0uFfFgOiyZke4l8KhvMylQ0blsBj/cY88K
-	tvWgzy993iQkQyLueBwRUKLDhD/7mNSJ3CQBTbROoMJBh9pmSgF8CO0JeWY+/qPCO+JGaZqI4sg
-	tklvrtd81TjCG8YaULOTxxxlkxXr5jNlwpJL+tu/eHQt6AghuyYQlD75QXMx+LcAxyBg6QJ73nX
-	ouHWzD+VbfwG2Y5iJ6Lbl7cyBWmWsi8BanXJUw1cgQiHvaWQEzVByEevcEnN8UBOLhYOysYNkI3
-	oZKrR6TNJaDgK2oA9Ctdp59fvzGP3vwsfCY9ZkRY4hnN780Y8vFRntvAQWIi14LtVL7hgrYEFGT
-	Mq8wY7saU6ptbKRKDgd8vqYczdlaL3QMACVFnKzoyrfoZYlHh4Z4bzGRJjIZ7uEeU7fZi2Kht4f
-	w1xcZ7E9MIKxRXfzfU1MOWLXL7W0Z2tkyxgnOL18lBz/iwiwRcXDu9zV8SnKQJ/MzGgbJTJlb2a
-	mGM2Xyhab6OxcZo
-X-Received: by 2002:a17:902:f708:b0:2c9:d8c6:1dc3 with SMTP id d9443c01a7336-2d3175fee1fmr3925505ad.0.1786416231387;
-        Mon, 10 Aug 2026 19:43:51 -0700 (PDT)
+        bh=uFGDd6MJX6QKx/u+FjV9oJmCytT4Rq2gvVt/3A3Rh9w=;
+        b=W625uxsBdiNGE5Z0KJhxJi3CHg2ereG5xXC/wE7aLtiQlFOfuhWtY97Xc2RBTmSkpO
+         fFOGrFcVM/vJs7xwnUbU/xY/HepVXAVSxZiCdSuORLmpzs0UFJPAgjvSp/XmJZIKnQNe
+         AZlUdPeriF6n5OxsxNNNa3UfOP7kH1y6nuSScL4ZoSL3gJZxBac3AiGdWpsFFviPLs4F
+         EmJR4W/5Rwt1EnfrpJAWjd2gU0KIHtlbU0J3H9H0RG3xHVtC9C+LiZ/ePIv0if6ZfLhb
+         l5OwkQHqqBS+WKnZxDROZ2zrX8DnC41hP81SNzlTbEZw9iSZnd1w+se8ldwmgY/El/gp
+         T5yA==
+X-Forwarded-Encrypted: i=1; AHgh+RrmNWtEKKWZgZ2NWkVh+8E60Xh3SW1o+/flwWWoUpiOBAJy1RoWQuG6k6eddfxxNddQffj+nZA5qsPIQw==@lists.linux.dev
+X-Gm-Message-State: AOJu0YyOTmsiZvBnW/ecTSoVjvknXwDKL0akpLnM/mXFu045yuI4M7A6
+	tI67jq92yftCu7Y+Zqx11I0X3TPjpIdPvgJsM5JsZ+ZQ5iUUnIZHCrWS
+X-Gm-Gg: AR+sD11wcLxr0Jr47O1rexOlfR7LbwrgaWkCtMkTUfZGlRehuxRxrsx6LEkdUqGSEdF
+	NPfdTkuyDQ4Z/MefMFxBsRiNT2Lq/v9MT/7vT53ODMB6b+kdZH2IcDC/eRM5O+mYrQKOVgHtF/h
+	fb6LKK16MsKVfYqY+95ZzXVUHrDr0MDTpfWREd8pGsSQ6TxBqHrCRuV7Lpx4SzfI9d+V61sf5Uh
+	cIv9dwE80XwO79cfanlW9Zfn31EVaKKcYomtRe49ykgpXO62Pk2oDhrQLL/TZZBH4PKZGJZ7I1P
+	5u6uQazVlRlVg/60z0LrgZPXG/adqmRQBWJTQ0WO9/I/577aO0X9Tl+9kYOS6YKjmkxmW0XqL4F
+	uLzLAd/xrZZdFs7yGpwRNCTdkdDHEEmEFXJ9vO4lbz/qdU/C0PsiOfNdBPkaMNdazpXOIuIC8Sz
+	85fp2zqKIql+8Dx6KcgvQT3UALaFnh2CXRHlQtRSBbuMHmoWnGro7eDbutzD8LFeywLbBKPWEKf
+	Iu2iJU78Zw=
+X-Received: by 2002:a17:902:d54f:b0:2ca:6c8:abd8 with SMTP id d9443c01a7336-2d3178b48fbmr2660065ad.12.1786416236033;
+        Mon, 10 Aug 2026 19:43:56 -0700 (PDT)
 Received: from osman.mioffice.cn ([43.224.245.178])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d3160f47easm464165ad.64.2026.08.10.19.43.47
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d3160f47easm464165ad.64.2026.08.10.19.43.52
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 10 Aug 2026 19:43:50 -0700 (PDT)
+        Mon, 10 Aug 2026 19:43:55 -0700 (PDT)
 From: Zhan Xusheng <zhanxusheng1024@gmail.com>
 X-Google-Original-From: Zhan Xusheng <zhanxusheng@xiaomi.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
@@ -72,9 +72,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	zhanxusheng@xiaomi.com
-Subject: [PATCH v2 1/2] ocfs2: bound-check dir entries in the readdir re-validation scan
-Date: Tue, 11 Aug 2026 10:43:36 +0800
-Message-ID: <20260811024337.3972976-2-zhanxusheng@xiaomi.com>
+Subject: [PATCH v2 2/2] ocfs2: bound-check dir entries in the inline-data re-validation scan
+Date: Tue, 11 Aug 2026 10:43:37 +0800
+Message-ID: <20260811024337.3972976-3-zhanxusheng@xiaomi.com>
 X-Mailer: git-send-email 2.43.0
 In-Reply-To: <20260811024337.3972976-1-zhanxusheng@xiaomi.com>
 References: <20260811024337.3972976-1-zhanxusheng@xiaomi.com>
@@ -86,55 +86,38 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-When the inode version changed since the last readdir(),
-ocfs2_dir_foreach_blk_el() re-scans the directory block from its start to
-relocate the current position:
+ocfs2_dir_foreach_blk_id() re-scans the inline data area the same way
+ocfs2_dir_foreach_blk_el() re-scans a directory block, and is missing the
+same two bounds:
 
-	for (i = 0; i < sb->s_blocksize && i < offset; ) {
-		de = (struct ocfs2_dir_entry *)(bh->b_data + i);
+	for (i = 0; i < i_size_read(inode) && i < offset; ) {
+		de = (struct ocfs2_dir_entry *)(data->id_data + i);
 		if (le16_to_cpu(de->rec_len) < OCFS2_DIR_REC_LEN(1))
 			break;
 		i += le16_to_cpu(de->rec_len);
 	}
 
-i walks the block on rec_len values taken from the block itself and the
-only thing tested is that rec_len is not too small, so a single bogus
-rec_len
-leaves i anywhere in the block, including its last OCFS2_DIR_REC_LEN(1) - 1
-bytes.  @offset comes from ctx->pos, which userspace moves with lseek() on
-the directory fd, and decides how far the walk gets.
+ocfs2_validate_inode_block() keeps i_size inside the inline area:
 
-Two bounds are missing, both of which ocfs2_check_dir_entry() applies for
-the emit loop below.
+	if (le16_to_cpu(data->id_count) >
+	    ocfs2_max_inline_data_with_xattr(sb, di))
+	if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count))
 
-de->rec_len sits at byte offset 8 within the entry, so dereferencing de in
-that tail reads past the s_blocksize buffer.  ocfs2_check_dir_entry()
-declines to look at an entry that close to the end:
+and that area runs to the end of the inode block, so for a full inline
+directory data->id_data + i_size is the end of di_bh->b_data.  A bogus
+rec_len leaves i in the last OCFS2_DIR_REC_LEN(1) - 1 bytes of it, and
+de->rec_len, at byte offset 8 within the entry, is then read past the
+block.
 
-	size - buf_offset < OCFS2_DIR_REC_LEN(1)
+The emit loop below hands i_size_read(inode) to ocfs2_check_dir_entry(),
+which refuses both an entry that close to the end and one whose rec_len
+runs past it.  Apply the same two bounds to the re-validation scan, reading
+i_size once into a local as ocfs2_check_dir_entry() takes it as @size.
 
-Nothing bounds i += rec_len either, so i can end up past the block.  The
-emit loop that follows is guarded by offset < sb->s_blocksize and does not
-run, but
+Unlike the extent case there is no mask to corrupt here: an unbounded i
+only sets ctx->pos past i_size, which ends the readdir early rather
+than moving it to the wrong place.
 
-	offset = i;
-	ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1)) | offset;
-
-runs first and ORs a value with bits above the block mask into ctx->pos,
-corrupting the block number readdir() resumes from.
-ocfs2_check_dir_entry() rejects that as "directory entry overrun":
-
-	next_offset = buf_offset + rlen;
-	... next_offset > size
-
-Apply both bounds.  For a consistent directory this changes nothing:
-entries are at least OCFS2_DIR_REC_LEN(1) bytes and do not cross the end of
-the block, so no valid entry is skipped.
-
-Found by the sashiko review tool; fix approach suggested by Joseph Qi.
-
-Link: https://sashiko.dev/#/patchset/20260806022044.167962-1-zhanxusheng@xiaomi.com
-Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Mark Fasheh <mark@fasheh.com>
 Cc: Joel Becker <jlbec@evilplan.org>
 Cc: Junxiao Bi <junxiao.bi@oracle.com>
@@ -143,26 +126,28 @@ Cc: Jun Piao <piaojun@huawei.com>
 Cc: Heming Zhao <heming.zhao@suse.com>
 Signed-off-by: Zhan Xusheng <zhanxusheng@xiaomi.com>
 ---
- fs/ocfs2/dir.c | 12 ++++++++----
- 1 file changed, 8 insertions(+), 4 deletions(-)
+ fs/ocfs2/dir.c | 14 ++++++++++----
+ 1 file changed, 10 insertions(+), 4 deletions(-)
 
 diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index c30a86856d5b..39ce60874e17 100644
+index 39ce60874e17..863c69dec7da 100644
 --- a/fs/ocfs2/dir.c
 +++ b/fs/ocfs2/dir.c
-@@ -1903,7 +1903,10 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+@@ -1812,7 +1812,12 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
  		 * dirent right now.  Scan from the start of the block
  		 * to make sure. */
  		if (!inode_eq_iversion(inode, *f_version)) {
--			for (i = 0; i < sb->s_blocksize && i < offset; ) {
-+			for (i = 0; i + OCFS2_DIR_REC_LEN(1) <= sb->s_blocksize &&
+-			for (i = 0; i < i_size_read(inode) && i < offset; ) {
++			loff_t size = i_size_read(inode);
++
++			for (i = 0; i + OCFS2_DIR_REC_LEN(1) <= size &&
 +			     i < offset;) {
 +				unsigned int rec_len;
 +
- 				de = (struct ocfs2_dir_entry *) (bh->b_data + i);
+ 				de = (struct ocfs2_dir_entry *)
+ 					(data->id_data + i);
  				/* It's too expensive to do a full
- 				 * dirent test each time round this
-@@ -1911,10 +1914,11 @@ static int ocfs2_dir_foreach_blk_el(struct inode *inode,
+@@ -1821,10 +1826,11 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
  				 * least that it is non-zero.  A
  				 * failure will be detected in the
  				 * dirent test below. */
@@ -170,13 +155,13 @@ index c30a86856d5b..39ce60874e17 100644
 -				    OCFS2_DIR_REC_LEN(1))
 +				rec_len = le16_to_cpu(de->rec_len);
 +				if (rec_len < OCFS2_DIR_REC_LEN(1) ||
-+				    i + rec_len > sb->s_blocksize)
++				    i + rec_len > size)
  					break;
 -				i += le16_to_cpu(de->rec_len);
 +				i += rec_len;
  			}
- 			offset = i;
- 			ctx->pos = (ctx->pos & ~((loff_t)sb->s_blocksize - 1))
+ 			ctx->pos = offset = i;
+ 			*f_version = inode_query_iversion(inode);
 -- 
 2.43.0
 
