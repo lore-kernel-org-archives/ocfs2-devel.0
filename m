@@ -1,167 +1,157 @@
-Received: from mail-pl1-f171.google.com (mail-pl1-f171.google.com [209.85.214.171])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F3DC396D1C
-	for <ocfs2-devel@lists.linux.dev>; Tue, 11 Aug 2026 02:43:58 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id ECC6E3BAD9B
+	for <ocfs2-devel@lists.linux.dev>; Tue, 11 Aug 2026 06:57:12 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786416244; cv=none; b=tR7Ucfyl8ynDa1/EucrlbJ5GY131gFdAqJQJlMW3O1EbN/g6egPZC89TG6BEJeM0LT57kj+Yu38RhiEzqjy+vFd9PSASzoseBuRSUSiqX8LhVICtH/VxfUOHeZb0WcAAXCprav0QXg+RUObkmfo+IpzIyOo2uifTdPzohPPcs50=
+	t=1786431436; cv=none; b=jbvno3Qkd/IhI0Bg5pETj9XV3tr+Y83UByVa+WPQuCqVX7Gk5MdDdSGpRx+ABe3VKA6a+6D1cozb6K5ZFraje7wfySMYSFjcGa8bM3aGDJWp/gte8B+/dawzxSgTp2ODH/bvzbxM91k61AxbSwy3V6mUaebYldLgRrMOIlEEYLQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786416244; c=relaxed/simple;
-	bh=Zuczg2SkP/5ojRcZFRKQ4ku4YS+3+DzDOBTJc2/A9Po=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=PWAen3KFSLEBKdvtJphm4kvGBBTEUIQP6J9SZZ57XefQLnhsR40obix89a8jCauYcup+Jhw38z8hpkIrTT/V0wLRTBHjaL5jj/eR4u6jCjv4UZYjaNRobG3UJftc7PB6qNdtB8Y83U86EvmQI7Qvwgz6N54piLuGqsG+c4StCe0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=TML2o1bA; arc=none smtp.client-ip=209.85.214.171
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1786431436; c=relaxed/simple;
+	bh=k/LxVz0LmpND7hlsXVFeH24XJBqvIdBaXTbDcnohfUs=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=oCoiA5jyzbaXVYEzhiQI6n/pNqcJribUMyhVHM9x3Ecu/H/g0A9csPl04wXt9/r+RgbsAOaty/XXjOFzkyDRY8JkXqj0iJ6kaQyXAMRW6scKxZkQH3ZLUNjlxAz/fz1/xM0Km2GKw+eE/bEXGUE5lQmrlDG14dj70FZnM60LlkU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=R53p2jkt; arc=none smtp.client-ip=115.124.30.118
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="TML2o1bA"
-Received: by mail-pl1-f171.google.com with SMTP id d9443c01a7336-2ceab75934dso29530225ad.2
-        for <ocfs2-devel@lists.linux.dev>; Mon, 10 Aug 2026 19:43:58 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1786416236; x=1787021036; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=uFGDd6MJX6QKx/u+FjV9oJmCytT4Rq2gvVt/3A3Rh9w=;
-        b=TML2o1bAD38cUq8e6NLR0MP6uFY9ny/wvov+s/TKGJb5/+p2i1Y2gX2qqJ5mVHOFLm
-         0MAFcBWONNK1KltMTecphu0VI/X3W3jJ5Q6BjZ3FnttPLvMHFuyY9dukshH9uKKaP4k9
-         vSMnrZKDNuBFoclHGwybt89IwelM2Zij57zGpp0NiR5NJiF4gvzpoQqpuXrrkHk2qkh0
-         7CgovLEvb3XsjL+kNzO5ufMCkq95v4LEoPoLOui/I5Qu2Ru82vUMELhHNmEvmcSp7tI6
-         cHylL8c8NxyhkKZ+G28+VHhsF4youo62abF5qAEw22RLGJ5RY+Wnh6OU4X0ElH0u9iZf
-         gi1w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786416236; x=1787021036;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=uFGDd6MJX6QKx/u+FjV9oJmCytT4Rq2gvVt/3A3Rh9w=;
-        b=W625uxsBdiNGE5Z0KJhxJi3CHg2ereG5xXC/wE7aLtiQlFOfuhWtY97Xc2RBTmSkpO
-         fFOGrFcVM/vJs7xwnUbU/xY/HepVXAVSxZiCdSuORLmpzs0UFJPAgjvSp/XmJZIKnQNe
-         AZlUdPeriF6n5OxsxNNNa3UfOP7kH1y6nuSScL4ZoSL3gJZxBac3AiGdWpsFFviPLs4F
-         EmJR4W/5Rwt1EnfrpJAWjd2gU0KIHtlbU0J3H9H0RG3xHVtC9C+LiZ/ePIv0if6ZfLhb
-         l5OwkQHqqBS+WKnZxDROZ2zrX8DnC41hP81SNzlTbEZw9iSZnd1w+se8ldwmgY/El/gp
-         T5yA==
-X-Forwarded-Encrypted: i=1; AHgh+RrmNWtEKKWZgZ2NWkVh+8E60Xh3SW1o+/flwWWoUpiOBAJy1RoWQuG6k6eddfxxNddQffj+nZA5qsPIQw==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyOTmsiZvBnW/ecTSoVjvknXwDKL0akpLnM/mXFu045yuI4M7A6
-	tI67jq92yftCu7Y+Zqx11I0X3TPjpIdPvgJsM5JsZ+ZQ5iUUnIZHCrWS
-X-Gm-Gg: AR+sD11wcLxr0Jr47O1rexOlfR7LbwrgaWkCtMkTUfZGlRehuxRxrsx6LEkdUqGSEdF
-	NPfdTkuyDQ4Z/MefMFxBsRiNT2Lq/v9MT/7vT53ODMB6b+kdZH2IcDC/eRM5O+mYrQKOVgHtF/h
-	fb6LKK16MsKVfYqY+95ZzXVUHrDr0MDTpfWREd8pGsSQ6TxBqHrCRuV7Lpx4SzfI9d+V61sf5Uh
-	cIv9dwE80XwO79cfanlW9Zfn31EVaKKcYomtRe49ykgpXO62Pk2oDhrQLL/TZZBH4PKZGJZ7I1P
-	5u6uQazVlRlVg/60z0LrgZPXG/adqmRQBWJTQ0WO9/I/577aO0X9Tl+9kYOS6YKjmkxmW0XqL4F
-	uLzLAd/xrZZdFs7yGpwRNCTdkdDHEEmEFXJ9vO4lbz/qdU/C0PsiOfNdBPkaMNdazpXOIuIC8Sz
-	85fp2zqKIql+8Dx6KcgvQT3UALaFnh2CXRHlQtRSBbuMHmoWnGro7eDbutzD8LFeywLbBKPWEKf
-	Iu2iJU78Zw=
-X-Received: by 2002:a17:902:d54f:b0:2ca:6c8:abd8 with SMTP id d9443c01a7336-2d3178b48fbmr2660065ad.12.1786416236033;
-        Mon, 10 Aug 2026 19:43:56 -0700 (PDT)
-Received: from osman.mioffice.cn ([43.224.245.178])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d3160f47easm464165ad.64.2026.08.10.19.43.52
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 10 Aug 2026 19:43:55 -0700 (PDT)
-From: Zhan Xusheng <zhanxusheng1024@gmail.com>
-X-Google-Original-From: Zhan Xusheng <zhanxusheng@xiaomi.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Junxiao Bi <junxiao.bi@oracle.com>,
-	Changwei Ge <gechangwei@live.cn>,
-	Jun Piao <piaojun@huawei.com>,
-	Heming Zhao <heming.zhao@suse.com>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	zhanxusheng@xiaomi.com
-Subject: [PATCH v2 2/2] ocfs2: bound-check dir entries in the inline-data re-validation scan
-Date: Tue, 11 Aug 2026 10:43:37 +0800
-Message-ID: <20260811024337.3972976-3-zhanxusheng@xiaomi.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260811024337.3972976-1-zhanxusheng@xiaomi.com>
-References: <20260811024337.3972976-1-zhanxusheng@xiaomi.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="R53p2jkt"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1786431428; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=GLjydHmq/L7vPEMLuzBxoHyb1ughObd8IWBHKNXCs8U=;
+	b=R53p2jktAJEAeb2mne/h0GPCA5YQDu1SWiQFK2nRtN04rxYem/G+Jm/SmTJ8m8Hvd4/TvLTp7IWdLWmEIEvcmEHyuyVQEsOuVuh8961mamb47FEVDhIYnlkK67kpQSwSabemQdSK4sNKrIIa1ogY2qIK3iZFLn2qPg6YMz/ZEQg=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R671e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X8nOSTo_1786431426;
+Received: from 30.221.129.51(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X8nOSTo_1786431426 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 11 Aug 2026 14:57:07 +0800
+Message-ID: <2927fd14-46be-4cb1-8dac-0f4249f16014@linux.alibaba.com>
+Date: Tue, 11 Aug 2026 14:57:06 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: validate la_size before ocfs2_clear_local_alloc()
+To: Dmitry Morgun <d.morgun@ispras.ru>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ linux-kernel@vger.kernel.org, lvc-project@linuxtesting.org,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
+References: <20260810113508.8513-1-d.morgun@ispras.ru>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260810113508.8513-1-d.morgun@ispras.ru>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-ocfs2_dir_foreach_blk_id() re-scans the inline data area the same way
-ocfs2_dir_foreach_blk_el() re-scans a directory block, and is missing the
-same two bounds:
 
-	for (i = 0; i < i_size_read(inode) && i < offset; ) {
-		de = (struct ocfs2_dir_entry *)(data->id_data + i);
-		if (le16_to_cpu(de->rec_len) < OCFS2_DIR_REC_LEN(1))
-			break;
-		i += le16_to_cpu(de->rec_len);
-	}
 
-ocfs2_validate_inode_block() keeps i_size inside the inline area:
+On 8/10/26 7:35 PM, Dmitry Morgun wrote:
+> la_size, like the dirty flag, is read from disk. If dirty != 0,
+> ocfs2_begin_local_alloc_recovery() is always called, which
+> immediately invokes ocfs2_clear_local_alloc(). At this point,
+> ocfs2_clear_local_alloc() uses la_size as the loop bound without
+> validating it first. If la_size is corrupted, the loop writes past
+> the end of la_bitmap and may eventually start writing into memory
+> that has already been freed.
+> 
+> BUG: KASAN: use-after-free in ocfs2_clear_local_alloc fs/ocfs2/localalloc.c:919 [inline]
+> BUG: KASAN: use-after-free in ocfs2_begin_local_alloc_recovery+0xb07/0xc00 fs/ocfs2/localalloc.c:515
+> CPU: 1 PID: 2386 Comm: syz.2.190 Not tainted 6.1.174-syzkaller-00520-g10c505401422 #0
+> Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.17.0-debian-1.17.0-1 04/01/2014
+> Call Trace:
+>  <TASK>
+>  ocfs2_clear_local_alloc fs/ocfs2/localalloc.c:919 [inline]
+>  ocfs2_begin_local_alloc_recovery+0xb07/0xc00 fs/ocfs2/localalloc.c:515
+>  ocfs2_check_volume fs/ocfs2/super.c:2448 [inline]
+>  ocfs2_mount_volume fs/ocfs2/super.c:1819 [inline]
+>  ocfs2_fill_super+0x2033/0x3dc0 fs/ocfs2/super.c:1082
+>  mount_bdev+0x356/0x410 fs/super.c:1443
+>  legacy_get_tree+0x108/0x220 fs/fs_context.c:632
+>  vfs_get_tree+0x8e/0x300 fs/super.c:1573
+>  do_new_mount fs/namespace.c:3078 [inline]
+>  path_mount+0x6af/0x1f70 fs/namespace.c:3408
+>  do_mount fs/namespace.c:3421 [inline]
+>  __do_sys_mount fs/namespace.c:3629 [inline]
+>  __se_sys_mount fs/namespace.c:3606 [inline]
+>  __x64_sys_mount+0x283/0x300 fs/namespace.c:3606
+>  do_syscall_x64 arch/x86/entry/common.c:46 [inline]
+>  do_syscall_64+0x35/0x80 fs/namespace.c:76
+>  entry_SYSCALL_64_after_hwframe+0x6e/0xd8
+> 
+> The validation of la_size currently exists only in
+> ocfs2_load_local_alloc(), but that function is called after
+> ocfs2_clear_local_alloc(). As a result, memory corruption occurs
+> before the invalid value is detected and -EINVAL is returned.
+> 
+> Adding the same validation to ocfs2_begin_local_alloc_recovery()
+> before calling ocfs2_clear_local_alloc() prevents the out-of-bounds
+> write by failing the recovery early with -EINVAL.
+> 
+> Found by Linux Verification Center (linuxtesting.org) with Syzkaller.
+> 
+> Fixes: ccd979bdbce9 ("OCFS2: The Second Oracle Cluster Filesystem")
+> Signed-off-by: Dmitry Morgun <d.morgun@ispras.ru>
+> ---
+> A similar issue also exists in ocfs2_complete_local_alloc_recovery().
+> The i_total and la_bm_off fields are also read from disk and used as
+> loop bounds and offsets without prior validation. With a corrupted
+> filesystem image, they could lead to similar out-of-bounds accesses
+> during the completion of local alloc recovery. Therefore, a more
+> complete solution would be to introduce a shared validation helper
+> for all relevant on-disk local alloc fields (la_size, i_total,
+> la_bm_off, and others) and invoke it before starting the recovery
+> process.
+> 
+> This patch fixes only the reported reproducer, triggered 
+> by an invalid la_size. Other fields like i_total and la_bm_off are
+> still unvalidated, so a similarly corrupted image could trigger 
+> an analogous bug elsewhere. Maintainers' input would be welcome 
+> on whether a shared validation helper is preferred over targeted 
+> per-field fixes.
+> 
 
-	if (le16_to_cpu(data->id_count) >
-	    ocfs2_max_inline_data_with_xattr(sb, di))
-	if (le64_to_cpu(di->i_size) > le16_to_cpu(data->id_count))
+I think we can validate localalloc inode during block read in
+ocfs2_validate_inode_block(), which will drop the duplicate code in
+callers.
 
-and that area runs to the end of the inode block, so for a full inline
-directory data->id_data + i_size is the end of di_bh->b_data.  A bogus
-rec_len leaves i in the last OCFS2_DIR_REC_LEN(1) - 1 bytes of it, and
-de->rec_len, at byte offset 8 within the entry, is then read past the
-block.
+BTW, it seems you post it into a wrong maillist. Please use
+ocfs2-devel@lists.linux.dev instead.
 
-The emit loop below hands i_size_read(inode) to ocfs2_check_dir_entry(),
-which refuses both an entry that close to the end and one whose rec_len
-runs past it.  Apply the same two bounds to the re-validation scan, reading
-i_size once into a local as ocfs2_check_dir_entry() takes it as @size.
+Thanks,
+Joseph
 
-Unlike the extent case there is no mask to corrupt here: an unbounded i
-only sets ctx->pos past i_size, which ends the readdir early rather
-than moving it to the wrong place.
-
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
-Cc: Junxiao Bi <junxiao.bi@oracle.com>
-Cc: Changwei Ge <gechangwei@live.cn>
-Cc: Jun Piao <piaojun@huawei.com>
-Cc: Heming Zhao <heming.zhao@suse.com>
-Signed-off-by: Zhan Xusheng <zhanxusheng@xiaomi.com>
----
- fs/ocfs2/dir.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
-
-diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-index 39ce60874e17..863c69dec7da 100644
---- a/fs/ocfs2/dir.c
-+++ b/fs/ocfs2/dir.c
-@@ -1812,7 +1812,12 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
- 		 * dirent right now.  Scan from the start of the block
- 		 * to make sure. */
- 		if (!inode_eq_iversion(inode, *f_version)) {
--			for (i = 0; i < i_size_read(inode) && i < offset; ) {
-+			loff_t size = i_size_read(inode);
-+
-+			for (i = 0; i + OCFS2_DIR_REC_LEN(1) <= size &&
-+			     i < offset;) {
-+				unsigned int rec_len;
-+
- 				de = (struct ocfs2_dir_entry *)
- 					(data->id_data + i);
- 				/* It's too expensive to do a full
-@@ -1821,10 +1826,11 @@ static int ocfs2_dir_foreach_blk_id(struct inode *inode,
- 				 * least that it is non-zero.  A
- 				 * failure will be detected in the
- 				 * dirent test below. */
--				if (le16_to_cpu(de->rec_len) <
--				    OCFS2_DIR_REC_LEN(1))
-+				rec_len = le16_to_cpu(de->rec_len);
-+				if (rec_len < OCFS2_DIR_REC_LEN(1) ||
-+				    i + rec_len > size)
- 					break;
--				i += le16_to_cpu(de->rec_len);
-+				i += rec_len;
- 			}
- 			ctx->pos = offset = i;
- 			*f_version = inode_query_iversion(inode);
--- 
-2.43.0
+>  fs/ocfs2/localalloc.c | 11 +++++++++++
+>  1 file changed, 11 insertions(+)
+> 
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index c4426d12a..ce03903ed 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -481,6 +481,7 @@ int ocfs2_begin_local_alloc_recovery(struct ocfs2_super *osb,
+>  	struct buffer_head *alloc_bh = NULL;
+>  	struct inode *inode = NULL;
+>  	struct ocfs2_dinode *alloc;
+> +	struct ocfs2_local_alloc *la;
+>  
+>  	trace_ocfs2_begin_local_alloc_recovery(slot_num);
+>  
+> @@ -512,6 +513,16 @@ int ocfs2_begin_local_alloc_recovery(struct ocfs2_super *osb,
+>  	memcpy((*alloc_copy), alloc_bh->b_data, alloc_bh->b_size);
+>  
+>  	alloc = (struct ocfs2_dinode *) alloc_bh->b_data;
+> +	la = OCFS2_LOCAL_ALLOC(alloc);
+> +
+> +	if ((la->la_size == 0) ||
+> +		(le16_to_cpu(la->la_size) > ocfs2_local_alloc_size(inode->i_sb))) {
+> +		mlog(ML_ERROR, "Local alloc size is invalid (la_size = %u)\n",
+> +			le16_to_cpu(la->la_size));
+> +		status = -EINVAL;
+> +		goto bail;
+> +	}
+> +
+>  	ocfs2_clear_local_alloc(alloc);
+>  
+>  	ocfs2_compute_meta_ecc(osb->sb, alloc_bh->b_data, &alloc->i_check);
 
