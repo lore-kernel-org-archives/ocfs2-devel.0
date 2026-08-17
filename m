@@ -1,56 +1,59 @@
-Received: from mail-oo1-f70.google.com (mail-oo1-f70.google.com [209.85.161.70])
+Received: from mail-oo1-f69.google.com (mail-oo1-f69.google.com [209.85.161.69])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3461F13B58C
-	for <ocfs2-devel@lists.linux.dev>; Sun, 16 Aug 2026 22:41:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.70
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F0DA43EC68E
+	for <ocfs2-devel@lists.linux.dev>; Mon, 17 Aug 2026 23:20:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.161.69
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1786920067; cv=none; b=cNTrGRLf6VuEPp4OfIKm/GxwPBZ2FkqOBo406lGB8fEuDYhb/XTH1dfsKbRQZ82DdEQnRYB6O330ut4SwkaHJbnnmebSwlPZ71Q8nyT+qrk+OxXsXRnSpw+lyCgwGvrnJ/3a7v6oMTNoT7T5kQRWuqXgIDMd6TSMK98C77OgEgM=
+	t=1787008805; cv=none; b=uGGw5eCqxgt4JKb9W6B4gX/i+y0twxLthS8k1DmAiAv5d+bDdZwJJC0rx6FXK0lSEh540W+WtMzfI82vXM66jmq0jWRJBaSnCH5uPbUaE3HiTq1+0BdqlAno4liNd4gkGS9+JNQKR8cS0LmXD6av0rGyAHtBBT5xJlWVZoQ340g=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1786920067; c=relaxed/simple;
-	bh=TBpuUbxTgu6iYHxvOoTHRegy3Y4/zVZvFaAmf6Keei8=;
+	s=arc-20240116; t=1787008805; c=relaxed/simple;
+	bh=iLjeVV55Fcw34Rf9/V9Y7KfCCfd+XfalLgM/aPC/AZ8=;
 	h=MIME-Version:Date:In-Reply-To:Message-ID:Subject:From:To:
-	 Content-Type; b=YxRhYCeAsTaPnbeOuJXQOnmtmzGl4MNL2+ZcjAZxAOOMC6LwgJKg7YbsSFvB9U4n/3TITxBnlsyKceAPxCLuzZjjuXhKvgGx5KH2rGPKF37YxyPTJ97z2Flk+GAx31cRIVav0EgjcV89bl/7BcZpdV/GY146Clc6x13WWqfnYF8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.70
+	 Content-Type; b=ZlUabBfETS4e/b993pOG0BIQIAluNdyEQFFQgCT1zr5LeHlGczehIO+kkylDdibshWkYaKqBMou65zNieIJvsK1o3dKcReMnfsWnjxoKVJmpiKnak2F/jc/narB4kSM3rpGSOmqL11Ciy/Ddo8PL7t0sTVK/44J7x5dgPBT17yA=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.161.69
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oo1-f70.google.com with SMTP id 006d021491bc7-6aea69817d1so2792353eaf.2
-        for <ocfs2-devel@lists.linux.dev>; Sun, 16 Aug 2026 15:41:06 -0700 (PDT)
+Received: by mail-oo1-f69.google.com with SMTP id 006d021491bc7-6b026a31fcdso4434739eaf.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 17 Aug 2026 16:20:03 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1786920065; x=1787524865;
+        d=1e100.net; s=20251104; t=1787008803; x=1787613603;
         h=content-type:to:from:subject:message-id:in-reply-to:date
          :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
          :reply-to:content-type;
-        bh=VlWN7/9c88iOYmcK+eYbsS7lJz0uxrVGu3TW/UPW9rU=;
-        b=C3hAyuN3U4fqc7+wcXzNtVFznsuBp4avkZHKn9YYnO4Jf6OuS5OXqlc4NfmfmCzuI+
-         f27AoeuEGW23wnkZmDTmA4Gi42+iWeTdEEBhxo4P4XVh1ogyUdkI4gMAj0B8AqU7kUJl
-         yMCz4xdx8w2fNk61uC8cy6xS68u7j0CbgZHE4svkbFQzEAvH50xZsK+JQICCG7iBtlxR
-         tx7KylMxi7Xdv1Zcw4HBvzw2iB/genq5ZL/FYtta0OFDLp3Ai6DF5ZoMlsm6NQoYOSmI
-         5IjQnvWVtEJkTdEhgA+TTJuq7iK79k6UpfivyJi+80ljb+IglRA8B2Hy7Nt2+gfCKZqG
-         OXPw==
-X-Forwarded-Encrypted: i=1; AHgh+Rqur3qsNuZrhT8GhY7Hd7Of+6+aKplFG1gOvTaqGBZcMtxgmuESwy7BtXUMVvcip6regTaBOPu05I+x0A==@lists.linux.dev
-X-Gm-Message-State: AOJu0YyOaL4tuKlBqq665yUIZMPSq9GveGnLg8SP7FwL50m1HCwUaT4o
-	37x1k/LSkevvFCBXPqimOgsogb6xWlpPYlE+Y2weLPNTdMIsiQw6it6J8G+6mddKuqWcT2GNuM9
-	OXATps8Is8UDZb2lhlXiMFwBreh2uX10IGXvyxkicNYWaYsmDZIwQZG917do=
+        bh=lgcDQhtaB4Hm6vLhZWeOiFt/hMdrxuNVdLV0aKbT9FM=;
+        b=ntpaIsF4MuAkJdx+T9FATGA8ecFGMAoOP7eU1mNi6+EpwOXF6Y6Du0N9QNpQPcut6C
+         PczKT9/sEEwwpurkA4mQj4FcAe8FI/sOQiMWHeMQXKMJLpHs9iP/z8XRYw8M60PmYwww
+         v/3s+Yyhkle8/uf1S0PFMnsWA9XGQyK8AWbW4UYjXQZhI3qSen0X8RvkbZuDz9lbpJrN
+         amZVhhbuGmhR6Jdgwg6NHOFjZEJVp/Zl6ZR3X4VL6uHNDIE8Rm1j/ZIPZmNfQWP1JKZ+
+         K9TpJXgGGmHNuyVcZm4heHizpYm6SC+E/ulCnMhYEzFzDTlsoEAKgSPcD3HlJGrZ6q7e
+         wpPw==
+X-Forwarded-Encrypted: i=1; AHgh+Rr+9j4sLlDdRHOLcwRodzu/CgPxUiliVqwQrO/da4q33vdKmxQYmUT3g/DOwV4MXvOwfYeedDgH+tcscA==@lists.linux.dev
+X-Gm-Message-State: AOJu0YxAJ5p2plLMgcsxgjbByYFfnLMT5pz6jWsmhE6INBNli3AaD2Cp
+	ngd9nAdLgZv0rJXwPnRTLq6F14oMf2JE6xS6XeDYOkg+2nhCwJw9KD4gj+LUvNdV6XWxc7z6Qkz
+	/oyrGkuL/CSpbiS4DDwG+nRXrzSXKv/v0q2sBeJ7KKWuS9J0YsKmTGRpm+nM=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6820:1788:b0:6a3:c52b:b94d with SMTP id
- 006d021491bc7-6b0d5fdf254mr19671860eaf.4.1786920065191; Sun, 16 Aug 2026
- 15:41:05 -0700 (PDT)
-Date: Sun, 16 Aug 2026 15:41:05 -0700
-In-Reply-To: <678e8256.050a0220.303755.0081.GAE@google.com>
+X-Received: by 2002:a05:6820:16a4:b0:6b0:4a79:5d31 with SMTP id
+ 006d021491bc7-6b0d68f62f5mr21095447eaf.30.1787008802761; Mon, 17 Aug 2026
+ 16:20:02 -0700 (PDT)
+Date: Mon, 17 Aug 2026 16:20:02 -0700
+In-Reply-To: <69725516.a00a0220.3ad28e.ea7a.GAE@google.com>
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6a823c81.f7a79266.2f965f.001b.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] possible deadlock in ocfs2_remove_inode (2)
-From: syzbot <syzbot+ddde294b94666bb51266@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joel.granados@kernel.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com, teddy.astie@vates.tech, tglx@kernel.org
+Message-ID: <6a839722.f7a79266.2f965f.002e.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] possible deadlock in ocfs2_xattr_remove
+From: syzbot <syzbot+7df4afa14aeda476a7a1@syzkaller.appspotmail.com>
+To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, nogikh@google.com, 
+	ocfs2-devel@lists.linux.dev, syzbot@kernel.org, syzbot@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com, 
+	syzkaller-upstream-moderation@googlegroups.com, teddy.astie@vates.tech, 
+	tglx@kernel.org
 Content-Type: text/plain; charset="UTF-8"
 
 syzbot suspects this issue was fixed by commit:
@@ -61,13 +64,13 @@ Date:   Tue Jun 9 15:14:45 2026 +0000
 
     time/jiffies: Register jiffies clocksource before usage
 
-bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=100b7a79580000
-start commit:   2d3090a8aeb5 Merge tag 'v7.1-p5' of git://git.kernel.org/p..
+bisection log:  https://syzkaller.appspot.com/x/bisect.txt?x=156f3949580000
+start commit:   5862221fdded Merge tag 'parisc-for-7.1-rc3' of git://git.k..
 git tree:       upstream
-kernel config:  https://syzkaller.appspot.com/x/.config?x=f9e42545d0c4344f
-dashboard link: https://syzkaller.appspot.com/bug?extid=ddde294b94666bb51266
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=157bb0ae580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=15c4e0ae580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=f2e8ebfec4636d32
+dashboard link: https://syzkaller.appspot.com/bug?extid=7df4afa14aeda476a7a1
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=10f2200e580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=11ae9636580000
 
 If the result looks correct, please mark the issue as fixed by replying with:
 
