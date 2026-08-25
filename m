@@ -1,78 +1,78 @@
 Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 421D0351C02;
-	Wed, 26 Aug 2026 07:50:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 104B3346AC0;
+	Wed, 26 Aug 2026 07:50:50 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787730644; cv=none; b=E2ICSGAJODfBao5fZ4yEegBtXg0VV8SIot+9CJ1SzVXvcLyyJqn8zp2Yhba5uhxm6YdbDoUEE8jkU363fAPObaOzLCsH9drIKxi09K1lye4zCWnEkO2g7i+K/u5ZhOl2YPrpIO23abSgXxY9xeP2YMMjlEVQq/RjROH8eMje63c=
+	t=1787730652; cv=none; b=bUYTSCVVGpckHC8PJd8qFIcXNRTrU2+8s3In31g7rY5sOYOFGF+geZZ2RAHdhEsKaA55pWspHUFLrgD0NjqzdMHmRZf+6omlQP7FGqYCw3ceJ4j5lQ/Ctr0WsYYm+UuGfti37Y6qbD9pGMokbH7wL/5zi7Gdpc3uN1afNQPeuSc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787730644; c=relaxed/simple;
-	bh=cpb+YEljXsITP+tp286CsQZMHIFGdGE6IwaNzR7PgC0=;
+	s=arc-20240116; t=1787730652; c=relaxed/simple;
+	bh=i6NCOICGVtvGcy4FZW/c7bFeSOTDTlv0mLViiYjIDS0=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=R5VblJJ9F+x3tdc+KPS2caQS0jCLHmKIX3zfmaM7j9HptetWX4ytMoOHs6y/7IEeyP61XvDe6gvTTQf00pQ9QP+pVknLwhcSVd5eZjERmY57JW2sREZ1vXXn28c7TJW2hFg3Imc10eK9Rz6TDhbqrOjDdBZ/vI+hqxpOVbPCrhE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=eH51a6gp; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=Ol1Nxors; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=0vMJ3rNT; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=qWhu+6fw; arc=none smtp.client-ip=195.135.223.130
+	 Content-Type:Content-Disposition:In-Reply-To; b=SagxJwj8XwFJzHRTElxQXEoZthYqrUONKOgFhQLu9cMpal+oHvxp3QjZwagovxQirXeipsugIJg99lA1BsIe1hz8C44/PoYy5qJvCVtIcLawHOWr4Idx3d2m8COxq+KUVV7qlrMH+67MmtkO5RBLCHnp0Fc29yJQBzuiOeyMSIU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=UkEEhaQP; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=vFlO55ye; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=U5WDpH7x; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=ZTQneH5A; arc=none smtp.client-ip=195.135.223.130
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="eH51a6gp";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="Ol1Nxors";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="0vMJ3rNT";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="qWhu+6fw"
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="UkEEhaQP";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="vFlO55ye";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="U5WDpH7x";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="ZTQneH5A"
 Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 47534872AC;
-	Wed, 26 Aug 2026 07:50:01 +0000 (UTC)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id AAE2E8735E;
+	Wed, 26 Aug 2026 07:50:03 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1787730605; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	t=1787730607; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=rmnBKofXjBfdp35ulnKbUsM/cyufvjmu4/km6WCcN9k=;
-	b=eH51a6gpA2vfi1us1QGFpoP28cIad9JUhrkxAceOdfVisXRQeUJoZsn8W39vuMivHAX9/9
-	ZWUz6YWElje4INGQkYJpMDASM9T6WAS0zb11dwCaJk0KtnLDGEkWp9uzQVRaDkWJGMpjBV
-	pt36S0DAiDIAesq0nUhPRzpWnWWgZGQ=
+	bh=nEC/Gv24hamlh95icgdBAMFkCRVIb1AISUf3N5E2+r0=;
+	b=UkEEhaQPliTBARmeI9uN89WCWdjY5oVOYKxRW0Qv2b3abLe3TmyFN4dGl3o1HowCehzziO
+	sDtXcyDCVIz9ubjxXOFtIuWEJ3GhuwtZ09+rFW0TqhUCDqI3j0DO2xEZxJwoMQmxKy2IhS
+	zzy1n8xb9SReDXg5bSYd8SE3x2AkyjQ=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1787730605;
+	s=susede2_ed25519; t=1787730607;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=rmnBKofXjBfdp35ulnKbUsM/cyufvjmu4/km6WCcN9k=;
-	b=Ol1NxorsO8zpsNYZLscKIUFW+14p6mdKwYzGSlWMX8qIskvvZ/3MUP21uf8uA+QUsd82JE
-	6JJbQ40Tc0+xqJBA==
+	bh=nEC/Gv24hamlh95icgdBAMFkCRVIb1AISUf3N5E2+r0=;
+	b=vFlO55yeyDylgfChQDkPY453zbKb0mCgoS7+TZlbF09s46yb36ew2opq6yyAr/vgzC5+s6
+	qhztHdOZhWKYDlDw==
 Authentication-Results: smtp-out1.suse.de;
-	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=0vMJ3rNT;
-	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=qWhu+6fw
+	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=U5WDpH7x;
+	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=ZTQneH5A
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1787730601; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	t=1787730603; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=rmnBKofXjBfdp35ulnKbUsM/cyufvjmu4/km6WCcN9k=;
-	b=0vMJ3rNTRJKo+71UqvhN4Uw+5REHe2T8A6wALcAXe19+j3kCBLZhZDRgMuXweMWsqBX82Z
-	TW8CH8d7pPShdxgMaHzcmizV9oW/ZK/kTMW0K710IYnI0N1Fx5LYvGnRvYmIEm/9hdG/jA
-	Ua8eTbKzhAbXQvF5Dy2m00Se/9DXcb8=
+	bh=nEC/Gv24hamlh95icgdBAMFkCRVIb1AISUf3N5E2+r0=;
+	b=U5WDpH7xFaZEFTVd8mEp4bAay+BC44JLfRaReBXnIOpLmKorWKRlXYiXl5koxtQvqin9cW
+	FmI9hBiA1fwaSrNZoltseK09SUQJ3UCCknIbAvoYmD4YYHi6BW3aHmmtKR1PSTygXfg+cv
+	3/oFJomhBG88VevUj35zLD/L2o56Qk4=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1787730601;
+	s=susede2_ed25519; t=1787730603;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=rmnBKofXjBfdp35ulnKbUsM/cyufvjmu4/km6WCcN9k=;
-	b=qWhu+6fwx+zEoY0kx52leBuYx4ocMF9Tl5xEWbwjsQVYDGSdmqc9WaehllmD4GnaXGjnnj
-	YjC9psVLaPE2RvAA==
+	bh=nEC/Gv24hamlh95icgdBAMFkCRVIb1AISUf3N5E2+r0=;
+	b=ZTQneH5ASMW7pHapbPz8HG8QQk1ZlXFSZlvi5RPLV7emkgpO7aNztvi3WHlDQ//fWrZmDa
+	xN+zQMGkMr4xmsDQ==
 Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 8BA9A13687;
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id A645F1368F;
 	Wed, 26 Aug 2026 07:49:55 +0000 (UTC)
 Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
 	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id iP0WIqOajmoGDAAAD6G6ig
+	id fB+XKKOajmoQDAAAD6G6ig
 	(envelope-from <jack@suse.cz>); Wed, 26 Aug 2026 07:49:55 +0000
 Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 4BCA2A13AE; Tue, 25 Aug 2026 18:19:10 +0200 (CEST)
-Date: Tue, 25 Aug 2026 18:19:10 +0200
+	id EC0FBA13A6; Tue, 25 Aug 2026 18:10:45 +0200 (CEST)
+Date: Tue, 25 Aug 2026 18:10:45 +0200
 From: Jan Kara <jack@suse.cz>
 To: Chao Shi <coshi036@gmail.com>
 Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
@@ -87,11 +87,11 @@ Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>, Andreas Gruenbacher <agruenba@redhat.com>, 
 	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
 	linux-kernel@vger.kernel.org, Weidong Zhu <weizhu@fiu.edu>
-Subject: Re: [PATCH v2 12/21] fat: check for a metadata write error with
- buffer_write_io_error()
-Message-ID: <2ts7q6mper74vkfxvrjhv2ewyldfj7opmrisobadjqvjfk6tq5@gl7vdum3fdys>
+Subject: Re: [PATCH v2 04/21] buffer: read the folio's mapping directly in
+ buffer_set_crypto_ctx()
+Message-ID: <5oqsn2wtvdtobeehgenfqvubxqm73yucenwvl2sqgg3r43xwrc@q3v7xqacrz3h>
 References: <cover.1785951556.git.coshi036@gmail.com>
- <4b6019b5a48b83c8235918b084248983a57692e1.1785951556.git.coshi036@gmail.com>
+ <3fe72ec37bf8491a69031db5f3ba1319da935b97.1785951556.git.coshi036@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -100,11 +100,11 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <4b6019b5a48b83c8235918b084248983a57692e1.1785951556.git.coshi036@gmail.com>
+In-Reply-To: <3fe72ec37bf8491a69031db5f3ba1319da935b97.1785951556.git.coshi036@gmail.com>
 X-Spam-Score: -2.51
 X-Spam-Level: 
 X-Rspamd-Action: no action
-X-Rspamd-Queue-Id: 47534872AC
+X-Rspamd-Queue-Id: AAE2E8735E
 X-Spamd-Result: default: False [-2.51 / 50.00];
 	BAYES_HAM(-3.00)[100.00%];
 	SUSPICIOUS_RECIPS(1.50)[];
@@ -116,7 +116,7 @@ X-Spamd-Result: default: False [-2.51 / 50.00];
 	MX_GOOD(-0.01)[];
 	RCVD_COUNT_THREE(0.00)[3];
 	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	URIBL_BLOCKED(0.00)[fiu.edu:email,suse.cz:email,suse.cz:dkim,imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,suse.com:email];
+	URIBL_BLOCKED(0.00)[infradead.org:email,suse.cz:email,suse.cz:dkim,suse.com:email,fiu.edu:email,imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns];
 	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
 	RCPT_COUNT_TWELVE(0.00)[27];
 	FREEMAIL_TO(0.00)[gmail.com];
@@ -125,7 +125,7 @@ X-Spamd-Result: default: False [-2.51 / 50.00];
 	RCVD_TLS_LAST(0.00)[];
 	FREEMAIL_ENVRCPT(0.00)[gmail.com];
 	TO_DN_SOME(0.00)[];
-	DNSWL_BLOCKED(0.00)[2a07:de40:b281:104:10:150:64:97:from,2a07:de40:b281:106:10:150:64:167:received];
+	DNSWL_BLOCKED(0.00)[2a07:de40:b281:106:10:150:64:167:received,2a07:de40:b281:104:10:150:64:97:from];
 	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
 	FROM_EQ_ENVFROM(0.00)[];
 	FROM_HAS_DN(0.00)[];
@@ -136,25 +136,24 @@ X-Spamd-Result: default: False [-2.51 / 50.00];
 	RCVD_VIA_SMTP_AUTH(0.00)[];
 	DKIM_TRACE(0.00)[suse.cz:+];
 	R_RATELIMIT(0.00)[to_ip_from(RLr6u35b1fsnb818ss3au1oekd)];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.cz:email,suse.cz:dkim,suse.com:email,imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns]
+	DBL_BLOCKED_OPENRESOLVER(0.00)[infradead.org:email,suse.com:email,imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,suse.cz:email,suse.cz:dkim]
 X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
 X-Spam-Flag: NO
 
-On Thu 06-08-26 12:58:35, Chao Shi wrote:
-> fat_sync_bhs() waits for the writes it issued and then tests
-> !buffer_uptodate() to find the ones that failed.  That relies on the write
-> completion handler clearing BH_Uptodate on error, which this series
-> removes: a buffer whose write failed still holds the data the filesystem
-> asked to be written, so declaring it not up to date is wrong and makes
-> callers re-read it.
+On Thu 06-08-26 12:58:27, Chao Shi wrote:
+> folio_mapping() was doing two jobs here.  One was to turn a slab folio into
+> NULL, which is what made this safe for jbd2's shadow buffers; the previous
+> patch removed the need for that by giving those buffers no folio at all.
 > 
-> Test BH_Write_EIO, which is what the completion handler sets and what this
-> code actually wants to know.
+> The other is a hazard.  folio_mapping() maps a folio in the swap cache to
+> its swap_address_space, so if a buffer_head were ever attached to such a
+> folio this would hand fscrypt a swap mapping and dereference ->host on it.
+> There is no reason to want that here: this path wants the file's mapping or
+> nothing.
 > 
-> No behaviour change today - a failed write sets BH_Write_EIO and clears
-> BH_Uptodate together.  It stops being a no-op at the end of the series,
-> where the new test is the one that still works.
+> Read ->mapping directly.  Buffers with no folio are already handled above.
 > 
+> Suggested-by: Matthew Wilcox (Oracle) <willy@infradead.org>
 > Acked-by: Weidong Zhu <weizhu@fiu.edu>
 > Signed-off-by: Chao Shi <coshi036@gmail.com>
 
@@ -165,22 +164,22 @@ Reviewed-by: Jan Kara <jack@suse.cz>
 								Honza
 
 > ---
->  fs/fat/misc.c | 2 +-
+>  fs/buffer.c | 2 +-
 >  1 file changed, 1 insertion(+), 1 deletion(-)
 > 
-> diff --git a/fs/fat/misc.c b/fs/fat/misc.c
-> index be18f6b5819b..4a4cd0111e47 100644
-> --- a/fs/fat/misc.c
-> +++ b/fs/fat/misc.c
-> @@ -356,7 +356,7 @@ int fat_sync_bhs(struct buffer_head **bhs, int nr_bhs)
->  
->  	for (i = 0; i < nr_bhs; i++) {
->  		wait_on_buffer(bhs[i]);
-> -		if (!err && !buffer_uptodate(bhs[i]))
-> +		if (!err && buffer_write_io_error(bhs[i]))
->  			err = -EIO;
->  	}
->  	return err;
+> diff --git a/fs/buffer.c b/fs/buffer.c
+> index 04fcc34e4fa6..2851830995d8 100644
+> --- a/fs/buffer.c
+> +++ b/fs/buffer.c
+> @@ -1108,7 +1108,7 @@ static void buffer_set_crypto_ctx(struct bio *bio, const struct buffer_head *bh,
+>  	 */
+>  	if (!bh->b_folio)
+>  		return;
+> -	mapping = folio_mapping(bh->b_folio);
+> +	mapping = bh->b_folio->mapping;
+>  	if (!mapping)
+>  		return;
+>  	fscrypt_set_bio_crypt_ctx(bio, mapping->host,
 > -- 
 > 2.43.0
 > 
