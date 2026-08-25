@@ -1,77 +1,77 @@
 Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1153638F945;
-	Wed, 26 Aug 2026 07:50:07 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1F1F83B6C1C;
+	Wed, 26 Aug 2026 07:50:15 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787730609; cv=none; b=Y7z3S11nYoFGdSHfG2PAsWSIR8yKt4Yzz6A4jg0z6GOymgStmtk1eKfHAy7G4LJvR9dUrmuDoWJDjrPiOkr2hXwQhypQRQoaMavPpEgFf5m/foyHy7KAubZkNzErokoP9jI5OJDTmML/6t63xhI3fcrCTebYwAuHp3MaxePusEM=
+	t=1787730618; cv=none; b=q/QPr9p8kpUNxRP6bC3vYHLzSGMwlSxAnbIsu7sZ+NMeXlTJZgaIa9K2Qcmm9gRNbBIFBYQqirtBahXrSj0TICRRPyehYKYyzGCcQdg/VlKdBGQtRaN7R4iJ42URWR9ubAKkJqWTkl9f2oHd14ioxfmpbVTreYspLey3xaEiyAw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787730609; c=relaxed/simple;
-	bh=/USUiUer2BhYo2LEKC+QSsOIR/yVyqPkcbr9uk6jFKY=;
+	s=arc-20240116; t=1787730618; c=relaxed/simple;
+	bh=lxtPVdc/v3tU3YS8BAI3V4cLqM8ZXhY/iSkpJ1AUDqQ=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=of5BJgvWD7fj2wOpyj1IyXPu/nhebJ7K0pP4fScnKPbRzemQJHEcHz46mMaTEAMOpLHqqyNupHgdykgbVirf2H5IGMuIyVsu5GFV/fQv6m14Cl8n5DAWsXsotlpCnyKtilJYpgpT6uqz8Zt3vQKPpe758+EK75J3GhT8jnztNto=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=1UA75Abw; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=gZLeVzhx; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=XW6gcqHR; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=/Zv2i9tk; arc=none smtp.client-ip=195.135.223.130
+	 Content-Type:Content-Disposition:In-Reply-To; b=PcZcuP1ixRquCb7/Iq3OzcvvvqJGbs08WsuUjmOwcHKjHZaEz3CzH/UhO/Yiv3YSSFWMk9uon6mWrfinvh31ysEHijrrlbuJmb1wkvrE+lvdXigy4aYyGatTNSakyXko6fr4FkdARn+8uxQr57Bp6GzfMKe2ng4YEIaXwJsONTc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=yF70nEFt; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=58TamfY6; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=w9jaXRtb; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=b2TAUIy7; arc=none smtp.client-ip=195.135.223.130
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="1UA75Abw";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="gZLeVzhx";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="XW6gcqHR";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="/Zv2i9tk"
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="yF70nEFt";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="58TamfY6";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="w9jaXRtb";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="b2TAUIy7"
 Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 981E087351;
+	by smtp-out1.suse.de (Postfix) with ESMTPS id 9248987323;
 	Wed, 26 Aug 2026 07:49:57 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
 	t=1787730601; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=S2YAhMtG8uFdapykVU1pxCQGl20ZoAPCN+wmYAeKcPM=;
-	b=1UA75Abw0TpUE89hXpAsxVccjAYd2IAhlicK1AmGNDTJb2gvCukIN3C7WiCQKPKLMJa2hq
-	0hcS4pWHXm6YPp2Jxm9gjypDjWyorZ1myuAXT0IduYAHBrp9ZVnV7fYqrXQ6oPu5Wll+vS
-	eSMcehDQjofjakPQd3ut8vQWkNUlcfE=
+	bh=C+MAfaeU8JGzuDBG/qHdpygeayxaiIGy2VPtUBX0yJU=;
+	b=yF70nEFtEoZLYYuRk8ouSpGIJ/i77ef2YeB5T33nwPL2Bm1bd1DWvsYHEl3OVzMnqCFx0z
+	g7T1oVCHWg6ybRntEoqfp5f3iDv34pzJ9l5slAMIvRU21ucAY2nVGwPtlgJc6IEa8P6Qda
+	VvAb4BnpxRvO03wuS0KednGTsdw+T5I=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
 	s=susede2_ed25519; t=1787730601;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=S2YAhMtG8uFdapykVU1pxCQGl20ZoAPCN+wmYAeKcPM=;
-	b=gZLeVzhxgowMPXQCqWWsfRHeo/dWVgLOHzcWBiZ5x0AYMwywiSfJESK04SqdyBoRRwYIi/
-	BAd7udDjGSXX+cCw==
+	bh=C+MAfaeU8JGzuDBG/qHdpygeayxaiIGy2VPtUBX0yJU=;
+	b=58TamfY6hg65xEyFEdU7iiH+oKwwJtpYFho3v5rbJvmW94Qo39immMjMw81X+BLyK8wSfW
+	6UgLmNF2zEbMJ+AQ==
 Authentication-Results: smtp-out1.suse.de;
 	none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
 	t=1787730597; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=S2YAhMtG8uFdapykVU1pxCQGl20ZoAPCN+wmYAeKcPM=;
-	b=XW6gcqHRCtlLuH1nMPKIacpqY7mibISnObfF66CxihDbAM4tl29LC+fLIO0ICc5eHTdXR2
-	zWrn47pG7ZgqICMrcPMK1Gjbi2C83SKU0fDsbR58QxYIPlIfWF2sJ6GUhtK4bBYHuV5hWv
-	oXXz/3vRYuxSiqbrENCkzc1NvQenlvs=
+	bh=C+MAfaeU8JGzuDBG/qHdpygeayxaiIGy2VPtUBX0yJU=;
+	b=w9jaXRtbi4VzNTLV6VWTlhsZNW1QfJ0726YWkTHF2ib6g3xD2728LPmFVLtDJOuDP9xCcu
+	ToRKCW/9USrMiw19iPWunseRB0FRDTcuOM/Kxuf4bNSr14bzj4q5T+CnRUuZiYSndfhO0i
+	Oa04y30tnQtovifZIEzetsGVTHiYzFE=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
 	s=susede2_ed25519; t=1787730597;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:content-type:content-type:
 	 in-reply-to:in-reply-to:references:references;
-	bh=S2YAhMtG8uFdapykVU1pxCQGl20ZoAPCN+wmYAeKcPM=;
-	b=/Zv2i9tk5nh2gUBKCOgxUlSCkfm8Q/1jm9aZu8rKwSUYKePrXlYEWwi3eDdU3QPCUP37SQ
-	sK59n/+EZRsrlpAQ==
+	bh=C+MAfaeU8JGzuDBG/qHdpygeayxaiIGy2VPtUBX0yJU=;
+	b=b2TAUIy7CemKG93RKJiZEPgeJCTJ2fDDyQLcHfQ5RKZLMvlsDkS7h9Ych3vsPlW2hC+tFx
+	PXAp0iq12+UKI2CA==
 Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 6200D13680;
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 5B8AF13678;
 	Wed, 26 Aug 2026 07:49:55 +0000 (UTC)
 Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
 	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id jaHtF6Oajmr9CwAAD6G6ig
+	id QgpaFqOajmr5CwAAD6G6ig
 	(envelope-from <jack@suse.cz>); Wed, 26 Aug 2026 07:49:55 +0000
 Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 7D034A13BD; Tue, 25 Aug 2026 19:19:04 +0200 (CEST)
-Date: Tue, 25 Aug 2026 19:19:04 +0200
+	id D4DC1A13C0; Tue, 25 Aug 2026 19:21:39 +0200 (CEST)
+Date: Tue, 25 Aug 2026 19:21:39 +0200
 From: Jan Kara <jack@suse.cz>
 To: Chao Shi <coshi036@gmail.com>
 Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
@@ -86,11 +86,11 @@ Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>, Andreas Gruenbacher <agruenba@redhat.com>, 
 	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
 	linux-kernel@vger.kernel.org, Weidong Zhu <weizhu@fiu.edu>
-Subject: Re: [PATCH v2 17/21] jbd2: report journal write errors with
- BH_Write_EIO
-Message-ID: <e2wjbsip4hixztwcxx5kbvwrplwefyche5gsawnw33z4ei2vxa@7ecnu3nb3xjp>
+Subject: Re: [PATCH v2 20/21] buffer: stop touching BH_Uptodate on write
+ completion
+Message-ID: <ubjeemfd76hswyrcdgvegrn5ip4plgo3pr6p7bided4xoe354p@3mp2zzysn7fr>
 References: <cover.1785951556.git.coshi036@gmail.com>
- <c700983eea955429d927791fe5fb9ffe6cf11056.1785951556.git.coshi036@gmail.com>
+ <61d7d5737f5773f53ee543f375fcde81aa8d28c2.1785951556.git.coshi036@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -99,10 +99,7 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <c700983eea955429d927791fe5fb9ffe6cf11056.1785951556.git.coshi036@gmail.com>
-X-Spam-Score: -2.30
-X-Spam-Level: 
-X-Spam-Flag: NO
+In-Reply-To: <61d7d5737f5773f53ee543f375fcde81aa8d28c2.1785951556.git.coshi036@gmail.com>
 X-Spamd-Result: default: False [-2.30 / 50.00];
 	BAYES_HAM(-3.00)[100.00%];
 	SUSPICIOUS_RECIPS(1.50)[];
@@ -110,57 +107,71 @@ X-Spamd-Result: default: False [-2.30 / 50.00];
 	MID_RHS_NOT_FQDN(0.50)[];
 	NEURAL_HAM_SHORT(-0.20)[-1.000];
 	MIME_GOOD(-0.10)[text/plain];
+	TAGGED_RCPT(0.00)[];
 	ARC_NA(0.00)[];
 	RCVD_VIA_SMTP_AUTH(0.00)[];
-	FREEMAIL_ENVRCPT(0.00)[gmail.com];
-	MISSING_XM_UA(0.00)[];
 	MIME_TRACE(0.00)[0:+];
-	URIBL_BLOCKED(0.00)[suse.com:email,fiu.edu:email,suse.cz:email,imap1.dmz-prg2.suse.org:helo];
 	TO_DN_SOME(0.00)[];
+	MISSING_XM_UA(0.00)[];
 	RCPT_COUNT_TWELVE(0.00)[27];
-	TAGGED_RCPT(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
+	FREEMAIL_TO(0.00)[gmail.com];
+	FREEMAIL_ENVRCPT(0.00)[gmail.com];
 	R_RATELIMIT(0.00)[to_ip_from(RLhn4jw3wthgom179184pqozfe)];
 	FROM_HAS_DN(0.00)[];
 	FREEMAIL_CC(0.00)[suse.cz,kernel.org,zeniv.linux.org.uk,infradead.org,vger.kernel.org,mit.edu,dilger.ca,linux.alibaba.com,linux.ibm.com,gmail.com,huawei.com,huaweicloud.com,bobcopeland.com,samsung.com,sony.com,mail.parknet.co.jp,fasheh.com,evilplan.org,redhat.com,lists.linux.dev,fiu.edu];
-	FREEMAIL_TO(0.00)[gmail.com];
+	RCVD_COUNT_THREE(0.00)[3];
 	FROM_EQ_ENVFROM(0.00)[];
 	RCVD_TLS_LAST(0.00)[];
 	TO_MATCH_ENVRCPT_ALL(0.00)[];
 	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,suse.cz:email,suse.com:email]
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,suse.cz:email,imap1.dmz-prg2.suse.org:helo]
+X-Spam-Flag: NO
+X-Spam-Score: -2.30
+X-Spam-Level: 
 
-On Thu 06-08-26 12:58:40, Chao Shi wrote:
-> The journal's own write completion handler,
-> journal_end_buffer_io_sync(), reports a failed write by clearing
-> BH_Uptodate, and the three places that wait for journal writes look for
-> that.  This series is removing that convention: a buffer whose write failed
-> still holds the data that was supposed to reach the disk, and saying it is
-> not up to date makes callers rewrite, re-read or WARN over data that was
-> never wrong.
+On Thu 06-08-26 12:58:43, Chao Shi wrote:
+> A buffer whose write failed still holds exactly the data the filesystem
+> asked to be written.  It is the disk that is out of date, not the buffer.
+> Clearing BH_Uptodate says the opposite, and callers act on it:
 > 
-> Set BH_Write_EIO instead, with mark_buffer_write_io_error(), and test it in
-> journal_wait_on_commit_record() and in the two commit-phase waits.
+>  - mark_buffer_dirty() has a WARN_ON_ONCE(!buffer_uptodate(bh)).  A
+>    filesystem that dirties the buffer again after a failed write - which is
+>    the normal way to retry - trips it.  That is the warning this series
+>    started from.
 > 
-> The handler stops touching BH_Uptodate in either direction.  Setting it on
-> success was never needed: every caller marks the buffer up to date before
-> submitting the write, because a buffer with no valid data is not something
-> you can write out.  The local flag is renamed to match what it now means.
+>  - a buffer that is not up to date gets re-read from disk, which replaces
+>    the data the filesystem was trying to write with the stale on-disk copy,
+>    silently.
 > 
-> The two changes have to go together, because commit phase 4 waits on a
-> mixed list: descriptor blocks are submitted with
-> journal_end_buffer_io_sync(), while revoke blocks go through
-> write_dirty_buffer() and land in bh_end_write().  bh_end_write() already
-> sets BH_Write_EIO, so converting the consumer alone would keep working for
-> revoke blocks and silently stop detecting failed descriptor writes.  With
-> the handler converted, both halves of the list report the same way.
+>  - the window between the write completing and the buffer being marked not
+>    up to date is visible to anyone holding the folio lock, so the state is
+>    not even self consistent while it lasts.
 > 
-> mark_buffer_write_io_error() is safe on all of these buffers.  The shadow
-> buffers from jbd2_journal_write_metadata_buffer() have no folio and no
-> associated mapping, so it does nothing beyond setting the flag.  Descriptor
-> and commit blocks are ordinary buffers on the journal device, and marking
-> the journal's mapping with the error is what write_dirty_buffer() already
-> does for revoke blocks on the same device.
+> BH_Write_EIO already records the failure, and by now every place in the
+> tree that needs to know about it tests that flag instead: the two core
+> helpers in this file, adfs, exfat, ext2, ext4, fat, gfs2, jbd2, ocfs2 and
+> omfs, converted one filesystem at a time in the preceding patches.  The
+> private completion handlers in jbd2 and ext4 fast commit were converted
+> along with their waiters.  Nothing is left that reads BH_Uptodate to find
+> out whether a write failed.
+> 
+> Setting BH_Uptodate on success goes too.  A buffer has to be up to date
+> before it can be written - you cannot write out data you do not have - so
+> the only thing that assignment could do is paper over a caller that got
+> that wrong.  Write completion now leaves BH_Uptodate alone in both
+> directions.
+> 
+> What this changes for readers.  A buffer whose write failed stays up to
+> date, so the read paths stop replacing it with the on-disk copy:
+> __bread_gfp() no longer sends it to __bread_slow(), and
+> bh_uptodate_or_lock() reports it as usable.  That is the intent.  ocfs2
+> changes the most, because ocfs2_read_blocks() decides whether to go to disk
+> on its own cluster uptodate cache and only tests BH_Uptodate after the
+> wait, so a block whose write failed makes that read return -EIO today and
+> from here it succeeds and hands back the in-memory data.  A caller that
+> needs to know the write failed asks BH_Write_EIO.
+> 
+> Found by FuzzNvme.
 > 
 > Acked-by: Weidong Zhu <weizhu@fiu.edu>
 > Signed-off-by: Chao Shi <coshi036@gmail.com>
@@ -172,58 +183,41 @@ Reviewed-by: Jan Kara <jack@suse.cz>
 								Honza
 
 > ---
->  fs/jbd2/commit.c | 14 ++++++--------
->  1 file changed, 6 insertions(+), 8 deletions(-)
+>  fs/buffer.c | 10 ++--------
+>  1 file changed, 2 insertions(+), 8 deletions(-)
 > 
-> diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
-> index 0c85af91f9b2..cd7ef783bd36 100644
-> --- a/fs/jbd2/commit.c
-> +++ b/fs/jbd2/commit.c
-> @@ -32,14 +32,12 @@
->  static void journal_end_buffer_io_sync(struct bio *bio)
->  {
+> diff --git a/fs/buffer.c b/fs/buffer.c
+> index aebf74abbc49..425fbfe72ad1 100644
+> --- a/fs/buffer.c
+> +++ b/fs/buffer.c
+> @@ -202,12 +202,9 @@ void bh_end_write(struct bio *bio)
 >  	struct buffer_head *bh;
-> -	bool uptodate = bio_endio_bh(bio, &bh);
-> +	bool success = bio_endio_bh(bio, &bh);
->  	struct buffer_head *orig_bh = bh->b_private;
+>  	bool success = bio_endio_bh(bio, &bh);
 >  
->  	BUFFER_TRACE(bh, "");
-> -	if (uptodate)
+> -	if (success) {
 > -		set_buffer_uptodate(bh);
-> -	else
+> -	} else {
+> +	if (!success) {
+>  		buffer_io_error(bh, ", lost sync page write");
+>  		mark_buffer_write_io_error(bh);
 > -		clear_buffer_uptodate(bh);
-> +	if (!success)
-> +		mark_buffer_write_io_error(bh);
->  	if (orig_bh) {
->  		clear_and_wake_up_bit(BH_Shadow, &orig_bh->b_state);
 >  	}
-> @@ -169,7 +167,7 @@ static int journal_wait_on_commit_record(journal_t *journal,
->  	clear_buffer_dirty(bh);
->  	wait_on_buffer(bh);
+>  	unlock_buffer(bh);
+>  }
+> @@ -436,12 +433,9 @@ void bh_end_async_write(struct bio *bio)
+>  	BUG_ON(!buffer_async_write(bh));
 >  
-> -	if (unlikely(!buffer_uptodate(bh)))
-> +	if (unlikely(buffer_write_io_error(bh)))
->  		ret = -EIO;
->  	put_bh(bh);            /* One for getblk() */
+>  	folio = bh->b_folio;
+> -	if (success) {
+> -		set_buffer_uptodate(bh);
+> -	} else {
+> +	if (!success) {
+>  		buffer_io_error(bh, ", lost async page write");
+>  		mark_buffer_write_io_error(bh);
+> -		clear_buffer_uptodate(bh);
+>  	}
 >  
-> @@ -834,7 +832,7 @@ void jbd2_journal_commit_transaction(journal_t *journal)
->  		wait_on_buffer(bh);
->  		cond_resched();
->  
-> -		if (unlikely(!buffer_uptodate(bh)))
-> +		if (unlikely(buffer_write_io_error(bh)))
->  			err = -EIO;
->  		jbd2_unfile_log_bh(bh);
->  		stats.run.rs_blocks_logged++;
-> @@ -877,7 +875,7 @@ void jbd2_journal_commit_transaction(journal_t *journal)
->  		wait_on_buffer(bh);
->  		cond_resched();
->  
-> -		if (unlikely(!buffer_uptodate(bh)))
-> +		if (unlikely(buffer_write_io_error(bh)))
->  			err = -EIO;
->  
->  		BUFFER_TRACE(bh, "ph5: control buffer writeout done: unfile");
+>  	first = folio_buffers(folio);
 > -- 
 > 2.43.0
 > 
