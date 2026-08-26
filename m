@@ -1,227 +1,290 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E42B3B71A1;
-	Wed, 26 Aug 2026 08:00:04 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D51ED3B71BB
+	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Aug 2026 08:01:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787731205; cv=none; b=bmDbjJPGnS6JiFr9xZGuSdYGrssgnqJ4WYkNQTl7ZicG2zUiJdVsqRG0Yu1ILtIliAmJIhxrPK4jW3OBmXBP3kmoKw4g5/U2oICvkxo97iMwT1LVuVGIGBwdpOUbIrRq+eoQMApmxVOG/4eD1zUDT7Tm3rErWiXenVg5a9+8Vuc=
+	t=1787731269; cv=none; b=SD1ZMh4Dk+bAnX5sY+8JkCqRfJ9a8l7/FR1Nb9m5JkrRDB0q/cTwMjjkRanhHc1RL2naU4sPGA3mq3b+d+YyrfABiZKmNf8jW35RYBMzCWpepY33NLHW/p893l5Pd4ISoxuSPqNyXqNihaRX68yj7lBrgduFV8OwTgFeUEhi9Co=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787731205; c=relaxed/simple;
-	bh=Qp0Vj92odwdENK+fWpXmAERunFp8s2H7T1UtWppUOS0=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=cihY6hiW7YJjc+ueqlcNZhCN7/cjnuyjLLZayCu7i3B+13iAitD8ZhpuIFkE/OUAdhzema0RDqs900YJGoZQjicJ2UsKasJVvrEro9e3yR8hcYC1XclFXVtsW11CrS5ka8dOu+RpMEpBoN59Xk0ZJWP0qGXOINa9x7rXEJwzfqQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=hvERCVCM; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=jXsFWpW2; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=zrcBzr6J; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=PJ57PYGm; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1787731269; c=relaxed/simple;
+	bh=4/ws5hSA9Aq+3QsNSzH5yORw2TbWjn5fO7WOw8CFeLA=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=DE+U8uaZ69BsX9k2oTmVpfRi7JgJnmZxY7v9LV7OKim3MF4IgG3xMqHIugTq2APns0eDrMcLlBiRYT+2u9s5dSvTDZ5DhjJ7jbNNuxcvSj/k0wZM44tXRjgZxwG3j72qdSUSY7PEWLAQzfM+k7WBtn08QSWlFadU7bGCU0F+RRg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=bi5GQ3AR; arc=none smtp.client-ip=115.124.30.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="hvERCVCM";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="jXsFWpW2";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="zrcBzr6J";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="PJ57PYGm"
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id 7C8D21F807;
-	Wed, 26 Aug 2026 07:50:03 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1787730607; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=ycaVSgnTbMJUGCPWb+mFMNRamCuOCZYnVBbyN312OMc=;
-	b=hvERCVCMf6jcmO1skCEVkkMLjwY5u2sO3OknhmuQu+ZqSFA/EALLVdik7P0BDOJfuBruNO
-	Xf8n69fTjf26Kr12iV9m0R+fS84K8v2JtHiF6D+mi5qtYoUm4CrQS5y6OgWTo0svIkTeij
-	upIw3XL+ExOde8KbG5TaAJcKxXLNVyk=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1787730607;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=ycaVSgnTbMJUGCPWb+mFMNRamCuOCZYnVBbyN312OMc=;
-	b=jXsFWpW294GA/l7MpT5ypqxhibNoT5ndV5CpoJ5KiKcsdey6BdSWLhMkNxJu3WYuSbhUOh
-	GOUNGN5rq4lxDRAw==
-Authentication-Results: smtp-out2.suse.de;
-	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=zrcBzr6J;
-	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=PJ57PYGm
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1787730603; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=ycaVSgnTbMJUGCPWb+mFMNRamCuOCZYnVBbyN312OMc=;
-	b=zrcBzr6JLdsiYgF+TtwkqfJf62osZT8F/N1udFOmzismVLFNTFtOg10mvkyYRowp4k4vIx
-	4i4JujAEF9OP0x9q2OH1HsOTq3tBTl/55UrzW0IYs4h1+qpv9B/aQ1dJyVcuaJXGmUjsZr
-	cRe3oYR1vFSCMOBGhIx9Q2RxpN0qJKk=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1787730603;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=ycaVSgnTbMJUGCPWb+mFMNRamCuOCZYnVBbyN312OMc=;
-	b=PJ57PYGmfWAwkRjy+fZEPfu/WyooOr8iupB671ni18sW9hYfH7ghFxMFrBhcKGTJ15j9Bw
-	XuEPqd/ukzepcfDQ==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 970451368A;
-	Wed, 26 Aug 2026 07:49:55 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id 1A7dJKOajmoKDAAAD6G6ig
-	(envelope-from <jack@suse.cz>); Wed, 26 Aug 2026 07:49:55 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 4B241A13B6; Tue, 25 Aug 2026 19:06:50 +0200 (CEST)
-Date: Tue, 25 Aug 2026 19:06:50 +0200
-From: Jan Kara <jack@suse.cz>
-To: Chao Shi <coshi036@gmail.com>
-Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Matthew Wilcox <willy@infradead.org>, 
-	linux-fsdevel@vger.kernel.org, Theodore Ts'o <tytso@mit.edu>, 
-	Andreas Dilger <adilger.kernel@dilger.ca>, Baokun Li <libaokun@linux.alibaba.com>, 
-	Ojaswin Mujoo <ojaswin@linux.ibm.com>, Ritesh Harjani <ritesh.list@gmail.com>, 
-	Zhang Yi <yi.zhang@huawei.com>, Zhang Yi <yi.zhang@huaweicloud.com>, 
-	Bob Copeland <me@bobcopeland.com>, Namjae Jeon <linkinjeon@kernel.org>, 
-	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Andreas Gruenbacher <agruenba@redhat.com>, 
-	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, Weidong Zhu <weizhu@fiu.edu>
-Subject: Re: [PATCH v2 16/21] gfs2: check for a metadata write error with
- buffer_write_io_error()
-Message-ID: <va2zqnkuvzoj3y4bqft2nj6ul2diw36huhhgna4hgxqqdwksvl@diz4rmm3nbz2>
-References: <cover.1785951556.git.coshi036@gmail.com>
- <a09b6d08d31d24f69b833e4d855ed88875e87780.1785951556.git.coshi036@gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="bi5GQ3AR"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1787731255; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=3Cnd6XqtaLU9l7UProwWIT/wHD0mS81qIJUyjOYdKeU=;
+	b=bi5GQ3AR7fQjuG8tGlX85zfE7RInQGSsO0g+2OT361+iIKUUUuJqESZ1vI2E/XcifwI+xbaisbvK5dNINqx33coFQlyZ4ITjBoziAa+c4V634ybs45TYDEOXQjeG/NZHBrJlqLo/ZUPiP2DkGsD9YlkPTHu8tiz5CBW5B6MYptI=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R191e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0X9gODlf_1787731254;
+Received: from 30.166.0.157(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X9gODlf_1787731254 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Wed, 26 Aug 2026 16:00:54 +0800
+Message-ID: <19d91b4a-7c43-4f03-b01d-91c6fe701ed6@linux.alibaba.com>
+Date: Wed, 26 Aug 2026 16:00:54 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <a09b6d08d31d24f69b833e4d855ed88875e87780.1785951556.git.coshi036@gmail.com>
-X-Spam-Score: -2.51
-X-Spam-Level: 
-X-Rspamd-Action: no action
-X-Rspamd-Queue-Id: 7C8D21F807
-X-Spamd-Result: default: False [-2.51 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	URIBL_BLOCKED(0.00)[imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,fiu.edu:email,suse.cz:email,suse.cz:dkim,suse.com:email];
-	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	RCPT_COUNT_TWELVE(0.00)[27];
-	FREEMAIL_TO(0.00)[gmail.com];
-	MIME_TRACE(0.00)[0:+];
-	ARC_NA(0.00)[];
-	RCVD_TLS_LAST(0.00)[];
-	FREEMAIL_ENVRCPT(0.00)[gmail.com];
-	TO_DN_SOME(0.00)[];
-	DNSWL_BLOCKED(0.00)[2a07:de40:b281:106:10:150:64:167:received,2a07:de40:b281:104:10:150:64:97:from];
-	RECEIVED_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b281:106:10:150:64:167:received];
-	FROM_EQ_ENVFROM(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	TAGGED_RCPT(0.00)[];
-	MISSING_XM_UA(0.00)[];
-	FREEMAIL_CC(0.00)[suse.cz,kernel.org,zeniv.linux.org.uk,infradead.org,vger.kernel.org,mit.edu,dilger.ca,linux.alibaba.com,linux.ibm.com,gmail.com,huawei.com,huaweicloud.com,bobcopeland.com,samsung.com,sony.com,mail.parknet.co.jp,fasheh.com,evilplan.org,redhat.com,lists.linux.dev,fiu.edu];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	DKIM_TRACE(0.00)[suse.cz:+];
-	R_RATELIMIT(0.00)[to_ip_from(RLr6u35b1fsnb818ss3au1oekd)];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,imap1.dmz-prg2.suse.org:rdns,suse.com:email,suse.cz:email,suse.cz:dkim]
-X-Rspamd-Server: rspamd1.dmz-prg2.suse.org
-X-Spam-Flag: NO
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: fix deadlock in inline-data truncate
+ transactions
+To: ZhengYuan Huang <gality369@gmail.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ baijiaju1990@gmail.com, r33s3n6@gmail.com, zzzccc427@gmail.com,
+ mark@fasheh.com, jlbec@evilplan.org
+References: <20260806035947.2451857-1-gality369@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260806035947.2451857-1-gality369@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Thu 06-08-26 12:58:39, Chao Shi wrote:
-> gfs2_ail1_start_one() and gfs2_ail1_empty_one() decide whether a buffer on
-> the ail reached the disk by looking at BH_Uptodate once it is no longer
-> busy.  That relies on the write completion handler clearing BH_Uptodate on
-> error, which this series removes: a buffer whose write failed still holds
-> the data the filesystem asked to be written, so declaring it not up to date
-> is wrong and makes callers re-read it.  Test BH_Write_EIO instead.  In
-> gfs2_ail1_start_one() the test is the positive one, so the sense has to be
-> inverted rather than the flag simply swapped.
+
+
+On 8/6/26 11:59 AM, ZhengYuan Huang wrote:
+> [BUG]
+> Updating an inode xattr can cause an ABBA deadlock with 
+> inline file truncation.
 > 
-> This is not a pure conversion for gfs2, because gfs2 already has a private
-> write completion handler that behaves the way this series is heading:
-> gfs2_end_log_write_bh() calls mark_buffer_write_io_error() and leaves
-> BH_Uptodate alone.  Buffers completed through it are therefore invisible to
-> both tests today, and start being caught once they look at BH_Write_EIO.
-> That is a real behaviour change, and it is the one gfs2 wanted: a failed
-> log write now withdraws the filesystem instead of passing silently.
+>   ocfs2_truncate_file()
+>     down_write(&oi->ip_alloc_sem)
+>     ocfs2_truncate_inline()
+>       ocfs2_start_trans()
 > 
-> gfs2_pin() is a different case and gets a different treatment.  Its
-> !buffer_uptodate() test is not only a proxy for a failed write - a buffer
-> with no valid contents at all is equally a reason to withdraw before
-> pinning it into a transaction - so the write error test is added to it
-> rather than replacing it.
+>   ocfs2_xattr_set()
+>     ocfs2_start_trans()
+>     ocfs2_xattr_ibody_set()
+>       down_write(&oi->ip_alloc_sem)
 > 
-> Left alone deliberately: the BUG_ON(!buffer_uptodate(bh)) in gfs2_unpin()
-> and the two WARN_ON()s in fs/gfs2/rgrp.c.  After this series they simply
-> stop firing for write errors, which is correct; turning them into
-> BUG_ON(buffer_write_io_error(bh)) would newly panic on an I/O error.
+> [CAUSE]
+> The xattr set path starts its merged transaction before the helpers which
+> modify inode-body xattrs acquire ip_alloc_sem. This creates the reverse of
+> the ip_alloc_sem -> transaction order used by the allocation and truncate
+> paths. The transaction merge in 
+> commit 85db90e77806 ("ocfs2/xattr: Merge xattr set transaction.")
+> introduced this ordering for ordinary xattr updates.
 > 
-> Acked-by: Weidong Zhu <weizhu@fiu.edu>
-> Signed-off-by: Chao Shi <coshi036@gmail.com>
+> The create-time transaction -> ip_xattr_sem dependency is a separate case.
+> The fix in 
+> commit c13024342c82 ("ocfs2: fix circular locking dependency in ocfs2_init_acl()")
+> prepares the parent ACL before the create transaction and avoids the xattr
+> semaphore for initial xattrs on an unpublished inode. That change does not
+> cover ordinary ocfs2_xattr_set().
+> 
+> [FIX]
+> Acquire ip_alloc_sem in ocfs2_xattr_set() before xattr preparation,
+> allocation reservations, and transaction start.  Tell the inode-body and
+> indexed-block helpers when the semaphore is already held, while preserving
+> their local locking for callers that do not provide outer protection.
+> 
+> Keep the existing ip_alloc_sem -> transaction order in allocation and
+> truncate paths; fixing the xattr side avoids changing that established
+> ordering.
+> 
 
-It would be good to get ack from GFS2 developers here but the changes look
-good to me so feel free to add:
+I'd rather fix it in an alternative way by pushing the semaphore fully
+up into ocfs2_xattr_set() and strip it from the helpers entirely, which
+seems more cleaner.
 
-Reviewed-by: Jan Kara <jack@suse.cz>
+I have a local prototype and will send out when pass regression tests.
 
-								Honza
+Thanks,
+Joseph
 
+> Fixes: 85db90e77806 ("ocfs2/xattr: Merge xattr set transaction.")
+> Signed-off-by: ZhengYuan Huang <gality369@gmail.com>
 > ---
->  fs/gfs2/log.c  | 4 ++--
->  fs/gfs2/lops.c | 2 +-
->  2 files changed, 3 insertions(+), 3 deletions(-)
+> v2:
+> - Fix the xattr side of the lock ordering based on Joseph's feedback.
+> - Explain why the remaining fix belongs on the ordinary xattr side.
+> ---
+>  fs/ocfs2/xattr.c | 49 ++++++++++++++++++++++++++++++++----------------
+>  1 file changed, 33 insertions(+), 16 deletions(-)
 > 
-> diff --git a/fs/gfs2/log.c b/fs/gfs2/log.c
-> index 78bba8cc10b8..e3e0dcb1f567 100644
-> --- a/fs/gfs2/log.c
-> +++ b/fs/gfs2/log.c
-> @@ -107,7 +107,7 @@ __acquires(&sdp->sd_ail_lock)
->  		gfs2_assert(sdp, bd->bd_tr == tr);
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 35bcbb0ff607..27bea1f360a1 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -74,6 +74,7 @@ struct ocfs2_xattr_set_ctxt {
+>  	struct ocfs2_alloc_context *data_ac;
+>  	struct ocfs2_cached_dealloc_ctxt dealloc;
+>  	int set_abort;
+> +	int alloc_sem_protected;
+>  };
 >  
->  		if (!buffer_busy(bh)) {
-> -			if (buffer_uptodate(bh)) {
-> +			if (!buffer_write_io_error(bh)) {
->  				list_move(&bd->bd_ail_st_list,
->  					  &tr->tr_ail2_list);
->  				continue;
-> @@ -321,7 +321,7 @@ static int gfs2_ail1_empty_one(struct gfs2_sbd *sdp, struct gfs2_trans *tr,
->  			active_count++;
->  			continue;
+>  #define OCFS2_XATTR_ROOT_SIZE	(sizeof(struct ocfs2_xattr_def_value_root))
+> @@ -2916,7 +2917,8 @@ static int ocfs2_xattr_has_space_inline(struct inode *inode,
+>  static int ocfs2_xattr_ibody_find(struct inode *inode,
+>  				  int name_index,
+>  				  const char *name,
+> -				  struct ocfs2_xattr_search *xs)
+> +				  struct ocfs2_xattr_search *xs,
+> +				  int lock_alloc_sem)
+>  {
+>  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>  	struct ocfs2_dinode *di = (struct ocfs2_dinode *)xs->inode_bh->b_data;
+> @@ -2927,9 +2929,11 @@ static int ocfs2_xattr_ibody_find(struct inode *inode,
+>  		return 0;
+>  
+>  	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
+> -		down_read(&oi->ip_alloc_sem);
+> +		if (lock_alloc_sem)
+> +			down_read(&oi->ip_alloc_sem);
+>  		has_space = ocfs2_xattr_has_space_inline(inode, di);
+> -		up_read(&oi->ip_alloc_sem);
+> +		if (lock_alloc_sem)
+> +			up_read(&oi->ip_alloc_sem);
+>  		if (!has_space)
+>  			return 0;
+>  	}
+> @@ -3016,14 +3020,17 @@ static int ocfs2_xattr_ibody_set(struct inode *inode,
+>  				 struct ocfs2_xattr_search *xs,
+>  				 struct ocfs2_xattr_set_ctxt *ctxt)
+>  {
+> -	int ret;
+> +	int ret, took_alloc_sem = 0;
+>  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>  	struct ocfs2_xa_loc loc;
+>  
+>  	if (inode->i_sb->s_blocksize == OCFS2_MIN_BLOCKSIZE)
+>  		return -ENOSPC;
+>  
+> -	down_write(&oi->ip_alloc_sem);
+> +	if (!ctxt->alloc_sem_protected) {
+> +		down_write(&oi->ip_alloc_sem);
+> +		took_alloc_sem = 1;
+> +	}
+>  	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
+>  		ret = ocfs2_xattr_ibody_init(inode, xs->inode_bh, ctxt);
+>  		if (ret) {
+> @@ -3044,7 +3051,8 @@ static int ocfs2_xattr_ibody_set(struct inode *inode,
+>  	xs->here = loc.xl_entry;
+>  
+>  out:
+> -	up_write(&oi->ip_alloc_sem);
+> +	if (took_alloc_sem)
+> +		up_write(&oi->ip_alloc_sem);
+>  
+>  	return ret;
+>  }
+> @@ -3729,6 +3737,7 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+>  		.handle = handle,
+>  		.meta_ac = meta_ac,
+>  		.data_ac = data_ac,
+> +		.alloc_sem_protected = 1,
+>  	};
+>  
+>  	if (!ocfs2_supports_xattr(OCFS2_SB(inode->i_sb)))
+> @@ -3750,7 +3759,7 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+>  	xis.inode_bh = xbs.inode_bh = di_bh;
+>  	di = (struct ocfs2_dinode *)di_bh->b_data;
+>  
+> -	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
+> +	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis, 0);
+>  	if (ret)
+>  		goto cleanup;
+>  	if (xis.not_found) {
+> @@ -3834,7 +3843,7 @@ int ocfs2_xattr_set(struct inode *inode,
+>  	 * Scan inode and external block to find the same name
+>  	 * extended attribute and collect search information.
+>  	 */
+> -	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
+> +	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis, 1);
+>  	if (ret)
+>  		goto cleanup;
+>  	if (xis.not_found) {
+> @@ -3856,6 +3865,8 @@ int ocfs2_xattr_set(struct inode *inode,
+>  			goto cleanup;
+>  	}
+>  
+> +	down_write(&OCFS2_I(inode)->ip_alloc_sem);
+> +
+>  	/* Check whether the value is refcounted and do some preparation. */
+>  	if (ocfs2_is_refcount_inode(inode) &&
+>  	    (!xis.not_found || !xbs.not_found)) {
+> @@ -3864,7 +3875,7 @@ int ocfs2_xattr_set(struct inode *inode,
+>  						   &ref_meta, &ref_credits);
+>  		if (ret) {
+>  			mlog_errno(ret);
+> -			goto cleanup;
+> +			goto out_unlock_alloc;
 >  		}
-> -		if (!buffer_uptodate(bh) &&
-> +		if (buffer_write_io_error(bh) &&
->  		    !cmpxchg(&sdp->sd_log_error, 0, -EIO))
->  			gfs2_io_error_bh(sdp, bh);
->  		/*
-> diff --git a/fs/gfs2/lops.c b/fs/gfs2/lops.c
-> index 6dabe73ad790..3df6e4b7e8b9 100644
-> --- a/fs/gfs2/lops.c
-> +++ b/fs/gfs2/lops.c
-> @@ -48,7 +48,7 @@ void gfs2_pin(struct gfs2_sbd *sdp, struct buffer_head *bh)
->  	clear_buffer_dirty(bh);
->  	if (test_set_buffer_pinned(bh))
->  		gfs2_assert_withdraw(sdp, 0);
-> -	if (!buffer_uptodate(bh))
-> +	if (!buffer_uptodate(bh) || buffer_write_io_error(bh))
->  		gfs2_io_error_bh(sdp, bh);
->  	bd = bh->b_private;
->  	/* If this buffer is in the AIL and it has already been written
-> -- 
-> 2.43.0
-> 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+>  	}
+>  
+> @@ -3875,7 +3886,7 @@ int ocfs2_xattr_set(struct inode *inode,
+>  		if (ret < 0) {
+>  			inode_unlock(tl_inode);
+>  			mlog_errno(ret);
+> -			goto cleanup;
+> +			goto out_unlock_alloc;
+>  		}
+>  	}
+>  	inode_unlock(tl_inode);
+> @@ -3884,8 +3895,9 @@ int ocfs2_xattr_set(struct inode *inode,
+>  					&xbs, &ctxt, ref_meta, &credits);
+>  	if (ret) {
+>  		mlog_errno(ret);
+> -		goto cleanup;
+> +		goto out_unlock_alloc;
+>  	}
+> +	ctxt.alloc_sem_protected = 1;
+>  
+>  	/* we need to update inode's ctime field, so add credit for it. */
+>  	credits += OCFS2_INODE_UPDATE_CREDITS;
+> @@ -3893,15 +3905,15 @@ int ocfs2_xattr_set(struct inode *inode,
+>  	if (IS_ERR(ctxt.handle)) {
+>  		ret = PTR_ERR(ctxt.handle);
+>  		mlog_errno(ret);
+> -		goto out_free_ac;
+> +		goto out_unlock_alloc;
+>  	}
+>  
+>  	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
+>  	ocfs2_update_inode_fsync_trans(ctxt.handle, inode, 0);
+>  
+>  	ocfs2_commit_trans(osb, ctxt.handle);
+> -
+> -out_free_ac:
+> +out_unlock_alloc:
+> +	up_write(&OCFS2_I(inode)->ip_alloc_sem);
+>  	if (ctxt.data_ac)
+>  		ocfs2_free_alloc_context(ctxt.data_ac);
+>  	if (ctxt.meta_ac)
+> @@ -4520,6 +4532,7 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+>  	u64 blkno;
+>  	handle_t *handle = ctxt->handle;
+>  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> +	int took_alloc_sem = 0;
+>  	struct buffer_head *xb_bh = xs->xattr_bh;
+>  	struct ocfs2_xattr_block *xb =
+>  			(struct ocfs2_xattr_block *)xb_bh->b_data;
+> @@ -4537,7 +4550,10 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+>  	 * We can use this lock for now, and maybe move to a dedicated mutex
+>  	 * if performance becomes a problem later.
+>  	 */
+> -	down_write(&oi->ip_alloc_sem);
+> +	if (!ctxt->alloc_sem_protected) {
+> +		down_write(&oi->ip_alloc_sem);
+> +		took_alloc_sem = 1;
+> +	}
+>  
+>  	ret = ocfs2_journal_access_xb(handle, INODE_CACHE(inode), xb_bh,
+>  				      OCFS2_JOURNAL_ACCESS_WRITE);
+> @@ -4600,7 +4616,8 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+>  	ocfs2_journal_dirty(handle, xb_bh);
+>  
+>  out:
+> -	up_write(&oi->ip_alloc_sem);
+> +	if (took_alloc_sem)
+> +		up_write(&oi->ip_alloc_sem);
+>  
+>  	return ret;
+>  }
+
