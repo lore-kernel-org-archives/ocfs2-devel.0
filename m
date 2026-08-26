@@ -1,271 +1,335 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 38DBC3126AD;
-	Wed, 26 Aug 2026 08:03:24 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E243A3BD22F
+	for <ocfs2-devel@lists.linux.dev>; Wed, 26 Aug 2026 11:27:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787731405; cv=none; b=vGdvJJHh4H5KuYT5SrBNlzNyNm19EBrJTwii4CMrLL5SxSuZLK7s1skwNlT2H/FDY+P0/zEvfMvlb17k9zXzVP5C9WuyPcYr1ZhvK62Kzkt7MnhdJwS/SYLxS44dOhc7oDrel3DrHbbuFS4hOvD6oYtiJaipdAV8+c6fKjSk+wU=
+	t=1787743627; cv=none; b=OapULtJSOWITZcnWtuOmU1aEcYlJiuLz6wWBLz2jXKZLxI3uVKfTZlK/8QWLAGgV0KQ4T4vN5EHNUktqwHBa+3AAk4D1hHbhlFSV5C5lVsvEtn4po2tHLjrwwR+99OkPBfbV9WxYhRyjgk4+LNd6sByygzEloH7Pmlh74ViQ3Og=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787731405; c=relaxed/simple;
-	bh=7LF4q8CwrKhNlq26KmMg0JfO5NQyG28iY2elQAokL+M=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=A8xx1SaEI4i+MCVm2WRBBYn4Yv2oddWFczf0zQCOhQOIkdYvewOY7lmCcaTnUNPDHo44gbMBPuWX6gaxsyIcyLN6QuoYgwvN4hW17+m9xLJvhg7T1OYmrrkXsBByks/GW7ZRhaPnibju5eI/hdvO5SBeO53GmH/P/rdmOlY79O8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=0prtf3vC; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=qCgkkrcq; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=cdtBSAWY; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=13ibFp0I; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1787743627; c=relaxed/simple;
+	bh=s1bpfHAoV4q7svo1G8Dub+T+J3GSTFYM9W7lcFnT7f8=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=Y/uxCJ3n9JZqAX7fGrf/HZOjY3VMW3ZzzOML08+P4n59knkDyt1fD6i1DdJt6olxUsOuXwnRS4OPtYD1glLVcGrJtU/Ic1YICoPqNgiKWANPTnTLnAHEkmhkNU4VGx8d9cQ1LiqPYYg1CcD1Ww4LTLCxaO4IGXcmqvhWJd/rSiI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ZGtNPNb+; arc=none smtp.client-ip=115.124.30.97
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="0prtf3vC";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="qCgkkrcq";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="cdtBSAWY";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="13ibFp0I"
-Received: from imap1.dmz-prg2.suse.org (imap1.dmz-prg2.suse.org [IPv6:2a07:de40:b281:104:10:150:64:97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id C99121F814;
-	Wed, 26 Aug 2026 07:50:11 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1787730615; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=isUrC9bXcIL3HeO7qQ0qisSBt8h7f1BtFkQM3qT4E78=;
-	b=0prtf3vCOp902PloqtIgt5WZuPOcm9IbSytQljqiKVfdw+yEHRyZujBnOwVHO5z/QV21vT
-	OkuYliKuBj7bNyJl1rH7mFmWzZYq/cdztYsfWt7Rn6nYF7NRIquRcBf88pvGgKBNcJ1opw
-	hzyQ44M+Z5+cW5VP9wDjVwHSwgUiUW8=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1787730615;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=isUrC9bXcIL3HeO7qQ0qisSBt8h7f1BtFkQM3qT4E78=;
-	b=qCgkkrcqav1C0k60wy68ujiZOXtI8vVwCqi9vNyA5mqicT/RSFo8rmjh/e5h59TCMqD/+5
-	uoaGWHmVl4oHoQCw==
-Authentication-Results: smtp-out2.suse.de;
-	dkim=pass header.d=suse.cz header.s=susede2_rsa header.b=cdtBSAWY;
-	dkim=pass header.d=suse.cz header.s=susede2_ed25519 header.b=13ibFp0I
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1787730611; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=isUrC9bXcIL3HeO7qQ0qisSBt8h7f1BtFkQM3qT4E78=;
-	b=cdtBSAWYUuoNvw8BURMZstwD2wKDrqRlpkHeD/JVy8tXsiXL9jMH/bJsmPjMcRN1tOfDwV
-	8/nMMNZBgXMTVETjJ452eD1kXykuL3mT02G4om49WYTpHBaXnY25onnh58diWwfdixBzcu
-	KVHNjHbIpbNna/OtNsTBCyx3rWuTsnw=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1787730611;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=isUrC9bXcIL3HeO7qQ0qisSBt8h7f1BtFkQM3qT4E78=;
-	b=13ibFp0IU8SX9ki3JSfnK3PIENIzeuXUl796gRQ6OybMStQ599B2I7qoAaMOm3KijwsjBv
-	USSsTF3zeArPsWDw==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 18CC4136AE;
-	Wed, 26 Aug 2026 07:49:56 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id QusKBqSajmowDAAAD6G6ig
-	(envelope-from <jack@suse.cz>); Wed, 26 Aug 2026 07:49:56 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 8A882A13C2; Tue, 25 Aug 2026 19:24:38 +0200 (CEST)
-Date: Tue, 25 Aug 2026 19:24:38 +0200
-From: Jan Kara <jack@suse.cz>
-To: Chao Shi <coshi036@gmail.com>
-Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
-	Alexander Viro <viro@zeniv.linux.org.uk>, Matthew Wilcox <willy@infradead.org>, 
-	linux-fsdevel@vger.kernel.org, Theodore Ts'o <tytso@mit.edu>, 
-	Andreas Dilger <adilger.kernel@dilger.ca>, Baokun Li <libaokun@linux.alibaba.com>, 
-	Ojaswin Mujoo <ojaswin@linux.ibm.com>, Ritesh Harjani <ritesh.list@gmail.com>, 
-	Zhang Yi <yi.zhang@huawei.com>, Zhang Yi <yi.zhang@huaweicloud.com>, 
-	Bob Copeland <me@bobcopeland.com>, Namjae Jeon <linkinjeon@kernel.org>, 
-	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Andreas Gruenbacher <agruenba@redhat.com>, 
-	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, Weidong Zhu <weizhu@fiu.edu>
-Subject: Re: [PATCH v2 21/21] buffer: clear BH_Write_EIO when a write
- succeeds, not when one starts
-Message-ID: <hkxjcqnftdmyouekxz25lilaaurbcak4tdmufhy6rqtgnm6n76@hisoy47c7vc3>
-References: <cover.1785951556.git.coshi036@gmail.com>
- <1c976fd191aa6e99dbe65d6a1ec63f8706cc0dfa.1785951556.git.coshi036@gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ZGtNPNb+"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1787743621; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=Bg0aphhePImq/b57myxGee9of8t2ClKfW3QiHxc+y7E=;
+	b=ZGtNPNb+deKuckISNb7wL8labl6XZXWRmtQYR/IlpXkdYG22zGedKhgCrGAqqhuujbaAZ65W10tGjr1HVbmJXjtL5reKnd0hJcyeEm6ggTP6J4fak2VmHqLJwTYLILyH05mvtkUOMovqiQ5g6ADY9zZWKiX836SkRKj+nQR5vyI=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X9gmVso_1787743619;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X9gmVso_1787743619 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Wed, 26 Aug 2026 19:27:00 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>,
+	ZhengYuan Huang <gality369@gmail.com>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH v3] ocfs2: fix deadlock in inline-data truncate transactions
+Date: Wed, 26 Aug 2026 19:26:59 +0800
+Message-Id: <20260826112659.246574-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <1c976fd191aa6e99dbe65d6a1ec63f8706cc0dfa.1785951556.git.coshi036@gmail.com>
-X-Spamd-Result: default: False [-2.51 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	R_DKIM_ALLOW(-0.20)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	FREEMAIL_TO(0.00)[gmail.com];
-	SPAMHAUS_XBL(0.00)[2a07:de40:b281:104:10:150:64:97:from];
-	ARC_NA(0.00)[];
-	RCPT_COUNT_TWELVE(0.00)[27];
-	MIME_TRACE(0.00)[0:+];
-	RCVD_TLS_LAST(0.00)[];
-	FREEMAIL_ENVRCPT(0.00)[gmail.com];
-	TO_DN_SOME(0.00)[];
-	DNSWL_BLOCKED(0.00)[2a07:de40:b281:104:10:150:64:97:from,2a07:de40:b281:106:10:150:64:167:received];
-	TAGGED_RCPT(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	R_RATELIMIT(0.00)[to_ip_from(RLr6u35b1fsnb818ss3au1oekd)];
-	MISSING_XM_UA(0.00)[];
-	FREEMAIL_CC(0.00)[suse.cz,kernel.org,zeniv.linux.org.uk,infradead.org,vger.kernel.org,mit.edu,dilger.ca,linux.alibaba.com,linux.ibm.com,gmail.com,huawei.com,huaweicloud.com,bobcopeland.com,samsung.com,sony.com,mail.parknet.co.jp,fasheh.com,evilplan.org,redhat.com,lists.linux.dev,fiu.edu];
-	DKIM_TRACE(0.00)[suse.cz:+];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.cz:email,suse.cz:dkim,suse.com:email,imap1.dmz-prg2.suse.org:rdns,imap1.dmz-prg2.suse.org:helo,fiu.edu:email]
-X-Spam-Flag: NO
-X-Spam-Score: -2.51
-X-Spam-Level: 
-X-Rspamd-Queue-Id: C99121F814
-X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
-X-Rspamd-Action: no action
+Content-Transfer-Encoding: 8bit
 
-On Thu 06-08-26 12:58:44, Chao Shi wrote:
-> BH_Write_EIO is cleared in __bh_submit(), when a buffer that has been
-> written before is submitted for write again.  That is early: it says the
-> error is gone at the moment we start trying to fix it, rather than when we
-> have.
-> 
-> It also loses errors.  A task whose write fails sets the flag and then goes
-> to look at it; if another task redirties the buffer and resubmits it in
-> between, the submission clears the flag and the first task sees no error at
-> all.  Neither of them is doing anything wrong.
-> 
-> Clear it on successful write completion instead, in the end io handlers -
-> the same four the rest of this series has been converting, plus gfs2's,
-> which already marked errors this way.  Then the flag means what it says:
-> the last write of this buffer that finished, failed.  A resubmission no
-> longer hides an error that has not been fixed yet, and one that has been
-> fixed clears the flag when the data reaches the disk.
-> 
-> __bh_submit() keeps setting BH_Req, which is what the rest of the tree
-> reads it for.
-> 
-> Suggested-by: Jan Kara <jack@suse.cz>
-> Acked-by: Weidong Zhu <weizhu@fiu.edu>
-> Signed-off-by: Chao Shi <coshi036@gmail.com>
+Updating an inode xattr can cause an ABBA deadlock with inline file
+truncation:
 
-Looks good to me. Feel free to add:
+  ocfs2_truncate_file()
+    down_write(&oi->ip_alloc_sem)
+    ocfs2_truncate_inline()
+      ocfs2_start_trans()
 
-Reviewed-by: Jan Kara <jack@suse.cz>
+  ocfs2_xattr_set()
+    ocfs2_start_trans()
+    ocfs2_xattr_ibody_set()
+      down_write(&oi->ip_alloc_sem)
 
-								Honza
+The xattr set path starts the merged transaction before the
+inode-body xattr helper acquires ip_alloc_sem, reversing the
+ip_alloc_sem -> transaction order used by the allocation and truncate
+paths.  The transaction merge in commit 85db90e77806 ("ocfs2/xattr:
+Merge xattr set transaction.") introduced this ordering.
 
-> ---
->  fs/buffer.c           | 15 +++++++--------
->  fs/ext4/fast_commit.c |  1 +
->  fs/gfs2/lops.c        |  2 ++
->  fs/jbd2/commit.c      |  4 +++-
->  4 files changed, 13 insertions(+), 9 deletions(-)
-> 
-> diff --git a/fs/buffer.c b/fs/buffer.c
-> index 425fbfe72ad1..68ea0ef8470e 100644
-> --- a/fs/buffer.c
-> +++ b/fs/buffer.c
-> @@ -202,7 +202,9 @@ void bh_end_write(struct bio *bio)
->  	struct buffer_head *bh;
->  	bool success = bio_endio_bh(bio, &bh);
->  
-> -	if (!success) {
-> +	if (success) {
-> +		clear_buffer_write_io_error(bh);
-> +	} else {
->  		buffer_io_error(bh, ", lost sync page write");
->  		mark_buffer_write_io_error(bh);
->  	}
-> @@ -433,7 +435,9 @@ void bh_end_async_write(struct bio *bio)
->  	BUG_ON(!buffer_async_write(bh));
->  
->  	folio = bh->b_folio;
-> -	if (!success) {
-> +	if (success) {
-> +		clear_buffer_write_io_error(bh);
-> +	} else {
->  		buffer_io_error(bh, ", lost async page write");
->  		mark_buffer_write_io_error(bh);
->  	}
-> @@ -1114,7 +1118,6 @@ static void __bh_submit(struct buffer_head *bh, blk_opf_t opf,
->  		enum rw_hint write_hint, struct writeback_control *wbc,
->  		bio_end_io_t end_bio)
->  {
-> -	const enum req_op op = opf & REQ_OP_MASK;
->  	struct bio *bio;
->  
->  	BUG_ON(!buffer_locked(bh));
-> @@ -1122,11 +1125,7 @@ static void __bh_submit(struct buffer_head *bh, blk_opf_t opf,
->  	BUG_ON(buffer_delay(bh));
->  	BUG_ON(buffer_unwritten(bh));
->  
-> -	/*
-> -	 * Only clear out a write error when rewriting
-> -	 */
-> -	if (test_set_buffer_req(bh) && (op == REQ_OP_WRITE))
-> -		clear_buffer_write_io_error(bh);
-> +	set_buffer_req(bh);
->  
->  	if (buffer_meta(bh))
->  		opf |= REQ_META;
-> diff --git a/fs/ext4/fast_commit.c b/fs/ext4/fast_commit.c
-> index a2028fbd4540..95998827ff01 100644
-> --- a/fs/ext4/fast_commit.c
-> +++ b/fs/ext4/fast_commit.c
-> @@ -209,6 +209,7 @@ static void ext4_end_buffer_io_sync(struct bio *bio)
->  	if (success) {
->  		ext4_debug("%s: Block %lld written",
->  			   __func__, bh->b_blocknr);
-> +		clear_buffer_write_io_error(bh);
->  	} else {
->  		ext4_debug("%s: Block %lld write failed",
->  			   __func__, bh->b_blocknr);
-> diff --git a/fs/gfs2/lops.c b/fs/gfs2/lops.c
-> index 3df6e4b7e8b9..7440e5b72f8a 100644
-> --- a/fs/gfs2/lops.c
-> +++ b/fs/gfs2/lops.c
-> @@ -179,6 +179,8 @@ static void gfs2_end_log_write_bh(struct gfs2_sbd *sdp, struct folio *folio,
->  	do {
->  		if (error)
->  			mark_buffer_write_io_error(bh);
-> +		else
-> +			clear_buffer_write_io_error(bh);
->  		unlock_buffer(bh);
->  		next = bh->b_this_page;
->  		size -= bh->b_size;
-> diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
-> index cd7ef783bd36..ebf6ba58ff4d 100644
-> --- a/fs/jbd2/commit.c
-> +++ b/fs/jbd2/commit.c
-> @@ -36,7 +36,9 @@ static void journal_end_buffer_io_sync(struct bio *bio)
->  	struct buffer_head *orig_bh = bh->b_private;
->  
->  	BUFFER_TRACE(bh, "");
-> -	if (!success)
-> +	if (success)
-> +		clear_buffer_write_io_error(bh);
-> +	else
->  		mark_buffer_write_io_error(bh);
->  	if (orig_bh) {
->  		clear_and_wake_up_bit(BH_Shadow, &orig_bh->b_state);
-> -- 
-> 2.43.0
-> 
+Fix it by acquiring ip_alloc_sem once in ocfs2_xattr_set(), before
+xattr preparation, allocation reservations and ocfs2_start_trans(),
+and removing the per-helper acquisition from ocfs2_xattr_ibody_find(),
+ocfs2_xattr_ibody_set() and ocfs2_xattr_create_index_block().  These
+helpers now assert via lockdep that the caller holds ip_alloc_sem.
+
+ocfs2_xattr_set_handle(), which only sets initial ACL or security
+xattrs on unpublished inodes inside the create transaction, takes
+ip_alloc_sem under a dedicated lockdep subclass so that the assertions
+hold without creating a transaction -> ip_alloc_sem cycle against the
+ip_alloc_sem -> transaction order.  The inode is unpublished, so the
+acquisition can never contend.
+
+This keeps the established ip_alloc_sem -> transaction order and makes
+the locking unconditional, so lockdep can verify a single plain
+ordering instead of conditional acquisitions.
+
+Fixes: 85db90e77806 ("ocfs2/xattr: Merge xattr set transaction.")
+Cc: ZhengYuan Huang <gality369@gmail.com>
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/xattr.c | 79 ++++++++++++++++++++++++++++++++----------------
+ 1 file changed, 53 insertions(+), 26 deletions(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index e955126e4d7d..143d6f75f9c9 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2941,6 +2941,9 @@ static int ocfs2_xattr_has_space_inline(struct inode *inode,
+  *
+  * Find extended attribute in inode block and
+  * fill search info into struct ocfs2_xattr_search.
++ *
++ * The inline free-space check races with truncate and allocation, so
++ * callers must hold ip_alloc_sem for writing.
+  */
+ static int ocfs2_xattr_ibody_find(struct inode *inode,
+ 				  int name_index,
+@@ -2952,13 +2955,13 @@ static int ocfs2_xattr_ibody_find(struct inode *inode,
+ 	int ret;
+ 	int has_space = 0;
+ 
++	lockdep_assert_held_write(&oi->ip_alloc_sem);
++
+ 	if (inode->i_sb->s_blocksize == OCFS2_MIN_BLOCKSIZE)
+ 		return 0;
+ 
+ 	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
+-		down_read(&oi->ip_alloc_sem);
+ 		has_space = ocfs2_xattr_has_space_inline(inode, di);
+-		up_read(&oi->ip_alloc_sem);
+ 		if (!has_space)
+ 			return 0;
+ 	}
+@@ -3039,6 +3042,7 @@ static int ocfs2_xattr_ibody_init(struct inode *inode,
+  *
+  * Set, replace or remove an extended attribute into inode block.
+  *
++ * Callers must hold ip_alloc_sem for writing.
+  */
+ static int ocfs2_xattr_ibody_set(struct inode *inode,
+ 				 struct ocfs2_xattr_info *xi,
+@@ -3049,16 +3053,17 @@ static int ocfs2_xattr_ibody_set(struct inode *inode,
+ 	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+ 	struct ocfs2_xa_loc loc;
+ 
++	lockdep_assert_held_write(&oi->ip_alloc_sem);
++
+ 	if (inode->i_sb->s_blocksize == OCFS2_MIN_BLOCKSIZE)
+ 		return -ENOSPC;
+ 
+-	down_write(&oi->ip_alloc_sem);
+ 	if (!(oi->ip_dyn_features & OCFS2_INLINE_XATTR_FL)) {
+ 		ret = ocfs2_xattr_ibody_init(inode, xs->inode_bh, ctxt);
+ 		if (ret) {
+ 			if (ret != -ENOSPC)
+ 				mlog_errno(ret);
+-			goto out;
++			return ret;
+ 		}
+ 	}
+ 
+@@ -3068,13 +3073,10 @@ static int ocfs2_xattr_ibody_set(struct inode *inode,
+ 	if (ret) {
+ 		if (ret != -ENOSPC)
+ 			mlog_errno(ret);
+-		goto out;
++		return ret;
+ 	}
+ 	xs->here = loc.xl_entry;
+ 
+-out:
+-	up_write(&oi->ip_alloc_sem);
+-
+ 	return ret;
+ }
+ 
+@@ -3718,6 +3720,18 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
+ 	return ret;
+ }
+ 
++/*
++ * ip_alloc_sem subclass for inodes being initialized before publication.
++ * ocfs2_xattr_set_handle() runs inside the create transaction, so taking
++ * ip_alloc_sem there adds a transaction -> ip_alloc_sem order that would
++ * form a lockdep cycle with the ip_alloc_sem -> transaction order used
++ * elsewhere, if not for this separate subclass.  The inode is unpublished
++ * so the acquisition can never contend.
++ */
++enum {
++	OCFS2_IP_ALLOC_SEM_UNPUBLISHED = 1,
++};
++
+ /*
+  * This helper is only for setting initial ACL or security xattrs on an inode
+  * that is still unpublished, unhashed, and unattached to a dentry.
+@@ -3779,6 +3793,13 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+ 	xis.inode_bh = xbs.inode_bh = di_bh;
+ 	di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
++	/*
++	 * The inode is unpublished and cannot contend, but take the
++	 * semaphore anyway so the helpers' lockdep assertions hold.
++	 */
++	down_write_nested(&OCFS2_I(inode)->ip_alloc_sem,
++			  OCFS2_IP_ALLOC_SEM_UNPUBLISHED);
++
+ 	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
+ 	if (ret)
+ 		goto cleanup;
+@@ -3791,6 +3812,7 @@ int ocfs2_xattr_set_handle(handle_t *handle,
+ 	ret = __ocfs2_xattr_set_handle(inode, di, &xi, &xis, &xbs, &ctxt);
+ 
+ cleanup:
++	up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 	brelse(xbs.xattr_bh);
+ 	ocfs2_xattr_bucket_free(xbs.bucket);
+ 
+@@ -3859,30 +3881,38 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	di = (struct ocfs2_dinode *)di_bh->b_data;
+ 
+ 	down_write(&OCFS2_I(inode)->ip_xattr_sem);
++	/*
++	 * The allocation and truncate paths take ip_alloc_sem before
++	 * starting a transaction, so take it here before xattr
++	 * preparation, allocation reservations and ocfs2_start_trans()
++	 * to keep that order.  The xattr helpers below no longer take
++	 * it themselves.
++	 */
++	down_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 	/*
+ 	 * Scan inode and external block to find the same name
+ 	 * extended attribute and collect search information.
+ 	 */
+ 	ret = ocfs2_xattr_ibody_find(inode, name_index, name, &xis);
+ 	if (ret)
+-		goto cleanup;
++		goto out_free_ac;
+ 	if (xis.not_found) {
+ 		ret = ocfs2_xattr_block_find(inode, name_index, name, &xbs);
+ 		if (ret)
+-			goto cleanup;
++			goto out_free_ac;
+ 	}
+ 
+ 	if (xis.not_found && xbs.not_found) {
+ 		ret = -ENODATA;
+ 		if (flags & XATTR_REPLACE)
+-			goto cleanup;
++			goto out_free_ac;
+ 		ret = 0;
+ 		if (!value)
+-			goto cleanup;
++			goto out_free_ac;
+ 	} else {
+ 		ret = -EEXIST;
+ 		if (flags & XATTR_CREATE)
+-			goto cleanup;
++			goto out_free_ac;
+ 	}
+ 
+ 	/* Check whether the value is refcounted and do some preparation. */
+@@ -3893,7 +3923,7 @@ int ocfs2_xattr_set(struct inode *inode,
+ 						   &ref_meta, &ref_credits);
+ 		if (ret) {
+ 			mlog_errno(ret);
+-			goto cleanup;
++			goto out_free_ac;
+ 		}
+ 	}
+ 
+@@ -3904,7 +3934,7 @@ int ocfs2_xattr_set(struct inode *inode,
+ 		if (ret < 0) {
+ 			inode_unlock(tl_inode);
+ 			mlog_errno(ret);
+-			goto cleanup;
++			goto out_free_ac;
+ 		}
+ 	}
+ 	inode_unlock(tl_inode);
+@@ -3913,7 +3943,7 @@ int ocfs2_xattr_set(struct inode *inode,
+ 					&xbs, &ctxt, ref_meta, &credits);
+ 	if (ret) {
+ 		mlog_errno(ret);
+-		goto cleanup;
++		goto out_free_ac;
+ 	}
+ 
+ 	/* we need to update inode's ctime field, so add credit for it. */
+@@ -3931,6 +3961,7 @@ int ocfs2_xattr_set(struct inode *inode,
+ 	ocfs2_commit_trans(osb, ctxt.handle);
+ 
+ out_free_ac:
++	up_write(&OCFS2_I(inode)->ip_alloc_sem);
+ 	if (ctxt.data_ac)
+ 		ocfs2_free_alloc_context(ctxt.data_ac);
+ 	if (ctxt.meta_ac)
+@@ -3939,7 +3970,6 @@ int ocfs2_xattr_set(struct inode *inode,
+ 		ocfs2_schedule_truncate_log_flush(osb, 1);
+ 	ocfs2_run_deallocs(osb, &ctxt.dealloc);
+ 
+-cleanup:
+ 	if (ref_tree)
+ 		ocfs2_unlock_refcount_tree(osb, ref_tree, 1);
+ 	up_write(&OCFS2_I(inode)->ip_xattr_sem);
+@@ -4544,6 +4574,10 @@ static void ocfs2_xattr_update_xattr_search(struct inode *inode,
+ 	xs->here = &xs->header->xh_entries[i];
+ }
+ 
++/*
++ * Caller must hold ip_alloc_sem for writing, since a new xattr block
++ * is allocated and the xattr block header is rewritten.
++ */
+ static int ocfs2_xattr_create_index_block(struct inode *inode,
+ 					  struct ocfs2_xattr_search *xs,
+ 					  struct ocfs2_xattr_set_ctxt *ctxt)
+@@ -4559,19 +4593,14 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+ 	struct ocfs2_xattr_tree_root *xr;
+ 	u16 xb_flags = le16_to_cpu(xb->xb_flags);
+ 
++	lockdep_assert_held_write(&oi->ip_alloc_sem);
++
+ 	trace_ocfs2_xattr_create_index_block_begin(
+ 				(unsigned long long)xb_bh->b_blocknr);
+ 
+ 	BUG_ON(xb_flags & OCFS2_XATTR_INDEXED);
+ 	BUG_ON(!xs->bucket);
+ 
+-	/*
+-	 * XXX:
+-	 * We can use this lock for now, and maybe move to a dedicated mutex
+-	 * if performance becomes a problem later.
+-	 */
+-	down_write(&oi->ip_alloc_sem);
+-
+ 	ret = ocfs2_journal_access_xb(handle, INODE_CACHE(inode), xb_bh,
+ 				      OCFS2_JOURNAL_ACCESS_WRITE);
+ 	if (ret) {
+@@ -4633,8 +4662,6 @@ static int ocfs2_xattr_create_index_block(struct inode *inode,
+ 	ocfs2_journal_dirty(handle, xb_bh);
+ 
+ out:
+-	up_write(&oi->ip_alloc_sem);
+-
+ 	return ret;
+ }
+ 
 -- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+2.39.3
+
