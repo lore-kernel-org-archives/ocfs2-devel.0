@@ -1,51 +1,51 @@
-Received: from mail-oi1-f206.google.com (mail-oi1-f206.google.com [209.85.167.206])
+Received: from mail-oi2-f8.google.com (mail-oi2-f8.google.com [74.125.231.200])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1E12B4A23
-	for <ocfs2-devel@lists.linux.dev>; Thu, 27 Aug 2026 19:48:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.206
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 998152D7BF
+	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 02:12:31 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.231.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787860107; cv=none; b=RjAb0nmNlYEZAEdIoXe/nWmm3Xn1Cbtj8Df5ZndAzFi3TylQ8EKkoazAdxwNVNtMFcP5LvhwpU+A4Z178NknzTAQUCwe/oCH99qzf6kkm8qK7OL9TBWIRRQ+mzUQwR6qnmfAk39s1W6lWS3ODrKnV67NWFZYGz35lczi6xd9i3A=
+	t=1787883153; cv=none; b=EkmnMVvA4RWNpzo2G2xIXONu/O//MUOblgvUujuoAv4VK5AMlAD4/Shn92XMyIOA0PEJkL89PTt1IJm+YyqKx40uPsAemwao10RW+CTDq38pP+KA7d0G34nNIITi+8E7tFv/X5WE8Tw1z3gVoGl9TATUM/ao/yCgoNrxAxSPSb4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787860107; c=relaxed/simple;
-	bh=3CV97cb8pUXArOuTdW3ZYZQcwYa9q7iaQAsHDD+CYkE=;
-	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=PTn6xFb+q2nkFYT9CNIVm4E+dhzYyyD09D6AB6LigWhhVYMjGXE794xT9SMBlpG8KZydp1EH2RWjOQ0HHA1OJWl5+xZi97GsM6fyUYhdc9hgUhqdszBz9xHmvwBYNeATdDAPjFVwoDoofodN7UHIkHsv0JvBT9siiASefQXS8uY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.206
+	s=arc-20240116; t=1787883153; c=relaxed/simple;
+	bh=1hj/OJUPVgN/qtjAcfKjFM4OTZS4RU71LNIa3Vsl+FE=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=eWBdrvx6ELeMDeYJJRLON2MTyQ9q5ou9TPfRDtKxQRqToJs3GKvDwYfHI79Rv5evjaaG5SQioR4Xi05CQgMVSwab0WGDJEVPvcBTcRpoczCXYCug5YfU2oehtgyle+Xb3x0lpkwgJYJf8Pr8a7bGzazmCXDsGDO7hiyANLlFcuo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=74.125.231.200
 Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f206.google.com with SMTP id 5614622812f47-4b28d7ffab1so363925b6e.1
-        for <ocfs2-devel@lists.linux.dev>; Thu, 27 Aug 2026 12:48:25 -0700 (PDT)
+Received: by mail-oi2-f8.google.com with SMTP id 46e09a7af769-7f0355eb4b3so190329a34.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 27 Aug 2026 19:12:31 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1787860105; x=1788464905;
+        d=1e100.net; s=20251104; t=1787883150; x=1788487950;
         h=content-type:to:from:subject:message-id:date:mime-version
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=6LJLy1+DpLAVyoG5LCcawK0H77pykur+lkSPcFXB6kM=;
-        b=p3EeWs+VrFOnys4DAy+uJZ6Plb5OJOj5sRBkdBNZ/f2Tb1C/QpX5enONPvDiuJSoHQ
-         xf/got2f2nrmniFmzzxzSqDN2H67EdngSt0+70sUNSonOsN1xsGyu4kqwD1qxMOLIaLV
-         ovhkBCotbpuY9o/8xctgYdmDVocw0Ypa8hCVLPIHB+8nQ5Zsfu9/0s44o9wtgqMFWW8A
-         aXMXZJA4yGOksV5tYhEh7qMwkJ3BKSVdbcekRwJ45Nj/vsE8qXs4F+vaRF9MWP8e+oHC
-         P1xJjHiAgoyuysQkHzNV+9e015Pneh5EepMuEJoWBzia1BHtPOG9VzC9OMr7GjMtCExb
-         xKoQ==
-X-Forwarded-Encrypted: i=1; AHgh+RqgoBHBl5VVwcLb6cMm+yj5ZCB0AwLOIGumDECB6oYZhCz17RNM58dGEPsre0Xy9uKw7oYpeclLE8lovQ==@lists.linux.dev
-X-Gm-Message-State: AFuF++lkGKvtOebe1y5ocqWrBb55fB+kl01OPb/r+SuHC0UsdFABW6Zu
-	h97LjRxaVR06CucaIipn5+2molxPuxe+gJ47rUt92KIKWs416VSDQU8YN29lK3P/YfBg/zAiK2Q
-	DvES4TU2xO23SAVV+ZcNaXUwl6P66kU7FAMBl5l9Gbp58ygKzT8r+OxezURc=
+        bh=j631KfuXT7Q6Z7MHV3kuKtSJxOKHdXGjbHFa8rcKGNM=;
+        b=KV6xaUWAP05vOMGbQdiR98bffwj8+KR5xQD3tNWKjFTMZX/dtmavvIyLH43aUPO+OF
+         qGbVpDjczdes5LpFkitxfF+JxKZZh/K1jF36I0+sQXE+5LnFYA/iAfYJVnmH/m5Wg0We
+         7KS+5V2ghCDY5Ap2nC6h0hr7kEiHrvvcL8AvUVDDwT/95LLk6cAYnWiQ67ygdkzdZU3H
+         If+e8Kojfq+WZkjolAWxh0OVnzFAKNm5PvfX8cvhpvFRydu50FhYHm1m/M5bg3+Phcip
+         TReNYbkUvnY9moC8av02e55DvQMq/U+6tmAotFCg8j6nfwJl2HyuEkOFFI/mfc+TQc+r
+         kSPw==
+X-Forwarded-Encrypted: i=1; AHgh+RoaIj1Tro9OFhw8ooWsyW9K006Y6w5iAt8kxiZaefgGKZ/ukk4mk5V3l/jfaL/cq3nwk7okcqS6Emr9fQ==@lists.linux.dev
+X-Gm-Message-State: AFuF++k+w/Ds3V5fBmPGtj+cTyiqS9WSXt/Lp6+0vOVxcU+W5asNBN1C
+	QfoR/7szKCDNGtK6haN7kSOQ1bXRyYIRmhadHDqooE7Hx/ja9MlRcQdeMUylafc6b+g1DSFHhbc
+	HWrwMKzZBFGRKpuo+NS63hyiQt/xQxbRSoxg8lC2I60UgeH3tuGwQLcBgYNE=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Received: by 2002:a05:6808:1a21:b0:496:9ee:e538 with SMTP id
- 5614622812f47-4b37c81e675mr6843349b6e.5.1787860104982; Thu, 27 Aug 2026
- 12:48:24 -0700 (PDT)
-Date: Thu, 27 Aug 2026 12:48:24 -0700
+X-Received: by 2002:a05:6820:26a:b0:6ae:c68b:3a7 with SMTP id
+ 006d021491bc7-6b1c6753623mr2478306eaf.16.1787883150511; Thu, 27 Aug 2026
+ 19:12:30 -0700 (PDT)
+Date: Thu, 27 Aug 2026 19:12:30 -0700
 X-Google-Appengine-App-Id: s~syzkaller
 X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6a909488.4d659fcc.734b4.0015.GAE@google.com>
-Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_xattr_get (2)
-From: syzbot <syzbot+c63f5bc973ab97368c21@syzkaller.appspotmail.com>
+Message-ID: <6a90ee8e.1d9ded08.62e62.00e1.GAE@google.com>
+Subject: [syzbot] [ocfs2?] kernel BUG in ocfs2_write_begin_nolock (3)
+From: syzbot <syzbot+fd44623201beb5f3b462@syzkaller.appspotmail.com>
 To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
 	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
 	syzkaller-bugs@googlegroups.com
@@ -55,198 +55,78 @@ Hello,
 
 syzbot found the following issue on:
 
-HEAD commit:    73e3f0710014 Merge tag 'nfs-for-7.3-1' of git://git.linux-..
+HEAD commit:    4352b8aee980 Merge tag 'i3c/for-7.3' of git://git.kernel.o..
 git tree:       upstream
-console output: https://syzkaller.appspot.com/x/log.txt?x=136a3579580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=9efed59cf70d6280
-dashboard link: https://syzkaller.appspot.com/bug?extid=c63f5bc973ab97368c21
+console output: https://syzkaller.appspot.com/x/log.txt?x=14fc3549580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=335632b21d0ce540
+dashboard link: https://syzkaller.appspot.com/bug?extid=fd44623201beb5f3b462
 compiler:       Debian clang version 22.1.8 (++20260613092233+e80beda6e255-1~exp1~20260613092250.77), Debian LLD 22.1.8
 
 Unfortunately, I don't have any reproducer for this issue yet.
 
 Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/ffcd3fee974f/disk-73e3f071.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/cf4f954d6b1a/vmlinux-73e3f071.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/45faed1d28b1/bzImage-73e3f071.xz
+disk image: https://storage.googleapis.com/syzbot-assets/8491c9d0d35e/disk-4352b8ae.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/51cc3aee80d1/vmlinux-4352b8ae.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/e0bcbebdbede/bzImage-4352b8ae.xz
 
 IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+c63f5bc973ab97368c21@syzkaller.appspotmail.com
+Reported-by: syzbot+fd44623201beb5f3b462@syzkaller.appspotmail.com
 
-ocfs2: Slot 0 on device (7,9) was already allocated to this node!
-JBD2: Ignoring recovery information on journal
-ocfs2: Mounting device (7,9) on (node local, slot 0) with ordered data mode.
-======================================================
-WARNING: possible circular locking dependency detected
-syzkaller #0 Not tainted
-------------------------------------------------------
-syz.9.729/14532 is trying to acquire lock:
-ffff888062520858 (&oi->ip_xattr_sem){++++}-{4:4}, at: ocfs2_xattr_get+0xf4/0x260 fs/ocfs2/xattr.c:1578
-
-but task is already holding lock:
-ffff88803357f118 (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x3af/0x700 fs/ocfs2/journal.c:369
-
-which lock already depends on the new lock.
-
-
-the existing dependency chain (in reverse order) is:
-
--> #3 (&journal->j_trans_barrier){.+.+}-{4:4}:
-       down_read+0x97/0x200 kernel/locking/rwsem.c:1574
-       ocfs2_start_trans+0x3af/0x700 fs/ocfs2/journal.c:369
-       ocfs2_block_group_alloc fs/ocfs2/suballoc.c:801 [inline]
-       ocfs2_reserve_suballoc_bits+0x7b7/0x4850 fs/ocfs2/suballoc.c:950
-       ocfs2_reserve_new_metadata_blocks+0x415/0x9a0 fs/ocfs2/suballoc.c:1100
-       ocfs2_expand_inline_dir fs/ocfs2/dir.c:2928 [inline]
-       ocfs2_extend_dir+0xd35/0x4b60 fs/ocfs2/dir.c:3290
-       ocfs2_prepare_dir_for_insert+0x339a/0x5190 fs/ocfs2/dir.c:4408
-       ocfs2_mknod+0x86f/0x22b0 fs/ocfs2/namei.c:299
-       ocfs2_mkdir+0x180/0x430 fs/ocfs2/namei.c:667
-       vfs_mkdir+0x408/0x620 fs/namei.c:5410
-       filename_mkdirat+0x289/0x520 fs/namei.c:5443
-       __do_sys_mkdirat fs/namei.c:5464 [inline]
-       __se_sys_mkdirat+0x35/0x150 fs/namei.c:5461
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #2 (sb_internal#7){.+.+}-{0:0}:
-       percpu_down_read_internal include/linux/percpu-rwsem.h:53 [inline]
-       percpu_down_read_freezable include/linux/percpu-rwsem.h:83 [inline]
-       __sb_start_write include/linux/fs/super.h:19 [inline]
-       sb_start_intwrite include/linux/fs/super.h:177 [inline]
-       ocfs2_start_trans+0x2ac/0x700 fs/ocfs2/journal.c:367
-       ocfs2_orphan_for_truncate fs/ocfs2/file.c:397 [inline]
-       ocfs2_truncate_file+0x634/0x14b0 fs/ocfs2/file.c:506
-       ocfs2_setattr+0x1641/0x1d10 fs/ocfs2/file.c:1224
-       notify_change+0xbb8/0xec0 fs/attr.c:556
-       do_truncate+0x1c2/0x250 fs/open.c:68
-       handle_truncate fs/namei.c:4300 [inline]
-       do_open fs/namei.c:4841 [inline]
-       path_openat+0x15ba/0x1d60 fs/namei.c:5000
-       do_file_open+0x23e/0x4a0 fs/namei.c:5029
-       do_sys_openat2+0x115/0x200 fs/open.c:1417
-       do_sys_open fs/open.c:1423 [inline]
-       __do_sys_openat fs/open.c:1439 [inline]
-       __se_sys_openat fs/open.c:1434 [inline]
-       __x64_sys_openat+0x138/0x170 fs/open.c:1434
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #1 (&ocfs2_file_ip_alloc_sem_key){++++}-{4:4}:
-       down_write+0x3a/0x50 kernel/locking/rwsem.c:1631
-       ocfs2_try_remove_refcount_tree+0xb6/0x360 fs/ocfs2/refcounttree.c:959
-       ocfs2_truncate_file+0xe91/0x14b0 fs/ocfs2/file.c:527
-       ocfs2_setattr+0x1641/0x1d10 fs/ocfs2/file.c:1224
-       notify_change+0xbb8/0xec0 fs/attr.c:556
-       do_truncate+0x1c2/0x250 fs/open.c:68
-       handle_truncate fs/namei.c:4300 [inline]
-       do_open fs/namei.c:4841 [inline]
-       path_openat+0x15ba/0x1d60 fs/namei.c:5000
-       do_file_open+0x23e/0x4a0 fs/namei.c:5029
-       do_sys_openat2+0x115/0x200 fs/open.c:1417
-       do_sys_open fs/open.c:1423 [inline]
-       __do_sys_openat fs/open.c:1439 [inline]
-       __se_sys_openat fs/open.c:1434 [inline]
-       __x64_sys_openat+0x138/0x170 fs/open.c:1434
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #0 (&oi->ip_xattr_sem){++++}-{4:4}:
-       check_prev_add kernel/locking/lockdep.c:3181 [inline]
-       check_prevs_add kernel/locking/lockdep.c:3300 [inline]
-       validate_chain kernel/locking/lockdep.c:3924 [inline]
-       __lock_acquire+0x1520/0x2ce0 kernel/locking/lockdep.c:5253
-       lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5886
-       down_read+0x97/0x200 kernel/locking/rwsem.c:1574
-       ocfs2_xattr_get+0xf4/0x260 fs/ocfs2/xattr.c:1578
-       __vfs_getxattr+0x412/0x440 fs/xattr.c:446
-       smk_fetch+0xb4/0x140 security/smack/smack_lsm.c:298
-       smack_d_instantiate+0x757/0x990 security/smack/smack_lsm.c:3679
-       security_d_instantiate+0x106/0x1d0 security/security.c:3703
-       d_instantiate+0x54/0xb0 fs/dcache.c:2176
-       ocfs2_mknod+0x1acb/0x22b0 fs/ocfs2/namei.c:459
-       ocfs2_mkdir+0x180/0x430 fs/ocfs2/namei.c:667
-       vfs_mkdir+0x408/0x620 fs/namei.c:5410
-       filename_mkdirat+0x289/0x520 fs/namei.c:5443
-       __do_sys_mkdirat fs/namei.c:5464 [inline]
-       __se_sys_mkdirat+0x35/0x150 fs/namei.c:5461
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-other info that might help us debug this:
-
-Chain exists of:
-  &oi->ip_xattr_sem --> sb_internal#7 --> &journal->j_trans_barrier
-
- Possible unsafe locking scenario:
-
-       CPU0                    CPU1
-       ----                    ----
-  rlock(&journal->j_trans_barrier);
-                               lock(sb_internal#7);
-                               lock(&journal->j_trans_barrier);
-  rlock(&oi->ip_xattr_sem);
-
- *** DEADLOCK ***
-
-locks held by syz.9.729/14532: 8, last CPU#0:
- #0: ffff888063998510 (sb_writers#34){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:494
- #1: ffff88806243f000 (&type->i_mutex_dir_key#24/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1070 [inline]
- #1: ffff88806243f000 (&type->i_mutex_dir_key#24/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2918 [inline]
- #1: ffff88806243f000 (&type->i_mutex_dir_key#24/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2942 [inline]
- #1: ffff88806243f000 (&type->i_mutex_dir_key#24/1){+.+.}-{4:4}, at: filename_create+0x200/0x370 fs/namei.c:5092
- #2: ffff888056ebbdc0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1025 [inline]
- #2: ffff888056ebbdc0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x170/0x4850 fs/ocfs2/suballoc.c:904
- #3: ffff888056ebce80 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1025 [inline]
- #3: ffff888056ebce80 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x170/0x4850 fs/ocfs2/suballoc.c:904
- #4: ffff888056eb8b80 (&ocfs2_sysfile_lock_key[LOCAL_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1025 [inline]
- #4: ffff888056eb8b80 (&ocfs2_sysfile_lock_key[LOCAL_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_local_alloc_bits+0x11f/0x2680 fs/ocfs2/localalloc.c:636
- #5: ffff888063998800 (sb_internal#7){.+.+}-{0:0}, at: ocfs2_mknod+0xf72/0x22b0 fs/ocfs2/namei.c:370
- #6: ffff88803357f118 (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x3af/0x700 fs/ocfs2/journal.c:369
- #7: ffff888028f16bb0 (jbd2_handle#2){.+.+}-{0:0}, at: start_this_handle+0x1fbf/0x2200 fs/jbd2/transaction.c:444
-
-stack backtrace:
-CPU: 0 UID: 0 PID: 14532 Comm: syz.9.729 Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/aops.c:1391!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 7883 Comm: syz.6.469 Tainted: G             L      syzkaller #0 PREEMPT(full) 
+Tainted: [L]=SOFTLOCKUP
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/16/2026
+RIP: 0010:ocfs2_populate_write_desc fs/ocfs2/aops.c:1391 [inline]
+RIP: 0010:ocfs2_write_begin_nolock+0x41b2/0x41f0 fs/ocfs2/aops.c:1689
+Code: 84 3a e3 fd 49 bf 00 00 00 00 00 fc ff df 4c 8b 24 24 e9 62 fe ff ff e8 7c 50 fc 07 e8 67 3a e3 fd 90 0f 0b e8 5f 3a e3 fd 90 <0f> 0b e8 57 3a e3 fd 90 0f 0b e8 4f 3a e3 fd 90 0f 0b e8 47 3a e3
+RSP: 0018:ffffc900060df2e0 EFLAGS: 00010293
+RAX: ffffffff83e3f321 RBX: ffff88802a26c010 RCX: ffff88802ec5be80
+RDX: 0000000000000000 RSI: 0000000000000002 RDI: 0000000000000000
+RBP: ffffc900060df880 R08: ffff88802ec5be80 R09: 0000000000000006
+R10: 00000000fffffffc R11: 0000000000000000 R12: ffff88802a26c000
+R13: 1ffff110041ec81f R14: 0000000000000003 R15: 0000000000000000
+FS:  0000555591908500(0000) GS:ffff888124cf3000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007fc5117ed158 CR3: 000000005a889000 CR4: 0000000000350ef0
 Call Trace:
  <TASK>
- dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
- print_circular_bug+0x2e1/0x300 kernel/locking/lockdep.c:2059
- check_noncircular+0x12e/0x150 kernel/locking/lockdep.c:2191
- check_prev_add kernel/locking/lockdep.c:3181 [inline]
- check_prevs_add kernel/locking/lockdep.c:3300 [inline]
- validate_chain kernel/locking/lockdep.c:3924 [inline]
- __lock_acquire+0x1520/0x2ce0 kernel/locking/lockdep.c:5253
- lock_acquire+0x106/0x350 kernel/locking/lockdep.c:5886
- down_read+0x97/0x200 kernel/locking/rwsem.c:1574
- ocfs2_xattr_get+0xf4/0x260 fs/ocfs2/xattr.c:1578
- __vfs_getxattr+0x412/0x440 fs/xattr.c:446
- smk_fetch+0xb4/0x140 security/smack/smack_lsm.c:298
- smack_d_instantiate+0x757/0x990 security/smack/smack_lsm.c:3679
- security_d_instantiate+0x106/0x1d0 security/security.c:3703
- d_instantiate+0x54/0xb0 fs/dcache.c:2176
- ocfs2_mknod+0x1acb/0x22b0 fs/ocfs2/namei.c:459
- ocfs2_mkdir+0x180/0x430 fs/ocfs2/namei.c:667
- vfs_mkdir+0x408/0x620 fs/namei.c:5410
- filename_mkdirat+0x289/0x520 fs/namei.c:5443
- __do_sys_mkdirat fs/namei.c:5464 [inline]
- __se_sys_mkdirat+0x35/0x150 fs/namei.c:5461
- do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
- do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f98c067cf47
-Code: 00 66 90 48 89 f2 b9 00 01 00 00 48 89 fe bf 9c ff ff ff e9 db f7 ff ff 66 2e 0f 1f 84 00 00 00 00 00 90 b8 02 01 00 00 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007f98be8d5e58 EFLAGS: 00000246 ORIG_RAX: 0000000000000102
-RAX: ffffffffffffffda RBX: 00007f98be8d5ee0 RCX: 00007f98c067cf47
-RDX: 00000000000001ff RSI: 00002000000001c0 RDI: 00000000ffffff9c
-RBP: 0000200000000040 R08: 0000200000000240 R09: 0000000000000000
-R10: 0000200000000040 R11: 0000000000000246 R12: 00002000000001c0
-R13: 00007f98be8d5ea0 R14: 0000000000000000 R15: 0000000000000000
+ __ocfs2_page_mkwrite fs/ocfs2/mmap.c:92 [inline]
+ ocfs2_page_mkwrite+0x640/0xb60 fs/ocfs2/mmap.c:143
+ do_page_mkwrite+0x147/0x310 mm/memory.c:3754
+ wp_page_shared mm/memory.c:4155 [inline]
+ do_wp_page+0x1a9c/0x4b80 mm/memory.c:4378
+ handle_pte_fault mm/memory.c:6520 [inline]
+ __handle_mm_fault mm/memory.c:6645 [inline]
+ handle_mm_fault+0x1576/0x3720 mm/memory.c:6814
+ do_user_addr_fault+0x746/0x1340 arch/x86/mm/fault.c:1394
+ handle_page_fault arch/x86/mm/fault.c:1483 [inline]
+ exc_page_fault+0x6a/0xc0 arch/x86/mm/fault.c:1536
+ asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:595
+RIP: 0033:0x7f5f73c67682
+Code: 30 48 8b 14 24 48 85 d2 74 17 8b 44 24 10 0f c8 89 c0 48 89 44 24 10 48 83 fa 01 0f 85 aa 02 00 00 48 8b 44 24 18 8b 74 24 10 <89> 30 e9 1e fe ff ff 48 8b 44 24 18 8b 10 48 8b 04 24 48 85 c0 0f
+RSP: 002b:00007ffd7d7d31a0 EFLAGS: 00010246
+RAX: 0000200000000180 RBX: 0000000000000004 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: 0000000000000000 RDI: 00005555919083d8
+RBP: 00007ffd7d7d32c0 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000000 R12: 00007ffd7d7d3300
+R13: 00007f5f7402609c R14: 000000000002ae89 R15: 00007ffd7d7d32e0
  </TASK>
-gadgetfs: bound to dummy_udc driver
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:ocfs2_populate_write_desc fs/ocfs2/aops.c:1391 [inline]
+RIP: 0010:ocfs2_write_begin_nolock+0x41b2/0x41f0 fs/ocfs2/aops.c:1689
+Code: 84 3a e3 fd 49 bf 00 00 00 00 00 fc ff df 4c 8b 24 24 e9 62 fe ff ff e8 7c 50 fc 07 e8 67 3a e3 fd 90 0f 0b e8 5f 3a e3 fd 90 <0f> 0b e8 57 3a e3 fd 90 0f 0b e8 4f 3a e3 fd 90 0f 0b e8 47 3a e3
+RSP: 0018:ffffc900060df2e0 EFLAGS: 00010293
+RAX: ffffffff83e3f321 RBX: ffff88802a26c010 RCX: ffff88802ec5be80
+RDX: 0000000000000000 RSI: 0000000000000002 RDI: 0000000000000000
+RBP: ffffc900060df880 R08: ffff88802ec5be80 R09: 0000000000000006
+R10: 00000000fffffffc R11: 0000000000000000 R12: ffff88802a26c000
+R13: 1ffff110041ec81f R14: 0000000000000003 R15: 0000000000000000
+FS:  0000555591908500(0000) GS:ffff888124cf3000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007ffc50359f6c CR3: 000000005a889000 CR4: 0000000000350ef0
 
 
 ---
