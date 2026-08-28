@@ -1,42 +1,72 @@
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-wr1-f45.google.com (mail-wr1-f45.google.com [209.85.221.45])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B663E3DD536
-	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 07:15:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 960613DE43F
+	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 07:42:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787901362; cv=none; b=Fwxo1KKfgHJGVcV8+gJjZ4jC9vjKDCweWO1ITjob67PP1DPqfVWPA7Ush7wVaKkXXgbXXi8mYBaAZC9IzQCgYT0lWUzfn+c3jT/B3PwtFVB2AX3gWuRVlkQZjSpP/LK11Uu+xByiakm0Bugt74UxRQtwTIqcbNmJVNtRtoqf9Nc=
+	t=1787902925; cv=none; b=If7NI/29N9FpdJBdo9S72VpDCWEFbq8t7sq2wcm/7YdcLFu2hzIAA693HDb6zYI66y5w5071/GnfMh8+iacE6umyNW5kKJpvIICWWbI2xtol54D+kXLMv2vyVerWcYBxsH+6NLYxnBqqchVA2tfZ+YZOWvXu/tjC0Ew1l7x3mJk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787901362; c=relaxed/simple;
-	bh=KNa7XTkLrIXQDL9/6lg5UXyeiGkudnIw13P2B1J/obg=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=GsV+VN3TDubh+Ooo5lkVvtaMF/zCN8Ix31iO3AIdu4X0t/5yj2aIF2EwDxJGui7Ld4r/7gsEAcwGlfWX0a8SDk4ngUPvCyhHtry4AnMOZzwAPm8COt/VNb8AOS+3Bb+z0eWcg8VyqOLH6Jjyal6OkXVAw2EKGTa6EBhaFCxQMTk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=r04U85Od; arc=none smtp.client-ip=115.124.30.98
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1787902925; c=relaxed/simple;
+	bh=fsiviA7Tyk6WnmoBGpH6H7lFpVkB9xpLinZ8CKeHRZY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=mD/SfU+stw5Kv+CpsoOK5lVffiVwwDnjvHeZVLztibeWVbI07IyrTVdO5k4gsVw3XhoOPir5nnPSdL/ZXFsCZYVhTZZAd+AZlJzt5rYSBDI9PZNxtnK1tmOGiad3eHlzA8LnsLCHcCl7A8jxeOIh5FngAxr60bSQBUb+X1nv1Yc=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=PkLVAdKB; arc=none smtp.client-ip=209.85.221.45
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="r04U85Od"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1787901356; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=Ym0OjFpnq71nXHKw8CUZHcHs546ptbnjcgNaDOS2Sek=;
-	b=r04U85OdzKWG0ND2knaLIMp1a+IP/KWsjOQM39P4kSBIdFyaNj9NrMtOO+8wIcm42GeG0/qJpdE8tIzQeoJb3BLbiWQOT1R9uEgxTLljsm69PWaM0iIZTe574KqcXm7avnHcufCdIrm3ZZXT/NdQ2C6P4A+Y4vJC8MWLpD8J2C8=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0X9ld2Pc_1787901354;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X9ld2Pc_1787901354 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 28 Aug 2026 15:15:55 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="PkLVAdKB"
+Received: by mail-wr1-f45.google.com with SMTP id ffacd0b85a97d-47f502ff678so79700f8f.0
+        for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 00:42:01 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1787902919; x=1788507719; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=QzzPfcrESMmXj4MeD1wijXaEhujYoS5NdXZGJYE9Z8Y=;
+        b=PkLVAdKBHQj6FkV1bAylbzBgz/qQc2fCGzVeJinhmK5ru/Y2LXFhtVXM6BDwBPRDoM
+         oFDl6DsLiEFoNCR+oIr5XDIQiV3zdKEHcp7oYrm9C3xPBGEO42Dq8lkXB0Gp9hZDKyv5
+         +UbZ+P2G8bRaiRcYvewgH0Tiy46c2PY6G5Cocgd3jcaMmpV9Gxw+pb0bczkt8Y5dnWKk
+         iD3PA6G1LXtAAq3jnrq8EgC/uSelaPsMXlJUM6VTl+lbi6K8b4XB3n/DtA3nLT8gFyQ4
+         ugpwa+iaHufvQtypzjjmLoQFnQIC0CrsAIOyATAeC7dUccK7PCYQnBF2PAfoRj1fPG4O
+         w0gg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1787902919; x=1788507719;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=QzzPfcrESMmXj4MeD1wijXaEhujYoS5NdXZGJYE9Z8Y=;
+        b=doVO4HwBHR+dGzpsry+3D9OmsS44TSV/TYb9y8wEJsmYqFyo6wTzRk3+py5JqsxohH
+         JTt88+rbUdUtXWhFleQXRYECcDWpsV2Mm+5G0NoB/iQ5E1OnKsX9+f2Zfio6TW2q4aLc
+         B6MXApIeW2gI7gB2OFBkDNhHtC1UEO5E9j5gkP6Ts0CgqF6F+RUk9n2B3hlbDqQapb7x
+         v+HocRUWeMU5qdeDOoZWuhFtKnXa3whX2GFF6iasqbpSRGtIZG2RpCfX72hRlT3xbbtH
+         DELeO8j3nrK9tSOdTGsDVbreALGXzHuXZHtKdWXok5AhCgX9hjRIEPkTFvNCKZVOIpmv
+         udiQ==
+X-Forwarded-Encrypted: i=1; AHgh+Rr4rIPigDJy7SHu0Dfyb+y0a8/+A9Ge7raMTKqo6aW9yYtusTNXu4XMiS790ZcQVohD6t1403FgS8w+1w==@lists.linux.dev
+X-Gm-Message-State: AFuF++kYtu4IOGwkLU4ZK91nS8hLfpMM47eLn+xlGO5P435JZI87vGm7
+	PzEciZSpCABVg3KYgai5SBwNvBjIOT/AQlcGRc22Yp7JY3snh8pVMVxzY3u8kMN1zPc=
+X-Gm-Gg: AR+sD13PZI5UjGVcfAjiDKN+fv0ZeM/OkTJbEXAq2tzGm2pJm1Ybnsu5Ye0dd8RjCMA
+	3AjdzA0sCljp6KeTDwWhXSYCUmthDLbqaMFMHyDNK+dzmarjD2ZmvW0QKghNQd/oA40JmzGOxNd
+	qwYnIjjf++75+0oHVrpnYvdTMKOkVCghTvGqMg3Tk8ZZ5hU8XXb0npOVF6oUEfuYfP/Hh08HcNK
+	LDBzH2Mm9VHl81upIdTfWgrSDg+JTRM6UFxrDNohq/IENUjueW49vrVwHPKRVh4PzQpxxYLsnxE
+	r6qxwBD9XwsrPA1ZwpLd0Vpd6thl2vQZYArlD/5qAvOCSwMxMwF+1bkuaRMTkfC5BalWY1rMtJW
+	0khXC1+FfWrvaHWteXJL9aZQnWya14nPAmZG/Ua3m5H0Wwoc2Qk4aKFKb7VOQYr4vVbdWwYDQwh
+	7PpgxjcBV6NZUM65ZMB0UE1s/wxJG/qoJE/wrd1RRXJcVBasRrFDk8hAyXEgY=
+X-Received: by 2002:a05:600c:1f87:b0:492:4a7a:e415 with SMTP id 5b1f17b1804b1-49b91c41ca2mr36558795e9.2.1787902918749;
+        Fri, 28 Aug 2026 00:41:58 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2d75963a250sm2998305ad.31.2026.08.28.00.41.55
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 28 Aug 2026 00:41:56 -0700 (PDT)
+Date: Fri, 28 Aug 2026 15:41:53 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
 	linux-kernel@vger.kernel.org
-Subject: [PATCH v2 2/2] ocfs2: defer suballocator block group reclaim to workqueue
-Date: Fri, 28 Aug 2026 15:15:53 +0800
-Message-Id: <20260828071553.262254-2-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
-In-Reply-To: <20260828071553.262254-1-joseph.qi@linux.alibaba.com>
+Subject: Re: [PATCH v2 1/2] ocfs2: exit recovery thread on mount error path
+Message-ID: <apE7j-pFxA8iCY7_@p15>
 References: <20260828071553.262254-1-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -44,435 +74,60 @@ List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260828071553.262254-1-joseph.qi@linux.alibaba.com>
 
-When the last bit in a suballocator block group is freed,
-_ocfs2_free_suballoc_bits() reclaims the group back to the global
-bitmap.  The reclaim takes inode_lock() on the global bitmap inode
-while running inside the freeing transaction, adding a lock
-dependency of
+On Fri, Aug 28, 2026 at 03:15:52PM +0800, Joseph Qi wrote:
+> When a mount fails after the cluster connection has been established,
+> e.g. in ocfs2_mount_volume(), ocfs2_fill_super() unwinds via
+> out_debugfs/out_super and frees the osb without disabling recovery.
+> 
+> A node failure event can concurrently launch the recovery thread, which
+> blocks in __ocfs2_wait_on_mount() waiting for the volume state to
+> become VOLUME_MOUNTED or VOLUME_DISABLED.  As the mount error path
+> neither sets VOLUME_DISABLED nor wakes osb_mount_event, the thread can
+> never make progress: the kthread leaks and stays blocked on the wait
+> queue embedded in the freed osb, which may then be accessed as freed
+> memory.
+> 
+> Fix it by setting VOLUME_DISABLED and waking osb_mount_event on this
+> path so the thread bails out, and replace the plain
+> kfree(osb->recovery_map) with ocfs2_recovery_exit(), which waits for a
+> running recovery thread to exit before the recovery map is freed.
+> 
+> Fixes: f1e75d128b46 ("ocfs2: rewrite error handling of ocfs2_fill_super")
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-  j_trans_barrier -> global bitmap inode i_rwsem
-
-This forms a circular dependency with paths such as
-ocfs2_shutdown_local_alloc(), which take the global bitmap inode
-lock before starting a transaction:
-
-  Task1 (dealloc):
-    ocfs2_run_deallocs
-      ocfs2_free_cached_blocks
-        ocfs2_start_trans
-          down_read(j_trans_barrier)
-        _ocfs2_free_suballoc_bits
-          _ocfs2_reclaim_suballoc_to_main
-            inode_lock(main_bm_inode)  <- wait on Task2
-
-  Task2 (dismount):
-    ocfs2_shutdown_local_alloc
-      inode_lock(main_bm_inode)
-      ocfs2_start_trans
-        down_read(j_trans_barrier)  <- wait on Task3
-
-  Task3 (ocfs2cmt):
-    ocfs2_commit_cache
-      down_write(j_trans_barrier)  <- wait on Task1's handle
-      jbd2_journal_flush
-
-Task1 waits for Task2's inode_lock(), Task2 waits for the
-j_trans_barrier down_write() held by ocfs2cmt, and ocfs2cmt waits
-for Task1's running transaction to commit - a real deadlock,
-observed with aio-stress direct IO writes racing dismount.
-
-Fix it by deferring the reclaim to the per-superblock ocfs2_wq
-workqueue, so the freeing transaction no longer takes the global
-bitmap inode lock.  The worker re-checks under the suballocator
-locks that the block group is still fully freed (it may have been
-allocated from again in the meantime), takes the global bitmap
-inode locks before starting its own transaction, and performs the
-same suballocator cleanup and space return.  The inode lock order
-(suballocator inode -> global bitmap inode) is consistent with the
-existing "inode lock before transaction" order, breaking the cycle.
-
-Reclaim work can still be queued late in dismount, e.g. when the
-truncate log is flushed or orphan dir recovery frees inode bits, so
-both ocfs2_dismount_volume() and the mount error path flush
-ocfs2_wq right before the system inodes are released, while the
-journal is still alive, to make sure no reclaim work is left
-running.  The worker also bails out if the journal is already gone.
-
-Tested with the ocfs2 testsuite (including aio-stress direct IO)
-and umount/mount cycles on a CONFIG_PROVE_LOCKING kernel: the
-circular locking dependency is gone and freed block groups are
-still returned to the global bitmap.
-
-Fixes: 4a54331616b3 ("ocfs2: give ocfs2 the ability to reclaim suballocator free bg")
-Assisted-by: Qoder:Qwen3.8-Max
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/ocfs2.h    |   5 ++
- fs/ocfs2/suballoc.c | 202 +++++++++++++++++++++++++++++++++++++-------
- fs/ocfs2/suballoc.h |   2 +-
- fs/ocfs2/super.c    |  16 ++++
- 4 files changed, 195 insertions(+), 30 deletions(-)
-
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index 62cad6522c7a..b747cdec1787 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -502,6 +502,11 @@ struct ocfs2_super
- 	 */
- 	struct workqueue_struct *ocfs2_wq;
- 
-+	/* deferred reclaim of fully freed suballocator block groups */
-+	spinlock_t os_suballoc_reclaim_lock;
-+	struct list_head os_suballoc_reclaim_list;
-+	struct work_struct os_suballoc_reclaim_work;
-+
- 	/* sysfs directory per partition */
- 	struct kset *osb_dev_kset;
- 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 20c3aec6b987..453b56be9624 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -2687,16 +2687,24 @@ static int ocfs2_block_group_clear_bits(handle_t *handle,
-  * cleanup rec/alloc_inode job, then switches to the main bitmap
-  * to reclaim released space.
-  *
-+ * Callers must hold inode_lock() and ocfs2_inode_lock() on
-+ * main_bm_inode, i.e. the global bitmap inode locks must be taken
-+ * before starting the transaction.
-+ *
-  * handle: The transaction handle
-  * alloc_inode: The suballoc inode
-  * alloc_bh: The buffer_head of suballoc inode
-  * group_bh: The group descriptor buffer_head of suballocator managed.
-- *           Caller should release the input group_bh.
-+ *           This function takes ownership of it and will release it.
-+ * main_bm_inode: The global bitmap inode
-+ * main_bm_bh: The buffer_head of the global bitmap inode
-  */
- static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 			struct inode *alloc_inode,
- 			struct buffer_head *alloc_bh,
--			struct buffer_head *group_bh)
-+			struct buffer_head *group_bh,
-+			struct inode *main_bm_inode,
-+			struct buffer_head *main_bm_bh)
- {
- 	int idx, status = 0;
- 	int i, next_free_rec, len = 0;
-@@ -2706,8 +2714,6 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 	u64 bg_blkno, start_blk;
- 	unsigned int count;
- 	struct ocfs2_chain_rec *rec;
--	struct buffer_head *main_bm_bh = NULL;
--	struct inode *main_bm_inode = NULL;
- 	struct ocfs2_super *osb = OCFS2_SB(alloc_inode->i_sb);
- 	struct ocfs2_dinode *fe = (struct ocfs2_dinode *) alloc_bh->b_data;
- 	struct ocfs2_chain_list *cl = &fe->id2.i_chain;
-@@ -2794,24 +2800,12 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 	ocfs2_remove_from_cache(INODE_CACHE(alloc_inode), group_bh);
- 	memset(group, 0, sizeof(struct ocfs2_group_desc));
- 
--	/* prepare job for reclaim clusters */
--	main_bm_inode = ocfs2_get_system_file_inode(osb,
--						    GLOBAL_BITMAP_SYSTEM_INODE,
--						    OCFS2_INVALID_SLOT);
--	if (!main_bm_inode)
--		goto bail; /* ignore the error in reclaim path */
--
--	inode_lock(main_bm_inode);
--
--	status = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 1);
--	if (status < 0)
--		goto free_bm_inode; /* ignore the error in reclaim path */
--
- 	ocfs2_block_to_cluster_group(main_bm_inode, start_blk, &bg_blkno,
- 				     &start_bit);
- 	fe = (struct ocfs2_dinode *) main_bm_bh->b_data;
- 	cl = &fe->id2.i_chain;
--	/* reuse group_bh, caller will release the input group_bh */
-+	/* release the suballocator group descriptor before reuse */
-+	brelse(group_bh);
- 	group_bh = NULL;
- 
- 	/* reclaim clusters to global_bitmap */
-@@ -2819,7 +2813,7 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 					     &group_bh);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto free_bm_bh;
-+		goto bail;
- 	}
- 	group = (struct ocfs2_group_desc *) group_bh->b_data;
- 
-@@ -2827,7 +2821,7 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 		ocfs2_error(alloc_inode->i_sb,
- 			"reclaim length (%d) beyands block group length (%d)",
- 			count + start_bit, le16_to_cpu(group->bg_bits));
--		goto free_group_bh;
-+		goto bail;
- 	}
- 
- 	old_bg_contig_free_bits = group->bg_contig_free_bits;
-@@ -2837,7 +2831,7 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 					      _ocfs2_clear_bit);
- 	if (status < 0) {
- 		mlog_errno(status);
--		goto free_group_bh;
-+		goto bail;
- 	}
- 
- 	status = ocfs2_journal_access_di(handle, INODE_CACHE(main_bm_inode),
-@@ -2847,7 +2841,7 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 		ocfs2_block_group_set_bits(handle, main_bm_inode, group, group_bh,
- 				start_bit, count,
- 				le16_to_cpu(old_bg_contig_free_bits), 1);
--		goto free_group_bh;
-+		goto bail;
- 	}
- 
- 	idx = le16_to_cpu(group->bg_chain);
-@@ -2858,19 +2852,168 @@ static int _ocfs2_reclaim_suballoc_to_main(handle_t *handle,
- 	fe->id1.bitmap1.i_used = cpu_to_le32(tmp_used - count);
- 	ocfs2_journal_dirty(handle, main_bm_bh);
- 
--free_group_bh:
-+bail:
- 	brelse(group_bh);
-+	return status;
-+}
-+
-+/*
-+ * When a suballocator block group becomes fully freed, its space is
-+ * reclaimed back to the global bitmap. Taking the global bitmap inode
-+ * lock inside the freeing transaction would create a lock dependency
-+ * of "j_trans_barrier -> global bitmap inode i_rwsem", which forms a
-+ * circular dependency with paths like ocfs2_shutdown_local_alloc() that
-+ * take the inode lock before starting a transaction, and can lead to a
-+ * real deadlock with the ocfs2cmt journal commit thread. So queue the
-+ * reclaim to the workqueue and let it run outside the freeing
-+ * transaction.
-+ */
-+struct ocfs2_suballoc_reclaim_work {
-+	struct list_head list;
-+	struct inode *alloc_inode;
-+	u64 bg_blkno;
-+};
-+
-+static void ocfs2_queue_suballoc_reclaim(struct ocfs2_super *osb,
-+					 struct inode *alloc_inode,
-+					 u64 bg_blkno)
-+{
-+	struct ocfs2_suballoc_reclaim_work *reclaim_work;
-+
-+	reclaim_work = kmalloc_obj(*reclaim_work, GFP_NOFS);
-+	if (!reclaim_work) {
-+		/*
-+		 * Reclaim is only a space return optimization. If we can't
-+		 * queue it, the freed block group just stays owned by the
-+		 * suballocator.
-+		 */
-+		return;
-+	}
-+
-+	igrab(alloc_inode);
-+	reclaim_work->alloc_inode = alloc_inode;
-+	reclaim_work->bg_blkno = bg_blkno;
-+
-+	spin_lock(&osb->os_suballoc_reclaim_lock);
-+	list_add_tail(&reclaim_work->list, &osb->os_suballoc_reclaim_list);
-+	spin_unlock(&osb->os_suballoc_reclaim_lock);
- 
--free_bm_bh:
-+	queue_work(osb->ocfs2_wq, &osb->os_suballoc_reclaim_work);
-+}
-+
-+static void ocfs2_do_suballoc_reclaim(struct ocfs2_super *osb,
-+				struct ocfs2_suballoc_reclaim_work *reclaim_work)
-+{
-+	int status, i;
-+	handle_t *handle;
-+	struct inode *alloc_inode = reclaim_work->alloc_inode;
-+	struct inode *main_bm_inode;
-+	struct buffer_head *alloc_bh = NULL, *group_bh = NULL;
-+	struct buffer_head *main_bm_bh = NULL;
-+	struct ocfs2_dinode *fe;
-+	struct ocfs2_chain_list *cl;
-+	struct ocfs2_chain_rec *rec;
-+
-+	/* journal already gone, e.g. during dismount cleanup */
-+	if (!osb->journal)
-+		return;
-+
-+	inode_lock(alloc_inode);
-+	status = ocfs2_inode_lock(alloc_inode, &alloc_bh, 1);
-+	if (status < 0)
-+		goto out_alloc;
-+
-+	fe = (struct ocfs2_dinode *) alloc_bh->b_data;
-+	cl = &fe->id2.i_chain;
-+
-+	/*
-+	 * The block group may have been allocated from again since the
-+	 * reclaim work was queued, re-check that it is still fully freed.
-+	 * A stale work item can also reference a group that is no longer
-+	 * chained, whose descriptor would fail validation and trigger a
-+	 * spurious ocfs2_error(), so verify chain membership first.
-+	 */
-+	for (i = 0; i < le16_to_cpu(cl->cl_next_free_rec); i++) {
-+		rec = &cl->cl_recs[i];
-+		if (le64_to_cpu(rec->c_blkno) == reclaim_work->bg_blkno)
-+			break;
-+	}
-+	if (i == le16_to_cpu(cl->cl_next_free_rec) ||
-+	    ocfs2_is_cluster_bitmap(alloc_inode) ||
-+	    (le32_to_cpu(rec->c_free) != (le32_to_cpu(rec->c_total) - 1)) ||
-+	    (le16_to_cpu(cl->cl_next_free_rec) == 1))
-+		goto out_alloc_unlock;
-+
-+	status = ocfs2_read_group_descriptor(alloc_inode, fe,
-+					     reclaim_work->bg_blkno, &group_bh);
-+	if (status < 0)
-+		goto out_alloc_unlock;
-+
-+	main_bm_inode = ocfs2_get_system_file_inode(osb,
-+						    GLOBAL_BITMAP_SYSTEM_INODE,
-+						    OCFS2_INVALID_SLOT);
-+	if (!main_bm_inode)
-+		goto out_group;
-+
-+	inode_lock(main_bm_inode);
-+	status = ocfs2_inode_lock(main_bm_inode, &main_bm_bh, 1);
-+	if (status < 0)
-+		goto out_main;
-+
-+	handle = ocfs2_start_trans(osb, OCFS2_SUBALLOC_FREE);
-+	if (IS_ERR(handle)) {
-+		status = PTR_ERR(handle);
-+		mlog_errno(status);
-+		goto out_main_unlock;
-+	}
-+
-+	status = _ocfs2_reclaim_suballoc_to_main(handle, alloc_inode,
-+						 alloc_bh, group_bh,
-+						 main_bm_inode, main_bm_bh);
-+	/* group_bh ownership passed to _ocfs2_reclaim_suballoc_to_main() */
-+	group_bh = NULL;
-+	if (status < 0)
-+		mlog_errno(status);
-+
-+	ocfs2_commit_trans(osb, handle);
-+
-+out_main_unlock:
- 	ocfs2_inode_unlock(main_bm_inode, 1);
- 	brelse(main_bm_bh);
--
--free_bm_inode:
-+out_main:
- 	inode_unlock(main_bm_inode);
- 	iput(main_bm_inode);
-+out_group:
-+	brelse(group_bh);
-+out_alloc_unlock:
-+	ocfs2_inode_unlock(alloc_inode, 1);
-+	brelse(alloc_bh);
-+out_alloc:
-+	inode_unlock(alloc_inode);
-+}
- 
--bail:
--	return status;
-+void ocfs2_suballoc_reclaim_worker(struct work_struct *work)
-+{
-+	struct ocfs2_super *osb = container_of(work, struct ocfs2_super,
-+					       os_suballoc_reclaim_work);
-+	struct ocfs2_suballoc_reclaim_work *reclaim_work;
-+
-+	while (1) {
-+		spin_lock(&osb->os_suballoc_reclaim_lock);
-+		if (list_empty(&osb->os_suballoc_reclaim_list)) {
-+			spin_unlock(&osb->os_suballoc_reclaim_lock);
-+			break;
-+		}
-+		reclaim_work = list_first_entry(&osb->os_suballoc_reclaim_list,
-+					struct ocfs2_suballoc_reclaim_work,
-+					list);
-+		list_del(&reclaim_work->list);
-+		spin_unlock(&osb->os_suballoc_reclaim_lock);
-+
-+		ocfs2_do_suballoc_reclaim(osb, reclaim_work);
-+		iput(reclaim_work->alloc_inode);
-+		kfree(reclaim_work);
-+	}
- }
- 
- /*
-@@ -2955,7 +3098,8 @@ static int _ocfs2_free_suballoc_bits(handle_t *handle,
- 		goto bail;
- 	}
- 
--	_ocfs2_reclaim_suballoc_to_main(handle, alloc_inode, alloc_bh, group_bh);
-+	ocfs2_queue_suballoc_reclaim(OCFS2_SB(alloc_inode->i_sb), alloc_inode,
-+				     bg_blkno);
- 
- bail:
- 	brelse(group_bh);
-diff --git a/fs/ocfs2/suballoc.h b/fs/ocfs2/suballoc.h
-index bcf2ed4a8631..6042abc032f9 100644
---- a/fs/ocfs2/suballoc.h
-+++ b/fs/ocfs2/suballoc.h
-@@ -206,7 +206,7 @@ int ocfs2_lock_allocators(struct inode *inode, struct ocfs2_extent_tree *et,
- 
- int ocfs2_test_inode_bit(struct ocfs2_super *osb, u64 blkno, int *res);
- 
--
-+void ocfs2_suballoc_reclaim_worker(struct work_struct *work);
- 
- /*
-  * The following two interfaces are for ocfs2_create_inode_in_orphan().
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index f785c39d1fb8..b7c29d3c0321 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1787,6 +1787,9 @@ static int ocfs2_mount_volume(struct super_block *sb)
- out_system_inodes:
- 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
- 		ocfs2_shutdown_local_alloc(osb);
-+	/* Drain pending suballoc reclaim work before the journal goes away */
-+	if (osb->ocfs2_wq)
-+		flush_workqueue(osb->ocfs2_wq);
- 	ocfs2_release_system_inodes(osb);
- 	/* before journal shutdown, we should release slot_info */
- 	ocfs2_free_slot_info(osb);
-@@ -1857,6 +1860,14 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 	if (osb->cconn)
- 		ocfs2_super_unlock(osb, 1);
- 
-+	/*
-+	 * Drain pending suballoc reclaim work while the system inodes and
-+	 * the journal are still alive, since the worker needs to look up
-+	 * the global bitmap inode and start a transaction.
-+	 */
-+	if (osb->ocfs2_wq)
-+		flush_workqueue(osb->ocfs2_wq);
-+
- 	ocfs2_release_system_inodes(osb);
- 
- 	ocfs2_journal_shutdown(osb);
-@@ -2143,6 +2154,11 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	INIT_WORK(&osb->dquot_drop_work, ocfs2_drop_dquot_refs);
- 	init_llist_head(&osb->dquot_drop_list);
- 
-+	spin_lock_init(&osb->os_suballoc_reclaim_lock);
-+	INIT_LIST_HEAD(&osb->os_suballoc_reclaim_list);
-+	INIT_WORK(&osb->os_suballoc_reclaim_work,
-+		  ocfs2_suballoc_reclaim_worker);
-+
- 	/* get some pseudo constants for clustersize bits */
- 	osb->s_clustersize_bits =
- 		le32_to_cpu(di->id2.i_super.s_clustersize_bits);
--- 
-2.39.3
-
+LGTM
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> ---
+>  fs/ocfs2/super.c | 11 ++++++++++-
+>  1 file changed, 10 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index c62e389d4dd6..f785c39d1fb8 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1169,8 +1169,17 @@ static int ocfs2_fill_super(struct super_block *sb, struct fs_context *fc)
+>  out_debugfs:
+>  	debugfs_remove_recursive(osb->osb_debug_root);
+>  out_super:
+> +	/*
+> +	 * A recovery thread launched by a node failure event may still be
+> +	 * waiting for the volume to be mounted.  Set VOLUME_DISABLED and
+> +	 * wake it up, then wait for it to exit before osb is freed,
+> +	 * otherwise the kthread would leak and stay blocked on the wait
+> +	 * queue embedded in the freed osb.
+> +	 */
+> +	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+> +	wake_up(&osb->osb_mount_event);
+>  	ocfs2_release_system_inodes(osb);
+> -	kfree(osb->recovery_map);
+> +	ocfs2_recovery_exit(osb);
+>  	ocfs2_delete_osb(osb);
+>  	kfree(osb);
+>  out:
+> -- 
+> 2.39.3
+> 
