@@ -1,29 +1,30 @@
-Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
+Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21632422E08
-	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 11:28:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C1E9F41F7C3
+	for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 11:28:34 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787916519; cv=none; b=mEadWcgB5JUeoW7lhxXnlYyU38BbxhoDLMK2PtQeOBJlYZU9glzam5IE4KUiO9pE+X1W8mcMBlfUUKPMJzTdjb+0Cia5PW1bbh69sha2KEtL8fQtrIbP/gi2JiAPzVQgxceStYnsFz5auGqeXEN5h7n4u5j77hMrx5+B2klVzc4=
+	t=1787916520; cv=none; b=B9B2yv5ZPLvSGeQ6DdoK2mVsOx8C6pNgCWBAnVcynauGl7HkJnVjtzrrJrUrrvzVlIoTnXqFwhnZ6hpu46E/5PDuhbAbtARZn/GUuCbhKkz0dzcOWcvjRqJ1Dm95fAj6AIaCdUd2xiM/NRE3xhHJGUinMmR6c9tdzOvR9LeDWCE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787916519; c=relaxed/simple;
-	bh=GJhmhpryd3ovgR9+SNmIzHiF+9qNsGbKcn1Bxct3aEI=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=GvPojXpbZJIULBf/0/Ke8bGjYlf6iF4u7KxiEqKMBVgLFqndz7ELQes+LsPzLGZ+K2pbFzfGc2PseuW81FuhGkF+YpoiczLOTw6DZDsodaUQSfDaurln9+8teM4zjek/PWs4huPx4OPFbMb/r5xGwtEjzf/149tlgrDyd753beo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=xhMAqNUs; arc=none smtp.client-ip=115.124.30.118
+	s=arc-20240116; t=1787916520; c=relaxed/simple;
+	bh=/gbHNmSgNtdIkDrciN2lrqMW46sgKlW++Y8k09AhWXI=;
+	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
+	 MIME-Version; b=O3HLo5gKQLu9e2kM6HDxnLSj63hSoo956iV+ysM2Ot7MsHllOK3Qo+G1txzaeBcX/rreai8vg9/kpBEthb8pzhej4keUbwJxUno1Vs6wSCeihB8tHFauWwWzhb9ydyhHIwOQOYKlj/lqLgQ9vrQlh/qwHfxXb7AX8El1E8w3A4E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=w2OoyLWp; arc=none smtp.client-ip=115.124.30.98
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="xhMAqNUs"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="w2OoyLWp"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1787916506; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=3tYc4yYO/f82yRU3a/2G8udVSpfIsAg03Xb74wg1EN4=;
-	b=xhMAqNUs6xOF1NguX3Wu5R/JbCHSizqH1tjOCREmRlNfDBIEu16LCffT9AaTnn/6C5oubp2NChSDQxwWnsJapimm23ky4yIt9YH1XG3u3s1aDko7WEvBdcU4zVqJxDF1ucV7R65UUozfmdz+SuaBiQzcfEvtg6BiU8cvC54Qpvo=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R211e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X9mBi6L_1787916505;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X9mBi6L_1787916505 cluster:ay36)
+	t=1787916508; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=KJGFtURAmGWFRlSvSJgxs80wZh9Z33BZIa4VmJay+WE=;
+	b=w2OoyLWpAuknzUY55Cvu8b8pIwcqW6PRDoCrCBkiTWQnYR7XzPRu5HvQp6h0mLcgutXvTpVI9/ms+3JA42JCwd+IrRzc0G2UZpELpXmfkz9KpjbLBWU6loma2okubAU33HSZuwCWQIiRMn0EEY5e0Of+mRwF2ljm9qHm/ucqpCA=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0X9mHega_1787916506;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0X9mHega_1787916506 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 28 Aug 2026 19:28:26 +0800
+          Fri, 28 Aug 2026 19:28:27 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>,
@@ -32,10 +33,12 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Subject: [PATCH v3 1/3] ocfs2: exit recovery thread on mount error path
-Date: Fri, 28 Aug 2026 19:28:23 +0800
-Message-Id: <20260828112825.666097-1-joseph.qi@linux.alibaba.com>
+Subject: [PATCH v3 2/3] ocfs2: free replay slots in ocfs2_recovery_exit()
+Date: Fri, 28 Aug 2026 19:28:24 +0800
+Message-Id: <20260828112825.666097-2-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
+In-Reply-To: <20260828112825.666097-1-joseph.qi@linux.alibaba.com>
+References: <20260828112825.666097-1-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -44,54 +47,92 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-When a mount fails after the cluster connection has been established,
-e.g. in ocfs2_mount_volume(), ocfs2_fill_super() unwinds via
-out_debugfs/out_super and frees the osb without disabling recovery.
+Commit ce2fcf1516d6 ("ocfs2: fix memory leak in ocfs2_mount_volume()")
+added ocfs2_free_replay_slots() calls to the mount error paths
+out_dismount and out_check_volume to fix a leak of osb->replay_map.
+However these calls are unlocked while the bail path of the recovery
+thread, which is woken up by out_dismount right before the call, also
+frees the replay slots under osb->recovery_lock.  Both sides can thus
+observe a non-NULL osb->replay_map and trigger a double free.
 
-A node failure event can concurrently launch the recovery thread, which
-blocks in __ocfs2_wait_on_mount() waiting for the volume state to
-become VOLUME_MOUNTED or VOLUME_DISABLED.  As the mount error path
-neither sets VOLUME_DISABLED nor wakes osb_mount_event, the thread can
-never make progress: the kthread leaks and stays blocked on the wait
-queue embedded in the freed osb, which may then be accessed as freed
-memory.
+Fix this by moving ocfs2_free_replay_slots() into ocfs2_recovery_exit()
+after ocfs2_recovery_disable(), which waits for a running recovery
+thread to exit under osb->recovery_lock, and drop the unlocked call
+sites.  Both ocfs2_dismount_volume() and the out_super path of
+ocfs2_fill_super() call ocfs2_recovery_exit(), so the replay slots are
+freed on every path.  Since super.c no longer references it, make
+ocfs2_free_replay_slots() static again.
 
-Fix it by setting VOLUME_DISABLED and waking osb_mount_event on this
-path so the thread bails out, and replace the plain
-kfree(osb->recovery_map) with ocfs2_recovery_exit(), which waits for a
-running recovery thread to exit before the recovery map is freed.
-
-Fixes: f1e75d128b46 ("ocfs2: rewrite error handling of ocfs2_fill_super")
+Fixes: ce2fcf1516d6 ("ocfs2: fix memory leak in ocfs2_mount_volume()")
 Cc: <stable@vger.kernel.org>
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
 ---
- fs/ocfs2/super.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
+ fs/ocfs2/journal.c | 3 ++-
+ fs/ocfs2/journal.h | 1 -
+ fs/ocfs2/super.c   | 5 +----
+ 3 files changed, 3 insertions(+), 6 deletions(-)
 
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index d8afbc1a76bb..a3938a03e93b 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -156,7 +156,7 @@ static void ocfs2_queue_replay_slots(struct ocfs2_super *osb,
+ 	replay_map->rm_state = REPLAY_DONE;
+ }
+ 
+-void ocfs2_free_replay_slots(struct ocfs2_super *osb)
++static void ocfs2_free_replay_slots(struct ocfs2_super *osb)
+ {
+ 	struct ocfs2_replay_map *replay_map = osb->replay_map;
+ 
+@@ -243,6 +243,7 @@ void ocfs2_recovery_exit(struct ocfs2_super *osb)
+ 	/* XXX: Should we bug if there are dirty entries? */
+ 
+ 	kfree(rm);
++	ocfs2_free_replay_slots(osb);
+ }
+ 
+ static int __ocfs2_recovery_map_test(struct ocfs2_super *osb,
+diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
+index f8b3b2a3d630..19fc920d26b1 100644
+--- a/fs/ocfs2/journal.h
++++ b/fs/ocfs2/journal.h
+@@ -151,7 +151,6 @@ void ocfs2_recovery_exit(struct ocfs2_super *osb);
+ void ocfs2_recovery_disable_quota(struct ocfs2_super *osb);
+ 
+ int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
+-void ocfs2_free_replay_slots(struct ocfs2_super *osb);
+ /*
+  *  Journal Control:
+  *  Initialize, Load, Shutdown, Wipe a journal.
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index c62e389d4dd6..f785c39d1fb8 100644
+index f785c39d1fb8..6a8092b65bb5 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -1169,8 +1169,17 @@ static int ocfs2_fill_super(struct super_block *sb, struct fs_context *fc)
- out_debugfs:
- 	debugfs_remove_recursive(osb->osb_debug_root);
- out_super:
-+	/*
-+	 * A recovery thread launched by a node failure event may still be
-+	 * waiting for the volume to be mounted.  Set VOLUME_DISABLED and
-+	 * wake it up, then wait for it to exit before osb is freed,
-+	 * otherwise the kthread would leak and stay blocked on the wait
-+	 * queue embedded in the freed osb.
-+	 */
-+	atomic_set(&osb->vol_state, VOLUME_DISABLED);
-+	wake_up(&osb->osb_mount_event);
- 	ocfs2_release_system_inodes(osb);
--	kfree(osb->recovery_map);
-+	ocfs2_recovery_exit(osb);
- 	ocfs2_delete_osb(osb);
- 	kfree(osb);
- out:
+@@ -1162,7 +1162,6 @@ static int ocfs2_fill_super(struct super_block *sb, struct fs_context *fc)
+ out_dismount:
+ 	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+ 	wake_up(&osb->osb_mount_event);
+-	ocfs2_free_replay_slots(osb);
+ 	ocfs2_dismount_volume(sb, 1);
+ 	goto out;
+ 
+@@ -1776,14 +1775,12 @@ static int ocfs2_mount_volume(struct super_block *sb)
+ 	status = ocfs2_truncate_log_init(osb);
+ 	if (status < 0) {
+ 		mlog_errno(status);
+-		goto out_check_volume;
++		goto out_system_inodes;
+ 	}
+ 
+ 	ocfs2_super_unlock(osb, 1);
+ 	return 0;
+ 
+-out_check_volume:
+-	ocfs2_free_replay_slots(osb);
+ out_system_inodes:
+ 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
+ 		ocfs2_shutdown_local_alloc(osb);
 -- 
 2.39.3
 
