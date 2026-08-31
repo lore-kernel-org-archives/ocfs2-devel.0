@@ -1,174 +1,165 @@
-Received: from mail-wr1-f45.google.com (mail-wr1-f45.google.com [209.85.221.45])
+Received: from mail-qt1-f176.google.com (mail-qt1-f176.google.com [209.85.160.176])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 21E3FEED8
-	for <ocfs2-devel@lists.linux.dev>; Sat, 29 Aug 2026 00:01:27 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.45
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1787961689; cv=none; b=W1XT0joxWd2NGEPGkM37uv6hE9Xg41QJoIOEQwUxzaTdeHWsin9+937f6aIOnz6V0E5D7TAUC0VhK8It4DalzAfxwZwMyEZiISF/s8mulU7e+XhruuSO/HYiubseEGOt4QaOlNZ41p12coF1MOF4hqbg7vcEC/jWinYR/zBCtnY=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1787961689; c=relaxed/simple;
-	bh=XTtWz0UzJqkUF4/34oCqxMpiGnDoUtBqy/FaIC8xjoc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=MyfGOe4J/ikKJyzOuiqt3T6HYgcL3gU2jeqCv2uKd/SoJe2WynSD7ygMGrHZuy9CH9U01tzz+WiNvJHGIQlDXHpjoLObr6zijhkOfPge3BnbjUPYRsxv7EPtBiv8HnPghfR/ASZG2UPh8VGSm5H8j07JMlXRcKWGHMgjzGoREeQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=QhwpSjb0; arc=none smtp.client-ip=209.85.221.45
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7ED573B47F6
+	for <ocfs2-devel@lists.linux.dev>; Mon, 31 Aug 2026 03:34:03 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.160.176
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1788147245; cv=pass; b=JGShncgikdjV1XJxbuKJt3dJ9wFHIhaKZm4h2tzzd4Pu9U1SwcZKSsVCOWEcpIQfSICvJXFMy9dRV76Z1roup6I5vOfnBtucxOv5OOtM4WDdRxNROZXxIc4rXfzGWUjOx7RuzAkL/hN9295MNoFmQKpJFo32w71aM4AxsQ543Ng=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1788147245; c=relaxed/simple;
+	bh=AZs/sm4zt5glGIybIrEVcQWeC/fAhNCbd0FittW9YuE=;
+	h=MIME-Version:From:Date:Message-ID:Subject:To:Cc:Content-Type; b=PmuRjuhDFc2Uzl160TvEvQ50/RCvMXx8lDuQAqv2BRhPpTeLhX+jAAIlpsn7lRzUv8OGeP2cU6M2BUX8NcDKn8073bYwZ6rLbxslC5Y4GEhq4i+hZRk60G703P5DGtdsfbkCA9Z2ssM+pN5AharpHaSeEQs9xzix6yuIuRrtXxc=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=dP9Q+vOu; arc=pass smtp.client-ip=209.85.160.176
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="QhwpSjb0"
-Received: by mail-wr1-f45.google.com with SMTP id ffacd0b85a97d-47f611b3af9so183258f8f.3
-        for <ocfs2-devel@lists.linux.dev>; Fri, 28 Aug 2026 17:01:27 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="dP9Q+vOu"
+Received: by mail-qt1-f176.google.com with SMTP id d75a77b69052e-51bfad59921so29975281cf.0
+        for <ocfs2-devel@lists.linux.dev>; Sun, 30 Aug 2026 20:34:02 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1788147241; cv=none;
+        d=google.com; s=arc-20260327;
+        b=LvhENN9oMsU2TAQu8As507kD16+14npjrOec9LW4YipkeGy75d4ve31nYvgqOX6T65
+         /FrJ+yKrr38w9cgNgQjoWkpJgiAIOfnT2OxGZ0z0nVpzsqU9YFHDJCXYE+soHkV9BQUL
+         2s8krGs3YkhVrvbOGTH9HCFY8Qy3070AgTZN9PwUuA7vYZTc8ULsjVheEBqbLQLx9Wln
+         QckMRSRA6paQAgcGNRHWDAGhLieINkQYUf7hDjhCLsWdA9AX06c4kQF+VNDrdj2huZvm
+         Sosj/ieRZztnhwaBzPBFxX+Q+uazVrdR7Wy0xbwR2Q5pcWuV/UvY/r7G48mI0nU718qL
+         Arcg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=cc:to:subject:message-id:date:from:mime-version:dkim-signature;
+        bh=AZs/sm4zt5glGIybIrEVcQWeC/fAhNCbd0FittW9YuE=;
+        fh=mJzTCfKQ+HsjPqllz7pKQATYgyAE3JTTNmbRso+CXr4=;
+        b=YW90NzP9bLhoucdp6BWUe86HRnJnqu2iSXQyr9GyF+2U15H5P1bnzfxreVyoAOExQk
+         qXMr/WWzd2X804CsnRP+QMqsN6AUKau3Sr2J9ILdRXvBxDGcIWaEt5DByZFnqjOEJsj/
+         kbmb7qtIOhslbJr6XtA0ap7w0BzFu/dwX4kr50EIG7IFM7huyMFiJirJjPSYDHqXKbcG
+         EQPPUJ9X3ZX2s9c7JG/t4iCnn543FzWkUXS+u1u6VGz2yo1pfRJBf5j1f0jTRGzy7IfR
+         +TgVqwIHqROw+RaOZwZoKP0IoKHwiwFbc8QO/LPEoKEKVlGmBc6gAi5fU0XmUi5oUo8d
+         lAVw==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1787961686; x=1788566486; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=78uVeNXTFjv5Imt5OX67hFUHeeD2uCgnWEQFVSHEokI=;
-        b=QhwpSjb0BdNvbqVipTjL+zEHIpqoS1TZ3jha+MFzIA0mls/3pNkj7LuqgQc1ZoXF5p
-         RcpZs9LpUy24Do5WAbphUt/J2y5bMf1QdJw4grs3s1AUTmrNfQNZDchoPBjXbflgr5M4
-         OZdWHODnwRSCxntpS7e+KG3ZH461PHVaGjT1npPpLiiIDKxjke0ifXXZeDShRmAbckiF
-         DC89Z7kjUfWfaFoftRTrzuRg5wLSuSTX23hw/PADgYcfPx0efwHadq7rP/2C+0e9fH6s
-         89rjAXU1KSd1pzfr0zVX3howsD00iz/gp2VDbeZzWkPCXxhR4Xd1WzVEFv/zHYBTbBsw
-         bUSQ==
+        d=gmail.com; s=20251104; t=1788147241; x=1788752041; darn=lists.linux.dev;
+        h=content-type:cc:to:subject:message-id:date:from:mime-version:from
+         :to:cc:subject:date:message-id:reply-to:content-type;
+        bh=AZs/sm4zt5glGIybIrEVcQWeC/fAhNCbd0FittW9YuE=;
+        b=dP9Q+vOuE0+I7XuXc9e3ufL+X1quQz88BSnd30DHQf7j6msJ9ihOQln45+LzxU4gpN
+         f3in2NqxdjlfJi5vWJBHPkNKdB4TQE7nDI9jSvaYyU7eWPT17OUTP0SZai/9rN8/tCw9
+         4pCd8azgZ2lk7NQsvjfNe02lVfjVLBpjBUPb+f/2cQCd49tpm/sTNJIioP6AsbrI0O+I
+         n+WyCK4/K4PUGDtT4QHyI39izlMwFoIYG7GpTmMRl5aTGEIoF0XACAX0Mb/2KEDliJ+l
+         +0QLQeK4BbIilWIo9KoUH+GajuqdM4+IZF8pBHdIGzJHSMG1GHhW5dQq3OiRf2ERm57O
+         rzew==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1787961686; x=1788566486;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=78uVeNXTFjv5Imt5OX67hFUHeeD2uCgnWEQFVSHEokI=;
-        b=d5UjCrqoORwe87gZexJv8uIfsETGUqO8/nX3UseVu9agGLFkd1fOrB0p4+h6bJqRis
-         SHJRvoqrKp/y9sPpfeVMtAwyqzwTcqIQGeF06GUiLitdzHihFxnp47YJkEk+hGpbJq62
-         6yPDlAzfcdrD30dv8yTpBUsD0uJo3ci4pBpOOgx44dFEKe/5kgOmyzUszm5h/lva2n+3
-         IFFElkFjb1vA01TlLHPz14n9nXOkhKCwYrXywMXd/9b+U++27X7J+7JeqfYpp94QeEX3
-         y+cGcr+syW0s1og1UK9LwJF7FR0cHQ2wCyLaiZlH9LWkUzb5fz2/USWcRhkjgPWGMUOE
-         09iQ==
-X-Forwarded-Encrypted: i=1; AHgh+RqABnOT29p3utw9NypiR3sZyGJQBmgii+WGQxbq5qO3RsBmJ6yRielk5Ib5ES9CLipSze9GwYTBn+6rHA==@lists.linux.dev
-X-Gm-Message-State: AFuF++nsFQ95VUy8PDqT9QfYrYp33ivLRJvJU77EyUnClTsSAyLU17j3
-	b04HFgGqIkE8g1gK6Ovsr6zrV0oBh0j0Syuf2iW5F/twOwPaJ9D/40bKBKe5Io20L3E=
-X-Gm-Gg: AR+sD12qYZdk/wDeONTJgCMSU+E/PjH7/nV1bR4unmtfRKFfGddpTpiUkXlKOIGqPzd
-	SqD2kUj54+gUXiGfgnXA0w/5KQfESwdDs5nZOrhXoZM2jRKO/FSh/PwZRpAF0840LgXxYxsv1io
-	lZ2N4xZvHvU5RoJxrFHzYYFbsVPkqXGd/nt0HfPB1xnccVbMVQ1TU3fn8cjCYtSeSqkDnXq/7qc
-	UCdzkyNnA56SW7QJFuFGOizxNp27Hf9yQHiMrONoXWhp8D0jqIYzGlM0gnKvPxhwGYPCBhlW6RC
-	x5UkjfDN+K6VMyQ9OsVo+obC0heOBcHxsv0Y8yGeoAT9nu6vYBLfxazD4jRq4vHwLR4czbE6J9c
-	YFd3g1f61IyyF7i7u3pVW6WoCpe8DU8vAds2wBKQ2Bn8P9vw2PN4KbhFeLLvJE05UqLyR/ocuMx
-	K1fWRWzXvlcxl7fokOwec8jUwQi1xreHnmn6qLnNAHwlesTn7OvgD40DyLytM=
-X-Received: by 2002:a05:600c:3103:b0:499:cef6:104c with SMTP id 5b1f17b1804b1-49b91c39a77mr80523985e9.1.1787961686337;
-        Fri, 28 Aug 2026 17:01:26 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8569fe78fc3sm1024562b3a.24.2026.08.28.17.01.24
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 28 Aug 2026 17:01:25 -0700 (PDT)
-Date: Sat, 29 Aug 2026 08:01:21 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Li Zetao <lizetao1@huawei.com>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH v3 2/3] ocfs2: free replay slots in ocfs2_recovery_exit()
-Message-ID: <apIhL9ZVN4Hdc6Mu@p15>
-References: <20260828112825.666097-1-joseph.qi@linux.alibaba.com>
- <20260828112825.666097-2-joseph.qi@linux.alibaba.com>
+        d=1e100.net; s=20251104; t=1788147241; x=1788752041;
+        h=content-type:cc:to:subject:message-id:date:from:mime-version
+         :x-gm-gg:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to:content-type;
+        bh=AZs/sm4zt5glGIybIrEVcQWeC/fAhNCbd0FittW9YuE=;
+        b=Huu+513q1sp9y8qp+3GnLPuJateZCt5qBQvXJzCxRs1NqE20BmrzhgwSpwg2nbtAWZ
+         nXeHMEkYGyHIyxaog5hHCTW3AWEa95jzcQuc3rYgVTMnsIPz8mpLGS8AK4GVIVU9/jXZ
+         sqIR5DsFQFJFQ1mu8xnyb2nsp9WMXtpsuDVwj1D7iPfUuDE4unHY1eqhbAFR9M/KT8x/
+         u1Qk9UzZB7hyziWTO+OoWR8qphlj5RJypXXtrmk2PKL3IsMw45TTCUc6QZBDdt0zLX4V
+         LLII8vsz51y5ZJWS1frc3p4xlzpKmqefQL4gCLbJaFi2sUd1TWK6P/aCJJCcZawY9ppU
+         aWmg==
+X-Gm-Message-State: AFuF++mv12o0/eSWyVTOwazuk6kiiant7Flw1LfL1540ubK1UPpGvBan
+	uO4hv9rApS/f8M0RknLMZ3a+ujjUvQh85JQ3J35eN1zkuF1ZrYoi8dXHaqZI81r1wRrOJ5BcT+h
+	qJybykpwcIxN/CBedzy/Q5CW1vMDYo2Y=
+X-Gm-Gg: AR+sD126/WSroKL6XDqjRaKg5FA7WI1BSRtka2AKV9riOaS8a6VebzCFEhXz2/29OTl
+	UjuM6b9HSgeaZc1emd+xcciok2A7BMuSD1Jhv1E+YxREs8/E29OdB935/x+ZIFyaxeE7Fuwq4iD
+	y+gKpoLyQYKx3bRjzp07+Tegn7SwUfNcE0t06IG99gp8gd2hAm1RQDp6fVvu9xF+BpkcFUMqDhI
+	mzRcC+3G2c7X/AMleF4Vz5Y1L9+dW8vfA38R3DcDyIUnqx49CuE+oJ578pJ+baMZCZ4vSs8PwPE
+	QPpQoxeUi4pfAnouNdOqvkS41vaX6Ms09xzrJfh6JH3PJKvjOmq1fKGWIJ5EAQSoivVRX6DwcSk
+	SSV0UMB4oTXoNLd9twqlpUzY7kG6UqBRRPKuEzikUveyQ0DPD
+X-Received: by 2002:a05:622a:8c6:b0:52e:fb1b:b50f with SMTP id
+ d75a77b69052e-52fb967eab5mr305370061cf.35.1788147241018; Sun, 30 Aug 2026
+ 20:34:01 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260828112825.666097-2-joseph.qi@linux.alibaba.com>
+From: ZW Tang <tangzw515@gmail.com>
+Date: Mon, 31 Aug 2026 11:33:49 +0800
+X-Gm-Features: AcwNN1WTGXlb64mE7CNrNMnGsVoCgwkmdcjAFwSLONHTAjlK2eSrVlp7QOX01pc
+Message-ID: <CAA2SOT7zxMtbW3=ZkEnb4R-Cmyqg=gX+yGr6NdG05--Nz=2pQQ@mail.gmail.com>
+Subject: [BUG] ocfs2: non-static lock key warning in ocfs2_dlm_shutdown on
+ crafted readonly image
+To: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
 
-On Fri, Aug 28, 2026 at 07:28:24PM +0800, Joseph Qi wrote:
-> Commit ce2fcf1516d6 ("ocfs2: fix memory leak in ocfs2_mount_volume()")
-> added ocfs2_free_replay_slots() calls to the mount error paths
-> out_dismount and out_check_volume to fix a leak of osb->replay_map.
-> However these calls are unlocked while the bail path of the recovery
-> thread, which is woken up by out_dismount right before the call, also
-> frees the replay slots under osb->recovery_lock.  Both sides can thus
-> observe a non-NULL osb->replay_map and trigger a double free.
-> 
-> Fix this by moving ocfs2_free_replay_slots() into ocfs2_recovery_exit()
-> after ocfs2_recovery_disable(), which waits for a running recovery
-> thread to exit under osb->recovery_lock, and drop the unlocked call
-> sites.  Both ocfs2_dismount_volume() and the out_super path of
-> ocfs2_fill_super() call ocfs2_recovery_exit(), so the replay slots are
-> freed on every path.  Since super.c no longer references it, make
-> ocfs2_free_replay_slots() static again.
-> 
-> Fixes: ce2fcf1516d6 ("ocfs2: fix memory leak in ocfs2_mount_volume()")
-> Cc: <stable@vger.kernel.org>
-> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Hi,
 
-LGTM
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->  fs/ocfs2/journal.c | 3 ++-
->  fs/ocfs2/journal.h | 1 -
->  fs/ocfs2/super.c   | 5 +----
->  3 files changed, 3 insertions(+), 6 deletions(-)
-> 
-> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-> index d8afbc1a76bb..a3938a03e93b 100644
-> --- a/fs/ocfs2/journal.c
-> +++ b/fs/ocfs2/journal.c
-> @@ -156,7 +156,7 @@ static void ocfs2_queue_replay_slots(struct ocfs2_super *osb,
->  	replay_map->rm_state = REPLAY_DONE;
->  }
->  
-> -void ocfs2_free_replay_slots(struct ocfs2_super *osb)
-> +static void ocfs2_free_replay_slots(struct ocfs2_super *osb)
->  {
->  	struct ocfs2_replay_map *replay_map = osb->replay_map;
->  
-> @@ -243,6 +243,7 @@ void ocfs2_recovery_exit(struct ocfs2_super *osb)
->  	/* XXX: Should we bug if there are dirty entries? */
->  
->  	kfree(rm);
-> +	ocfs2_free_replay_slots(osb);
->  }
->  
->  static int __ocfs2_recovery_map_test(struct ocfs2_super *osb,
-> diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-> index f8b3b2a3d630..19fc920d26b1 100644
-> --- a/fs/ocfs2/journal.h
-> +++ b/fs/ocfs2/journal.h
-> @@ -151,7 +151,6 @@ void ocfs2_recovery_exit(struct ocfs2_super *osb);
->  void ocfs2_recovery_disable_quota(struct ocfs2_super *osb);
->  
->  int ocfs2_compute_replay_slots(struct ocfs2_super *osb);
-> -void ocfs2_free_replay_slots(struct ocfs2_super *osb);
->  /*
->   *  Journal Control:
->   *  Initialize, Load, Shutdown, Wipe a journal.
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index f785c39d1fb8..6a8092b65bb5 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1162,7 +1162,6 @@ static int ocfs2_fill_super(struct super_block *sb, struct fs_context *fc)
->  out_dismount:
->  	atomic_set(&osb->vol_state, VOLUME_DISABLED);
->  	wake_up(&osb->osb_mount_event);
-> -	ocfs2_free_replay_slots(osb);
->  	ocfs2_dismount_volume(sb, 1);
->  	goto out;
->  
-> @@ -1776,14 +1775,12 @@ static int ocfs2_mount_volume(struct super_block *sb)
->  	status = ocfs2_truncate_log_init(osb);
->  	if (status < 0) {
->  		mlog_errno(status);
-> -		goto out_check_volume;
-> +		goto out_system_inodes;
->  	}
->  
->  	ocfs2_super_unlock(osb, 1);
->  	return 0;
->  
-> -out_check_volume:
-> -	ocfs2_free_replay_slots(osb);
->  out_system_inodes:
->  	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
->  		ocfs2_shutdown_local_alloc(osb);
-> -- 
-> 2.39.3
-> 
+I am reporting a lockdep warning triggered by a syzkaller reproducer on
+Linux 7.2.0-rc3. A similar issue has been reported before, but I can still
+reproduce this warning on Linux 7.2.0-rc3 with HEAD commit
+1137d8b5df06137fb49513cc923b3b24d94cb809.
+
+The reproducer mounts a crafted OCFS2 filesystem image through a loop
+device. The image reports block check CRC errors, and the loop device is
+detected as readonly. OCFS2 mounts the image in local mode and skips
+cluster recovery. During unmount, ocfs2_dlm_shutdown() drops DLM lock
+resources and reaches ocfs2_mark_lockres_freeing(), where lockdep reports
+that a non-static key is being registered.
+
+This looks like an OCFS2 shutdown-path issue for a partially initialized
+or corrupted readonly mount. A lock resource appears to be dropped during
+ocfs2_dlm_shutdown(), but its lockdep state/class is not initialized in a
+way that lockdep can track.
+
+Reproducer:
+
+syz reproducer: https://pastebin.com/raw/TYgtTYYu
+console output: https://pastebin.com/raw/pU2bSEGZ
+kernel config: https://pastebin.com/raw/y7Hyukfc
+
+Kernel:
+
+HEAD commit: 1137d8b5df06137fb49513cc923b3b24d94cb809
+git tree: torvalds/linux
+kernel version: 7.2.0-rc3 #1 PREEMPT(full) (QEMU Ubuntu 24.10)
+
+Relevant log:
+
+loop0: detected capacity change from 0 to 32768
+
+ocfs2_block_check_validate:400 ERROR: CRC32 failed:
+stored: 0xb3775c19, computed 0x2dd1c265. Applying ECC.
+
+ocfs2: Readonly device (7,0) detected. Cluster services will not be used
+for this mount. Recovery will be skipped.
+
+ocfs2: Mounting device (7,0) on (node local, slot 65535) with ordered data mode.
+
+INFO: trying to register non-static key.
+The code is fine but needs lockdep annotation, or maybe
+you didn't initialize this object before use?
+turning off the locking correctness validator.
+
+CPU: 1 UID: 0 PID: 10387 Comm: syz-executor Not tainted 7.2.0-rc3 #1
+PREEMPT(full)
+
+Call Trace:
+<TASK>
+dump_stack_lvl+0x116/0x1b0
+register_lock_class+0x778/0x7c0
+__lock_acquire+0xa4/0x27a0
+lock_acquire+0x1a4/0x350
+_raw_spin_lock_irqsave+0x3d/0x60
+ocfs2_mark_lockres_freeing+0xb4/0x5a0
+ocfs2_simple_drop_lockres+0x1e/0x80
+ocfs2_dlm_shutdown+0x43/0x250
+ocfs2_dismount_volume+0x33b/0xa70
+generic_shutdown_super+0x166/0x400
+kill_block_super+0x3b/0x90
+deactivate_locked_super+0xbb/0x130
+deactivate_super+0xb1/0xd0
+cleanup_mnt+0x378/0x510
+task_work_run+0x172/0x280
+exit_to_user_mode_loop+0x201/0x660
+do_syscall_64+0x5ba/0x7a0
+entry_SYSCALL_64_after_hwframe+0x76/0x7e
+</TASK>
+
+ocfs2: Unmounting device (7,0) on (node local)
