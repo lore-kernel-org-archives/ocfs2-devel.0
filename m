@@ -1,143 +1,141 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-lj1-f180.google.com (mail-lj1-f180.google.com [209.85.208.180])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EDBEE3E120C;
-	Mon, 31 Aug 2026 08:22:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4DB414BB5BB
+	for <ocfs2-devel@lists.linux.dev>; Mon, 31 Aug 2026 14:02:36 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.208.180
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788164576; cv=none; b=LSGavYLK2Z0MmoUqNQ/qxVbntJVrObcaF6xvctL+KbnMWCjRXJqkf7KnSNPAC2iWSMCeOeFvkhO01DedRSzoIaRAF5LypM2HU+6goLHzOCvZEyWq6gLLPPMWn+LaoHRxA2R6YU51XkJGo+D3iDWctXo4Suxhe3hX7RlnOAp4wRI=
+	t=1788184959; cv=none; b=gAyXFd0FE34tZLctT6NGe4WBbSWuGADTScY4zvq14VR9cfALlUw5fPNYz4s9m33rehhQtJVyo+BiF/kMDwaW96x+vXFfXzPsLpgqI/lHAslhceJAJk1s1OstmmFvnW8eUTcvhUt1ugrJUFAX00ZksFscA3gWT37B0csSyoRU+L8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788164576; c=relaxed/simple;
-	bh=wnOb710GDzXvB78jABPqDFMRlLh8C3NnDR9JYFb6Gvo=;
-	h=From:To:Cc:In-Reply-To:References:Subject:Message-Id:Date:
-	 MIME-Version:Content-Type; b=n1bjO5deoVe1SfpRYRo6jbMcGaqQkYjmOuKa20eWV4oNP+7CHTy0sTewAS4bNFAJGMAbFoioI/MKND3N74wLy8SkKep3kbKJg+wWCjSuhlq9GYnpmPu2rvPAYUeuviD7Gn/HhEQuR6NlBiP9f1GntFp3c7dFCVAqyBsveARP70Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=kDuLGYij; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1788184959; c=relaxed/simple;
+	bh=j0rR9MGESIIEuqcISsQKYNt5XVOHewIyabitt0SxDbk=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=Lzrew8YC1WeeG1dclvBlJg9bqS5jgzzMaWtPqFG0zNRLQehreQXA62tLscOGx9V4+NTF2RgY03wB44sJsbVCeEtxdgRcwiAlT9e/i5GEBpb27h3u7ZHaqwab73bdfqd+o4d7OLsVSPEJlaj90lgJqFWWlA1pjn49WPYz7b7LGsQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=UKrvGuO6; arc=none smtp.client-ip=209.85.208.180
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="kDuLGYij"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 734C01F000E9;
-	Mon, 31 Aug 2026 08:22:49 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1788164574;
-	bh=lmGgmlxDbGLbhuLXzpdjg1bjgsmwZj4DcRmR+5yii2Q=;
-	h=From:To:Cc:In-Reply-To:References:Subject:Date;
-	b=kDuLGYijTZY4L/lJ/eKPEPZ79jZ7Xzmksn4BPj95fcn4/heyZX5sB2+cMA38oBDso
-	 6JiwxxbpqX3bnt+aDaYhdskRY0eL3Elp2ksONcUTyVNV1yDn40MOWzowF4/4iQkzpX
-	 FUSGofyobRO9WCZ7d7+xpLahTeq+0fu4OdkWhOsrufaSThIk5kbwJwdQ9YJ5Q1xDNA
-	 kR4jaXnYHcWCmBy+b7/VhvLvCK6Me5gvxHj/PJ1rGpI+P8epCwSyDdHQCO5RMKeTBV
-	 W52ImWhGYlJDU0FChhsUy6to3arDCcjLQYzjxxGO6D4zx/2cdFUAG4ATb69hZtdThq
-	 hgWE7GVrWnesQ==
-From: Christian Brauner <brauner@kernel.org>
-To: Jan Kara <jack@suse.cz>, Alexander Viro <viro@zeniv.linux.org.uk>, 
- Matthew Wilcox <willy@infradead.org>, linux-fsdevel@vger.kernel.org, 
- Chao Shi <coshi036@gmail.com>
-Cc: Theodore Ts'o <tytso@mit.edu>, 
- Andreas Dilger <adilger.kernel@dilger.ca>, 
- Baokun Li <libaokun@linux.alibaba.com>, 
- Ojaswin Mujoo <ojaswin@linux.ibm.com>, 
- Ritesh Harjani <ritesh.list@gmail.com>, Zhang Yi <yi.zhang@huawei.com>, 
- Zhang Yi <yi.zhang@huaweicloud.com>, Bob Copeland <me@bobcopeland.com>, 
- Namjae Jeon <linkinjeon@kernel.org>, Sungjong Seo <sj1557.seo@samsung.com>, 
- Yuezhang Mo <yuezhang.mo@sony.com>, 
- OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Mark Fasheh <mark@fasheh.com>, 
- Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
- Andreas Gruenbacher <agruenba@redhat.com>, linux-ext4@vger.kernel.org, 
- ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
- linux-kernel@vger.kernel.org
-In-Reply-To: <cover.1785951556.git.coshi036@gmail.com>
-References: <cover.1785951556.git.coshi036@gmail.com>
-Subject: Re: [PATCH v2 00/21] buffer: stop clearing BH_Uptodate when a
- write fails
-Message-Id: <20260831-lauwarm-gedruckt-salzkartoffel-67b444e6977e@brauner>
-Date: Mon, 31 Aug 2026 10:20:39 +0200
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="UKrvGuO6"
+Received: by mail-lj1-f180.google.com with SMTP id 38308e7fff4ca-39c68f1e863so1931371fa.3
+        for <ocfs2-devel@lists.linux.dev>; Mon, 31 Aug 2026 07:02:36 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=suse.com; s=google; t=1788184954; x=1788789754; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=+6NgNBrKED1HZLTTfXtmSzKHM84oxFz3evM2YzN+h9A=;
+        b=UKrvGuO6OVDmcInuUD0syNCJO8LR8mRlZ1BVSrNGJ9+F1i9p8aYbvSmeXL3WGODnr1
+         WPid7gZ/5Z4HvL8r+OxmjvdiuFAxqZWWltq8rt0zS0SQ7Z3Ykba9aalL0QBYP7uKQ2Um
+         cnPNwgGXImuCw85SPPN3NGpDvJ4z7yXr3WTRQb1n9WNlufoVDM0g5pgOEV2fF+yiXqjG
+         35GhcKDIbTwJY+XuSnFd7tP/ik5l/72L0Hlm174cpL01dLhQm49uZC9NMnNWqsrKQqsR
+         A+S/3/14V0LJDtwA9uAcUKik5DfQO1xwwyFyOgM4RhG7sm6hBaHykmHjfRfb0fhG6oi9
+         XMFw==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1788184954; x=1788789754;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=+6NgNBrKED1HZLTTfXtmSzKHM84oxFz3evM2YzN+h9A=;
+        b=cjMaHHqcfPpTlm3lDtntqS/Y0XSlwH4v91CxLF/p1W9wEp/gLtZiPAeSQkAuEJadGa
+         8jl+Hc36c7sjVyy8aAuNgwpvUyts32F3H+VmBNR8HhRWSXjUAWCDHX4EsHGltzCCU1A+
+         DIhu6XHztg2WmQzAIsdBVAg296SeMRQfZyvW6qR5emjBVFkCRgWlNhNUR0hy4CrzDAws
+         smBYwnU1fKi1cUKT2tn33lzjgGijEJW90IGjWp/tM6VatBCo0c7Ln/tUgOJwHahoFm1g
+         nLSRhInETo09IgmSSnJJamdHejLXbArcmTb7NyKrJsySJ904IdBgF2ink3mG7V3a5/8V
+         gY/w==
+X-Forwarded-Encrypted: i=1; AKwUvBzYFMZxHk64ksv5f7ujOwVJUzmd4hv7d6vjIlSlz9od3YhH3ebaKVANqjMc8X3fW6Au0EOsb2wqISb1Sg==@lists.linux.dev
+X-Gm-Message-State: AFuF++mBvUUfYTfLE813FPs1M0tVagWG61nCH8LEdE3v4r4qm8nrn/E0
+	hXcG5eo9CaQKbNLhZ12H5yoeX282a03m85PWkfU6g+xmNGnSYlI3Y5swiCbwM9q6ajA=
+X-Gm-Gg: AYBFou2Y0U0OcXkDisvIxxsKWIwCfPc4XM+m9LpqnTYA5um0nLhorud6OzRHbEZX7Gt
+	h7qeAnQvBCD1uPrsPvSuEKn8xoT7qj8sF1eEJ4RseHiBnhteGzV4rDz4LN3UEl1o6g3z0Lm8w13
+	oCwWEwYO74vYRjvuh2xts2zOUMjz7aeZUwB2JZ5lv8crhaG/oUbOU1F3UuOJgflCqWXEZAGE+6i
+	RjZQLB0w2Wlwv8wfDcUtHYKIKdNpuvTzDJV37jIWhI5Oqa2Gd1M0sOZm4aqWd/lCNNtnNrtStIN
+	U6/TM44svLINxe/ZVwg/H0nAo0RwZlcYrgocd/NzP4c0IAlGYAr//3wMwn99St9zI4uOVmY1ipg
+	D4AEQObdjpkPg6GbK4ncuLiSe1R1B0zsdtMoFyDiQjH+vhwEQ+PlR+vnE+UznMtBc0iP+LR/q3F
+	7FsYwcHtNgXhjSxrBkNd8XhsfvJyjKer7MRYpprat42H2TS8gq8JhCoSsUYEE=
+X-Received: by 2002:a05:651c:a107:10b0:3a3:38e2:aea1 with SMTP id 38308e7fff4ca-3a338e2b1eamr1597451fa.2.1788184954189;
+        Mon, 31 Aug 2026 07:02:34 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-396d77f7643sm5961747a91.3.2026.08.31.07.02.32
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 31 Aug 2026 07:02:32 -0700 (PDT)
+Date: Mon, 31 Aug 2026 22:02:30 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 1/4] ocfs2: restrict OCFS2_INVALID_SLOT suballoc slot to
+ system inodes
+Message-ID: <apWJLyCNwqfdiRQb@p15>
+References: <20260831062848.2743436-1-joseph.qi@linux.alibaba.com>
+ <20260831062848.2743436-2-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-X-Mailer: b4 0.17-dev-362b8
-X-Developer-Signature: v=1; a=openpgp-sha256; l=3922; i=brauner@kernel.org;
- h=from:subject:message-id; bh=wnOb710GDzXvB78jABPqDFMRlLh8C3NnDR9JYFb6Gvo=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWRNtbzJ87J41a5rDh88SrxLj019wMf7ZdaNyWoRf36K7
- 5nGYlVR2VHKwiDGxSArpsji0G4SLrecp2KzUaYGzBxWJpAhDFycAjAR0V8M/7PsK/maZ50rW/Aw
- se7TNPM5UrPXVnCy82ZtVAs3EXx0LZKRYYvaOo7NJmWzWpcEBVrvZ7rOsdFfq4dnq69PApPHBjt
- fbgA=
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260831062848.2743436-2-joseph.qi@linux.alibaba.com>
 
-On Thu, 06 Aug 2026 12:58:23 -0400, Chao Shi wrote:
-> buffer: stop clearing BH_Uptodate when a write fails
+On Mon, Aug 31, 2026 at 02:28:45PM +0800, Joseph Qi wrote:
+> ocfs2_validate_inode_block() currently permits i_suballoc_slot to be
+> OCFS2_INVALID_SLOT for any dinode.  Only system inodes created by
+> mkfs.ocfs2 are allocated from the global allocator and thus
+> legitimately carry this value; regular inodes are always allocated
+> from a per-slot suballocator and hence must have a valid slot.
 > 
-> When a metadata write fails, the buffer_head completion handlers clear
-> BH_Uptodate.  The buffer still holds exactly the data the filesystem asked
-> to be written - it is the disk that is stale, not the buffer - and saying
-> otherwise has consequences:
+> If a corrupted regular inode with OCFS2_INVALID_SLOT is accepted,
+> ocfs2_remove_inode() will pass the slot to ocfs2_get_system_file_inode()
+> and get_local_system_inode() will hit BUG_ON(slot == OCFS2_INVALID_SLOT)
+> when the inode is deleted.  This can be triggered by an unprivileged
+> user unlinking such a corrupted file.
 > 
-> [...]
+> Reject OCFS2_INVALID_SLOT for non-system dinodes during validation,
+> while still accepting it for system inodes.
+> 
+> Fixes: fe7a283b3916 ("ocfs2: add suballoc slot check in ocfs2_validate_inode_block()")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Tbh, the commit message reads a bit LLMy. It would be nice if people
-could take the time - provided they have sufficient language skills - to
-massage the artificial tone out of them.
-
----
-
-Applied to the vfs-7.4.bh branch of the vfs/vfs.git tree.
-Patches in the vfs-7.4.bh branch should appear in linux-next soon.
-
-Please report any outstanding bugs that were missed during review in a
-new review to the original patch series allowing us to drop it.
-
-It's encouraged to provide Acked-bys and Reviewed-bys even though the
-patch has now been applied. If possible patch trailers will be updated.
-
-Note that commit hashes shown below are subject to change due to rebase,
-trailer updates or similar. If in doubt, please check the listed branch.
-
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
-branch: vfs-7.4.bh
-
-[01/21] buffer_head: Remove b_page
-        https://git.kernel.org/vfs/vfs/c/719ecb98ffe7
-[02/21] buffer: allow a buffer_head to point at memory outside the page cache
-        https://git.kernel.org/vfs/vfs/c/8deae2284976
-[03/21] jbd2: point the shadow buffer at the frozen data directly
-        https://git.kernel.org/vfs/vfs/c/5febcba29792
-[04/21] buffer: read the folio's mapping directly in buffer_set_crypto_ctx()
-        https://git.kernel.org/vfs/vfs/c/14cbade7d773
-[05/21] buffer: clear BH_Write_EIO when a buffer is forgotten
-        https://git.kernel.org/vfs/vfs/c/d59fe9111f4f
-[06/21] buffer: discard BH_Write_EIO along with the rest of the buffer state
-        https://git.kernel.org/vfs/vfs/c/bbcd6f7456b2
-[07/21] buffer: detect metadata write errors with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/7032ded0a1fa
-[08/21] adfs: check for a directory write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/613e12102111
-[09/21] ext2: check for an xattr block write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/583913a40f2e
-[10/21] omfs: check for an inode write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/a269f6fade99
-[11/21] exfat: check for a directory write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/4a53ece574b5
-[12/21] fat: check for a metadata write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/a93ff8e2e398
-[13/21] ext4: check for a metadata write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/0f44b420e6c7
-[14/21] ocfs2: check for a metadata write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/3f90f64f8187
-[15/21] ocfs2: check for a stale write error before reusing a metadata buffer
-        https://git.kernel.org/vfs/vfs/c/a87462d7b604
-[16/21] gfs2: check for a metadata write error with buffer_write_io_error()
-        https://git.kernel.org/vfs/vfs/c/47552ff5ebf9
-[17/21] jbd2: report journal write errors with BH_Write_EIO
-        https://git.kernel.org/vfs/vfs/c/0c6c46fbf4d8
-[18/21] jbd2: say what jbd2_freeze_jh_data()'s assertion is actually checking
-        https://git.kernel.org/vfs/vfs/c/50cf8c8e532c
-[19/21] ext4, jbd2: report fast commit write errors with BH_Write_EIO
-        https://git.kernel.org/vfs/vfs/c/a49d8a9d5d49
-[20/21] buffer: stop touching BH_Uptodate on write completion
-        https://git.kernel.org/vfs/vfs/c/1f2304e87b83
-[21/21] buffer: clear BH_Write_EIO when a write succeeds, not when one starts
-        https://git.kernel.org/vfs/vfs/c/e038f1016c6f
-
+LGTM.
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> ---
+>  fs/ocfs2/inode.c | 19 +++++++++++++++++--
+>  1 file changed, 17 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 180107a11046..eda50f13ffb5 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1520,8 +1520,23 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		goto bail;
+>  	}
+>  
+> -	if (le16_to_cpu(di->i_suballoc_slot) != (u16)OCFS2_INVALID_SLOT &&
+> -	    (u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1) {
+> +	/*
+> +	 * Only system inodes created by mkfs.ocfs2 are allocated from the
+> +	 * global allocator and thus legitimately carry OCFS2_INVALID_SLOT.
+> +	 * Regular inodes are always allocated from a per-slot suballocator.
+> +	 * If a regular inode with OCFS2_INVALID_SLOT was accepted here,
+> +	 * deleting it would pass the slot to get_local_system_inode() via
+> +	 * ocfs2_remove_inode() and trigger BUG_ON(slot == OCFS2_INVALID_SLOT).
+> +	 */
+> +	if (le16_to_cpu(di->i_suballoc_slot) == (u16)OCFS2_INVALID_SLOT) {
+> +		if (!(le32_to_cpu(di->i_flags) & OCFS2_SYSTEM_FL)) {
+> +			rc = ocfs2_error(sb,
+> +					 "Invalid dinode %llu: suballoc slot %u for non-system inode\n",
+> +					 (unsigned long long)bh->b_blocknr,
+> +					 le16_to_cpu(di->i_suballoc_slot));
+> +			goto bail;
+> +		}
+> +	} else if ((u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1) {
+>  		rc = ocfs2_error(sb, "Invalid dinode %llu: suballoc slot %u\n",
+>  				 (unsigned long long)bh->b_blocknr,
+>  				 le16_to_cpu(di->i_suballoc_slot));
+> -- 
+> 2.39.3
+> 
