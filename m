@@ -1,48 +1,48 @@
 Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B13E61B3925
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 596A548A2C2
 	for <ocfs2-devel@lists.linux.dev>; Wed,  2 Sep 2026 13:37:24 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788356246; cv=none; b=PuBxb/k0cVLNCa0PmDGNWIO0yh5pNBLhxUis2ALqLUjWTDRwlqxJ1RVaTHYwNr1Wnfc0RVCr2NLYRRPiTJzFwxHHi4XIEsRz9TzSKKBLVagWWYgwskYJItCjBtaAxfK1v6yxQi6YW5W4+aUc8AqrpSUDK3fp+HS7gU4dwU+Gsio=
+	t=1788356246; cv=none; b=Nl2LEIYkvlKuZHsChHoTvyiGS62TaUxA9kg503ymO2EpPhSq/fLyVSKB2DfxGwjiqi6Z30GPhqmxBF99901jfuxTImZoazfKX6vgQk/Zk61g29tZbnOzG/d4YzYtP7fdKwvzr2COp/HLtAsHU8CoKY4Sz7s1Wl8uXBANhECSzaI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
 	s=arc-20240116; t=1788356246; c=relaxed/simple;
-	bh=lhNs9a+Xa+x9bTBoSWZLJQRDRMwvKbNZuBDt48fbKGQ=;
+	bh=eXTdW3jlEgvo3+fRkqFJjMu0ZDxZwxAjzXoYPvG1T7M=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=fQ7PuWYbKYzn4cNSBuIzW2NkJWtlLJjnN3ZeMmv+1tHgNR1zItht5DMAihQ8ygRcWxdBdYvAKgJWRNs4SBqG3baFE8wkmZLJFlDSWIMr4Nb14gEvlrrUmSQhFsyYKtwMJftY0nqnDs8mvlEIHyjHLhL4AeGp5pChRnvJEkVI4Mw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=XacPRPfM; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=A6cqz0jd; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=v057JiWg; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=2bwc/O8I; arc=none smtp.client-ip=195.135.223.131
+	 MIME-Version; b=lXG/CMzB0mebG7efHhPoJBbLTTy7mz1V1HArF1jSt0Po1ZfaRv5MIQ2nwflhOe3LcIXc3aEL0kuhQJrd5NYo8AfbE3YfjSDVmmTWN/3ZBUqKLzqizBJsAc3NJntdamHH+1yIYJXcfWZ/aNPyG4bsxzckOhd6zxIjIh7KtgmL96k=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=Qes4nSDh; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=PaBkU7UX; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=AUMI1Rv+; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=dHID/5p+; arc=none smtp.client-ip=195.135.223.131
 Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="XacPRPfM";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="A6cqz0jd";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="v057JiWg";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="2bwc/O8I"
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="Qes4nSDh";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="PaBkU7UX";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="AUMI1Rv+";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="dHID/5p+"
 Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id C85951F8B3;
+	by smtp-out2.suse.de (Postfix) with ESMTPS id A5A111F812;
 	Wed,  2 Sep 2026 13:37:13 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
 	t=1788356237; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=SvI9OUn/GHaXEU/gvf/0EtYqhPQbjO59qKoI8EtYKMU=;
-	b=XacPRPfMISNdW/DwDnP65BRYx5Xmq8RZlTIr9plSAyO1+Fw5VjC2ZP+JlrMREGTwHMz28c
-	st8M5CpKnVYzMM02ZzrREcRsFwf/KecyzjXJgCRti9T3syl2CJ/ANrLPmPXkFTVQ9jyR2E
-	8Ofa1bNvUTM/4VPQhH/AsmZbpDIYW2I=
+	bh=nAYIXq2aizFaeJHiAqTkWiPxmY4fp23xo/LzkEA4iAA=;
+	b=Qes4nSDhi4/dx18qt3AzuZ5PGjpqZCEPpSygx9STBmo/n6gzEVMcsBtOuRArBB0dZ0yaWA
+	KWzFgVCoP4aml3FELHOlVZW85gIzvsohnBL7ZnqQDiYyzgwoKz6p90Y36XWiwh1IICLyNt
+	wc4tRBv0m+f0baP2cnXeOFZpYRr2r2E=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
 	s=susede2_ed25519; t=1788356237;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=SvI9OUn/GHaXEU/gvf/0EtYqhPQbjO59qKoI8EtYKMU=;
-	b=A6cqz0jd23QVqkF9IRkukb0PDhutZoFLJk1k5sVj5sVTQL+8F6rK1XBYcd6LlkU6Sp6vnI
-	F+aCkqUT4njCS4AQ==
+	bh=nAYIXq2aizFaeJHiAqTkWiPxmY4fp23xo/LzkEA4iAA=;
+	b=PaBkU7UXikcmdgoAM00pkcVWN6VDuODksj8653GHtQVg631jOHu5ZHmaitN8T2HUKuowP/
+	qeMNX9PKd9kLFgAg==
 Authentication-Results: smtp-out2.suse.de;
 	none
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
@@ -50,31 +50,31 @@ DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
 	 mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=SvI9OUn/GHaXEU/gvf/0EtYqhPQbjO59qKoI8EtYKMU=;
-	b=v057JiWgfFpRq8HZnNifUh1M4NDEJLwaWcCzjf0qS4psBCkmKtZC7OsAtB46+J38ivinFH
-	ZyKGSXPboY24JwRj9z4A4HEZdIp4026i5xsW7EbkZ4r4pxLyd5uPVY1h0EiLosJW7C/3JL
-	GHI+l07WDQZbyvN4guah9k3VECLP39s=
+	bh=nAYIXq2aizFaeJHiAqTkWiPxmY4fp23xo/LzkEA4iAA=;
+	b=AUMI1Rv+nMkeEtleUUW7GBFMnM7qoojm8BrRwoNRyTiLkyuyLqXxVosomuY+SfKI0HDzc7
+	QJ1oIMFXzme0TDJTf3g94ZloHVs41L5q1nojDBJBidU9E9DpvoQ0TTFRk23Cl8+T5+I/l/
+	TVigrSrd3NGLi9MY2BnYDXhlHC4JqiU=
 DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
 	s=susede2_ed25519; t=1788356233;
 	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
 	 mime-version:mime-version:
 	 content-transfer-encoding:content-transfer-encoding:
 	 in-reply-to:in-reply-to:references:references;
-	bh=SvI9OUn/GHaXEU/gvf/0EtYqhPQbjO59qKoI8EtYKMU=;
-	b=2bwc/O8IBFmZ4QW8mtJuMqT8HuVx1X+vEPtftsyNSk8z6dLJxLfLvfsrnv8yXXMRLfM8U5
-	DLDrySE/XPFZqGCA==
+	bh=nAYIXq2aizFaeJHiAqTkWiPxmY4fp23xo/LzkEA4iAA=;
+	b=dHID/5p+rTjM6PZzoKEBRakN3cve5wq9jOjijj63XdesT0FeqGHuNONDTQPDXVcmWHwsDL
+	ZALOCitqPbtFErAw==
 Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
 	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 7736913869;
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 4D82713738;
 	Wed,  2 Sep 2026 13:37:13 +0000 (UTC)
 Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
 	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id LlYZHYkmmGrGYAAAD6G6ig
+	id V07oEokmmGrBYAAAD6G6ig
 	(envelope-from <jack@suse.cz>); Wed, 02 Sep 2026 13:37:13 +0000
 Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id C1D50A13B8; Wed, 02 Sep 2026 15:37:08 +0200 (CEST)
+	id BEE48A1315; Wed, 02 Sep 2026 15:37:08 +0200 (CEST)
 From: Jan Kara <jack@suse.cz>
 To: <linux-fsdevel@vger.kernel.org>
 Cc: <linux-mm@kvack.org>,
@@ -84,9 +84,9 @@ Cc: <linux-mm@kvack.org>,
 	Baolin Wang <baolin.wang@linux.alibaba.com>,
 	Farhad Alemi <farhad.alemi@berkeley.edu>,
 	Jan Kara <jack@suse.cz>
-Subject: [PATCH 2/2] shmem: Refuse to enable tmpfs format for another filesystem
-Date: Wed,  2 Sep 2026 15:37:00 +0200
-Message-ID: <20260902133702.1313635-4-jack@suse.cz>
+Subject: [PATCH 1/2] ocfs2: Refuse to enable ocfs2 format for another filesystem
+Date: Wed,  2 Sep 2026 15:36:59 +0200
+Message-ID: <20260902133702.1313635-3-jack@suse.cz>
 X-Mailer: git-send-email 2.51.0
 In-Reply-To: <20260902132458.23590-1-jack@suse.cz>
 References: <20260902132458.23590-1-jack@suse.cz>
@@ -96,12 +96,11 @@ List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1014; i=jack@suse.cz; h=from:subject; bh=lhNs9a+Xa+x9bTBoSWZLJQRDRMwvKbNZuBDt48fbKGQ=; b=owGbwMvMwME4Z+4qdvsUh5uMp9WSGLJmqNVH3jSX0W7v3R+obHRb8JL4w47A9Cpl5U3pd9NrY vi+NDl2MhqzMDByMMiKKbKsjryofW2eUdfWUA0ZmEGsTCBTGLg4BWAiLfM5GLbvu3ZuosXp3GgP y49Z82I3xB7Rt1q1/E+U+s0enRmTU7eXxP7S6A9zso3/Os25wFZydpSD1bWjbAwBW924VKdPDK9 65lSVHNxT9ymjOtKg3ti77YKua7Hu/h7GvcabijlfcrUYZt0MlDrYs+fzi3eqnza5qTUUfWY4sf Df0sVMc68UsHOILXaRTlya3fr6k3TXgxPWcubbfqlEt1822PHx3ror8TFW3icPLNnmd3/bYsU1B tfeXNmx93F1XfcFjtVtzoay56UqYkxOV72rtw9aof76BvNZZTemBOYdkavk8vMV39ilvHAUfZdu W5eT9ebnMq7UWcFLTnW21d2rXKT3+lmydcQVhtfMeVHRAA==
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1149; i=jack@suse.cz; h=from:subject; bh=eXTdW3jlEgvo3+fRkqFJjMu0ZDxZwxAjzXoYPvG1T7M=; b=owEBbQGS/pANAwAIAZydqgc/ZEDZAcsmYgBqmCZ+FzI04LF+pOrfTGNavGesx/qjDrqPtxMsB RhMY5Cka/CJATMEAAEIAB0WIQSrWdEr1p4yirVVKBycnaoHP2RA2QUCapgmfgAKCRCcnaoHP2RA 2TeIB/4uXjrpYBo3JbyvmS+RnmkgSX8EW5LfRWVxuJDr87VFxl40ALxmgrt1V60e/hJ4o8Tg/E4 XanwRM9nZEjC2e4f9KY4a1gqUFO63L3t0euRzfTgana469tJX7a+RWlZ4pK0tjLSpmCaD7O3frm Virpy8R2LQ9IXjc3W7e2zZxYd2KA5lP57AXMCjJaXVu6V0ahP2kXahkxZAqegOjfyse6TQ8hSzc j8Rra2XDzz6rGJaOxSIB8hYy+OO5zFSuwQtc4pyL4VqzGZ/Pqmy37AoPPMZd/vvThorCOpnSrG0 7a2gceKaf7MdUP3Jz0Fu1L9cBVNGfbSMWRmtvfDTA7yXd66T
 X-Developer-Key: i=jack@suse.cz; a=openpgp; fpr=93C6099A142276A28BBE35D815BC833443038D8C
 Content-Transfer-Encoding: 8bit
-X-Spam-Level: 
 X-Spam-Score: -6.80
-X-Spam-Flag: NO
+X-Spam-Level: 
 X-Spamd-Result: default: False [-6.80 / 50.00];
 	REPLY(-4.00)[];
 	BAYES_HAM(-3.00)[100.00%];
@@ -121,36 +120,37 @@ X-Spamd-Result: default: False [-6.80 / 50.00];
 	RCPT_COUNT_SEVEN(0.00)[8];
 	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
 	TO_DN_SOME(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,suse.cz:email,suse.cz:mid]
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.cz:mid,suse.cz:email,imap1.dmz-prg2.suse.org:helo]
+X-Spam-Flag: NO
 
 It is possible to issue Q_QUOTAON quotactl(2) e.g. for ext4 filesystem
-requesting to enable quota using tmpfs quota format. With suitable
-passed arguments this can actually succeed in enabling tmpfs quota
-format on top of ext4 filesystem which leads to crashes later in
-dquot_acquire().  As tmpfs quota format is intended for tmpfs
-filesystems only, verify we are indeed enabling quotas there.
+requesting to enable quota using ocfs2 quota format. With suitable
+passed arguments this can get upto ocfs2_local_check_quota_file() where
+the passed superblock is from the ext4 filesystem and that can cause all
+sorts of interesting things, most likely crashes. As ocfs2 quotas are
+specific to ocfs2 filesystem, verify we are indeed enabling quotas
+there.
 
-Reported-by: Farhad Alemi <farhad.alemi@berkeley.edu>
 Signed-off-by: Jan Kara <jack@suse.cz>
 ---
- mm/shmem_quota.c | 4 ++++
+ fs/ocfs2/quota_local.c | 4 ++++
  1 file changed, 4 insertions(+)
 
-diff --git a/mm/shmem_quota.c b/mm/shmem_quota.c
-index d0b92d6da50f..6e0b43cbded3 100644
---- a/mm/shmem_quota.c
-+++ b/mm/shmem_quota.c
-@@ -54,6 +54,10 @@ struct quota_id {
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index f55810c59b1b..97dee8ee6096 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -171,6 +171,10 @@ static int ocfs2_local_check_quota_file(struct super_block *sb, int type)
+ 	struct ocfs2_disk_dqheader *dqhead;
+ 	int status, ret = 0;
  
- static int shmem_check_quota_file(struct super_block *sb, int type)
- {
-+	/* Verify enabling happens on tmpfs superblock */
-+	if (strcmp(sb->s_type->name, "tmpfs"))
-+		return 0;
++	/* OCFS2 quota format is supported only for OCFS2 filesystems */
++	if (strcmp(sb->s_type->name, "ocfs2"))
++		goto out_err;
 +
- 	/* There is no real quota file, nothing to do */
- 	return 1;
- }
+ 	/* First check whether we understand local quota file */
+ 	status = ocfs2_read_quota_block(linode, 0, &bh);
+ 	if (status) {
 -- 
 2.51.0
 
