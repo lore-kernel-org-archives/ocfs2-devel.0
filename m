@@ -1,127 +1,157 @@
-Received: from mail-yw1-f170.google.com (mail-yw1-f170.google.com [209.85.128.170])
+Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 972DD2798F8
-	for <ocfs2-devel@lists.linux.dev>; Thu,  3 Sep 2026 15:15:29 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.170
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C09C44DF4A0
+	for <ocfs2-devel@lists.linux.dev>; Thu,  3 Sep 2026 15:24:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788448530; cv=none; b=kaqJP+p3rwVzkO/w2x1tfV0xKm8tSO2KkPmo2efelj5+1xIrmG36HNvL5TH2CXGbqHopm9/GLYL3q4u2tfAYdBZ5na6gPxtKbNcsB+nz6iPpyiqWk45ouoerDNhVmIeOQru/FdfSfZFSNbLpph24f1ie2ds1YKJ+pgbRs/YFNG4=
+	t=1788449067; cv=none; b=pX4Z7HxuVvGv+EShdMquVnjEGlqjU7P+QPQTyIZD10T3D95Kp1zL/SmZbYEeU7JCN3dBJYaxvxDp8feNmRuJAFnv3NqZvt+OEml7LoxCm7cqMV9mqiYMDgE9ycS1E6LppjUtQdGn57Omb8mFZSqQ1zVHPQH3VMPpOxrQTtG40vE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788448530; c=relaxed/simple;
-	bh=qFZ9XYDnRmDNjL7pv3XMAFeV1pKbOYwxExOW601tFFQ=;
-	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
-	 MIME-Version:Content-Type; b=X+dAkMxjULGbPMSKI07mVp2crkIheX6X0zSDXTXbgPrgKL7yPIEzqGRuDnHbzzzGIlkKqW5kGhr4muCk8JWswr4j8FPnveIm+P5mV+365fHB3K8kfG5DTg5oPTO2+Kunl+2lb3WJjjCmwCuYrM3uM2JZj0vj10A152WcHsLOgWg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=tx3+Lk8Y; arc=none smtp.client-ip=209.85.128.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
+	s=arc-20240116; t=1788449067; c=relaxed/simple;
+	bh=hiRQlPpIGglFRXty3EYqUEUerglqeZb/X1JgjZonIb0=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=Coj4pwEdht4wUHBkODiooLAvIsQ3iWnUnFJ0dWwDuMvxByz1TYBaL762dM03y9DNxFc+SjxbBXjwJJ8Qzz4Ah+88LQyVgX/yKdXgRdLOwCyEZVx/stOlWmC18dSG/e1XXPIRwybMYo3XRpKQTIUEj06OZv1NHgO3YB2as8W04HI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=iciyZ1Je; arc=none smtp.client-ip=209.85.128.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="tx3+Lk8Y"
-Received: by mail-yw1-f170.google.com with SMTP id 00721157ae682-87005a0e052so6789657b3.2
-        for <ocfs2-devel@lists.linux.dev>; Thu, 03 Sep 2026 08:15:29 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="iciyZ1Je"
+Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-499c0879d51so1849255e9.2
+        for <ocfs2-devel@lists.linux.dev>; Thu, 03 Sep 2026 08:24:25 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=google.com; s=20251104; t=1788448529; x=1789053329; darn=lists.linux.dev;
-        h=content-type:mime-version:references:message-id:in-reply-to:subject
-         :cc:to:from:date:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=Mf2cMzcJB7ZgyTGSGNOkCh7zEnrruRaHuarVNveDD7w=;
-        b=tx3+Lk8YbB99JrycR1e7Rwe28dt7fJiYm9VjQjSkb+qw0lgQvCaaFCZuETHuJzo+EG
-         pFlhV1Iy86gF5CDgvkHvIgZZuUXSiFItF36c7v7m/i92lRefZox9Ji1nzVAxnPXEKNfX
-         /A6IOvqDKQaXXIqA3Vmt0B1mu40HDDOmnaxgxF3UP2sV97mhaZJg5jJeZOQ0ZoKeR/rN
-         bvtj1U4PMpw0QWH03e+ZvW5qANVeKdQwyq2oTMLr8niMjxDdTpMUW5KCWVhGRizuDpRD
-         J/LokNYjsy7+hrV2B7EEyfAJykgR+guN5T4dDFvldkKtWHSw15xlAfR8GEf2iod1OhSa
-         xDdw==
+        d=gmail.com; s=20251104; t=1788449064; x=1789053864; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=fKRvoFT0iXNtYocSHfeIp3eZzwJLnARoSnyrks3zVww=;
+        b=iciyZ1JeQsCBcWoJ4q2tY/jpTgvPsuZ4PK3fLyqESukuKEWb4XNPCpdhYHoQJjGUB2
+         GPUxapjthSfJBl7Qv2s2vbLguqhFwLYgSw156toE5VKRpBqqUjYSIQCLojZv7nskw8ku
+         tKhUGnEbHcvCKP1nfjd3keQpjLWHJ4b+3pNZf+y7rrOl9jpFEvHY/Zz43UKTPbhdtv58
+         2c3j7+cQ+NaU40XvVuhiLtWw596V7B/EsISJ93RPyCrCqWngiMk5k5MGkVkVYaF3SsOT
+         6ZdGZTSkRVuKKKbqAlX/wmneYpLLiKtjFhvK+Kv42NUF25IHogAG+cs/vrNAQTXBxWwS
+         DILA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1788448529; x=1789053329;
-        h=content-type:mime-version:references:message-id:in-reply-to:subject
-         :cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+        d=1e100.net; s=20251104; t=1788449064; x=1789053864;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=Mf2cMzcJB7ZgyTGSGNOkCh7zEnrruRaHuarVNveDD7w=;
-        b=i+C8k1seIL6V36lizSUi2gPTB5at6eiEN6U9fhZWUsQ4NHkTGybSSEXp4xlAS8JqIi
-         jp2E714utCpW1PzWvRPA7xhlx3yAqd2+DQp7TYJ5B0HNi0fOoEMRUa8E3EBX/mzkvHsY
-         4f5UveR/BvDnLrzcN6vcO4dTh4PkSTH/GxqSc225EhW2tnlpWHnzAeDssA8Tq7ULDUxy
-         xNrfL3KGYN/9+bPHVgBhsHPSh0Zfm/xMfkqygAW4d5+9Andss/C8d4Sy+omrLzHmU6H+
-         8tn6ayBF3yqnrGBj4dZwlx7LT6fiAtCNSkO6Orjtn7xVHEU4PF1j5ChhLe0tYO/w1+ut
-         azIg==
-X-Forwarded-Encrypted: i=1; AKwUvBzWQ+4bM1A8OlP1jBTejH9E7LI22fO9DCeDELuSEC/EVGX5uR2lhhxPWdGNBzVugaZGohDEBMzaWUq/Mw==@lists.linux.dev
-X-Gm-Message-State: AFuF++kzfXRFxVbJnAob5/IJrHeLqEwjQRvLnLYXkChIsR2/yWbROtO6
-	Z4ldFPbeBqobOk7nYc4llVE45+42QJuWxy9fSD2BS+/VVDjoUAo0O/z15Fyze06hbg==
-X-Gm-Gg: AYBFou03s2r1LDCB3Nj/cq5P+B7+FKSM3L8mvjlCvWnZkrLRTYe9htJXVFVhbEJSXeU
-	RjKidDz9LMx7y/cMh3vO3ZSCFpJE6VNNus1QJlyPno/HBM4eCh0tGrrxEnmdb37Bs6o3R9IaJVG
-	KIRJE8MRHMbUbG3WEQXFt3Ep55FOsUASlv2aRyPCT8Mc6WhIY1+k8m9RFY8TczUrdohsrQW2CJB
-	boGLcv9+8ba2Q6oSvEouBxjz1ZdFNBGOg1BEpNDxmEpzQcfxVKbyCUECXCBCoanx1D8c15lveEu
-	n5wPBRIyD0I5zZWWkyA9U7IXsB6vHpN8LrdzdpGjObBk7I5vHnDrjAYrw5hShjPcnnMl8GPUO3Q
-	ZG4u/skukhixpft+qiYk8Q9GkVwOB7VYxDIbnoou+YTlS7rT8IAd8qaFdUN3aUhZ3CMWBbfiHb4
-	d0170FZa40z0G3T9l+5qJul3/rsQ6HyFSX/Mqm7/2kH1VLzF/MxyYZ0iin1oAG851Dr6YSGHSfN
-	sLiBj/8c+YjhLujXdFvAN5KGFIM0rl43JvT/aSmjDXSko5a
-X-Received: by 2002:a05:690c:30a:b0:858:def3:3422 with SMTP id 00721157ae682-86c53989a23mr76445507b3.27.1788448527781;
-        Thu, 03 Sep 2026 08:15:27 -0700 (PDT)
-Received: from darker.attlocal.net (172-10-233-147.lightspeed.sntcca.sbcglobal.net. [172.10.233.147])
-        by smtp.gmail.com with ESMTPSA id 00721157ae682-86c10c9461esm43081537b3.7.2026.09.03.08.15.26
+        bh=fKRvoFT0iXNtYocSHfeIp3eZzwJLnARoSnyrks3zVww=;
+        b=FEjodBK5YAwXd4oKFX3IqQtaefRV7W84fI4hMPD0+DifpL3EVItwUzX8l1VEjEeqPS
+         b7jNvG7UrajtVJRVNM4Tce7FREaX5vetY1/lXnIPqR9o6Az/qqQr0bIFGPSioo5P707r
+         QuHPY1+VQfs4JoU9M2VPNmD8BGatvJXQaaVQMJxP8GqTWI7oGZPsdcH3bfnYrmxIaWpk
+         ygW5xbfwn36ItZGSXeJ2hccvyoQ0ZEV4NVtnYrZ3gfB/SuAArM5mtn7s3Vc06zAfLcpF
+         Sqrb9SHW0TKaBiJTxN5pVna5CQdZK9FS7HE2FOVoRxaQYJFEfKZtKIk8ZUrqu5K/qfc0
+         qCOQ==
+X-Forwarded-Encrypted: i=1; AKwUvBzTuXUyuoxw80TF0ut1auoM9RVTr1Nqo1/BaDzlrskLywIwQTQk5vs88t+bKyzm/94ZjB/CbhnA3lW+FA==@lists.linux.dev
+X-Gm-Message-State: AFuF++lhQndP/Fh04DUJMDNuWIY030bPye4jj6xpYqff0C+C/RPuPCuG
+	/gLKJ8wTpUllykhlkiZbF6u3pLPXxoLxiDOWGErpU69GfHCdDLN0wJyw
+X-Gm-Gg: AYBFou3YptTYwA6EVAOIV8C1zQ0js/QGAK4qikbogBkubHAm3G+/HbVVIRWPbQ1NuDf
+	R4rj5VX9m1kSKwjTEEKlCAt0d6gLfuBfoCuV8nGv7pUaLkGT+fGdBJqWU6BvjUFory7TeWO79VF
+	/6aM3pF4YrUgY53jA0RPBZeAW3U5gFtGZmbsTsS6YrL6Ay74NvOiC2LNlGccwoGXjNZX1RSw+SM
+	uUSK8kZJUKZZUQvSXOu69x8HQe9XHc4wzul+SYZUxobx5LqD32rsngaP3l00tngIWuvN51Adwv5
+	HFNfs3y0XIO8hRSj8BB1Ae+4uOoy0l+UTyUhfkSjQPZqKb/Tsw7Op3xk+mP8Cc+VSlelSt3Y1uh
+	W15OGq99wtrHA04/0JQ6gJubJu+ZxFfrfZjshua7zZyzGh1FQV5n+Hh8GjFV8aIOUOhWXaujdvP
+	hVxgsRaM+4b6wknHEgRA1LkxsxoD3vAnZZM8h1yZ6bj7fSmpKfTtw91o7aH+IXIz6PFNu73UmWf
+	rd98Bqg2r04a7zg8S4FnYpv8+s4sHzdNY0dap5bnBogsyeJ64SQpB/PVuyXngNdCOomyBgtnSk9
+	npaFRyDyDgtU1Q==
+X-Received: by 2002:a05:600c:310e:b0:49b:9241:7ff0 with SMTP id 5b1f17b1804b1-49ce558f8d6mr118094475e9.0.1788449063470;
+        Thu, 03 Sep 2026 08:24:23 -0700 (PDT)
+Received: from pop-os.. (98.102.222.87.dynamic.jazztel.es. [87.222.102.98])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-49cee60bae6sm96098935e9.9.2026.09.03.08.24.22
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 03 Sep 2026 08:15:27 -0700 (PDT)
-Date: Thu, 3 Sep 2026 08:15:14 -0700 (PDT)
-From: Hugh Dickins <hughd@google.com>
-To: Jan Kara <jack@suse.cz>
-cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, 
-    ocfs2-devel@lists.linux.dev, Joseph Qi <joseph.qi@linux.alibaba.com>, 
-    Hugh Dickins <hughd@google.com>, 
-    Baolin Wang <baolin.wang@linux.alibaba.com>, 
-    Farhad Alemi <farhad.alemi@berkeley.edu>
-Subject: Re: [PATCH v2 2/2] shmem: Refuse to enable tmpfs format for another
- filesystem
-In-Reply-To: <20260903090508.1360863-4-jack@suse.cz>
-Message-ID: <3b119174-7b10-6eb6-7aff-462949fcb49a@google.com>
-References: <20260903090053.13120-1-jack@suse.cz> <20260903090508.1360863-4-jack@suse.cz>
+        Thu, 03 Sep 2026 08:24:22 -0700 (PDT)
+From: Miguel Garcia <miguelgarciaroman8@gmail.com>
+To: stable@vger.kernel.org
+Cc: pvmohammedanees2003@gmail.com,
+	akpm@linux-foundation.org,
+	joseph.qi@linux.alibaba.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH 6.1.y] ocfs2: fix deadlock in ocfs2_get_system_file_inode
+Date: Thu,  3 Sep 2026 17:24:21 +0200
+Message-ID: <20260903152421.1801322-1-miguelgarciaroman8@gmail.com>
+X-Mailer: git-send-email 2.43.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+Content-Transfer-Encoding: 8bit
 
-On Thu, 3 Sep 2026, Jan Kara wrote:
+From: Mohammed Anees <pvmohammedanees2003@gmail.com>
 
-> It is possible to issue Q_QUOTAON quotactl(2) e.g. for ext4 filesystem
-> requesting to enable quota using tmpfs quota format. With suitable
-> passed arguments this can actually succeed in enabling tmpfs quota
-> format on top of ext4 filesystem which leads to crashes later in
-> dquot_acquire().  As tmpfs quota format is intended for tmpfs
-> filesystems only, verify we are indeed enabling quotas there.
-> 
-> Reported-by: Farhad Alemi <farhad.alemi@berkeley.edu>
-> Signed-off-by: Jan Kara <jack@suse.cz>
+commit 7bf1823e010e8db2fb649c790bd1b449a75f52d8 upstream.
 
-Acked-by: Hugh Dickins <hughd@google.com>
+syzbot has found a possible deadlock in ocfs2_get_system_file_inode [1].
 
-Thanks: yes, please do route it through your tree.
+The scenario is depicted here,
 
-> ---
->  mm/shmem_quota.c | 5 +++++
->  1 file changed, 5 insertions(+)
-> 
-> diff --git a/mm/shmem_quota.c b/mm/shmem_quota.c
-> index d0b92d6da50f..a3fa4bd93e75 100644
-> --- a/mm/shmem_quota.c
-> +++ b/mm/shmem_quota.c
-> @@ -30,6 +30,7 @@
->  #include <linux/slab.h>
->  #include <linux/rbtree.h>
->  #include <linux/shmem_fs.h>
-> +#include <linux/magic.h>
->  
->  #include <linux/quotaops.h>
->  #include <linux/quota.h>
-> @@ -54,6 +55,10 @@ struct quota_id {
->  
->  static int shmem_check_quota_file(struct super_block *sb, int type)
->  {
-> +	/* Verify enabling happens on tmpfs superblock */
-> +	if (sb->s_magic != TMPFS_MAGIC)
-> +		return 0;
-> +
->  	/* There is no real quota file, nothing to do */
->  	return 1;
->  }
-> -- 
-> 2.51.0
+	CPU0					CPU1
+lock(&ocfs2_file_ip_alloc_sem_key);
+                               lock(&osb->system_file_mutex);
+                               lock(&ocfs2_file_ip_alloc_sem_key);
+lock(&osb->system_file_mutex);
+
+The function calls which could lead to this are:
+
+CPU0
+ocfs2_mknod - lock(&ocfs2_file_ip_alloc_sem_key);
+.
+.
+.
+ocfs2_get_system_file_inode - lock(&osb->system_file_mutex);
+
+CPU1 -
+ocfs2_fill_super - lock(&osb->system_file_mutex);
+.
+.
+.
+ocfs2_read_virt_blocks - lock(&ocfs2_file_ip_alloc_sem_key);
+
+This issue can be resolved by making the down_read -> down_read_try
+in the ocfs2_read_virt_blocks.
+
+[1] https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
+
+Link: https://lkml.kernel.org/r/20240924093257.7181-1-pvmohammedanees2003@gmail.com
+Signed-off-by: Mohammed Anees <pvmohammedanees2003@gmail.com>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Reported-by: <syzbot+e0055ea09f1f5e6fabdd@syzkaller.appspotmail.com>
+Closes: https://syzkaller.appspot.com/bug?extid=e0055ea09f1f5e6fabdd
+Tested-by: syzbot+e0055ea09f1f5e6fabdd@syzkaller.appspotmail.com
+Cc: Mark Fasheh <mark@fasheh.com>
+Cc: Joel Becker <jlbec@evilplan.org>
+Cc: Junxiao Bi <junxiao.bi@oracle.com>
+Cc: Changwei Ge <gechangwei@live.cn>
+Cc: Gang He <ghe@suse.com>
+Cc: Jun Piao <piaojun@huawei.com>
+Cc:  <stable@vger.kernel.org>
+Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
+Signed-off-by: Miguel Garcia <miguelgarciaroman8@gmail.com>
+---
+ fs/ocfs2/extent_map.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/extent_map.c b/fs/ocfs2/extent_map.c
+index bb3a56b7f9a7c..5e86c7e2c8212 100644
+--- a/fs/ocfs2/extent_map.c
++++ b/fs/ocfs2/extent_map.c
+@@ -981,7 +981,13 @@ int ocfs2_read_virt_blocks(struct inode *inode, u64 v_block, int nr,
+ 	}
+ 
+ 	while (done < nr) {
+-		down_read(&OCFS2_I(inode)->ip_alloc_sem);
++		if (!down_read_trylock(&OCFS2_I(inode)->ip_alloc_sem)) {
++			rc = -EAGAIN;
++			mlog(ML_ERROR,
++				 "Inode #%llu ip_alloc_sem is temporarily unavailable\n",
++				 (unsigned long long)OCFS2_I(inode)->ip_blkno);
++			break;
++		}
+ 		rc = ocfs2_extent_map_get_blocks(inode, v_block + done,
+ 						 &p_block, &p_count, NULL);
+ 		up_read(&OCFS2_I(inode)->ip_alloc_sem);
+-- 
+2.43.0
+
