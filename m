@@ -1,32 +1,32 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A8E1F27AC45
-	for <ocfs2-devel@lists.linux.dev>; Thu,  3 Sep 2026 01:36:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 891E1313545
+	for <ocfs2-devel@lists.linux.dev>; Thu,  3 Sep 2026 01:42:39 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788399418; cv=none; b=PEVBsWSdNvmdiN+Gqe936jWFvRctXtisTOBFwumhBKZn9PQFp7Ytaumo8vT2jnwGogeMCZ2eoLr5U7s7MHsmxZcxWp08qsljMJa35ePM422MI58yj/WyhyCiossx5K81bzFxEFSKVv7yNGY1rCJvvb6guR1dCSsZPj2+U6WTqzQ=
+	t=1788399761; cv=none; b=sbCyl/s5XA8CNkQpzSC0Tz4m9nSHj8OwuYtEKte1VSSCK4NXFEPoL4aCoxXA3sCYRLdqgcYLvBl9qStfoQ9KZciN6uimCJQ2W2lJUMz1oqLcJtUS74H6FZiVseopK9vmYq7zSu2rGzbYW+vJNt4YcspDMSrkwYbD27AiB7DKHM0=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788399418; c=relaxed/simple;
-	bh=A9wPB/8EmOQCGuIA98MTaeW5eFFBrCkau+sQczMZbwU=;
+	s=arc-20240116; t=1788399761; c=relaxed/simple;
+	bh=FNcYYpqAx4t7Tg8NXDC/d1JYOUwY0k0Sk/UqtRlm+ss=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=o5vsq+hQRwetTzRsNsiBRVsRh3RE4cbXK7QCHsyACt+16dszRy6CSEjwDdiKr2a/QnN+6yluDV30jDXbht6gk0QfjjnzE6Zn6jIAmF/qTUCXC3Y83TUq78f3xQGHn/GRqHI8+MuxIORmRO8T7yWSFadPvJXlCrYlhgcoifphfVg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Xi+G5uut; arc=none smtp.client-ip=115.124.30.130
+	 In-Reply-To:Content-Type; b=TJzylrUKZ6WFTZ8S8ndjigXAwRASmIEKpqgtbXi/LIi7UvpLGWKO0EQqsOheaoqGutPrS2gbjVhQGHRoUB/CEIGWpSTVJ6sFMgjQgEXR5AF8VmE9hTNTgrINju9Ogh4Mos++hizuZe/7IrC/dtPoU8oYBtEoyAu88Y+uxtO1OVw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=tEYkhTR2; arc=none smtp.client-ip=115.124.30.118
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Xi+G5uut"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="tEYkhTR2"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1788399413; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=e541pMb9oMqhXLTyZBftOnSifT1JVi2i2ff57bVED4c=;
-	b=Xi+G5uut+AJDQNkvLZyBkcSMfM28p9ORQ3yaTodx/LvGGOk89zMyBsyAYdVRLhqp/9KdQJxhQ6XQ9Ncv9afZDLXoLnYwbyD94Mu0kDffOZcXwL2JyICaQMeNcFLOLaHCFFslIEvw5uS9iFmoxckZMi9bvwyuV1viv7+FDbX2gw8=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0XAEOibv_1788399411;
-Received: from 30.221.131.71(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAEOibv_1788399411 cluster:ay36)
+	t=1788399751; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=pz0SH5Z8tWL0cZjtiUWm1pYvYPC5lNfbjWJ9jl9XU9M=;
+	b=tEYkhTR2h2AWaEp+gZfRZk/fA30LK1UWaFia/DeTpOsZUEPDocw5smh34sHDMhKPyeFyr2v9TD4R72NtybgARnJVBgzTrIxpxhQ0yGfYuA5aCVPSr8gvOWBzPOeWwiMhbL9jJl2RpCdaC62CNEx2CDNQwF8EuTNkQz830iNxn7w=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0XAEOkYR_1788399747;
+Received: from 30.221.131.71(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAEOkYR_1788399747 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Thu, 03 Sep 2026 09:36:52 +0800
-Message-ID: <8d78e72c-a7f5-4b08-a249-34e924bda588@linux.alibaba.com>
-Date: Thu, 3 Sep 2026 09:36:51 +0800
+          Thu, 03 Sep 2026 09:42:28 +0800
+Message-ID: <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
+Date: Thu, 3 Sep 2026 09:42:27 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,51 +34,61 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH 1/2] ocfs2: Refuse to enable ocfs2 format for another
- filesystem
-To: Jan Kara <jack@suse.cz>, linux-fsdevel@vger.kernel.org
-Cc: linux-mm@kvack.org, ocfs2-devel@lists.linux.dev,
- Hugh Dickins <hughd@google.com>, Baolin Wang
- <baolin.wang@linux.alibaba.com>, Farhad Alemi <farhad.alemi@berkeley.edu>,
- Andrew Morton <akpm@linux-foundation.org>
-References: <20260902132458.23590-1-jack@suse.cz>
- <20260902133702.1313635-3-jack@suse.cz>
+Subject: Re: [PATCH] buffer: fix NULL dereference of bh->b_folio in
+ __bh_submit()
+To: Yalagada Pavan Kumar <pavankumaryalagada@gmail.com>,
+ Christian Brauner <brauner@kernel.org>
+Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ Srikanth Aithal <Srikanth.Aithal@amd.com>,
+ Luca Weiss <luca.weiss@fairphone.com>, Jan Kara <jack@suse.cz>
+References: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
+ <apiMiLlwujmqyYLP@user>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260902133702.1313635-3-jack@suse.cz>
+In-Reply-To: <apiMiLlwujmqyYLP@user>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 9/2/26 9:36 PM, Jan Kara wrote:
-> It is possible to issue Q_QUOTAON quotactl(2) e.g. for ext4 filesystem
-> requesting to enable quota using ocfs2 quota format. With suitable
-> passed arguments this can get upto ocfs2_local_check_quota_file() where
-> the passed superblock is from the ext4 filesystem and that can cause all
-> sorts of interesting things, most likely crashes. As ocfs2 quotas are
-> specific to ocfs2 filesystem, verify we are indeed enabling quotas
-> there.
+On 9/3/26 4:52 AM, Yalagada Pavan Kumar wrote:
+> On Wed, Sep 02, 2026 at 09:33:57AM +0800, Joseph Qi wrote:
+>> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
+>> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
+>> __bh_submit().  But jbd2 shadow buffers have a NULL b_folio since commit
+>> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
+>> directly") made them point b_data at the kmalloced frozen data rather
+>> than a folio.  Submitting such a buffer during journal commit oopses:
+>>
+>>   BUG: kernel NULL pointer dereference, address: 0000000000000000
+>>   RIP: 0010:__bh_submit.constprop.0+0x87/0x120
+>>   Call Trace:
+>>    jbd2_journal_commit_transaction+0x932/0x1b10
+>>    kjournald2+0xb2/0x250
+>>
+>> Hit by the ocfs2-testsuite fill_verify_holes test running with
+>> data=writeback.
+>>
+>> Dropbehind only applies to buffers backed by a folio, so skip the check
+>> when b_folio is NULL.
+>>
+> Hi,
 > 
-> Signed-off-by: Jan Kara <jack@suse.cz>
-
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/quota_local.c | 4 ++++
->  1 file changed, 4 insertions(+)
-> 
-> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-> index f55810c59b1b..97dee8ee6096 100644
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -171,6 +171,10 @@ static int ocfs2_local_check_quota_file(struct super_block *sb, int type)
->  	struct ocfs2_disk_dqheader *dqhead;
->  	int status, ret = 0;
+> I was working on a fix for this syzbot report [1] and didn't realize that you were
+> already working on it. I noticed your patch on the mailing list, so i won't
+> send a duplicate patch.
 >  
-> +	/* OCFS2 quota format is supported only for OCFS2 filesystems */
-> +	if (strcmp(sb->s_type->name, "ocfs2"))
-> +		goto out_err;
-> +
->  	/* First check whether we understand local quota file */
->  	status = ocfs2_read_quota_block(linode, 0, &bh);
->  	if (status) {
+>> Fixes: 5febcba29792 ("jbd2: point the shadow buffer at the frozen data directly")
+> 
+> Could you please add the Reported-by: and Closes: tags from the syzbot report
+> to your patch? This will help syzbot associate the patch with the reported
+> issue and track the fix.
+> 
+> [1]: https://syzkaller.appspot.com/bug?extid=41453ea05ab61c075f1f
+> 
+Hi Christian,
+Could you please address the above when apply the patch? Or should I
+resend the patch with them?
 
+Thanks,
+Joseph 
