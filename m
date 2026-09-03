@@ -1,94 +1,121 @@
-Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-yx1-f51.google.com (mail-yx1-f51.google.com [74.125.224.51])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 891E1313545
-	for <ocfs2-devel@lists.linux.dev>; Thu,  3 Sep 2026 01:42:39 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.118
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E338035AC3E
+	for <ocfs2-devel@lists.linux.dev>; Thu,  3 Sep 2026 02:32:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.224.51
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788399761; cv=none; b=sbCyl/s5XA8CNkQpzSC0Tz4m9nSHj8OwuYtEKte1VSSCK4NXFEPoL4aCoxXA3sCYRLdqgcYLvBl9qStfoQ9KZciN6uimCJQ2W2lJUMz1oqLcJtUS74H6FZiVseopK9vmYq7zSu2rGzbYW+vJNt4YcspDMSrkwYbD27AiB7DKHM0=
+	t=1788402727; cv=none; b=CumiO9sipc3ceS1fojAxACDB2qtX5VJSPa5zwXPd2OCDHHFn/kjubX59I32mN9ABzsZQ3+BTot4ZUdcqiiXyxC2owrcUAqH0VsYgGPNO3Ksqq51S8kr27AoauK7q8IplOe622r34XrGplA+cdax5hh7Hj3l2uRQ0z2y5LDMXJDg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788399761; c=relaxed/simple;
-	bh=FNcYYpqAx4t7Tg8NXDC/d1JYOUwY0k0Sk/UqtRlm+ss=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=TJzylrUKZ6WFTZ8S8ndjigXAwRASmIEKpqgtbXi/LIi7UvpLGWKO0EQqsOheaoqGutPrS2gbjVhQGHRoUB/CEIGWpSTVJ6sFMgjQgEXR5AF8VmE9hTNTgrINju9Ogh4Mos++hizuZe/7IrC/dtPoU8oYBtEoyAu88Y+uxtO1OVw=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=tEYkhTR2; arc=none smtp.client-ip=115.124.30.118
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1788402727; c=relaxed/simple;
+	bh=mhnQUgpB08Teq6ugPKEvbkk1XBrN1Jr1TmAjxKH8h+4=;
+	h=Date:From:To:cc:Subject:In-Reply-To:Message-ID:References:
+	 MIME-Version:Content-Type; b=fOX9Gd2CzBrIh7sMB/v9cBHdVVYKd6yI7rFsQGZ0pmc/QycLF89N1/cK71WAKKGTAoHaVDv7SH6ZcnU5HSvKCHgiWiEYHG39OSTbTrha5CT+JE2uTGNdRaZBq4CPP9/klAZQh8kRbPihHRIN7D4hWMCRUMS0HU+VeSJHQjjlZMM=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com; spf=pass smtp.mailfrom=google.com; dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b=IZCZ5R1I; arc=none smtp.client-ip=74.125.224.51
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=google.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=google.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="tEYkhTR2"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1788399751; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=pz0SH5Z8tWL0cZjtiUWm1pYvYPC5lNfbjWJ9jl9XU9M=;
-	b=tEYkhTR2h2AWaEp+gZfRZk/fA30LK1UWaFia/DeTpOsZUEPDocw5smh34sHDMhKPyeFyr2v9TD4R72NtybgARnJVBgzTrIxpxhQ0yGfYuA5aCVPSr8gvOWBzPOeWwiMhbL9jJl2RpCdaC62CNEx2CDNQwF8EuTNkQz830iNxn7w=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0XAEOkYR_1788399747;
-Received: from 30.221.131.71(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAEOkYR_1788399747 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 03 Sep 2026 09:42:28 +0800
-Message-ID: <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
-Date: Thu, 3 Sep 2026 09:42:27 +0800
+	dkim=pass (2048-bit key) header.d=google.com header.i=@google.com header.b="IZCZ5R1I"
+Received: by mail-yx1-f51.google.com with SMTP id 956f58d0204a3-66e611e7c05so1794622d50.2
+        for <ocfs2-devel@lists.linux.dev>; Wed, 02 Sep 2026 19:32:02 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=google.com; s=20251104; t=1788402721; x=1789007521; darn=lists.linux.dev;
+        h=content-type:mime-version:references:message-id:in-reply-to:subject
+         :cc:to:from:date:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=SZ9VwK4M9RrXiYAkL+dI7dyHkhFNxu+nw3mnW/q/dvk=;
+        b=IZCZ5R1IUK1PQDTbUofOu9Cn18KGvq6118QXnyJhCepVuHyeYgFsW1+mobXP5AMIkJ
+         rGLirn1uptEjw4DEFQNTIdTkh9B23GThpSDCI2hExGoPy+8+c4fDwLtKqunu0lec2EH+
+         dhFS1IjvZeBAN2vulDQG6CsHGvZQ2npgRamDqp9wNklXhzXw94xwbR6aSs02Ji95psM4
+         tSizfz4TuDNYdMVI98yu5R0WIvLzsPVNWK9TWuA99du9Ercp6m2N9H6kVtu5Kps5cP3L
+         NtoUgRy1N0pV2+fPA2vu6Jj2wMBfK51joGDxAXZor9T9q3kV2WJkBMDFJ0OKLor74Oa8
+         rHXQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1788402721; x=1789007521;
+        h=content-type:mime-version:references:message-id:in-reply-to:subject
+         :cc:to:from:date:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=SZ9VwK4M9RrXiYAkL+dI7dyHkhFNxu+nw3mnW/q/dvk=;
+        b=iVuaQ9GA8qzdIVo7RmTrNRuasb7jQAxL1H56mpH8DSwIQyBJ2zWBQaQ8+OJspbjlG5
+         L7BgkY7i8PfzlKZFaOlthhZtl8eIKI9OZLeQ01KLq/KeKL5EWp1V74McPwlYMUvtcfAe
+         5vx6tEqxFxltiuPBadpJ6cvFT4Pp+m6UnPLnx//f84EaK7ZLgHGbcFV+zDjK8pnTpgCN
+         Z6qwB4QBnfn7izKcUqQ8UPRc8WpxCT1Q5unCmUThE5pt569tkyDE0KOKzM7qXA5qv+7i
+         w4Wfu4Uf8PTtcgRmRIZbEqn1w6sZJzsutfnsmsNXUbvvBb2t26jfIfmjU1fgZnnBz/PB
+         jl3Q==
+X-Forwarded-Encrypted: i=1; AKwUvBzcmYzOFfgB0iA89Ewj93I6tk6XvN4SAv6EnurWTP8iKRBrBzYPVw2WHywIBkzIQtWn6b6wwcaWPFQG/Q==@lists.linux.dev
+X-Gm-Message-State: AFuF++l+GoMS8NlY9OfdyvKLs3NFn6RHTtuCktCyjJEPUvtFXWYGXfY/
+	w5iVK6XPhrGgeABYQ8PN6UlcvZRInkWqgU0lpIRGpib83YSZrZlj1hk+qz4Ga+XnSw==
+X-Gm-Gg: AYBFou3zSqCa7olaZX5gxBdu5WIc6w+tcS++6WeurZ2glyBfYVX7MtbdfXmbirL5uY3
+	BmpMwvCrl33gwFwAY7Unb71Ut8xzo/kreREaQsm/+5JiNt01JMzO27WuL0opVTcwr9MYgYZOpc2
+	NwabS4HWMFZsVuuMBHp2C4J4s1T3Rwjci8FHKCFkXIqBpoTihD7lDLFangzG/hRn5dW3bgeYbwU
+	MDV1wp9rIpQ57ggTOQ/FsEXtYX6BxS3zrmQCG1Ekg47/V5q5zMZJ2XSScJtFtRF4Fv1wmUIQUqm
+	Q0y0iWjhzxknj/kZKHnPXI/uieqyho2fp185toqN9pH/6Y+xEjjTJcL0ZcLMBJD/wnzdwwq2eoL
+	Unm5Y0rq6XBwI6RK6owDE/mk5G2Yb4OGEKxelj0yeo6hVRYwksNz9FJ4XD07Lj7FrrZhlxMVuaq
+	puFFJVSij9SvqqW6v6PRUYLjCZgwXk7Tc5MmoTx7aRglGXWLfNZBsUS3LY4CyxWVmTpHoYfNXNY
+	iXPdV2uHhXAVWxyon9zL0BipSEOsMPF7lHdmqc6/3U60lfg
+X-Received: by 2002:a05:690e:1689:b0:66e:65b1:6977 with SMTP id 956f58d0204a3-66f9b8f010cmr3430168d50.5.1788402718645;
+        Wed, 02 Sep 2026 19:31:58 -0700 (PDT)
+Received: from darker.attlocal.net (172-10-233-147.lightspeed.sntcca.sbcglobal.net. [172.10.233.147])
+        by smtp.gmail.com with ESMTPSA id 956f58d0204a3-66faa62c132sm753177d50.7.2026.09.02.19.31.56
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 02 Sep 2026 19:31:57 -0700 (PDT)
+Date: Wed, 2 Sep 2026 19:31:39 -0700 (PDT)
+From: Hugh Dickins <hughd@google.com>
+To: Jan Kara <jack@suse.cz>
+cc: linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, 
+    ocfs2-devel@lists.linux.dev, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+    Hugh Dickins <hughd@google.com>, 
+    Baolin Wang <baolin.wang@linux.alibaba.com>, 
+    Farhad Alemi <farhad.alemi@berkeley.edu>
+Subject: Re: [PATCH 2/2] shmem: Refuse to enable tmpfs format for another
+ filesystem
+In-Reply-To: <20260902133702.1313635-4-jack@suse.cz>
+Message-ID: <5f7e2e81-6a79-3b5a-1dc2-83ce775017ac@google.com>
+References: <20260902132458.23590-1-jack@suse.cz> <20260902133702.1313635-4-jack@suse.cz>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] buffer: fix NULL dereference of bh->b_folio in
- __bh_submit()
-To: Yalagada Pavan Kumar <pavankumaryalagada@gmail.com>,
- Christian Brauner <brauner@kernel.org>
-Cc: linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- Srikanth Aithal <Srikanth.Aithal@amd.com>,
- Luca Weiss <luca.weiss@fairphone.com>, Jan Kara <jack@suse.cz>
-References: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
- <apiMiLlwujmqyYLP@user>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <apiMiLlwujmqyYLP@user>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=US-ASCII
 
+On Wed, 2 Sep 2026, Jan Kara wrote:
 
-
-On 9/3/26 4:52 AM, Yalagada Pavan Kumar wrote:
-> On Wed, Sep 02, 2026 at 09:33:57AM +0800, Joseph Qi wrote:
->> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
->> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
->> __bh_submit().  But jbd2 shadow buffers have a NULL b_folio since commit
->> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
->> directly") made them point b_data at the kmalloced frozen data rather
->> than a folio.  Submitting such a buffer during journal commit oopses:
->>
->>   BUG: kernel NULL pointer dereference, address: 0000000000000000
->>   RIP: 0010:__bh_submit.constprop.0+0x87/0x120
->>   Call Trace:
->>    jbd2_journal_commit_transaction+0x932/0x1b10
->>    kjournald2+0xb2/0x250
->>
->> Hit by the ocfs2-testsuite fill_verify_holes test running with
->> data=writeback.
->>
->> Dropbehind only applies to buffers backed by a folio, so skip the check
->> when b_folio is NULL.
->>
-> Hi,
+> It is possible to issue Q_QUOTAON quotactl(2) e.g. for ext4 filesystem
+> requesting to enable quota using tmpfs quota format. With suitable
+> passed arguments this can actually succeed in enabling tmpfs quota
+> format on top of ext4 filesystem which leads to crashes later in
+> dquot_acquire().  As tmpfs quota format is intended for tmpfs
+> filesystems only, verify we are indeed enabling quotas there.
 > 
-> I was working on a fix for this syzbot report [1] and didn't realize that you were
-> already working on it. I noticed your patch on the mailing list, so i won't
-> send a duplicate patch.
+> Reported-by: Farhad Alemi <farhad.alemi@berkeley.edu>
+> Signed-off-by: Jan Kara <jack@suse.cz>
+> ---
+>  mm/shmem_quota.c | 4 ++++
+>  1 file changed, 4 insertions(+)
+> 
+> diff --git a/mm/shmem_quota.c b/mm/shmem_quota.c
+> index d0b92d6da50f..6e0b43cbded3 100644
+> --- a/mm/shmem_quota.c
+> +++ b/mm/shmem_quota.c
+> @@ -54,6 +54,10 @@ struct quota_id {
 >  
->> Fixes: 5febcba29792 ("jbd2: point the shadow buffer at the frozen data directly")
-> 
-> Could you please add the Reported-by: and Closes: tags from the syzbot report
-> to your patch? This will help syzbot associate the patch with the reported
-> issue and track the fix.
-> 
-> [1]: https://syzkaller.appspot.com/bug?extid=41453ea05ab61c075f1f
-> 
-Hi Christian,
-Could you please address the above when apply the patch? Or should I
-resend the patch with them?
+>  static int shmem_check_quota_file(struct super_block *sb, int type)
+>  {
+> +	/* Verify enabling happens on tmpfs superblock */
+> +	if (strcmp(sb->s_type->name, "tmpfs"))
+> +		return 0;
+> +
 
-Thanks,
-Joseph 
+I don't object to this, but was rather expecting you'd check s_magic
+for TMPFS_MAGIC: isn't this the kind of hi-tech thing s_magic is for?
+
+Thanks anyway,
+Hugh
+
+>  	/* There is no real quota file, nothing to do */
+>  	return 1;
+>  }
+> -- 
+> 2.51.0
