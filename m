@@ -1,82 +1,94 @@
-Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 904DB426408
-	for <ocfs2-devel@lists.linux.dev>; Fri,  4 Sep 2026 07:06:26 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66FB53A4F2C;
+	Fri,  4 Sep 2026 10:35:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788505589; cv=none; b=Yb6oLiEDhkOB26I+8YZHPxzJLaMnmxJZd5deqW7ehanTDolR5VhhinHtFoj37Qdzc2cj+4rACIanSMO+rVYEyZrYMy+6QhyRvMud+YF6Rq5oCydeCrcUgq8FDtPawUgryjf+atjMg3i5RockrpOX9rmKY9slLgCKX20v87tm9iQ=
+	t=1788518144; cv=none; b=LkKqY8a32I6ihf6eaJeLolK9oMYiA1qU1n57okyXdT1Y3FXQXOxMEIMrJ0kO+A0aNBrgZ3ErYr5i4szqQMzATxrrXcgGSRMvm6GszebqRSbk6CrhSOF9FTPVbR66f/M5hEYvRPj2dBjsmWAwa0Y/9WBDOcYSfu2i/5lIocTZzy4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788505589; c=relaxed/simple;
-	bh=SLYWX6fmltl+vPJ2vPcmsTLqISulSTH5VJMWwyndt7I=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=JGWCZLCt5iZAiOCkWLb1Seas/iNk6OC0YYIMSR/Fhf9BOFrF6P2yJLDOafR59F4KzrL3mQuhygXhIMh5u8Z1kBGpyWVe3VMLv/lJLcl0as2qUdT+MV/wodPka0O9rAGphU+ybFesC7Q+y2PIdZjHn69rtzFdMl8qBpL1AXuKxsE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=IQbhCZre; arc=none smtp.client-ip=115.124.30.133
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1788518144; c=relaxed/simple;
+	bh=yZHTDj0uSXPKj3B0POCGsgLLqHCSJ3b0mjrBJlk0Pk4=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=la3OoGUZtVEIeJOGgqJ3okKR3f2Bu0fHCLa75J2oivX2XMHAAmfFB4o0/5In3d0pv2bNEy8F2Oz+u0t6ItySizLCVn6kJOIN64Q/3pWsY5s3K+5TLCmDCeTJ3woMIKcY7ZwOyvX1jmzrDhLgPxFUsbNTpdHO5TQR4X2vS8mNafQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=duQPQ4yI; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="IQbhCZre"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1788505582; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=T9jAiwI+MoE2Opds6yP7kvVJ4gQx9t2dVhmsJtCXsGo=;
-	b=IQbhCZreEauWhbsAf141EzFoH8I+uHlha0M5iy4bcYwAHQvGWY72YscxNRQgRhmp4NNummxtGCJP19DU1gJwIgmA4CT7G9fKABCNu1hR+jhV6+xKruGxR6MitJXAd32CKrp6+fOxRTeWXCZt62VTR/PcdIUPi66A+5eco7l04sM=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XAI4urp_1788505580;
-Received: from 30.221.129.151(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAI4urp_1788505580 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 04 Sep 2026 15:06:21 +0800
-Message-ID: <4a012149-fda6-4b3e-a422-8804e1df3ec0@linux.alibaba.com>
-Date: Fri, 4 Sep 2026 15:06:20 +0800
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="duQPQ4yI"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5ED0E1F00A3F;
+	Fri,  4 Sep 2026 10:35:39 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1788518142;
+	bh=M2MOSiNqGFQGUMjl9nVSkxsKKmbDc4D6RS87KMDFULA=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=duQPQ4yI2RMHIebtZRfMkbcoXv01nefB5DSNMeFK/nBqdD6QPQg+8HweNXhcFsPaX
+	 /B2ujnsKV8z1BgYv/SUWogQJl9n56hifPSO7SKDS0sM+AJTkjv1KtyF8oHDDvi6BeO
+	 xFqdyqw4+M9GUKu+0hE7xdObu1icce2oPQgAAsoRqn69peO8tjvyOotnWjshSgCdXv
+	 bHOLzghsWnGEDs6Uq4PHxyyxO84jlckTWCsRtC7kXWnY2LpKAQjIyIR16mNXsZeW75
+	 QmVdSuxh11gii/+Qj5xUs5FQRsxOduE554IpX7gXdiypWFHPiaWKAf9zNxXdSv+H/w
+	 N3oTX5QrYhLgA==
+Date: Fri, 4 Sep 2026 12:35:37 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Yalagada Pavan Kumar <pavankumaryalagada@gmail.com>, 
+	linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org, Srikanth Aithal <Srikanth.Aithal@amd.com>, 
+	Luca Weiss <luca.weiss@fairphone.com>, Jan Kara <jack@suse.cz>
+Subject: Re: [PATCH] buffer: fix NULL dereference of bh->b_folio in
+ __bh_submit()
+Message-ID: <20260904-unkraut-preis-pendel-a57f694a54c5@brauner>
+References: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
+ <apiMiLlwujmqyYLP@user>
+ <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: make ocfs2_calc_xattr_init() return void
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-References: <20260904023751.3703334-1-joseph.qi@linux.alibaba.com>
- <20260903213618.04d90c1cf88323b0dae59008@linux-foundation.org>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260903213618.04d90c1cf88323b0dae59008@linux-foundation.org>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
 
-
-
-On 9/4/26 12:36 PM, Andrew Morton wrote:
-> On Fri,  4 Sep 2026 10:37:51 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+On Thu, Sep 03, 2026 at 09:42:27AM +0800, Joseph Qi wrote:
 > 
->> ocfs2_calc_xattr_init() used to read the default ACL off the parent
->> inode itself, so it could return an error from ocfs2_xattr_get_nolock().
->> Commit bd7c05fb4a47 ("ocfs2: fix circular locking dependency in
->> ocfs2_init_acl()") moved that lookup before the transaction starts and
->> deleted the error path, but left the now vestigial 'int ret = 0'
->> declaration and both 'return ret' statements behind, along with an
->> unreachable error branch in ocfs2_mknod().
->>
->> Drop the leftover variable and convert the return type to void, so the
->> callee states that it always succeeds and the caller no longer carries
->> a check that can never trigger.
->>
->> No functional change.
 > 
-> Thanks.
-> 
->> Fixes: bd7c05fb4a47 ("ocfs2: fix circular locking dependency in ocfs2_init_acl()")
->> Reported-by: kernel test robot <lkp@intel.com>
->> Closes: https://lore.kernel.org/oe-kbuild-all/202609040247.8B3lmoqX-lkp@intel.com/
-> 
-> Gee, that's a bit picky, isn't it?
+> On 9/3/26 4:52 AM, Yalagada Pavan Kumar wrote:
+> > On Wed, Sep 02, 2026 at 09:33:57AM +0800, Joseph Qi wrote:
+> >> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
+> >> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
+> >> __bh_submit().  But jbd2 shadow buffers have a NULL b_folio since commit
+> >> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
+> >> directly") made them point b_data at the kmalloced frozen data rather
+> >> than a folio.  Submitting such a buffer during journal commit oopses:
+> >>
+> >>   BUG: kernel NULL pointer dereference, address: 0000000000000000
+> >>   RIP: 0010:__bh_submit.constprop.0+0x87/0x120
+> >>   Call Trace:
+> >>    jbd2_journal_commit_transaction+0x932/0x1b10
+> >>    kjournald2+0xb2/0x250
+> >>
+> >> Hit by the ocfs2-testsuite fill_verify_holes test running with
+> >> data=writeback.
+> >>
+> >> Dropbehind only applies to buffers backed by a folio, so skip the check
+> >> when b_folio is NULL.
+> >>
+> > Hi,
+> > 
+> > I was working on a fix for this syzbot report [1] and didn't realize that you were
+> > already working on it. I noticed your patch on the mailing list, so i won't
+> > send a duplicate patch.
+> >  
+> >> Fixes: 5febcba29792 ("jbd2: point the shadow buffer at the frozen data directly")
+> > 
+> > Could you please add the Reported-by: and Closes: tags from the syzbot report
+> > to your patch? This will help syzbot associate the patch with the reported
+> > issue and track the fix.
+> > 
+> > [1]: https://syzkaller.appspot.com/bug?extid=41453ea05ab61c075f1f
+> > 
+> Hi Christian,
+> Could you please address the above when apply the patch? Or should I
+> resend the patch with them?
 
-It's indeed a trivial fix.
-I've followed the report mail to add the tags and I think it may help
-kernel test robot tracking.
-
-Thanks,
-Joseph
-
+I'll do it. Thanks!
