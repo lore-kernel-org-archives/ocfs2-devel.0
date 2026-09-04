@@ -1,40 +1,48 @@
-Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 24E2D381EA1
-	for <ocfs2-devel@lists.linux.dev>; Fri,  4 Sep 2026 02:38:00 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.113
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4D5973ACF10;
+	Fri,  4 Sep 2026 02:53:25 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788489483; cv=none; b=bEHs5C5f8PYb4j4kpxLDP8I8xyr1Hxa6S825MxGibzJ+atzyzNHGKdDYUhRpyt51W7zax5qsKcWIe4IXVcajkS3WuER1Ocvo4P62HPmF/8Tv5ZhnqoSJlEqgXOAcXyjhHQioKuYFDHtb7DPUNzQe2STNy2tArVO5npmocGs/16U=
+	t=1788490408; cv=none; b=Nc64BetfxK2lTayBwSbs33OVGvsINxtESL4FRXbmf6KELZk+j6IUuS6n9O2+x/EWVcWbo69PZpRaRYOM95BlZz3UcPG/aO0a+Klt/UrGVHMkoPKBYpTQmijRH0TaPvp8Wk7Ij0NqsDke76DHHWW6V4bd0gDgmlFV9TQQ3fnd0l8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788489483; c=relaxed/simple;
-	bh=0f8hK5jE64IWnlrs/Jyho0v03gVX9wPqlBg7+Qm4Vac=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=kXVw4Ijpy7yVkCD/LPPfYnLtw15Vj7o6C6zvROrdzf+TUad9ooi2+DzdWJNmNE9DLH+wv8zoOKxyDB0vGXLAVpYgHVITi9KGC20EP0kjBGzfD0pIm2ZmBiMQJJYwkaC1HnVY9uOWYrOkOzfWiNGcPG6QrPF6lyNfZYGtKoDQ9UQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=WdNzudaB; arc=none smtp.client-ip=115.124.30.113
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1788490408; c=relaxed/simple;
+	bh=v4PrwhcvY/QD23+xwj0El/vO62iH1VO3XAFBNf1jDs8=;
+	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
+	 MIME-Version; b=SNPTXRQ3/het5WhHcqBBkcHT9ZTrpdJFl36yai6S/DB1hKqMw5FprojYIXENthSKinbua4Ak8Q58oqFJy6u9X7TkLbkPdk5VkJTMhXURHY9Qj9M5QfcOW7Tawi2SzfnycHeCXApKfPmVlrAs5YyMAa2NdtPd9O3fTdscdNvER0U=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=JXAcs+pP; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="WdNzudaB"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1788489472; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=1ObqJlUXAAiPrJ56eo1dbrNhehF63niXmtq5E8ON7Ek=;
-	b=WdNzudaBF4rMuZ/yBo4oY6cBK3Q76a/pXQsNyqF5zRYiLxxuuHbqhhQL0S0X1nXB5QiBklWoI3EbNUkEmFgdre61PwxzgXkYZlcH8tieI9zvIt+mP+FRvj55SdlqyvXM8m69jDasHAvANCC4GGpuQv63VT9XbbnqJZa/S04kX2k=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R391e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XAHLNOS_1788489471;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAHLNOS_1788489471 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Fri, 04 Sep 2026 10:37:51 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="JXAcs+pP"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id CE9CF1F000E9;
+	Fri,  4 Sep 2026 02:53:23 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1788490404;
+	bh=UXsZWCSVeHm+XqpEpW4P+QbJSFu19m8hCINjgwCu7wg=;
+	h=From:To:Cc:Subject:Date:In-Reply-To:References;
+	b=JXAcs+pPvndPEDGlFjP5QiZcFP9IvnAq36rVxYzTMxrJp4ToZ1reWt45PptqAxj9T
+	 8rZ/DeXadHqmW9BgPFHFKOYHaeAdBuvmorngEUkF56g6suZF5sEgm6M/tBIoQC/WUq
+	 2IZaSPk3PzApZUhQ2GtAFcSrJykrqOJALrbAuVxOYB25svexLOuLYiXHmAw8J/Y07A
+	 5jesUmQiFd7YzQSxrwUWumegndm0Ze1sCBg6Hi7NZyyt9vpO/fDILxqp/aPPyMsfsn
+	 fKMwbH+BZajSOD8Y4ApIfXKCIz6d9YYfJvioFPwDmVfNJOyA87grNB3mIbbuduI4rH
+	 eqUJnJNmnMG4w==
+From: Sasha Levin <sashal@kernel.org>
+To: stable@vger.kernel.org
+Cc: Sasha Levin <sashal@kernel.org>,
+	pvmohammedanees2003@gmail.com,
+	akpm@linux-foundation.org,
+	joseph.qi@linux.alibaba.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
 	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH] ocfs2: make ocfs2_calc_xattr_init() return void
-Date: Fri,  4 Sep 2026 10:37:51 +0800
-Message-Id: <20260904023751.3703334-1-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
+	linux-kernel@vger.kernel.org,
+	Miguel Garcia <miguelgarciaroman8@gmail.com>
+Subject: Re: [PATCH 6.1.y] ocfs2: fix deadlock in ocfs2_get_system_file_inode
+Date: Thu,  3 Sep 2026 22:52:58 -0400
+Message-ID: <20260903-daily-reply-0007-re-ocfs2-deadlock-withdraw-6.1@kernel.org>
+X-Mailer: git-send-email 2.53.0
+In-Reply-To: <178845186455.1865019.8043691693828475058@gmail.com>
+References: <178845186455.1865019.8043691693828475058@gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -43,109 +51,13 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_calc_xattr_init() used to read the default ACL off the parent
-inode itself, so it could return an error from ocfs2_xattr_get_nolock().
-Commit bd7c05fb4a47 ("ocfs2: fix circular locking dependency in
-ocfs2_init_acl()") moved that lookup before the transaction starts and
-deleted the error path, but left the now vestigial 'int ret = 0'
-declaration and both 'return ret' statements behind, along with an
-unreachable error branch in ocfs2_mknod().
+> Please drop this patch. This branch already contains e79c0fc4f61e, a
+> backport of upstream f5b1910e23f1 that removes system_file_mutex and
+> fixes the lock inversion. The older trylock change is unnecessary and
+> can cause failed directory lookups. Sorry for the noise.
 
-Drop the leftover variable and convert the return type to void, so the
-callee states that it always succeeds and the caller no longer carries
-a check that can never trigger.
+Ack
 
-No functional change.
-
-Fixes: bd7c05fb4a47 ("ocfs2: fix circular locking dependency in ocfs2_init_acl()")
-Reported-by: kernel test robot <lkp@intel.com>
-Closes: https://lore.kernel.org/oe-kbuild-all/202609040247.8B3lmoqX-lkp@intel.com/
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/namei.c |  9 ++-------
- fs/ocfs2/xattr.c | 13 +++++--------
- fs/ocfs2/xattr.h |  8 ++++----
- 3 files changed, 11 insertions(+), 19 deletions(-)
-
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index fea889b9f577..ef03f90e7265 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -335,13 +335,8 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
- 		goto leave;
- 
- 	/* calculate meta data/clusters for setting security and acl xattr */
--	status = ocfs2_calc_xattr_init(dir, mode, &si, &want_clusters,
--				       &xattr_credits, &want_meta,
--				       &acl_state);
--	if (status < 0) {
--		mlog_errno(status);
--		goto leave;
--	}
-+	ocfs2_calc_xattr_init(dir, mode, &si, &want_clusters, &xattr_credits,
-+			      &want_meta, &acl_state);
- 
- 	/* Reserve a cluster if creating an extent based directory. */
- 	if (S_ISDIR(mode) && !ocfs2_supports_inline_data(osb)) {
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index f30faabf601b..f2b7a53ed969 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -682,13 +682,12 @@ int ocfs2_calc_security_init(struct inode *dir,
- 	return ret;
- }
- 
--int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
--			  struct ocfs2_security_xattr_info *si,
--			  int *want_clusters, int *xattr_credits,
--			  int *want_meta, struct ocfs2_acl_state *acl_state)
-+void ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
-+			   struct ocfs2_security_xattr_info *si,
-+			   int *want_clusters, int *xattr_credits,
-+			   int *want_meta, struct ocfs2_acl_state *acl_state)
- {
- 	int i;
--	int ret = 0;
- 	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
- 	int s_size = 0, a_size = 0, acl_len = 0, new_clusters;
- 
-@@ -713,7 +712,7 @@ int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
- 	}
- 
- 	if (!(s_size + a_size))
--		return ret;
-+		return;
- 
- 	/*
- 	 * The max space of security xattr taken inline is
-@@ -781,8 +780,6 @@ int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
- 			}
- 		}
- 	}
--
--	return ret;
- }
- 
- static int ocfs2_xattr_extend_allocation(struct inode *inode,
-diff --git a/fs/ocfs2/xattr.h b/fs/ocfs2/xattr.h
-index 70a6a9dab71e..1dd08f979e3c 100644
---- a/fs/ocfs2/xattr.h
-+++ b/fs/ocfs2/xattr.h
-@@ -65,10 +65,10 @@ int ocfs2_calc_security_init(struct inode *,
- 			     int *, int *, struct ocfs2_alloc_context **);
- 
- struct ocfs2_acl_state;
--int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
--			  struct ocfs2_security_xattr_info *si,
--			  int *want_clusters, int *xattr_credits,
--			  int *want_meta, struct ocfs2_acl_state *acl_state);
-+void ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
-+			   struct ocfs2_security_xattr_info *si,
-+			   int *want_clusters, int *xattr_credits,
-+			   int *want_meta, struct ocfs2_acl_state *acl_state);
- 
- /*
-  * xattrs can live inside an inode, as part of an external xattr block,
 -- 
-2.39.3
-
+Thanks,
+Sasha
