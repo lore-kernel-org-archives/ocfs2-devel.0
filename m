@@ -1,94 +1,86 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 66FB53A4F2C;
-	Fri,  4 Sep 2026 10:35:42 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 895283A6B8E
+	for <ocfs2-devel@lists.linux.dev>; Fri,  4 Sep 2026 11:15:55 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.112
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788518144; cv=none; b=LkKqY8a32I6ihf6eaJeLolK9oMYiA1qU1n57okyXdT1Y3FXQXOxMEIMrJ0kO+A0aNBrgZ3ErYr5i4szqQMzATxrrXcgGSRMvm6GszebqRSbk6CrhSOF9FTPVbR66f/M5hEYvRPj2dBjsmWAwa0Y/9WBDOcYSfu2i/5lIocTZzy4=
+	t=1788520559; cv=none; b=VhIM5F9EwNVD+gzPrgBCcHcVhhMOq0NJu/03P5fw67o8Hjwm6kMdwG6ysGs7oPJWsySpgCCBMJjhDAg6S+aqYziDX95X6ZXz1XQ7r/oraKUzkSf2TTL2+7YuzZSgWiImb9AfErVw2iNN/JaUQjluqPKkw2iamIOc5h+haDmJ4kA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788518144; c=relaxed/simple;
-	bh=yZHTDj0uSXPKj3B0POCGsgLLqHCSJ3b0mjrBJlk0Pk4=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=la3OoGUZtVEIeJOGgqJ3okKR3f2Bu0fHCLa75J2oivX2XMHAAmfFB4o0/5In3d0pv2bNEy8F2Oz+u0t6ItySizLCVn6kJOIN64Q/3pWsY5s3K+5TLCmDCeTJ3woMIKcY7ZwOyvX1jmzrDhLgPxFUsbNTpdHO5TQR4X2vS8mNafQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=duQPQ4yI; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1788520559; c=relaxed/simple;
+	bh=M5JWKYGSsPINlkG+stDFUMzYh+BCv6ZDngBeKX5wvnU=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=Z0X5etLplmh4qPHCTxZt5GznNIcZI06cseEn28SgLnvYvesCbaYkpmkE8SaUGJXDrIkbnnApkuHWhm0hne+94UHB44K2UAMgHYvlVu5hgvoiHQhI5Htriz8Ec9Bnlsr7PO5izkSighwxzx2X4TVZ2qCk0PZSa1p1aHX9f9lJEc4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=olW/8n8Q; arc=none smtp.client-ip=115.124.30.112
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="duQPQ4yI"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 5ED0E1F00A3F;
-	Fri,  4 Sep 2026 10:35:39 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1788518142;
-	bh=M2MOSiNqGFQGUMjl9nVSkxsKKmbDc4D6RS87KMDFULA=;
-	h=Date:From:To:Cc:Subject:References:In-Reply-To;
-	b=duQPQ4yI2RMHIebtZRfMkbcoXv01nefB5DSNMeFK/nBqdD6QPQg+8HweNXhcFsPaX
-	 /B2ujnsKV8z1BgYv/SUWogQJl9n56hifPSO7SKDS0sM+AJTkjv1KtyF8oHDDvi6BeO
-	 xFqdyqw4+M9GUKu+0hE7xdObu1icce2oPQgAAsoRqn69peO8tjvyOotnWjshSgCdXv
-	 bHOLzghsWnGEDs6Uq4PHxyyxO84jlckTWCsRtC7kXWnY2LpKAQjIyIR16mNXsZeW75
-	 QmVdSuxh11gii/+Qj5xUs5FQRsxOduE554IpX7gXdiypWFHPiaWKAf9zNxXdSv+H/w
-	 N3oTX5QrYhLgA==
-Date: Fri, 4 Sep 2026 12:35:37 +0200
-From: Christian Brauner <brauner@kernel.org>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Yalagada Pavan Kumar <pavankumaryalagada@gmail.com>, 
-	linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org, Srikanth Aithal <Srikanth.Aithal@amd.com>, 
-	Luca Weiss <luca.weiss@fairphone.com>, Jan Kara <jack@suse.cz>
-Subject: Re: [PATCH] buffer: fix NULL dereference of bh->b_folio in
- __bh_submit()
-Message-ID: <20260904-unkraut-preis-pendel-a57f694a54c5@brauner>
-References: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
- <apiMiLlwujmqyYLP@user>
- <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="olW/8n8Q"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1788520552; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=wP/FjazOrrhA3Vb9DWVFJsXw0Pz59G95JuhFMHzSZ3s=;
+	b=olW/8n8Qcjm4vRJOHuHa2HGsyMADJQiENvzRUh1KvIEUrF9BKrXTK/mVrCDdRVqwA+d3ihWeLIVvcAZTBb1Q0Kq8+oLinC0eHhNQ0KsuUTJt2bea9IU6I/4STh3TSlFWTtGupfUO9vLRRx3M3rX+C5OVFBQd3IR5qfAysHk1Cg0=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R191e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XAIeC76_1788520551;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAIeC76_1788520551 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 04 Sep 2026 19:15:52 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: validate dr_fs_generation of dir index root blocks
+Date: Fri,  4 Sep 2026 19:15:51 +0800
+Message-Id: <20260904111551.371150-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
+Content-Transfer-Encoding: 8bit
 
-On Thu, Sep 03, 2026 at 09:42:27AM +0800, Joseph Qi wrote:
-> 
-> 
-> On 9/3/26 4:52 AM, Yalagada Pavan Kumar wrote:
-> > On Wed, Sep 02, 2026 at 09:33:57AM +0800, Joseph Qi wrote:
-> >> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
-> >> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
-> >> __bh_submit().  But jbd2 shadow buffers have a NULL b_folio since commit
-> >> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
-> >> directly") made them point b_data at the kmalloced frozen data rather
-> >> than a folio.  Submitting such a buffer during journal commit oopses:
-> >>
-> >>   BUG: kernel NULL pointer dereference, address: 0000000000000000
-> >>   RIP: 0010:__bh_submit.constprop.0+0x87/0x120
-> >>   Call Trace:
-> >>    jbd2_journal_commit_transaction+0x932/0x1b10
-> >>    kjournald2+0xb2/0x250
-> >>
-> >> Hit by the ocfs2-testsuite fill_verify_holes test running with
-> >> data=writeback.
-> >>
-> >> Dropbehind only applies to buffers backed by a folio, so skip the check
-> >> when b_folio is NULL.
-> >>
-> > Hi,
-> > 
-> > I was working on a fix for this syzbot report [1] and didn't realize that you were
-> > already working on it. I noticed your patch on the mailing list, so i won't
-> > send a duplicate patch.
-> >  
-> >> Fixes: 5febcba29792 ("jbd2: point the shadow buffer at the frozen data directly")
-> > 
-> > Could you please add the Reported-by: and Closes: tags from the syzbot report
-> > to your patch? This will help syzbot associate the patch with the reported
-> > issue and track the fix.
-> > 
-> > [1]: https://syzkaller.appspot.com/bug?extid=41453ea05ab61c075f1f
-> > 
-> Hi Christian,
-> Could you please address the above when apply the patch? Or should I
-> resend the patch with them?
+ocfs2_validate_dx_root() does not verify dr_fs_generation against the
+superblock generation, unlike the extent and xattr block validators
+which check h_fs_generation and xb_fs_generation respectively.  The
+field is documented as "Must match super block".
 
-I'll do it. Thanks!
+Without the check, a stale dir index root block left on the device from
+a previously formatted filesystem at the same physical block number can
+pass validation as long as its signature, dr_blkno and checksum match.
+Its index entries and suballocator information would then be used in
+the new filesystem context.
+
+Reject dir index root blocks whose dr_fs_generation does not match the
+mounted filesystem, like the extent and xattr block validators do.
+
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/dir.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 6bb6aa133f01..329680b46227 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -613,6 +613,14 @@ static int ocfs2_validate_dx_root(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
++	if (le32_to_cpu(dx_root->dr_fs_generation) != OCFS2_SB(sb)->fs_generation) {
++		ret = ocfs2_error(sb,
++				  "Dir Index Root # %llu has an invalid dr_fs_generation of #%u\n",
++				  (unsigned long long)bh->b_blocknr,
++				  le32_to_cpu(dx_root->dr_fs_generation));
++		goto bail;
++	}
++
+ 	/*
+ 	 * Dir index root blocks are allocated from a per-slot suballocator,
+ 	 * so the slot must be in range.  Otherwise removing the index passes
+-- 
+2.39.3
+
