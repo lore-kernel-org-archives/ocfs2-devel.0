@@ -1,125 +1,87 @@
-Received: from mail-wm2-f12.google.com (mail-wm2-f12.google.com [74.125.225.140])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A689E37F338
-	for <ocfs2-devel@lists.linux.dev>; Sat,  5 Sep 2026 01:16:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.140
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86AF731AABF
+	for <ocfs2-devel@lists.linux.dev>; Sat,  5 Sep 2026 14:21:48 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788570974; cv=none; b=uCQeC/LQsJkZoSD/SkMDD8J/SE9cSe+iN6aXGIggCeI1wuAAPmy6lnQKorN38mrBXhxjnZfc1rRrFTlTa3X1wF9Wig0RqT2S+efevGMvawtWB3TNSga79kGzo2Ama+Wp5RZg311QwytYRGji71pAMOrf8TK2f4T7/NV2tmWjDxU=
+	t=1788618111; cv=none; b=m0nrQZVcsKa+7shHMhPjyaL378xJ8zhW27lqwXBknYsk54HuSnPicVZ/pkf0vS7WC/RHRFHfjnRZtqj4w8L0oRr+ChWX1x8tBH4tUudXbgldLTRu7jcrbdnKM9YMpDHB5JOeiZIOz5G0w91Os/4o8N1a7dTnsncgnYELKA11JHU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788570974; c=relaxed/simple;
-	bh=44o5L83IczclB7yfnMXyiOpfAS6soUBWv6nwnzN+OQE=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=Qn4YfO2e7BmxUtoz116CO4zwP6UUQ1FDeWIN+DKafd2kiogZEs6ky99kg/Rs8jDW+f4GAdQiVcmPIDyA7jVckjGmzea9B5MePWDbSNat7H8dXrG2pRixIO3Roe0Iyk0vE/dyLZ4mzkVLmg7MP3nF5PisDvl/2DoVWCUJNliHJ5M=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Yajgt/6v; arc=none smtp.client-ip=74.125.225.140
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1788618111; c=relaxed/simple;
+	bh=vIgELx8V9EpM6q6bW9oawocsbxvPE7RliyLEqUZHGo0=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=ob33DSR++N/ClrFSDgMJL/GAQB1uDkvdF8yJvoYxUCxiO+kFyxEmhewYLw08J/YrbG1CR/e9hDxdu7ochna0wn11WRmbT/Stqkh+q96tSMWfXGg9c/I3A473pf412GN+ls39ywEi3x+zwi0Xi9nc/HK0pWK/euOmFkIACEdh0ys=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=gxT6ATp+; arc=none smtp.client-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Yajgt/6v"
-Received: by mail-wm2-f12.google.com with SMTP id 5b1f17b1804b1-49b0dd3e1d0so274575e9.0
-        for <ocfs2-devel@lists.linux.dev>; Fri, 04 Sep 2026 18:16:12 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1788570971; x=1789175771; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=jn7XKIWs6Fs0qmRNaN3GYeUgeHyycuW+XViXWerqMTE=;
-        b=Yajgt/6vVA5M37pUexwnnZSuKgylki41XB70kPnu8IJyV669waK/SN09iVq2g6a2r4
-         HyBM+AU9VmuUkqTQBZB/kz35EImKddMVNup3pGXhqmX9EnabLtrgSqMjw/GJQJXErQ7x
-         rypWhXZdafCPotlN1aBg0CpdtNx5kMIOsG3XTke+vIcOIVHb/5Dc2J8mnqBgvFTqPCtF
-         ZQ386EE89ohAxI1A/poHkVSkEcJleOVpUXDsuhWYUO5k0+Q/7SQnU2AZ0PLgHTHgf3lp
-         9IxigX6tNCjjAdbymqy+619DTYG8DLHLymf9RB38c0//TjDndTCMv4F+8qQOg+CuCOT3
-         Pb8w==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1788570971; x=1789175771;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=jn7XKIWs6Fs0qmRNaN3GYeUgeHyycuW+XViXWerqMTE=;
-        b=DchxbL+Pp7gqB/YPYbZbWy1j4L+VSw6XuRUcUfAFDHEK422RFmBvYNUB9AQBcsSb6v
-         gikG+6RKZMx8BG1KEYXuuPc+uXsD4WE3e+tUldYb+n3a9YhKRES3MNzxg6tCFW9N0ujc
-         iqvkGU4n8o6qT1VZt0kILNNDYnw3EVYkZtW4J4fr+MLKDofWt0EzcB5fD/CtAZSho/mx
-         joLgfOBPTe1tISx1cX6KftbJQoTdEptsc1fqVXupUqrNJ1AbQvVpQCl06y2Q/JFi5ArN
-         y0IhexS6z9BJiqHQDvZh14dtZBthpvstWRQfdYSbR32yioj+tTSaMeyEOrwzaXH3f2FF
-         m0Gw==
-X-Forwarded-Encrypted: i=1; AKwUvByll0Ypd9mxmt5pb80CLTgvKVqfU6az2c6uLuP47qj4KkXLxNliClwW3m7hoUDraLEJdWouHvrM/uxz3w==@lists.linux.dev
-X-Gm-Message-State: AFuF++mRMrUgiIfOnPEtNX7tpae3EoB6RDMCRlONYnvIrwJPBkKW9V9I
-	sd3O0sxl0x30d8CSK+LAW+I1Lthu7du/QXRwARB4unlw/rX5ZmjYAL5mFUvSZS5pJPc=
-X-Gm-Gg: AYBFou2Gk4vUmaMeU5Rmr10RYQ/imoojeHNJatMpAZXF+06gnGHfVXyRbgeMvdGCcKA
-	yiIoU8o0eWQnXSzd5bn2Vxj4sG9Qc2djXgqKW7zhsLZPVxMifGlce5V0163ZS58Meeb7xDfwpYj
-	gN0Iz5Bd3s62pHqrART5eN6XL7la9glCzfHAKXjbhOgIqjAbgUOSxUFTIu7U3INdVECv1d+qVA7
-	UgmCQ2CJlb0zE6D1C93rgO2i4ZCeQl/8ol/ahoPHBIOfOVeTt0jU7PaL+joYkzfcdBH3Zp8d2DK
-	7P4r/uf79L0avjs3TA62uT9AovG75lMTFAnE7Zb9ZrxZ+mroTssE7a6qLzXqKHPzAsfgZGS9oPE
-	TsrzRRHSbtPXOw/v53BA2hTK3TozzZkBbAvQV8YTV6rIWni/mFxL6RfBOwNuA7ODY/4Y0yN8w/Y
-	14YaPvGAIKb3mJEBYUEzKAo2HzRJGqdhW0cm2WsfnYmoerz1q733DqvDpMWvk=
-X-Received: by 2002:a05:600c:860b:b0:49c:f9b8:bae0 with SMTP id 5b1f17b1804b1-49d01dd6b62mr15477395e9.2.1788570970872;
-        Fri, 04 Sep 2026 18:16:10 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-39b2612ba2bsm6682976a91.14.2026.09.04.18.16.09
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 04 Sep 2026 18:16:09 -0700 (PDT)
-Date: Sat, 5 Sep 2026 09:16:06 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="gxT6ATp+"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1788618105; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=YdA9xKGt2dpmfNzslVVJbFYy7MgLlY6OWFrGvaFNhF8=;
+	b=gxT6ATp+A7rtxa+tLsoGmlUyjHbtkpqyh3fhps9bxmac8sh3sp71EWQ++iUeRAWDqwYHyxKbbRtVHel5BNqh3qmnh2peUrcpH9O0Ja+gCKNGf/ZeYVCU2m7XEADIimpYxKJ5IRyAqjk++ASNqiaQnI1QgnDu/TDl/2PuWJoE+eE=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XALEF09_1788618104;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XALEF09_1788618104 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Sat, 05 Sep 2026 22:21:44 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] ocfs2: validate dr_fs_generation of dir index root blocks
-Message-ID: <aptshupcOW_f6wma@p15>
-References: <20260904111551.371150-1-joseph.qi@linux.alibaba.com>
+Subject: [PATCH v2 1/2] ocfs2: validate dr_fs_generation of dir index root blocks
+Date: Sat,  5 Sep 2026 22:21:43 +0800
+Message-Id: <20260905142144.2869105-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260904111551.371150-1-joseph.qi@linux.alibaba.com>
+Content-Transfer-Encoding: 8bit
 
-On Fri, Sep 04, 2026 at 07:15:51PM +0800, Joseph Qi wrote:
-> ocfs2_validate_dx_root() does not verify dr_fs_generation against the
-> superblock generation, unlike the extent and xattr block validators
-> which check h_fs_generation and xb_fs_generation respectively.  The
-> field is documented as "Must match super block".
-> 
-> Without the check, a stale dir index root block left on the device from
-> a previously formatted filesystem at the same physical block number can
-> pass validation as long as its signature, dr_blkno and checksum match.
-> Its index entries and suballocator information would then be used in
-> the new filesystem context.
-> 
-> Reject dir index root blocks whose dr_fs_generation does not match the
-> mounted filesystem, like the extent and xattr block validators do.
-> 
-> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+ocfs2_validate_dx_root() does not verify dr_fs_generation against the
+superblock generation, unlike the extent and xattr block validators
+which check h_fs_generation and xb_fs_generation respectively.  The
+field is documented as "Must match super block".
 
-LGTM.
+Without the check, a stale dir index root block left on the device from
+a previously formatted filesystem at the same physical block number can
+pass validation as long as its signature, dr_blkno and checksum match.
+Its index entries and suballocator information would then be used in
+the new filesystem context.
+
+Reject dir index root blocks whose dr_fs_generation does not match the
+mounted filesystem, like the extent and xattr block validators do.
+
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-> ---
->  fs/ocfs2/dir.c | 8 ++++++++
->  1 file changed, 8 insertions(+)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 6bb6aa133f01..329680b46227 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -613,6 +613,14 @@ static int ocfs2_validate_dx_root(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	if (le32_to_cpu(dx_root->dr_fs_generation) != OCFS2_SB(sb)->fs_generation) {
-> +		ret = ocfs2_error(sb,
-> +				  "Dir Index Root # %llu has an invalid dr_fs_generation of #%u\n",
-> +				  (unsigned long long)bh->b_blocknr,
-> +				  le32_to_cpu(dx_root->dr_fs_generation));
-> +		goto bail;
-> +	}
-> +
->  	/*
->  	 * Dir index root blocks are allocated from a per-slot suballocator,
->  	 * so the slot must be in range.  Otherwise removing the index passes
-> -- 
-> 2.39.3
-> 
+---
+ fs/ocfs2/dir.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+index 6bb6aa133f01..329680b46227 100644
+--- a/fs/ocfs2/dir.c
++++ b/fs/ocfs2/dir.c
+@@ -613,6 +613,14 @@ static int ocfs2_validate_dx_root(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
++	if (le32_to_cpu(dx_root->dr_fs_generation) != OCFS2_SB(sb)->fs_generation) {
++		ret = ocfs2_error(sb,
++				  "Dir Index Root # %llu has an invalid dr_fs_generation of #%u\n",
++				  (unsigned long long)bh->b_blocknr,
++				  le32_to_cpu(dx_root->dr_fs_generation));
++		goto bail;
++	}
++
+ 	/*
+ 	 * Dir index root blocks are allocated from a per-slot suballocator,
+ 	 * so the slot must be in range.  Otherwise removing the index passes
+-- 
+2.39.3
+
