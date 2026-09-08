@@ -1,154 +1,184 @@
-Received: from mail-wr1-f46.google.com (mail-wr1-f46.google.com [209.85.221.46])
+Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 30F404772A6
-	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Sep 2026 08:32:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.46
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C89E04AF17E
+	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Sep 2026 09:53:54 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788856363; cv=none; b=dkSdd/TLjKnMqggZowwugIqbREfF5ZsndJR1v5bPfGMPN9H8x8Q+jFGKsaw7oJuoPgyFYNGO2/azCZ+x67iCRcDWxI/m/5CeH6DZ8fzcxgrx4rQC1MmUw/QwAQ3sPaYmm9l96zVPhcxJ94vUNpvSvVCsqYYDRwdayVZ3PINKnYM=
+	t=1788861236; cv=none; b=KwBzBfIPJ1GE9Q6ILYmXd5PWt8x/PjEg4VUUXIa2B9NG+UCT3UzWwwClHSw9wff16ls+ghvvhIFEK0TA3a0Zxz4+CoHOtCaDAdY0tQwCYZ79N6iiEzocUUr5HzxXiE+k4YpYQ6LoH9bslY60IToCrhjNhFYWE/b2amjCm/Dv2Ws=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788856363; c=relaxed/simple;
-	bh=E7eYuLoZleOAMi5aybzFXUMotlL4x/aHsP+MlHsKC0Q=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=hYIbYlfYTongp2DTp+PyC3HkJp0mjaQIVPiSOx0tMy32K0hDw7ySqQp8SSDeXiNUxikA6oMgY1cj5ZIIV+40airOcZJgrrk9/pf+v8O1R4Mt03rQKxxEwuDazHwCaWSleMRfoMHeS4ZVwDSzT8gOC+4sWI/UpxULnLDDf1EHPl0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=OtnmpG7V; arc=none smtp.client-ip=209.85.221.46
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1788861236; c=relaxed/simple;
+	bh=zEBuvVbGieGs6jKdfu4PR52PSOjGH+tQliSRIQMbp7g=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=PuFkYy5zbOf5r9xNyfgZIHkBEkD1Pz5uiTCdYVA2aGS3n5ZeO0XNaEYoA3whlVT2P3dsM52euueQQ1FjkXL4RXtUeoOPc3prO/P6VEtYXvJ/exQjUH0oZgPS+WeamDtrS2wtDmuaOz16c/XLrxLaD6mYPBqbDLRVNqt9sXdRQoE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=GG1fySeW; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=k6HS48F0; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=Y8vD/srn; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=N0sXJP/5; arc=none smtp.client-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="OtnmpG7V"
-Received: by mail-wr1-f46.google.com with SMTP id ffacd0b85a97d-484362f5c4aso5469381f8f.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 08 Sep 2026 01:32:41 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1788856359; x=1789461159; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=vRu051t1h1A6nzfqSoDX3YwLGwKiY0jwf7brkaReOLM=;
-        b=OtnmpG7VxnebYbLZubFbushTRpq8A2Dv3M9aSjoR3fhEHg1NwK81/GIjuIguNK1uUp
-         C9JDigzyVXKjUet4z9StV+IC7JYgygPj9H7cv8A70uOhfeJIjQKWMfS5F1DH7THzkyDb
-         /OtCVOV3rdqONvaEZE3GbBykIqpItmVVJKu8PLX7hRDJwoBreJAHXnNYTfR4ZSGTP9M9
-         4oPLWQM7D2vao4XZPsDUw8CBTKCLQm1zwKnKdNDwseD0TXuBYhxXCYLuny+ixIGL0Lwa
-         4c9mMhcD4Fuj2UFJhPn0Apjff3vF3ObighP6GKqrx9RQKktL4mCPck//lPQrpLm+DS0T
-         1zyg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1788856359; x=1789461159;
-        h=content-transfer-encoding:content-type:in-reply-to:from
-         :content-language:references:cc:to:subject:user-agent:mime-version
-         :date:message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=vRu051t1h1A6nzfqSoDX3YwLGwKiY0jwf7brkaReOLM=;
-        b=be1eCbdnYEkPrJJSSlBrks5zfAUBfet9METX/B6G1dH+14DFhKj4dYTt1CQ63rUX5+
-         JaJSz5NBRnnPsVdgh6j02w5TE87OV0ZLfV/inq6pu4kz/4nqywTOXUuLQld3aG/ShC2R
-         BCF6QQW6SrdxH9IjpUMPl6AdO5J85+GN06cR8CMBUqCLcsowIDdY6ecBTeF3LIBnfM+Z
-         aaPGiFysXg2T2nFRvvXgkVLsUoE7ooEi/sVOZzzSAsCdYr4rdbFyl6b3+NMSufMNZKBS
-         c58ZvIQbXWZG8nzhiJsQK8djhAA+VlYp6huNzRCNKFN38PJitaNAoRrJ3TeVUOLzkntB
-         M5FA==
-X-Forwarded-Encrypted: i=1; AKwUvBwaQNSTUBakXOdBMEtzaTHDNrqxtMUJI2Xvqp2AFRPEJS43MeiTkJ1VtZ72fumTgKD9j9RJKwA2AZaYgg==@lists.linux.dev
-X-Gm-Message-State: AFuF++l4qbrIGAeHpd9PVMjsgjZAQjp8E0vWgyZZpHnXBupW86asRfVu
-	/zsFVvCQopBXlcjbnJdmwxe6+eWDktgu3ZmNHlg5LSAitSg4QDWrCPzl
-X-Gm-Gg: AYBFou28W2TnkhxI/+aIoXrtjC6Lnej0Zx1M9TYuR2ZjKzVH0CzuSP3PIbYLy+Jvwt5
-	TRM1lIZA++oFOCoghodI7GUF9824wYHgQkHnWtETovCYod+RoiBcqi/ggjGnp3TQKi0/t+ldmhd
-	NWjjZegOZrJeHdIqesu55XEjoY4T3xHhN83inAjZyMgjQmHAeJfuf/OIqYRK8P9amxFMmkG5lGm
-	7NXL2nhNApRm1cBHUwJnCFuLtH0mQMV7ebdCg+XSFPA7PteZxGoTRI560ku4gqSrY0o8Fe1pDhT
-	TOMDgm/3ADUOcf2ih4vBu2x4Y6VPzjJoxPmOLijF3Pw9lZlKq7H56UdcQJ9BSngVFtkerSnOrhy
-	i0Tly0xo3zHYaXDbx7aRbvM/im8eMwn+4ksFcYFP9/GwBUklVWUUqf+B823zXrPHN8xx5WN1VKO
-	RmKT2KLG4eU20RZLfhYTCgJttYsIecStYByPsVmTIgA8aJEoY2ULQmS8/dLP+lXvv4rtofjGg4U
-	08awzL6ma7d/1c7HE7tNFtwl89xFr2QG2jcPJ4545qu3dXM0w936I081h748fA5gZWTLl1Ve51x
-	qdgrkwyUr4KMuXsgmUDJIwNt7EX576aTVpAySEZrzOcoGAYYQsTbSiuKx25m76c9hW5dJITVD7h
-	fAG9tt+HDR6vdiuvJGJI3BD+TIV8V0+K+Dg==
-X-Received: by 2002:a5d:588f:0:b0:485:847f:fd9b with SMTP id ffacd0b85a97d-48586e4a62bmr48379038f8f.6.1788856359104;
-        Tue, 08 Sep 2026 01:32:39 -0700 (PDT)
-Received: from [192.168.100.51] (87-205-15-91.static.ip.netia.com.pl. [87.205.15.91])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-4858d312ca0sm35535684f8f.4.2026.09.08.01.32.37
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 08 Sep 2026 01:32:38 -0700 (PDT)
-Message-ID: <9fd0ed6b-e732-4485-a7b5-0380b07d3fc4@gmail.com>
-Date: Tue, 8 Sep 2026 10:32:36 +0200
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="GG1fySeW";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="k6HS48F0";
+	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="Y8vD/srn";
+	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="N0sXJP/5"
+Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by smtp-out1.suse.de (Postfix) with ESMTPS id BB5B021983;
+	Tue,  8 Sep 2026 09:53:44 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1788861228; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
+	b=GG1fySeWVzC7v/sjU/PcPMQ7s38yV+K1u9lzraOQlpJua/14A1ynljVS+8BUsm7vYZ9IBh
+	TuRfpowFgF8XSCWqLAwx9my+UGVXranpfhgkncNPC31GjyHfKs4wxqA0Ygj/gXqbI6MCNt
+	C6mKqaLsrcdowSGhEl5MHfU1zYXDKsQ=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1788861228;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
+	b=k6HS48F0AatfwT4PRO/j6uKfn1eG/CV6AoMC1DRH7odtmHYjidMo85wA/LAHDfBjPPiEWW
+	38xFglA6Ovr8FDDQ==
+Authentication-Results: smtp-out1.suse.de;
+	none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
+	t=1788861224; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
+	b=Y8vD/srnNtZQMUFTh44Cj0oN67vSc/MViRGVBP3LckrOEt/VLmK8w1HhwC7uwbC8uJ0Mtx
+	yGu5af1YDeqChm/LjgotNtrE0Mtp5nFQfpHvpqsbyTyz3HG7vz849kXAUp8eQ4/blbcIwi
+	x+xsypZGSiyMSC/PFdULm6uVvqerHxA=
+DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
+	s=susede2_ed25519; t=1788861224;
+	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
+	 mime-version:mime-version:content-type:content-type:
+	 content-transfer-encoding:content-transfer-encoding:
+	 in-reply-to:in-reply-to:references:references;
+	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
+	b=N0sXJP/5nOZMx8CI/e0ZK5vRp2THy1H98LeQVqHy+vtrqajakK6LMjDNyW+jUILHkwCL9a
+	IcxnqmwN3SbCsWCw==
+Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
+	(No client certificate requested)
+	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 9944813332;
+	Tue,  8 Sep 2026 09:53:44 +0000 (UTC)
+Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
+	by imap1.dmz-prg2.suse.org with ESMTPSA
+	id vdZiJSjbn2o1cwAAD6G6ig
+	(envelope-from <jack@suse.cz>); Tue, 08 Sep 2026 09:53:44 +0000
+Received: by quack3.suse.cz (Postfix, from userid 1000)
+	id 33C40A12E2; Tue, 08 Sep 2026 11:53:40 +0200 (CEST)
+Date: Tue, 8 Sep 2026 11:53:40 +0200
+From: Jan Kara <jack@suse.cz>
+To: Farhad Alemi <farhad.alemi@berkeley.edu>
+Cc: Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>, 
+	linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, ocfs2-devel@lists.linux.dev, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, Baolin Wang <baolin.wang@linux.alibaba.com>
+Subject: Re: [PATCH v2 2/2] shmem: Refuse to enable tmpfs format for another
+ filesystem
+Message-ID: <mdwfu5l2lcdumckkgwhsbxwae3shhylkv3da3tkimwbzuoosjd@2cfx5p44mkgo>
+References: <20260903090053.13120-1-jack@suse.cz>
+ <20260903090508.1360863-4-jack@suse.cz>
+ <3b119174-7b10-6eb6-7aff-462949fcb49a@google.com>
+ <CA+0ovCgQaS0mAJPDz=qMQkRgMQ0Tco5PRFHPtQo+ForkqdgC3w@mail.gmail.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: remove unnecessary ret variable in
- ocfs2_calc_xattr_init()
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Andrew Morton <akpm@linux-foundation.org>, kernel test robot
- <lkp@intel.com>, oe-kbuild-all@lists.linux.dev, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org,
- Linux Memory Management List <linux-mm@kvack.org>
-References: <202609040247.8B3lmoqX-lkp@intel.com>
- <20260907132202.48834-1-krystianmkaniewski@gmail.com>
- <b63bd2bd-229f-4636-9c89-8f1686ab087d@linux.alibaba.com>
-Content-Language: en-US
-From: Krystian Kaniewski <krystianmkaniewski@gmail.com>
-In-Reply-To: <b63bd2bd-229f-4636-9c89-8f1686ab087d@linux.alibaba.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+Content-Transfer-Encoding: 8bit
+In-Reply-To: <CA+0ovCgQaS0mAJPDz=qMQkRgMQ0Tco5PRFHPtQo+ForkqdgC3w@mail.gmail.com>
+X-Spam-Level: 
+X-Spam-Score: -3.80
+X-Spam-Flag: NO
+X-Spamd-Result: default: False [-3.80 / 50.00];
+	BAYES_HAM(-3.00)[100.00%];
+	NEURAL_HAM_LONG(-1.00)[-1.000];
+	MID_RHS_NOT_FQDN(0.50)[];
+	NEURAL_HAM_SHORT(-0.20)[-1.000];
+	MIME_GOOD(-0.10)[text/plain];
+	MISSING_XM_UA(0.00)[];
+	RCVD_VIA_SMTP_AUTH(0.00)[];
+	ARC_NA(0.00)[];
+	MIME_TRACE(0.00)[0:+];
+	RCPT_COUNT_SEVEN(0.00)[8];
+	FROM_HAS_DN(0.00)[];
+	TO_DN_SOME(0.00)[];
+	FROM_EQ_ENVFROM(0.00)[];
+	RCVD_COUNT_THREE(0.00)[3];
+	TO_MATCH_ENVRCPT_ALL(0.00)[];
+	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
+	RCVD_TLS_LAST(0.00)[];
+	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.cz:email,suse.com:email,imap1.dmz-prg2.suse.org:helo]
 
-Hey Joseph,
+On Mon 07-09-26 19:32:20, Farhad Alemi wrote:
+> Apologies for the delay in response. Upon our run, the patched kernel
+> (this patch on 28924df2a08f) no longer panics on the attached
+> reproducer.
 
-Thanks for letting me know and let's drop this patch then. I've just 
-received an email a few days ago after my patch was applied to upstream 
-Linux and there was this finding, however I didn't expect it's already 
-addressed.
+Thanks for testing!
 
-On 9/8/2026 3:23 AM, Joseph Qi wrote:
-> Hi,
-> This has already been addressed by:
-> ed57836ff300 ocfs2: make ocfs2_calc_xattr_init() return void
->
-> Thanks,
-> Joseph
->
-> On 9/7/26 9:22 PM, Krystian Kaniewski wrote:
->> Commit bd7c05fb4a47 ("ocfs2: fix circular locking dependency in
->> ocfs2_init_acl()") removed the only code that could change ret in
->> ocfs2_calc_xattr_init(). The variable is now always zero, so remove it
->> and return zero directly.
->>
->> This fixes the reported Coccinelle warning without changing behavior.
->>
->> Fixes: bd7c05fb4a47 ("ocfs2: fix circular locking dependency in ocfs2_init_acl()")
->> Reported-by: kernel test robot <lkp@intel.com>
->> Closes: https://lore.kernel.org/oe-kbuild-all/202609040247.8B3lmoqX-lkp@intel.com/
->> Signed-off-by: Krystian Kaniewski <krystianmkaniewski@gmail.com>
->> ---
->>   fs/ocfs2/xattr.c | 5 ++---
->>   1 file changed, 2 insertions(+), 3 deletions(-)
->>
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index 35bcbb0ff607..ab3b645983c9 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -640,7 +640,6 @@ int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
->>   			  int *want_clusters, int *xattr_credits,
->>   			  int *want_meta, struct ocfs2_acl_state *acl_state)
->>   {
->> -	int ret = 0;
->>   	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
->>   	int s_size = 0, a_size = 0, acl_len = 0, new_clusters;
->>   
->> @@ -662,7 +661,7 @@ int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
->>   	}
->>   
->>   	if (!(s_size + a_size))
->> -		return ret;
->> +		return 0;
->>   
->>   	/*
->>   	 * The max space of security xattr taken inline is
->> @@ -729,7 +728,7 @@ int ocfs2_calc_xattr_init(struct inode *dir, umode_t mode,
->>   		}
->>   	}
->>   
->> -	return ret;
->> +	return 0;
->>   }
->>   
->>   static int ocfs2_xattr_extend_allocation(struct inode *inode,
->>
->> base-commit: bc35965f6940a9bf834d54187b6088b8eb09206d
+								Honza
+
+> On Thu, Sep 3, 2026 at 8:15 AM Hugh Dickins <hughd@google.com> wrote:
+> >
+> > On Thu, 3 Sep 2026, Jan Kara wrote:
+> >
+> > > It is possible to issue Q_QUOTAON quotactl(2) e.g. for ext4 filesystem
+> > > requesting to enable quota using tmpfs quota format. With suitable
+> > > passed arguments this can actually succeed in enabling tmpfs quota
+> > > format on top of ext4 filesystem which leads to crashes later in
+> > > dquot_acquire().  As tmpfs quota format is intended for tmpfs
+> > > filesystems only, verify we are indeed enabling quotas there.
+> > >
+> > > Reported-by: Farhad Alemi <farhad.alemi@berkeley.edu>
+> > > Signed-off-by: Jan Kara <jack@suse.cz>
+> >
+> > Acked-by: Hugh Dickins <hughd@google.com>
+> >
+> > Thanks: yes, please do route it through your tree.
+> >
+> > > ---
+> > >  mm/shmem_quota.c | 5 +++++
+> > >  1 file changed, 5 insertions(+)
+> > >
+> > > diff --git a/mm/shmem_quota.c b/mm/shmem_quota.c
+> > > index d0b92d6da50f..a3fa4bd93e75 100644
+> > > --- a/mm/shmem_quota.c
+> > > +++ b/mm/shmem_quota.c
+> > > @@ -30,6 +30,7 @@
+> > >  #include <linux/slab.h>
+> > >  #include <linux/rbtree.h>
+> > >  #include <linux/shmem_fs.h>
+> > > +#include <linux/magic.h>
+> > >
+> > >  #include <linux/quotaops.h>
+> > >  #include <linux/quota.h>
+> > > @@ -54,6 +55,10 @@ struct quota_id {
+> > >
+> > >  static int shmem_check_quota_file(struct super_block *sb, int type)
+> > >  {
+> > > +     /* Verify enabling happens on tmpfs superblock */
+> > > +     if (sb->s_magic != TMPFS_MAGIC)
+> > > +             return 0;
+> > > +
+> > >       /* There is no real quota file, nothing to do */
+> > >       return 1;
+> > >  }
+> > > --
+> > > 2.51.0
+
+
+-- 
+Jan Kara <jack@suse.com>
+SUSE Labs, CR
