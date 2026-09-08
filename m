@@ -1,184 +1,138 @@
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from TYVP286CU001.outbound.protection.outlook.com (mail-japaneastazon11011047.outbound.protection.outlook.com [52.101.125.47])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C89E04AF17E
-	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Sep 2026 09:53:54 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.130
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1788861236; cv=none; b=KwBzBfIPJ1GE9Q6ILYmXd5PWt8x/PjEg4VUUXIa2B9NG+UCT3UzWwwClHSw9wff16ls+ghvvhIFEK0TA3a0Zxz4+CoHOtCaDAdY0tQwCYZ79N6iiEzocUUr5HzxXiE+k4YpYQ6LoH9bslY60IToCrhjNhFYWE/b2amjCm/Dv2Ws=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1788861236; c=relaxed/simple;
-	bh=zEBuvVbGieGs6jKdfu4PR52PSOjGH+tQliSRIQMbp7g=;
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 05A9B4FB9B7
+	for <ocfs2-devel@lists.linux.dev>; Tue,  8 Sep 2026 10:11:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=fail smtp.client-ip=52.101.125.47
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1788862266; cv=fail; b=aWr2r8HmGHBV1RZcW4Zp4fNTSKa+imfBBlAo3G0h1n2pnyiEqDUrk9xBs8TZlt+oMxWaKx/queaIDD/ZgTShFywblqrm4Acox8CsH96Mk4LWMx+FfA76dsM6Bl15Sd7ljwF7STwMiBz9oTpjyTOopM3GHB8zt6Ai47rvO9haOEI=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1788862266; c=relaxed/simple;
+	bh=veMMEp/O0Wl3Prl1d5lQd+ZWUoWFE8zev7T1WacvF1o=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=PuFkYy5zbOf5r9xNyfgZIHkBEkD1Pz5uiTCdYVA2aGS3n5ZeO0XNaEYoA3whlVT2P3dsM52euueQQ1FjkXL4RXtUeoOPc3prO/P6VEtYXvJ/exQjUH0oZgPS+WeamDtrS2wtDmuaOz16c/XLrxLaD6mYPBqbDLRVNqt9sXdRQoE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=GG1fySeW; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=k6HS48F0; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=Y8vD/srn; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=N0sXJP/5; arc=none smtp.client-ip=195.135.223.130
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	 Content-Type:Content-Disposition:In-Reply-To; b=Cvhl++/DfQ+iDVk7XPuSpzSKm86IgPSxuK0WSXoWpB5dC9glbmJIVkh42HY5KZE5IgrwO5EzA9FeZGQYR9WJvb71m2rLtHZEIlClDZ7D+TwB/4BVxhMzyb6tJY3z/Domz0wjWaBcllqDsghW+jJJkHNANLIBu21IK/zClyLItlM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=renesas.com; spf=pass smtp.mailfrom=renesas.com; dkim=pass (1024-bit key) header.d=renesas.com header.i=@renesas.com header.b=AcWYysdg; arc=fail smtp.client-ip=52.101.125.47
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=renesas.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=renesas.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="GG1fySeW";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="k6HS48F0";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="Y8vD/srn";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="N0sXJP/5"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id BB5B021983;
-	Tue,  8 Sep 2026 09:53:44 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1788861228; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
-	b=GG1fySeWVzC7v/sjU/PcPMQ7s38yV+K1u9lzraOQlpJua/14A1ynljVS+8BUsm7vYZ9IBh
-	TuRfpowFgF8XSCWqLAwx9my+UGVXranpfhgkncNPC31GjyHfKs4wxqA0Ygj/gXqbI6MCNt
-	C6mKqaLsrcdowSGhEl5MHfU1zYXDKsQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1788861228;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
-	b=k6HS48F0AatfwT4PRO/j6uKfn1eG/CV6AoMC1DRH7odtmHYjidMo85wA/LAHDfBjPPiEWW
-	38xFglA6Ovr8FDDQ==
-Authentication-Results: smtp-out1.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1788861224; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
-	b=Y8vD/srnNtZQMUFTh44Cj0oN67vSc/MViRGVBP3LckrOEt/VLmK8w1HhwC7uwbC8uJ0Mtx
-	yGu5af1YDeqChm/LjgotNtrE0Mtp5nFQfpHvpqsbyTyz3HG7vz849kXAUp8eQ4/blbcIwi
-	x+xsypZGSiyMSC/PFdULm6uVvqerHxA=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1788861224;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=7PxSZzuhiEVQPTqO05fMglEfYCmdRCQL8xD7SfCY/WE=;
-	b=N0sXJP/5nOZMx8CI/e0ZK5vRp2THy1H98LeQVqHy+vtrqajakK6LMjDNyW+jUILHkwCL9a
-	IcxnqmwN3SbCsWCw==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 9944813332;
-	Tue,  8 Sep 2026 09:53:44 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id vdZiJSjbn2o1cwAAD6G6ig
-	(envelope-from <jack@suse.cz>); Tue, 08 Sep 2026 09:53:44 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id 33C40A12E2; Tue, 08 Sep 2026 11:53:40 +0200 (CEST)
-Date: Tue, 8 Sep 2026 11:53:40 +0200
-From: Jan Kara <jack@suse.cz>
-To: Farhad Alemi <farhad.alemi@berkeley.edu>
-Cc: Hugh Dickins <hughd@google.com>, Jan Kara <jack@suse.cz>, 
-	linux-fsdevel@vger.kernel.org, linux-mm@kvack.org, ocfs2-devel@lists.linux.dev, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Baolin Wang <baolin.wang@linux.alibaba.com>
-Subject: Re: [PATCH v2 2/2] shmem: Refuse to enable tmpfs format for another
- filesystem
-Message-ID: <mdwfu5l2lcdumckkgwhsbxwae3shhylkv3da3tkimwbzuoosjd@2cfx5p44mkgo>
-References: <20260903090053.13120-1-jack@suse.cz>
- <20260903090508.1360863-4-jack@suse.cz>
- <3b119174-7b10-6eb6-7aff-462949fcb49a@google.com>
- <CA+0ovCgQaS0mAJPDz=qMQkRgMQ0Tco5PRFHPtQo+ForkqdgC3w@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=renesas.com header.i=@renesas.com header.b="AcWYysdg"
+ARC-Seal: i=1; a=rsa-sha256; s=arcselector10001; d=microsoft.com; cv=none;
+ b=sQuqbDPxTYhRR8g9wL0q8drHI36xOfIb4fRoAtDFKCsYDpDiq1W39qwgYCpLnWAGOM+/R+A5JVzgEgmIrBKaGfbwOOVMUz9KgMfljf1EqxFYb8lm5XPIwS91V+2GSiKpgKQWnfH6ylNrvMGzMgrBrsHy/hj2oeC1bizfNkYfOVEKMG58z4AkCtaDEGZiSsMF/DLHI3H9L9V0LexViKdjAo7iNikO16c2ndiVUHRIHlV7uGrDutE2O604fNxWa3O8aZr5FfaR8zCYNB2ayv09RGByprONegjvs9MDBlLDomnt+gy4csJL+tYNKlRjXYqLoTvGspvH3oPhRl53tmJS3Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=microsoft.com;
+ s=arcselector10001;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-AntiSpam-MessageData-ChunkCount:X-MS-Exchange-AntiSpam-MessageData-0:X-MS-Exchange-AntiSpam-MessageData-1;
+ bh=ThUJG7Y+yBXs+SEOuca+M2zPN4TdjWB4XN2asZWOT3k=;
+ b=FIcF7uJVm62eM4NtLSdNOpSTe8T27NPH33ptafXmNHH7Ma4tpCFSX6JNq0C9OW65w9Udq2zxVyjST5gvYN/AEAGkioBSHO46JBhXVVavavtNkQFtsl/k8+E+xpb6Ji6ZTfBql+lO2YIJfiyNtXllhoPPiAVu4YJy5x716TyadNeX0C7DwsAVlQfU5TmiFwROolfPWLju1bm/SLZ5nPOJKqDiSojOKPC5wb49kH2SvOa5mUQ7qVr7K30aPbA6WH0EUc3lCn0iQOvQZ/aA9GeNCfNp2jI9bt2dNXZC9xN5SkohzYcs7mMCoQsPGolPvzJz4V6c+hkdK5srQT4z1oX8ZQ==
+ARC-Authentication-Results: i=1; mx.microsoft.com 1; spf=pass (sender ip is
+ 8.62.32.50) smtp.rcpttodomain=amd.com smtp.mailfrom=renesas.com; dmarc=pass
+ (p=none sp=none pct=100) action=none header.from=renesas.com; dkim=none
+ (message not signed); arc=none (0)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=renesas.com;
+ s=selector1;
+ h=From:Date:Subject:Message-ID:Content-Type:MIME-Version:X-MS-Exchange-SenderADCheck;
+ bh=ThUJG7Y+yBXs+SEOuca+M2zPN4TdjWB4XN2asZWOT3k=;
+ b=AcWYysdgJznuwqO/yQNiAzKtcWGrVdZUGDir8M5I+fROuVBU6sMcrcNVHdTWuWnOZEHvFcekElFdyE90GM+kxqS2CwwWG/yV6JJ+SGOiGWcfnsyU/9jjMvrC9ZfR7ZfWnjuReWlXzD+20ddLKGaFnOgXUS8qD8rexL5T4cOGoL8=
+Received: from TYCP286CA0126.JPNP286.PROD.OUTLOOK.COM (2603:1096:400:2b6::10)
+ by TYWPR01MB8447.jpnprd01.prod.outlook.com (2603:1096:400:174::11) with
+ Microsoft SMTP Server (version=TLS1_2,
+ cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id 15.21.382.15; Tue, 8 Sep
+ 2026 10:11:00 +0000
+Received: from TY1PEPF0000BAD8.JPNP286.PROD.OUTLOOK.COM
+ (2603:1096:400:2b6:cafe::90) by TYCP286CA0126.outlook.office365.com
+ (2603:1096:400:2b6::10) with Microsoft SMTP Server (version=TLS1_3,
+ cipher=TLS_AES_256_GCM_SHA384) id 15.21.382.15 via Frontend Transport; Tue, 8
+ Sep 2026 10:11:00 +0000
+X-MS-Exchange-Authentication-Results: spf=pass (sender IP is 8.62.32.50)
+ smtp.mailfrom=renesas.com; dkim=none (message not signed)
+ header.d=none;dmarc=pass action=none header.from=renesas.com;
+Received-SPF: Pass (protection.outlook.com: domain of renesas.com designates
+ 8.62.32.50 as permitted sender) receiver=protection.outlook.com;
+ client-ip=8.62.32.50; helo=ejcrelay005p.adwin.renesas.com; pr=E
+Received: from ejcrelay005p.adwin.renesas.com (8.62.32.50) by
+ TY1PEPF0000BAD8.mail.protection.outlook.com (10.167.240.37) with Microsoft
+ SMTP Server (version=TLS1_3, cipher=TLS_AES_256_GCM_SHA384) id 15.21.406.5
+ via Frontend Transport; Tue, 8 Sep 2026 10:11:00 +0000
+Received: from unknown (unknown [10.24.0.46])
+	by ejcrelay005p.adwin.renesas.com (Postfix) with SMTP id 7A80E300025C;
+	Tue,  8 Sep 2026 19:10:57 +0900 (JST)
+Date: Tue, 8 Sep 2026 11:10:55 +0100
+From: Chris Paterson <chris.paterson2@renesas.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org,
+	linux-ext4@vger.kernel.org, ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Srikanth Aithal <Srikanth.Aithal@amd.com>,
+	Luca Weiss <luca.weiss@fairphone.com>, Jan Kara <jack@suse.cz>,
+	". Chris Paterson" <chris.paterson2@renesas.com>
+Subject: Re: [PATCH] buffer: fix NULL dereference of bh->b_folio in
+ __bh_submit()
+Message-ID: <ap_fLx-HKX5vH3-x@ms-a2>
+References: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
+Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-Content-Transfer-Encoding: 8bit
-In-Reply-To: <CA+0ovCgQaS0mAJPDz=qMQkRgMQ0Tco5PRFHPtQo+ForkqdgC3w@mail.gmail.com>
-X-Spam-Level: 
-X-Spam-Score: -3.80
-X-Spam-Flag: NO
-X-Spamd-Result: default: False [-3.80 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MISSING_XM_UA(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	ARC_NA(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	RCPT_COUNT_SEVEN(0.00)[8];
-	FROM_HAS_DN(0.00)[];
-	TO_DN_SOME(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	RCVD_TLS_LAST(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.cz:email,suse.com:email,imap1.dmz-prg2.suse.org:helo]
+In-Reply-To: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
+X-EOPAttributedMessage: 0
+X-MS-PublicTrafficType: Email
+X-MS-TrafficTypeDiagnostic: TY1PEPF0000BAD8:EE_|TYWPR01MB8447:EE_
+X-MS-Office365-Filtering-Correlation-Id: b9969c65-7b4b-4977-90eb-08df0d917b7c
+X-MS-Exchange-SenderADCheck: 1
+X-MS-Exchange-AntiSpam-Relay: 0
+X-Microsoft-Antispam:
+	BCL:0;ARA:13230040|1800799024|82310400026|36860700016|376014|23010399003|10067099003|11063799006|56012099006|22082099003|18002099003;
+X-Microsoft-Antispam-Message-Info:
+	CzLIvukY/YiC+l8Oo+G2MVKJiiA6Z32nNXtVIyW8a2lnfms71ED++/YkLc3S/cCCzi05IfRsfzA1fFKxdlBrxxi+MKaw9eQsSBEWDc0wEoLIwU5Za8ggmwGFoXXshTgJNFGbDTxJNVfqFhrWM8yjL2Sr9/FwHQyW5Oyq5rmkAhVXbwNKS27AcYNzFsbGJwzGap9EOuRtbNPRGFh83lWXjKSRMcmMEROtDjzDOlDDxAMvCh/LVx1vwxOFOmJe0QNsK+REk/JCRyYrnAek2Ch63Awll8bwt7zD/Rp+9paZMPJoaKqXtZr9Kj8iU1o9pUfofRmWBobHHeftX2hgNmSZO9+T/synz15CoQN+dgNt9eiwI/MLoA5mNlgm7qxEn+5b3fsqC1Mfix3yFVqjEFzHN9lW140ID7Eun+OILBvBGfqfia8AlqNVqY6aHJ+tZ/hE1BTlmUdenjxhrTSBTrdtUyQnffYEaIL8kS+7NPmv82o0W/ysPUbfF3z7h6hFZptCxLXkjNpY3bT1DNwzhPTusLx18mfXsiazUOfFJ0s+onPwkD9aOtj3GdY2+5NUH9o6gOayRcPiBGTusnbaqp8u3PQ4axTAq5Qn65M0GjEq1dfjuzzCxMgiCgCqQu7AzBO6ubwWEAn4ybp8yp2bAgaKDwspMXZX0Kf/01CeqHJU/wiOltOA6koAtnIfpTii7LcAZBTcR+eQ8MoalflR7VvDTQ==
+X-Forefront-Antispam-Report:
+	CIP:8.62.32.50;CTRY:US;LANG:en;SCL:1;SRV:;IPV:NLI;SFV:NSPM;H:ejcrelay005p.adwin.renesas.com;PTR:InfoDomainNonexistent;CAT:NONE;SFS:(13230040)(1800799024)(82310400026)(36860700016)(376014)(23010399003)(10067099003)(11063799006)(56012099006)(22082099003)(18002099003);DIR:OUT;SFP:1101;
+X-MS-Exchange-AntiSpam-MessageData-ChunkCount: 1
+X-MS-Exchange-AntiSpam-MessageData-0:
+	HerYUQCv+pVCKkOVlhlwftNdLpKCp7xFHQRMFHrksLsyXhF38ACwVfaidZ4BWCv6KF5bqYwfU2SjumpgJZOWhWOwAL6sgEczGowvLLTUwXRgsdqi/GTjN2EkDhi8zb7J7Tuwx2RrAIOlpH0T4qAIufOAl3POxeNdh7JE1mAK5ZxFCKK2hG+ONJbbOKDEX8CHNPhhJm3xMcSFYyWOz+t/Z05U0tV6FxU4bNhv8m5fDbFQOynFI08I8jyGChlsgGu16G2YnJLbyHlknBaaLE0mjZux+IIUxcS9d/69KQ2DNfLo7gJLPQjYZb1RLj+CezObu4Al4I8Bsss7J9+ALtKejVOpS+o3ZZ++p58+oewh7LwJFcwHvKl89iVn7QUBSXqtjO/AiPSUE8g2H/1R37s7Xnu8PL93a5mbsfR57JjIYAOAEMJN5miuNrBACnqdzkvR
+X-OriginatorOrg: renesas.com
+X-MS-Exchange-CrossTenant-OriginalArrivalTime: 08 Sep 2026 10:11:00.2590
+ (UTC)
+X-MS-Exchange-CrossTenant-Network-Message-Id: b9969c65-7b4b-4977-90eb-08df0d917b7c
+X-MS-Exchange-CrossTenant-Id: 53d82571-da19-47e4-9cb4-625a166a4a2a
+X-MS-Exchange-CrossTenant-OriginalAttributedTenantConnectingIp: TenantId=53d82571-da19-47e4-9cb4-625a166a4a2a;Ip=[8.62.32.50];Helo=[ejcrelay005p.adwin.renesas.com]
+X-MS-Exchange-CrossTenant-AuthSource: TY1PEPF0000BAD8.JPNP286.PROD.OUTLOOK.COM
+X-MS-Exchange-CrossTenant-AuthAs: Anonymous
+X-MS-Exchange-CrossTenant-FromEntityHeader: HybridOnPrem
+X-MS-Exchange-Transport-CrossTenantHeadersStamped: TYWPR01MB8447
 
-On Mon 07-09-26 19:32:20, Farhad Alemi wrote:
-> Apologies for the delay in response. Upon our run, the patched kernel
-> (this patch on 28924df2a08f) no longer panics on the attached
-> reproducer.
+On Wed, 2 Sep 2026 09:33:57 +0800, Joseph Qi wrote:
+> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
+> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
+> __bh_submit().  But jbd2 shadow buffers have a NULL b_folio since commit
+> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
+> directly") made them point b_data at the kmalloced frozen data rather
+> than a folio.  Submitting such a buffer during journal commit oopses:
+>
+>   BUG: kernel NULL pointer dereference, address: 0000000000000000
+>   RIP: 0010:__bh_submit.constprop.0+0x87/0x120
+>   Call Trace:
+>    jbd2_journal_commit_transaction+0x932/0x1b10
+>    kjournald2+0xb2/0x250
+>
+> Hit by the ocfs2-testsuite fill_verify_holes test running with
+> data=writeback.
+>
+> Dropbehind only applies to buffers backed by a folio, so skip the check
+> when b_folio is NULL.
+>
+> Fixes: 5febcba29792 ("jbd2: point the shadow buffer at the frozen data directly")
+> Tested-by: Srikanth Aithal <Srikanth.Aithal@amd.com>
+> Tested-by: Luca Weiss <luca.weiss@fairphone.com> # sm7225-fairphone-fp4
+> Reviewed-by: Jan Kara <jack@suse.cz>
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Thanks for testing!
+This patch fixes the same error we've been seeing on various Renesas RZ
+platforms. Tested on RZ/V2H EVK, RZ/V2N EVK and SMARC RZ/G3E EVK.
 
-								Honza
+Tested-by: Chris Paterson <chris.paterson2@renesas.com>
 
-> On Thu, Sep 3, 2026 at 8:15 AM Hugh Dickins <hughd@google.com> wrote:
-> >
-> > On Thu, 3 Sep 2026, Jan Kara wrote:
-> >
-> > > It is possible to issue Q_QUOTAON quotactl(2) e.g. for ext4 filesystem
-> > > requesting to enable quota using tmpfs quota format. With suitable
-> > > passed arguments this can actually succeed in enabling tmpfs quota
-> > > format on top of ext4 filesystem which leads to crashes later in
-> > > dquot_acquire().  As tmpfs quota format is intended for tmpfs
-> > > filesystems only, verify we are indeed enabling quotas there.
-> > >
-> > > Reported-by: Farhad Alemi <farhad.alemi@berkeley.edu>
-> > > Signed-off-by: Jan Kara <jack@suse.cz>
-> >
-> > Acked-by: Hugh Dickins <hughd@google.com>
-> >
-> > Thanks: yes, please do route it through your tree.
-> >
-> > > ---
-> > >  mm/shmem_quota.c | 5 +++++
-> > >  1 file changed, 5 insertions(+)
-> > >
-> > > diff --git a/mm/shmem_quota.c b/mm/shmem_quota.c
-> > > index d0b92d6da50f..a3fa4bd93e75 100644
-> > > --- a/mm/shmem_quota.c
-> > > +++ b/mm/shmem_quota.c
-> > > @@ -30,6 +30,7 @@
-> > >  #include <linux/slab.h>
-> > >  #include <linux/rbtree.h>
-> > >  #include <linux/shmem_fs.h>
-> > > +#include <linux/magic.h>
-> > >
-> > >  #include <linux/quotaops.h>
-> > >  #include <linux/quota.h>
-> > > @@ -54,6 +55,10 @@ struct quota_id {
-> > >
-> > >  static int shmem_check_quota_file(struct super_block *sb, int type)
-> > >  {
-> > > +     /* Verify enabling happens on tmpfs superblock */
-> > > +     if (sb->s_magic != TMPFS_MAGIC)
-> > > +             return 0;
-> > > +
-> > >       /* There is no real quota file, nothing to do */
-> > >       return 1;
-> > >  }
-> > > --
-> > > 2.51.0
-
-
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+Thanks!
+Chris
