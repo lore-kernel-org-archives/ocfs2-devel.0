@@ -1,177 +1,396 @@
-Received: from mout.web.de (mout.web.de [212.227.15.4])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed1-f50.google.com (mail-ed1-f50.google.com [209.85.208.50])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AD35D481FA5;
-	Thu, 10 Sep 2026 14:16:31 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.227.15.4
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789049793; cv=none; b=UEogrmEUSDE8UTga7l/zEW9UNaY9m6GEdY2ulyMAdCj0JLWZs3Tomneio43R2hXXYPc5ZECsF0/g5va2DnX3ZloYc8kmhXH7xwfou0XOvHi2KIxX9GnY7P0umSx2013CKDaWHOxiT3OIxOMniku9fP025PprS3b+oMmY0bKPSbo=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789049793; c=relaxed/simple;
-	bh=ouLSzFPPywcWEjItXpm/BdFxmrrlx7aKIKZ1q/voZWk=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=rTVgMIa82BuM/4R4Imq7IDOEm6Ybsmus16pmkjG5rhAjbZ4BAdxwjlzMg2qJoP38ewDpoVMXN4PtxPGYrLjNyI1syPKLvXhdQ1IFjyrgFN3KzLrZw8TCJm/eGjhnC5M5Fcbzr0AABL+F32N31d5EZsqk7jj7AzoY1oRKaXy7iC8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de; spf=pass smtp.mailfrom=web.de; dkim=pass (2048-bit key) header.d=web.de header.i=spasswolf@web.de header.b=LhvMGG5D; arc=none smtp.client-ip=212.227.15.4
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=web.de
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 40E3949158A
+	for <ocfs2-devel@lists.linux.dev>; Thu, 10 Sep 2026 15:10:57 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=209.85.208.50
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1789053062; cv=pass; b=ZxNZx0DL/VgVcAdU+KxDO9fqsUiBfbcEorJIqOD88c90ivL/YC2wcE1D+jYKG2yJ/XW0HFttXS0Zqo1ZfUyviP+Co9NOngWAQPRarF+rSYonVeonMICsek6rxRfZi+MGI0FV9sKE/JRrBi89r9eVmBhWSBnnL4CpBsZhun4zR/8=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1789053062; c=relaxed/simple;
+	bh=9skpiSPV7DYDQJGnCwUFDPERmPJb4uc3nwUCKryxz98=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=ZewEGL6oDJP2wzyyzZv91/XCNZsotStk56m0xl1yCARNAr9D1pgiDSGhFkFmWPC3gz7+CdxSIackgNznlHVH/q2441oy3LHEDFGvttLd5krnZMXWJyT6D8Qhs8/SD0O7kO8MdiBWft0+Ps8MUqw2F8IlxY/t77JByFHMm/bzKNM=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=oyHfypNw; arc=pass smtp.client-ip=209.85.208.50
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=web.de header.i=spasswolf@web.de header.b="LhvMGG5D"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=web.de;
-	s=s29768273; t=1789049734; x=1789654534; i=spasswolf@web.de;
-	bh=ouLSzFPPywcWEjItXpm/BdFxmrrlx7aKIKZ1q/voZWk=;
-	h=X-UI-Sender-Class:From:To:Cc:Subject:Date:Message-ID:In-Reply-To:
-	 References:MIME-Version:Content-Transfer-Encoding:cc:
-	 content-transfer-encoding:content-type:date:from:message-id:
-	 mime-version:reply-to:subject:to;
-	b=LhvMGG5DzdYI8DqS5YqGNKz6TQL9GIVQN587L5YBWaR3ZxwGh1q3fsORx9ogHMZ7
-	 OpLpUGtIvnnynrFZtbhDTC3bsbxkKziqvJ8cZr2xJC2Fy0Gdvwxg7rGUiGazCB4p5
-	 lluvrmgGRm84qmsDje0Fq3sU8IpOGUyerTEExlv7HJo56G0nM0cnGGfla13fLFzVU
-	 wppgaTNr4orft7UUvOKuhcdRKlZW+nqPNZINJ6Xtg6pI4kyR1vmMf7KtU6A4Dmoyi
-	 Tav6PhyiIj/hZRgwclLtfVLvdtI3S4bVDaixSnopQjF2Y6pSfY6g+aC6eijtxNsoq
-	 6QWXUPpXinHPVcycDQ==
-X-UI-Sender-Class: 814a7b36-bfc1-4dae-8640-3722d8ec6cd6
-Received: from client.hidden.invalid by smtp.web.de (mrweb005
- [213.165.67.108]) with ESMTPSA (Nemesis) id 1MLRYd-1xM3io20cV-00XlJW; Thu, 10
- Sep 2026 16:15:33 +0200
-From: Bert Karwatzki <spasswolf@web.de>
-To: Joseph Qi <jiangqi903@gmail.com>
-Cc: Bert Karwatzki <spasswolf@web.de>,
-	Chao Shi <coshi036@gmail.com>,
-	Jan Kara <jack@suse.cz>,
-	Venkat <venkat88@linux.ibm.com>,
-	Alexander Viro <viro@zeniv.linux.org.uk>,
-	Matthew Wilcox <willy@infradead.org>,
-	linux-fsdevel@vger.kernel.org,
-	"Theodore Ts'o" <tytso@mit.edu>,
-	Andreas Dilger <adilger.kernel@dilger.ca>,
-	Baokun Li <libaokun@linux.alibaba.com>,
-	Ojaswin Mujoo <ojaswin@linux.ibm.com>,
-	Ritesh Harjani <ritesh.list@gmail.com>,
-	Zhang Yi <yi.zhang@huawei.com>,
-	Zhang Yi <yi.zhang@huaweicloud.com>,
-	Bob Copeland <me@bobcopeland.com>,
-	Namjae Jeon <linkinjeon@kernel.org>,
-	Sungjong Seo <sj1557.seo@samsung.com>,
-	Yuezhang Mo <yuezhang.mo@sony.com>,
-	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Andreas Gruenbacher <agruenba@redhat.com>,
-	linux-ext4@vger.kernel.org,
-	ocfs2-devel@lists.linux.dev,
-	gfs2@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	linux-next@vger.kernel.org,
-	Weidong Zhu <weizhu@fiu.edu>
-Subject: Re: [PATCH v2 03/21] jbd2: point the shadow buffer at the frozen data directly
-Date: Thu, 10 Sep 2026 16:15:22 +0200
-Message-ID: <20260910141524.12362-1-spasswolf@web.de>
-X-Mailer: git-send-email 2.55.0
-In-Reply-To: <9CC2EE8A-9F67-408A-87A1-62AF671B4BFB@linux.ibm.com> (raw)
-References: 
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="oyHfypNw"
+Received: by mail-ed1-f50.google.com with SMTP id 4fb4d7f45d1cf-6a998436551so3050410a12.0
+        for <ocfs2-devel@lists.linux.dev>; Thu, 10 Sep 2026 08:10:57 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1789053053; cv=none;
+        d=google.com; s=arc-20260327;
+        b=FI/qbkaqQPhPBtKapBTOKzR0PvDrc3g8DTWPfXp+q9EXzcHKyNWI+iygqRxEdTTr/P
+         hFBQUcTthkXRRLsyBnc2BpMce3ZPtVn0Xa2kN+TQ6C3WlxZieSx30sFxPwi62UVrWano
+         e6XSo3YOgB9tcInELxwx5tUqKId7p6Wdc0rzWElzAYuoB+cS/0WkzFksPClKcidC8giH
+         56KJHCU6imSS5iX/fAfFgKsAfQdtsktfSS7N8qmrEYiR8Y4c1+xJdy9wuIFWB8luIJDz
+         O0QETMikj4GMpQT+LXTrGaji2KHlyXs8Ip4vJLwIX1RF1feb9Dq6jEMsowGd58bTIaWy
+         Da7Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=bWHC+M7zvZqjQHZoXSSYG/rFYNQ6vDcay217qh/DvTk=;
+        fh=wQfIh410/FWYMH3SRKvAe1LVzxdZdAZa41gkX3Fiws8=;
+        b=Ri+Zm4zRpC2xw+wb9Kr3lBikXaNPNM6jMjbazVOv9s/W78gWjW1LTDALuN8KSrEaYn
+         e/qWEf5BuS3l60Z6cCqc29csKS7GoA4r9Tammx1OCDuQh6nfs9S9ApSO3wb4f+ifR4Wi
+         Srz8MDi8Geu+sxuv8FyrTimEBMahaWBrucJaKDhmd6wR+6lIuiMlUKKCe79aE2J6rdHB
+         lGXgmRHr2780kl5k5tOGrRoOuRpi/SHIF9FYR9ZB49biIqZu6QrSH5nStyjuzQoHa+1f
+         +UNiAdx44YdFth47C3tW7TEiYuLn54XI90/Jke1YP/HGgvMiZS68PapQS6X92W3j40Kl
+         x7Ew==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1789053053; x=1789657853; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=bWHC+M7zvZqjQHZoXSSYG/rFYNQ6vDcay217qh/DvTk=;
+        b=oyHfypNwX06WjKUQUn5ni5CzapoPImWlUn482S0x/d/lAZiLAgEzvXkFIhbHlUhMQj
+         j8Z11RdrIuBoPnoOhVdeZ+p2gKb2197igGgbBCC+UJJKg4YBflreG56cjN7c7SZhyYyM
+         qLG3Yp9WZXn8KgBuDx+7eKvZZS1019xIDn6hhpLSZTZGp8iHwIIzZWLv5LqzptEfCBpP
+         Jztarhofq+7/s4R4ZhY4CQhFfkktB31+1fFApstgkHcQ7E+wB3QZ5ZsbzVguobv1cYCJ
+         4tEHoh4E7GJIzi3sXzn6KfE8HbWvZvbXu1p3uS6UtIUXDA/TTXap3g2uZ5viL5+Uc/32
+         ZyuA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20251104; t=1789053053; x=1789657853;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=bWHC+M7zvZqjQHZoXSSYG/rFYNQ6vDcay217qh/DvTk=;
+        b=LtMackUTivPYJVRO97+myYO1VDqoGay7BfenzLncE/NnV8UlIqbZc2kLE3x7fnXBiF
+         NLTfV0si8w2hGx4/tVl7ckzZnP35v7xPS0lELkUcnhQbds9DKDDGFgnrj2yMeA7faX/U
+         hhGxegOlPovBMn1PoatoKy55+AKf8cYl3Tn955Szapt8/4yOahiwfQY2KMY5+9vc3wC+
+         V/mD44cDjij3EgpmyXTZaYW44gBw4slA0Be0udsHcM+wCrfNF9VfFGVposyJ4YXi9ZVW
+         iYudApXgNQ3MC4Ms6ZJnP3ExlnrSUwxes/0AQ/j6WI53XQ+O07B47S0ojTlWgI3D6x2F
+         Cr6w==
+X-Forwarded-Encrypted: i=1; AKwUvBzSGSAgPnuQ+sbESGMsANQ+OU8+1a10j8NcqAKOR/nIbz3Kv3/l0r9lr2+l8KJOB3TGV4LRe7p057QWIQ==@lists.linux.dev
+X-Gm-Message-State: AFuF++lV2iG6odHpjkXIHlWkAUYHnWGAiwtW/TVTLasBVdUGQ0l2dB8y
+	Uw0HPkIX5F4xsBPogJQua5nQlIeq7yHVzN1sRMZ0p9lHrCkKFYjviG/u9Ky69saxbknJmliK/KL
+	NXyPr09ryiit1k8i7oX9xTDD6Ftd6yH0=
+X-Gm-Gg: AYBFou315bM+jRpCHTkAZdATHZ8zcrhzngskRWrsD4Uy+GF+IdiSFHxCDRJTtiGZtoX
+	8MeFNzjDL/gWV9naWPVPpjETnHlrrReDQQqjPmWo9oJaSgbKsX//lKwx7ysR7NxizaTPOhmnKgL
+	8xlM/WRuzSlpoTPJVuEj3RXu3hImynlOIu4+XPEGTEprwoJg4gzkm01TbCcPUl3VW2BsIHOGi2b
+	2jhmMJIvUBGV2y7l9M0txZvaKHobep4guEsvDFMYDPN71HGcBYzIEmesTwyRLhEErwdPXif2RyX
+	cbhg5X3aoBmeE8SFfnajMQHWKN3o5OuKbBzb/HtyMZ00BI/tDnXVRJoo29OFOaUo3A==
+X-Received: by 2002:a05:6402:518c:b0:6a9:9e4c:369c with SMTP id
+ 4fb4d7f45d1cf-6a99e4c37b3mr3264200a12.6.1789053052338; Thu, 10 Sep 2026
+ 08:10:52 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Provags-ID: V03:K1:Ul/2rW8Q9s3i94Jp4a/pwfqq/0kVSRETu0GYy0OSrciaIrmj7oC
- /VGMb8bYZHZTZpM3eCw2U9OdkOxr9fhS7hB5W/AULwFivn+5qkqvwV4jR963HDqY5rw6OKb
- n4kIetFwotCaeKUKCRTIbwOvanzg0SOVK9CqAZymL0DXh82HsPZNW+zd+ccRyTR6RkxmBe3
- iQj3Pui9AvylTp30cam/w==
-X-Spam-Flag: NO
-UI-OutboundReport: notjunk:1;M01:P0:h1+fjtsb0wA=;IFoDmys7j1uXJOqLBetdwENOFSk
- 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
- mbteIBUpUs=
+References: <cover.1785951556.git.coshi036@gmail.com> <6140cd23beb88e99f40eaeff4044a16213f6caab.1785951556.git.coshi036@gmail.com>
+ <20d3b629-e052-492f-9a24-ee700b259c37@gmail.com>
+In-Reply-To: <20d3b629-e052-492f-9a24-ee700b259c37@gmail.com>
+From: Chris S <coshi036@gmail.com>
+Date: Thu, 10 Sep 2026 11:10:39 -0400
+X-Gm-Features: AcwNN1U41RMda9PS3tJ1f-4qq1SLLxZz5cMWZGDVulUPpbONrWJH-lAeXw5zNEc
+Message-ID: <CACd_6n29x8AKP=7zNQfBTq1AE-LtvxOdR8Nt9qw674Aw9WNVqQ@mail.gmail.com>
+Subject: Re: [PATCH v2 03/21] jbd2: point the shadow buffer at the frozen data directly
+To: Joseph Qi <jiangqi903@gmail.com>
+Cc: Jan Kara <jack@suse.cz>, Christian Brauner <brauner@kernel.org>, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Matthew Wilcox <willy@infradead.org>, 
+	linux-fsdevel@vger.kernel.org, "Theodore Ts'o" <tytso@mit.edu>, 
+	Andreas Dilger <adilger.kernel@dilger.ca>, Baokun Li <libaokun@linux.alibaba.com>, 
+	Ojaswin Mujoo <ojaswin@linux.ibm.com>, Ritesh Harjani <ritesh.list@gmail.com>, 
+	Zhang Yi <yi.zhang@huawei.com>, Zhang Yi <yi.zhang@huaweicloud.com>, 
+	Bob Copeland <me@bobcopeland.com>, Namjae Jeon <linkinjeon@kernel.org>, 
+	Sungjong Seo <sj1557.seo@samsung.com>, Yuezhang Mo <yuezhang.mo@sony.com>, 
+	OGAWA Hirofumi <hirofumi@mail.parknet.co.jp>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, Joseph Qi <joseph.qi@linux.alibaba.com>, 
+	Andreas Gruenbacher <agruenba@redhat.com>, linux-ext4@vger.kernel.org, 
+	ocfs2-devel@lists.linux.dev, gfs2@lists.linux.dev, 
+	linux-kernel@vger.kernel.org, Weidong Zhu <weizhu@fiu.edu>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
-Just a quick reminder, in linux next-20260909 this has not been
-fixed, yet.
+Thank you for fixing this. I appreciate it. Looks the problem is I
+didn't run it in linux-next to check.
+Sorry about that. Appreciate your help!
 
-Bert Karwatzki
+Thanks,
+Chao
+
+On Mon, Aug 31, 2026 at 11:37=E2=80=AFPM Joseph Qi <jiangqi903@gmail.com> w=
+rote:
+>
+>
+>
+> On 8/7/26 12:58 AM, Chao Shi wrote:
+> > When a metadata buffer has to be copied out before it can be journalled=
+,
+> > jbd2_journal_write_metadata_buffer() writes jh->b_frozen_data rather th=
+an
+> > the page cache copy.  b_frozen_data is kmalloc()ed, so folio_set_bh() m=
+akes
+> > the shadow buffer point at a slab folio.
+> >
+> > That is not something the buffer_head layer can reason about.  A slab f=
+olio
+> > overloads ->mapping, so a shadow buffer looks like it belongs to an
+> > address_space when it does not.  buffer_set_crypto_ctx() already has to
+> > work around this, and it is the reason mark_buffer_write_io_error() can=
+not
+> > be called on a shadow buffer today.
+> >
+> > Point the shadow buffer at the frozen data itself instead: leave b_foli=
+o
+> > NULL, which it already is out of alloc_buffer_head(), and set b_data.  =
+The
+> > previous patch taught fs/buffer.c to submit such a buffer.  folio_set_b=
+h()
+> > is now needed on only one path - the one that journals the page cache c=
+opy
+> > directly - so it moves there, and new_folio, new_offset and the flag th=
+at
+> > used to pick between them all go away.
+> >
+> > The two commit-path checksum helpers reach the shadow buffer's contents
+> > through a new kmap_local_bh()/kunmap_local_bh() pair, which handle a bu=
+ffer
+> > with or without a folio.  Memory outside the page cache is always mappe=
+d,
+> > so for those there is nothing to map or unmap.  Mapping it anyway would=
+ be
+> > worse than pointless: with CONFIG_DEBUG_KMAP_LOCAL_FORCE_MAP,
+> > kmap_local_page() hands back a one page mapping even for such memory, w=
+hich
+> > is not enough for a buffer bigger than a page.
+> >
+> > Tested with ext4 mounted data=3Djournal,journal_checksum on a metadata_=
+csum
+> > filesystem, writing files whose every block begins with the JBD2 magic =
+so
+> > that escaping forces the copy-out, then crashing with sysrq-b without
+> > unmounting and replaying the journal on the next mount.  Recovery
+> > completed, the file contents matched, e2fsck -fn was clean, and an
+> > instrumented build confirmed the b_folio =3D=3D NULL path was taken.
+> >
+> > Suggested-by: Matthew Wilcox (Oracle) <willy@infradead.org>
+> > Acked-by: Weidong Zhu <weizhu@fiu.edu>
+> > Signed-off-by: Chao Shi <coshi036@gmail.com>
+> > ---
+> >  fs/jbd2/commit.c            |  8 ++++----
+> >  fs/jbd2/journal.c           | 29 +++++++++++++++++------------
+> >  include/linux/buffer_head.h | 29 +++++++++++++++++++++++++++++
+> >  3 files changed, 50 insertions(+), 16 deletions(-)
+> >
+> > diff --git a/fs/jbd2/commit.c b/fs/jbd2/commit.c
+> > index 3029cb6f6d64..0c85af91f9b2 100644
+> > --- a/fs/jbd2/commit.c
+> > +++ b/fs/jbd2/commit.c
+> > @@ -330,9 +330,9 @@ static __u32 jbd2_checksum_data(__u32 crc32_sum, st=
+ruct buffer_head *bh)
+> >       char *addr;
+> >       __u32 checksum;
+> >
+> > -     addr =3D kmap_local_folio(bh->b_folio, bh_offset(bh));
+> > +     addr =3D kmap_local_bh(bh);
+> >       checksum =3D crc32_be(crc32_sum, addr, bh->b_size);
+> > -     kunmap_local(addr);
+> > +     kunmap_local_bh(bh, addr);
+> >
+> >       return checksum;
+> >  }
+> > @@ -357,10 +357,10 @@ static void jbd2_block_tag_csum_set(journal_t *j,=
+ journal_block_tag_t *tag,
+> >               return;
+> >
+> >       seq =3D cpu_to_be32(sequence);
+> > -     addr =3D kmap_local_folio(bh->b_folio, bh_offset(bh));
+> > +     addr =3D kmap_local_bh(bh);
+> >       csum32 =3D jbd2_chksum(j->j_csum_seed, (__u8 *)&seq, sizeof(seq))=
+;
+> >       csum32 =3D jbd2_chksum(csum32, addr, bh->b_size);
+> > -     kunmap_local(addr);
+> > +     kunmap_local_bh(bh, addr);
+> >
+> >       if (jbd2_has_feature_csum3(j))
+> >               tag3->t_checksum =3D cpu_to_be32(csum32);
+> > diff --git a/fs/jbd2/journal.c b/fs/jbd2/journal.c
+> > index 09efa337649e..6e05dc47e20a 100644
+> > --- a/fs/jbd2/journal.c
+> > +++ b/fs/jbd2/journal.c
+> > @@ -327,8 +327,6 @@ int jbd2_journal_write_metadata_buffer(transaction_=
+t *transaction,
+> >  {
+> >       int do_escape =3D 0;
+> >       struct buffer_head *new_bh;
+> > -     struct folio *new_folio;
+> > -     unsigned int new_offset;
+> >       struct buffer_head *bh_in =3D jh2bh(jh_in);
+> >       journal_t *journal =3D transaction->t_journal;
+> >
+> > @@ -348,24 +346,31 @@ int jbd2_journal_write_metadata_buffer(transactio=
+n_t *transaction,
+> >       /* keep subsequent assertions sane */
+> >       atomic_set(&new_bh->b_count, 1);
+> >
+> > +     /*
+> > +      * b_frozen_data is slab memory, not page cache, so when we use i=
+t the
+> > +      * shadow buffer gets no folio at all: b_folio stays NULL from th=
+e
+> > +      * allocation and b_data points straight at the copy.  Pointing i=
+t at
+> > +      * the slab folio instead would hand its overloaded ->mapping to
+> > +      * anything that goes looking for an address_space.
+> > +      */
+> > +
+> >       spin_lock(&jh_in->b_state_lock);
+> >       /*
+> >        * If a new transaction has already done a buffer copy-out, then
+> >        * we use that version of the data for the commit.
+> >        */
+> >       if (jh_in->b_frozen_data) {
+> > -             new_folio =3D virt_to_folio(jh_in->b_frozen_data);
+> > -             new_offset =3D offset_in_folio(new_folio, jh_in->b_frozen=
+_data);
+> >               do_escape =3D jbd2_data_needs_escaping(jh_in->b_frozen_da=
+ta);
+> >               if (do_escape)
+> >                       jbd2_data_do_escape(jh_in->b_frozen_data);
+> > +             new_bh->b_data =3D jh_in->b_frozen_data;
+> >       } else {
+> > +             struct folio *folio =3D bh_in->b_folio;
+> > +             unsigned int offset =3D offset_in_folio(folio, bh_in->b_d=
+ata);
+> >               char *tmp;
+> >               char *mapped_data;
+> >
+> > -             new_folio =3D bh_in->b_folio;
+> > -             new_offset =3D offset_in_folio(new_folio, bh_in->b_data);
+> > -             mapped_data =3D kmap_local_folio(new_folio, new_offset);
+> > +             mapped_data =3D kmap_local_folio(folio, offset);
+> >               /*
+> >                * Fire data frozen trigger if data already wasn't frozen=
+. Do
+> >                * this before checking for escaping, as the trigger may =
+modify
+> > @@ -379,8 +384,10 @@ int jbd2_journal_write_metadata_buffer(transaction=
+_t *transaction,
+> >               /*
+> >                * Do we need to do a data copy?
+> >                */
+> > -             if (!do_escape)
+> > +             if (!do_escape) {
+> > +                     folio_set_bh(new_bh, folio, offset);
+> >                       goto escape_done;
+> > +             }
+> >
+> >               spin_unlock(&jh_in->b_state_lock);
+> >               tmp =3D kmalloc(bh_in->b_size, GFP_NOFS | __GFP_NOFAIL);
+> > @@ -391,7 +398,7 @@ int jbd2_journal_write_metadata_buffer(transaction_=
+t *transaction,
+> >               }
+> >
+> >               jh_in->b_frozen_data =3D tmp;
+> > -             memcpy_from_folio(tmp, new_folio, new_offset, bh_in->b_si=
+ze);
+> > +             memcpy_from_folio(tmp, folio, offset, bh_in->b_size);
+> >               /*
+> >                * This isn't strictly necessary, as we're using frozen
+> >                * data for the escaping, but it keeps consistency with
+> > @@ -400,13 +407,11 @@ int jbd2_journal_write_metadata_buffer(transactio=
+n_t *transaction,
+> >               jh_in->b_frozen_triggers =3D jh_in->b_triggers;
+> >
+> >  copy_done:
+> > -             new_folio =3D virt_to_folio(jh_in->b_frozen_data);
+> > -             new_offset =3D offset_in_folio(new_folio, jh_in->b_frozen=
+_data);
+> >               jbd2_data_do_escape(jh_in->b_frozen_data);
+> > +             new_bh->b_data =3D jh_in->b_frozen_data;
+> >       }
+> >
+> >  escape_done:
+> > -     folio_set_bh(new_bh, new_folio, new_offset);
+> >       new_bh->b_size =3D bh_in->b_size;
+> >       new_bh->b_bdev =3D journal->j_dev;
+> >       new_bh->b_blocknr =3D blocknr;
+> > diff --git a/include/linux/buffer_head.h b/include/linux/buffer_head.h
+> > index 699970b4bbf2..20b8fca1abfa 100644
+> > --- a/include/linux/buffer_head.h
+> > +++ b/include/linux/buffer_head.h
+> > @@ -172,6 +172,35 @@ static inline unsigned long bh_offset(const struct=
+ buffer_head *bh)
+> >       return (unsigned long)(bh)->b_data & (folio_size(bh->b_folio) - 1=
+);
+> >  }
+> >
+> > +/**
+> > + * kmap_local_bh - Map the data of a buffer.
+> > + * @bh: The buffer.
+> > + *
+> > + * Buffers usually live in the page cache, but a few are built over me=
+mory
+> > + * which is not.  Those carry no folio and b_data is already a kernel =
+address
+> > + * which is always mapped, so there is nothing to do for them.  Pair w=
+ith
+> > + * kunmap_local_bh().
+> > + *
+> > + * Return: A pointer to the buffer's data.
+> > + */
+> > +static inline void *kmap_local_bh(const struct buffer_head *bh)
+> > +{
+> > +     if (!bh->b_folio)
+> > +             return bh->b_data;
+> > +     return kmap_local_folio(bh->b_folio, bh_offset(bh));
+> > +}
+> > +
+> > +/**
+> > + * kunmap_local_bh - Unmap the data of a buffer.
+> > + * @bh: The buffer.
+> > + * @addr: The address returned by kmap_local_bh().
+> > + */
+> > +static inline void kunmap_local_bh(const struct buffer_head *bh, void =
+*addr)
+> > +{
+> > +     if (bh->b_folio)
+> > +             kunmap_local(addr);
+> > +}
+> > +
+> >  /* If we *know* page->private refers to buffer_heads */
+> >  #define page_buffers(page)                                   \
+> >       ({                                                      \
+>
+> When tested ocfs2 on next-20260831, I've encountered the following NULL
+> pointer dereference:
+>
+>   BUG: kernel NULL pointer dereference, address: 0000000000000000
+>   RIP: 0010:__bh_submit.constprop.0+0x87/0x120
+>   Call Trace:
+>     jbd2_journal_commit_transaction+0x932/0x1b10
+>     kjournald2+0xb2/0x250
+>
+> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
+> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
+> __bh_submit(). But jbd2 shadow buffers have a NULL b_folio since commit
+> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
+> directly") made them point b_data at the kmalloced frozen data rather
+> than a folio. So submitting such a buffer during journal commit oopses.
+>
+> A simple fix:
+>
+> diff --git a/fs/buffer.c b/fs/buffer.c
+> index 427d8a817cd5..f46fa6413032 100644
+> --- a/fs/buffer.c
+> +++ b/fs/buffer.c
+> @@ -1106,7 +1106,8 @@ static void __bh_submit(struct buffer_head *bh, blk=
+_opf_t opf,
+>
+>         bio =3D bio_alloc(bh->b_bdev, 1, opf, GFP_NOIO);
+>
+> -       if (folio_test_dropbehind(bh->b_folio) && op_is_write(opf))
+> +       if (bh->b_folio && folio_test_dropbehind(bh->b_folio) &&
+> +           op_is_write(opf))
+>                 bio_set_flag(bio, BIO_COMPLETE_IN_TASK);
+>
+>         if (IS_ENABLED(CONFIG_FS_ENCRYPTION))
+>
+> Thanks,
+> Joseph
