@@ -1,65 +1,65 @@
-Received: from mail-wr1-f45.google.com (mail-wr1-f45.google.com [209.85.221.45])
+Received: from mail-wr2-f12.google.com (mail-wr2-f12.google.com [74.125.225.76])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52AA63515D6
-	for <ocfs2-devel@lists.linux.dev>; Fri, 11 Sep 2026 14:47:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.221.45
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D7C9536E494
+	for <ocfs2-devel@lists.linux.dev>; Fri, 11 Sep 2026 14:47:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.76
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789138030; cv=none; b=ewh3/ZnQndd/oclKkZTc+Mz5XoSFrGVgn4kMR29cjmDS2pGiU7XCfcWWValncwgnMRITxwTnSm8gJyWRcHwf4tWVkMnzWKTEQQ/kCbJ8K5ZC8iGzCNU6D8nNqiiX7uQ7YNouELOUYSYqWSIzD2j6AKVgTTbUp7MK2FTfCO2q44U=
+	t=1789138033; cv=none; b=ewaBoRTLuUYu0e4UfJJw6YMXPYouuLau+wna7iyfw7fv1RZpQO50vOQWIu/quio/TqSu/5MZmAz3HdijcK74PpCuozlFSq9CEPfIp41zeElJ7R0k8uIT0weKJwRQGadKz/yLhGTPp9cb1FZAV5MZSISU/vceCB/Dy4SpZa9BYXU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789138030; c=relaxed/simple;
-	bh=6qK7Y4OCyC5WsOE2SJMQ4fti6jzNs1Pji9/QbACrVAA=;
+	s=arc-20240116; t=1789138033; c=relaxed/simple;
+	bh=dcMfYcrZvJo2odetIockDZHB6TyER2n5DIFvd4jrOOA=;
 	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=Dgy2Wd65eQX2nmoaGzARcnY/gV3s0Uh6fm+l8DJOCU/ZRdffigclvP2K7zxIjJJcUtNjCQrcLxAQF3kYgkZm9C8MrdX17rnfrviT7Ge2mW2L/SSgbwfQnm0FF+BA6hjRToyfkZUbkBaRQyxxt6DoWfHi9tojrpXwKCiscuqeJLE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=cny1MnC2; arc=none smtp.client-ip=209.85.221.45
+	 MIME-Version:Content-Type; b=G1gRU3RacmlvdJ9WGYIDG7S8/l72FUOTicEwDED+iIYEj3x5+Fn6fS6imtCGckxxUt2z/ji4rv/IUY54QfDU9WM97w1RntSUZvYw3WrqBs9Zh5G9abxER7TMxpxM93V6hRKp3CPYtVbs0HGAZuqs4kDNmbj+6bqwU1bB1jx/gXs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=cli6Dva7; arc=none smtp.client-ip=74.125.225.76
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="cny1MnC2"
-Received: by mail-wr1-f45.google.com with SMTP id ffacd0b85a97d-486e70f2457so490901f8f.2
-        for <ocfs2-devel@lists.linux.dev>; Fri, 11 Sep 2026 07:47:05 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="cli6Dva7"
+Received: by mail-wr2-f12.google.com with SMTP id ffacd0b85a97d-485933b2522so781690f8f.0
+        for <ocfs2-devel@lists.linux.dev>; Fri, 11 Sep 2026 07:47:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1789138023; x=1789742823; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1789138025; x=1789742825; darn=lists.linux.dev;
         h=content-transfer-encoding:content-type:mime-version:references
          :in-reply-to:message-id:date:subject:cc:to:from:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=QuYE5JBWhvW9oHs2kdysh3HB71WxLYQMcei9gKN4bpc=;
-        b=cny1MnC2ym62qSCqjDcHXDr1B3cphkDjNNRt1/zNpEfA0/xNuUjJbNX0ftwlaU30j5
-         wMhhm6PrcTc7wnJFrSpTIWo3QKMpCTo427WRQUsqTJIOHd9A+lr4iN1W+AK1tH/ivCvb
-         oVsg+t3jjzYUcb4J4jAUhIsxyrf3j/fRpKhGyNvjYz5zYgNhQe7vVRtX/l6YL347yWa4
-         6GbJec+r8VeJeLal/sbpw3JaypHwXT/VO3L+IaLgX/stFtPWbDvHVreh0aG5VbYMxrL4
-         zzDHrBx1zuCzaQu+PmIxOlMgpszTcsvz81g57NDiM0+ZlDkRLlKkYyRMW2gziPjdfT7D
-         iS6Q==
+        bh=sAWK/0nRwHnvVvMYnd/Ub3wFPGnd0x9DJjP7YOulvgY=;
+        b=cli6Dva7UoOu42JhIIlR0WIyERbtL7UQORl7+b4twen7ghp62tpaAp1vwAa3lI3ull
+         XrXtxA/2V3QzYDZsKV976Y7geT2bMWFsiasCaU+ApJ1gLBUFM8GNv0pZ4g5PeasX2AmA
+         xWeJyxkrDKDZ3W+274tLLe+35CgcwISdOJwmb8/2Nw9/msT5b03dSEM4kSXPb0wDe9YQ
+         U8Npr+QxKUr8sfTrtI6ZfEQ0vpRMG3oqJXknV/nT+2bb1rJCCtiCPAjhKh6UigDCM/v9
+         B2aqK9aAmda6hkya/h3mSwamEPl6ZLLQgnQxKVXdRbEICOuZ7ieQ7kKuv8TuwGLmrlCI
+         1K5g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1789138023; x=1789742823;
+        d=1e100.net; s=20251104; t=1789138025; x=1789742825;
         h=content-transfer-encoding:content-type:mime-version:references
          :in-reply-to:message-id:date:subject:cc:to:from:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=QuYE5JBWhvW9oHs2kdysh3HB71WxLYQMcei9gKN4bpc=;
-        b=bMyYvBYbZqMyqEJ6tw04KoZsMAEwO1EJwICbWtQoWXjPEdg1V3tZCWXTB9FWRpp/U0
-         AcVMD5Nx+c5yRxxL24XFap56OjU4ln0X+9z/ViXVBstG5inD4J8t1u7VW2fbHRQPMXup
-         GJpiT8I2S69ySYzVZ4UVw78oEsnBvcBnsgWyKjoiG69WJr/4GVsxQhpec9fp0xy1GDDM
-         sh0+fUIfBqaInGlDj9f8cgnGQLRe2yyICim8eFkxKcwzs0JPA20uGUXttQ3qZaS62pgV
-         r6cLPx+HNhjyU8eK76gdomSh0P7ThQynNeU52JDVGwb5HsDwNKbJfBoHRTbtqYYk4M3q
-         wkaQ==
-X-Forwarded-Encrypted: i=1; AKwUvByXBiDCLwv8JcIFQER+R/1uXVqrdVSiBRAoLAO69pTy2QPATm/zNxY8ocQk92PMucG2lwDsSNThFfgQKQ==@lists.linux.dev
-X-Gm-Message-State: AFuF++mBvSmwfoxNytkdeUslnUWi0OIYgULb2zNu1SphYZ3eFq1IHg4Y
-	YIPd9zJToNpKZB/W5RdwopGZ5COJ9WnOQ/63vlvBzZZyQfNOnpkws2yw34rhQmZfc4o=
-X-Gm-Gg: AYBFou1GPy05NMj17cTT57tDhNE4FyGfcsEq+d894aPoxw2Av91xLtizHkTIUR3+Dzr
-	VsxRHsU6TN0D4MHWRrbdH0K1Eqf3atL87Q7GSBsqbD3WI7NWm0/Ld4ucA88WRf1EgfKTh6sBmlo
-	/0hp/Dq8EOvZ3WtXp8sOCtWcRyWv12ZGM6w0wKuEv9QuCOwE6z6cib0INQlzt0fkSQyIgYpZb9g
-	f4L2t/4fZWG8z+8T6eXfzm/A4jM5QaEGto5QZ+iOl4SOKWQAcvzJ1VAdr4ayPFIRjEUiCzNEgUF
-	CIYYz/D72lr4/707CDHbZrHn5LMumXwcXDZ+Ix2H0wNtJyQP7OT8T3BNd+T8Jl+uZkuWiLjVn44
-	2B0BcR3qJ6h1+Wzk9sr7xYH09RjgQzEdGS1dG/OOERdvB+gmC4a5jGJkc3tuYIFLXpBNY56nsTp
-	7B9LyNP3nBIWbhH4pkaRGgmw2CzYuCrFjgnWTjJp5JS6d87nDtT+qS+8NZgVScRocTSr9jLDV03
-	XPSIQ==
-X-Received: by 2002:a5d:5e08:0:b0:486:e81b:842a with SMTP id ffacd0b85a97d-486eb358ab6mr5259626f8f.48.1789138022582;
-        Fri, 11 Sep 2026 07:47:02 -0700 (PDT)
+        bh=sAWK/0nRwHnvVvMYnd/Ub3wFPGnd0x9DJjP7YOulvgY=;
+        b=BusOBohJLlZtjU647VF5XNyHrRL7dzayJz57GDuq9tiIc9xEuIzYZXMWkUmT+A6vU+
+         IMZJrKWQrWnjZiFQwCIU6n9UjA9fDM3Wj9cjTq3xWf6Z8I+PbZFt90A4Op0E4jBO2ciZ
+         Pe3vpClsqhPzQgfcwS0fIUJ+UeUhpZY6dJma2crRwXfnVC9d8G+Re5CL58fyBIGAOFWg
+         wdm3GomIWzsKXjIheCcVtD3WKoLh5UU5vUJ0sAqV6Hq9UeR5PD8QIlLcQa8yU27ecpgo
+         CBi3ImrdVz2uhxjf7eI8/86oyKwnfljMaBJ8FeZNCbu+DdMnc/bohna2rsEorPmbw0LW
+         j6rQ==
+X-Forwarded-Encrypted: i=1; AKwUvBzzXAjAtBy8Xpfa0vHbxVwZgFs+TITUGA0udOyIZdCVAZgjBMOXUyDi1ADtMn6HUBtJxhzbekhF7qWYsQ==@lists.linux.dev
+X-Gm-Message-State: AFuF++k0jCvGx7ulPCaH6z4EoTTC0nUPs6d+sDQ/yhhWm5FejHQCK0kM
+	ANBoT/XAcCuLdXGy7kdqktA3V/sZ6E8cuEfhulo/OATSeo7K5oGrISfrH2o5LVz8gVQ=
+X-Gm-Gg: AYBFou12hr7deu4ZHX3IMNmlWNJx2Mh79DtkX1URp10VBllFiqdMstWS1BWjPMuUEin
+	M76g8Q9SvXtUHQoBqH2ezGa61Syli+TOyLc/hYzp18RW0bJkQTRCOtJ0dIPOlCQ2cDOUBcn8tLd
+	8rNj4eEGdq8KosG+Pg5Q0JrscAzBOTs+FzyF0VI8zL0OzQ9sqrQc3/uslU9sFg7duA963jrwxow
+	g6auEz9PspKArT9wOSWPC1SSITgHpVBVvnEcewCPt1e3txcT6oD9UxLShFS3dCfrmMTm9+ruhyj
+	+5BvWM+2QQohQz5RkjN34dLqniS1dpxo+d8T+zxVYpsNJIgLo1/MXuPtWB5MkG9g4eX6MCHHky6
+	fSSPdkYz0WzeQu/jc6zU3DyA05KjnSmxLdhX7iEio9UYQaB2ELvYRIxLAukVkS5awomUEapE4He
+	BIbC3E2VhV9Ofpdt1sEoaV6R8gA0QrOi8vjj2lxbCJWQtz9oMcB7BVM2l95bVvkpbY27NH4SJIX
+	/oSCg==
+X-Received: by 2002:a05:6000:26cf:b0:482:f61c:7cdd with SMTP id ffacd0b85a97d-486eb1d8541mr10746731f8f.4.1789138025130;
+        Fri, 11 Sep 2026 07:47:05 -0700 (PDT)
 Received: from localhost.localdomain ([2001:af0:8000:1409:193:86:92:181])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-486eb32e8d1sm6328068f8f.11.2026.09.11.07.47.00
+        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-486eb32e8d1sm6328068f8f.11.2026.09.11.07.47.02
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 11 Sep 2026 07:47:02 -0700 (PDT)
+        Fri, 11 Sep 2026 07:47:04 -0700 (PDT)
 From: Petr Pavlu <petr.pavlu@suse.com>
 To: Tony Luck <tony.luck@intel.com>,
 	Borislav Petkov <bp@alien8.de>,
@@ -138,9 +138,9 @@ Cc: linux-edac@vger.kernel.org,
 	netdev@vger.kernel.org,
 	keyrings@vger.kernel.org,
 	linux-security-module@vger.kernel.org
-Subject: [PATCH v3 2/3] time/jiffies: Include linux/sysctl.h for proc_int_u2k_conv_uop(), ...
-Date: Fri, 11 Sep 2026 14:46:15 +0000
-Message-ID: <20260911-module-include-kmod-v3-2-6ebccc3e0731@suse.com>
+Subject: [PATCH v3 3/3] module: Bring includes in linux/kmod.h up to date
+Date: Fri, 11 Sep 2026 14:46:16 +0000
+Message-ID: <20260911-module-include-kmod-v3-3-6ebccc3e0731@suse.com>
 X-Mailer: git-send-email 2.55.0
 In-Reply-To: <20260911-module-include-kmod-v3-0-6ebccc3e0731@suse.com>
 References: <20260911-module-include-kmod-v3-0-6ebccc3e0731@suse.com>
@@ -153,33 +153,47 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 8bit
 
-jiffies.c uses proc_int_u2k_conv_uop(), proc_int_k2u_conv_kop(),
-proc_int_conv(), proc_dointvec_conv() and proc_doulongvec_minmax_conv(),
-which are declared in linux/sysctl.h. It currently gets that header
-indirectly through linux/module.h -> linux/kmod.h, but the latter no longer
-needs to include linux/sysctl.h.
+Including linux/kmod.h alone results in 1.5 MB of preprocessed output, even
+though it provides only a few functions and macros.
 
-Include linux/sysctl.h directly in jiffies.c ahead of removing the
-unnecessary include from linux/kmod.h.
+The header currently depends on:
+
+* __printf() -> linux/compiler_attributes.h,
+* ENOSYS -> linux/errno.h,
+* bool -> linux/types.h.
+
+Include only these files, reducing the preprocessed output to 10 kB.
 
 Signed-off-by: Petr Pavlu <petr.pavlu@suse.com>
-Acked-by: Thomas Gleixner <tglx@kernel.org>
+Reviewed-by: Aaron Tomlin <atomlin@atomlin.com>
 ---
- kernel/time/jiffies.c | 1 +
- 1 file changed, 1 insertion(+)
+ include/linux/kmod.h | 12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
 
-diff --git a/kernel/time/jiffies.c b/kernel/time/jiffies.c
-index 213ae1d6a014..9231fea557ce 100644
---- a/kernel/time/jiffies.c
-+++ b/kernel/time/jiffies.c
-@@ -8,6 +8,7 @@
- #include <linux/jiffies.h>
- #include <linux/module.h>
- #include <linux/init.h>
-+#include <linux/sysctl.h>
+diff --git a/include/linux/kmod.h b/include/linux/kmod.h
+index 9a07c3215389..b9474a62a568 100644
+--- a/include/linux/kmod.h
++++ b/include/linux/kmod.h
+@@ -2,17 +2,9 @@
+ #ifndef __LINUX_KMOD_H__
+ #define __LINUX_KMOD_H__
  
- #include "timekeeping.h"
- #include "tick-internal.h"
+-/*
+- *	include/linux/kmod.h
+- */
+-
+-#include <linux/umh.h>
+-#include <linux/gfp.h>
+-#include <linux/stddef.h>
++#include <linux/compiler_attributes.h>
+ #include <linux/errno.h>
+-#include <linux/compiler.h>
+-#include <linux/workqueue.h>
+-#include <linux/sysctl.h>
++#include <linux/types.h>
+ 
+ #ifdef CONFIG_MODULES
+ /* modprobe exit status on success, -ve on error.  Return value
 
 -- 
 2.55.0
