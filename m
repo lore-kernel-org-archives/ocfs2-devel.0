@@ -1,113 +1,100 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.4])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1219E346ACE
-	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Sep 2026 05:53:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D9DB53806B4
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Sep 2026 05:55:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.4
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789365197; cv=none; b=GF0gkQoUryINt93D0H7dUM2Y717rrk1u9tAWodvvIdFPxaqSSWIdioQVLzJJa4pAg7FDv5BxPfH1HPi4l+gUpNJ7uEfiytmL1HqoRhoGdITl0s8UR+JELorqW2U180II7CLWT2iC08UDdaJBnsPVqMkUUbyptgOkXf+qRiV9Vy4=
+	t=1789365355; cv=none; b=P1QRxCe3MbOyyfh3DNRKAm9wYeyExgkbBAxnSuxvPW4RsJxCSm51eXwIm+PMjX900zozCKXidT5DGc4uOQl8r3HTfbMl3Ixs7tnV9gvRUskoOotNukr7bzhHZeJkj81wptrRGSaIwwiUA3llxtvaXfkJ5Ghmsx41DtiSOaSXvdg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789365197; c=relaxed/simple;
-	bh=5xKfAPsDRZgRWSGT3oeGlbWjQJ8pKeZkLHnc8er54f0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=eXRG20PT/EbjVX34HaBrqySUyjCY6W9E1BclBdDEDbLWrjENm6+afvTC1SZCcs8wgchjXJtaw0ulUYzM7vpsnncWgkP7k6ZXuaRLyDDCh+1DIVa77AWz5ZdcP5h4OIFhwkv2p28TYWdMp/rBisXY42+MtKbtOoJLaRTKV3K9Ers=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ib1DR3Uz; arc=none smtp.client-ip=115.124.30.97
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1789365355; c=relaxed/simple;
+	bh=2NIH5sckKiyKYgVHO+Lr0Z/nlTKniZCjvUdTu4bZWDQ=;
+	h=Date:From:To:Cc:Subject:Content-Type:MIME-Version:Message-ID; b=ins16S8wmmfU286aMX+9CacPjx/vx8ZAPEckE6QInWDINLRdrGDFRPmIRxfFtzU/KraT4N3pQwzMlF6kQrKAcgb9/QDp/qOdWsWQExrzFeWl0n4FuFKgIZxqc6P+2Zv2zleXIYW+yqEHwV+ThPSHv2DuvsmVhSOkTILh6+sKxwU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=L4pNNG0Y; arc=none smtp.client-ip=220.197.31.4
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ib1DR3Uz"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1789365185; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=DGCUqYpSgp6dwqHfummvsIu0f3GHTB/sFbpAB8I2TaM=;
-	b=ib1DR3UzYQl/ILtdjF9CNL/jaemBrSA6YKB+kStq0kmLanZ7uXZt0rNiEdjfINyQka9gzUA7eODMjssQgfPwlbh6AXx6fD9M3pZbrHFk7IpOa2qA5HtoCbT8f3DyLiCYjjvlAkbvdCc0GzPGnbqDPL0ZuHP/bTO4rYyivPizYTw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=12;SR=0;TI=SMTPD_---0XAqpvuP_1789365183;
-Received: from 30.221.129.199(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAqpvuP_1789365183 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Mon, 14 Sep 2026 13:53:03 +0800
-Message-ID: <c11b5a78-a1d7-4618-beab-dda967863f50@linux.alibaba.com>
-Date: Mon, 14 Sep 2026 13:53:02 +0800
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="L4pNNG0Y"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
+	Message-ID; bh=2NIH5sckKiyKYgVHO+Lr0Z/nlTKniZCjvUdTu4bZWDQ=; b=L
+	4pNNG0YYLj8xtdjTuV/zYRcnN0I+42fs5S6L7GH6BNt9m21hzDhAbYiR1KXTd0Os
+	bauI9gxcATSe40R8jlUPyYI0Mne3SkSYGd55FpMktNCczwqXE/pGPXcuH7G1LuuW
+	4aaWHMhwW62zN4jPwrQj5XavSA0VxTB7DZkA9Wr9D0=
+Date: Mon, 14 Sep 2026 13:55:06 +0800 (CST)
+From: CJ  <firefly0158@163.com>
+To: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+	syzbot+09184149c7c0d9e6f83a@syzkaller.appspotmail.com
+Subject: [BUG] ocfs2: kernel BUG in ocfs2_populate_inode still reproducible
+ on v7.3-rc1
+X-Priority: 3
+X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
+ 20260511(2e539873) Copyright (c) 2002-2026 www.mailtech.cn 163com
+X-NTES-SC: AL_Qu2TC/+duksr4CCZYekdmEsTju82UcS4ufQl245Xc98Figbk+QAgeFpPNFDG1NiRKyuJkh+TdQFs6cJxc45/Vakg9bNRE+PuQtvtOZvlGw==
+Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=UTF-8
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: don't let the root inode outlive a failed mount
-To: Farhad Alemi <farhad.alemi@berkeley.edu>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>
-Cc: falemi@asu.edu, ocfs2-devel@lists.linux.dev,
- Alexander Viro <viro@zeniv.linux.org.uk>,
- Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org,
- Jaegeuk Kim <jaegeuk@kernel.org>, Chao Yu <chao@kernel.org>,
- linux-f2fs-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org
-References: <CA+0ovChT6BRXp0kntaJ_Eiw-2-z=fpofsvyALiwdORe3zG_YWA@mail.gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <CA+0ovChT6BRXp0kntaJ_Eiw-2-z=fpofsvyALiwdORe3zG_YWA@mail.gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Message-ID: <c4e7b8a.4e41.1a09e7bc2a9.Coremail.firefly0158@163.com>
+X-Coremail-Locale: zh_CN
+X-CM-TRANSID:hygvCgD3H7M6jKdqTPIOAA--.18118W
+X-CM-SenderInfo: piluvw1o1qikqy6rljoofrz/xtbC3hq1Z2qnjDqyLgAA3x
+X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
 
-
-
-On 9/11/26 5:47 AM, Farhad Alemi wrote:
-> ocfs2_init_global_system_inodes() installs osb->root_inode before the
-> second ocfs2_iget() runs, and when that iget fails ocfs2_initialize_super()
-> jumps to out_dlm_out, which sits below out_system_inodes, so
-> ocfs2_release_system_inodes() never runs and the kfree(osb) that follows
-> makes the stranded root inode reference unreachable.  ocfs2_fill_super()
-> strands the same inode a second way: nothing drops the reference igrab()
-> takes on osb->root_inode when an out_dismount path ahead of d_make_root()
-> is taken, so the ocfs2_release_system_inodes() call inside
-> ocfs2_dismount_volume() cannot free it and the root inode stays hashed on a
-> superblock whose ocfs2_super has already been freed.  The reported KASAN
-> slab-use-after-free write hits an ocfs2_inode_cache object that
-> ocfs2_release_system_inodes() freed during teardown, so an ocfs2 inode
-> reference that survives that call is a lifetime error on those same objects
-> and not a bare leak.  Release the system inodes at that failing
-> ocfs2_iget() and drop the igrab() reference on out_dismount, clearing inode
-> right after d_make_root(), which consumes it on success and on failure
-> alike, so it cannot be dropped twice.
-> 
-> Closes: https://lore.kernel.org/all/CA+0ovCjAKQMn7iF8BJR-3+G9_HBRnRFtJxjr-9P9GuKSxFj+3Q@mail.gmail.com/
-> Signed-off-by: Farhad Alemi <farhad.alemi@berkeley.edu>
-> ---
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-
-Seems it is a corrupt patch?
-
-> @@ -450,6 +450,7 @@ static int ocfs2_init_global_system_inodes(struct
-> ocfs2_super *osb)
->  	if (IS_ERR(new)) {
->  		status = PTR_ERR(new);
->  		mlog_errno(status);
-> +		ocfs2_release_system_inodes(osb);
->  		goto bail;
->  	}
->  	osb->sys_root_inode = new;
-> @@ -1110,6 +1111,8 @@ static int ocfs2_fill_super(struct super_block
-> *sb, struct fs_context *fc)
->  	}
-> 
->  	root = d_make_root(inode);
-> +	/* d_make_root() consumed our reference, on success and on failure. */
-> +	inode = NULL;
->  	if (!root) {
->  		status = -ENOMEM;
->  		goto out_dismount;
-> @@ -1163,6 +1166,7 @@ out_dismount:
->  	atomic_set(&osb->vol_state, VOLUME_DISABLED);
->  	wake_up(&osb->osb_mount_event);
->  	ocfs2_free_replay_slots(osb);
-
-Please rebase on top of the latest linux-next.
-The above 'ocfs2_free_replay_slots(osb)' is removed.
-
-Thanks,
-Joseph
-
-> +	iput(inode);
->  	ocfs2_dismount_volume(sb, 1);
->  	goto out;
-
+CgoKSGksCgoKSSBhbSByZXBvcnRpbmcgYSBrZXJuZWwgQlVHIGluIG9jZnMyJ3MgaW5vZGUgcG9w
+dWxhdGlvbiBwYXRoLCB0cmlnZ2VyZWQgYnkgYQpzeXprYWxsZXIgcmVwcm9kdWNlciB0aGF0IG1v
+dW50cyBhIGNyYWZ0ZWQgb2NmczIgaW1hZ2UuICBUaGUgaXNzdWUgaXMKcmVwcm9kdWNpYmxlIHdp
+dGggSEVBRCBjb21taXQgY2VlOTM5NWFjZDgwNDNiZTA2NDRiMjVjMzRiZmE4NjYyM2YyYjkzNQoo
+djcuMy1yYzEsIExpbnV4IDcuMy4wLXJjMSkuCgoKVGhlIHJlcHJvZHVjZXIgbW91bnRzIGEgc21h
+bGwgb2NmczIgZmlsZXN5c3RlbSBpbWFnZSBvbiBhIGxvb3AgZGV2aWNlLiAgVGhlCmltYWdlIGNh
+cnJpZXMgYSBkaW5vZGUgd2l0aCB0aGUgT0NGUzJfU1VQRVJfQkxPQ0tfRkwgZmxhZyBzZXQgdGhh
+dCBzdGlsbCBwYXNzZXMKdGhlIGV4aXN0aW5nIGlub2RlLWJsb2NrIHZhbGlkYXRvciwgc28gdGhl
+IG1vdW50IHBhdGggYWNjZXB0cyBpdCBhcyBhbiBvcmRpbmFyeQpkaW5vZGUuICBEdXJpbmcgc3Vw
+ZXJibG9jayBzZXR1cCB0aGUgbW91bnQgaW5pdGlhbGl6ZXMgdGhlIGdsb2JhbCBzeXN0ZW0KaW5v
+ZGVzLCByZWFkcyB0aGF0IGRpbm9kZSB0aHJvdWdoIG9jZnMyX3JlYWRfbG9ja2VkX2lub2RlIGFu
+ZCBoYW5kcyBpdCB0bwpvY2ZzMl9wb3B1bGF0ZV9pbm9kZS4KCgpvY2ZzMl9wb3B1bGF0ZV9pbm9k
+ZSB0aGVuIHJlYWNoZXMgdGhlIGJyYW5jaCB0aGF0IGhhbmRsZXMgYSBkaW5vZGUgZmxhZ2dlZCBh
+cyBhCnN1cGVyYmxvY2sgYW5kIGNhbGxzIEJVRygpIHVuY29uZGl0aW9uYWxseS4gIFRoZSB0YXJn
+ZXQgY29uc29sZSBzaG93cwoia2VybmVsIEJVRyBhdCBmcy9vY2ZzMi9pbm9kZS5jOjQ0OCEiLCBh
+biBpbnZhbGlkLW9wY29kZSBPb3BzLCBhbmQgUklQIGluCm9jZnMyX3BvcHVsYXRlX2lub2RlLiAg
+VGhlIHBhdGggaXMgdGhlIG1vdW50LXRpbWUgc3lzdGVtLWlub2RlIGluaXRpYWxpemF0aW9uOgpv
+Y2ZzMl9yZWFkX2xvY2tlZF9pbm9kZSAtPiBvY2ZzMl9pZ2V0IC0+IG9jZnMyX2dldF9zeXN0ZW1f
+ZmlsZV9pbm9kZSAtPgpvY2ZzMl9pbml0aWFsaXplX3N1cGVyIC0+IG9jZnMyX2ZpbGxfc3VwZXIg
+LT4gbW91bnQuCgoKT25lIHBvc3NpYmxlIGNhdXNlIGlzIHRoYXQgbm90aGluZyBvbiB0aGUgcmVh
+ZCBwYXRoIHJlamVjdHMgYSBkaW5vZGUgY2FycnlpbmcKT0NGUzJfU1VQRVJfQkxPQ0tfRkwgYmVm
+b3JlIGl0IHJlYWNoZXMgb2NmczJfcG9wdWxhdGVfaW5vZGUuICBUaGUgY29tbWVudCBhdCB0aGUK
+QlVHKCkgc2l0ZSBub3RlcyB0aGF0IHJlYWRfaW5vZGUgY2Fubm90IGhhbmRsZSBzdXBlcmJsb2Nr
+cywgYnV0Cm9jZnMyX3ZhbGlkYXRlX2lub2RlX2Jsb2NrIG9ubHkgaW5zcGVjdHMgaV9mbGFncyBm
+b3IgT0NGUzJfVkFMSURfRkw7IGl0IGNoZWNrcwp0aGUgRUNDLCB0aGUgZGlub2RlIHNpZ25hdHVy
+ZSwgaV9ibGtubywgaV9saW5rc19jb3VudCwgaV9tb2RlIGFuZAppX2ZzX2dlbmVyYXRpb24sIGFu
+ZCBuZXZlciBsb29rcyBhdCBPQ0ZTMl9TVVBFUl9CTE9DS19GTC4gIEEgY3JhZnRlZCBpbWFnZSB0
+aGF0CnNldHMgVkFMSURfRkwgdG9nZXRoZXIgd2l0aCBTVVBFUl9CTE9DS19GTCB0aGVyZWZvcmUg
+cGFzc2VzIHZhbGlkYXRpb24uICBUaGlzCmxvb2tzIGxpa2UgYSBjYXNlIHdoZXJlIHRoZSBpbnZh
+cmlhbnQgdGhlIEJVRygpIGFzc2VydHMgaXMgbm90IGVuZm9yY2VkIG9uIHRoZQpvbi1kaXNrLWlu
+cHV0IHBhdGguICBJIG5vdGUgdGhhdCByZWNlbnQgd29yayBpbiB0aGlzIGZpbGUKKGJiODgxMzFj
+OTgzMSwgYjJkMzFhY2JkM2IxLCA4OTE0YTMzMzBiNzIpIHRpZ2h0ZW5lZCBhZGphY2VudCBkaW5v
+ZGUgdmFsaWRhdGlvbgpidXQgZG9lcyBub3QgY292ZXIgdGhpcyBmbGFnLgoKClRoaXMgYXBwZWFy
+cyB0byBiZSBhIHJlY3VycmVuY2Ugb2YgdGhlIHN5emJvdCBpc3N1ZSB3aG9zZSBleHRlcm5hbCBp
+ZCBpcwowOTE4NDE0OWM3YzBkOWU2ZjgzYSAodGl0bGUgImtlcm5lbCBCVUcgaW4gb2NmczJfcG9w
+dWxhdGVfaW5vZGUiKS4gIEl0IHJlbWFpbnMKcmVwcm9kdWNpYmxlIG9uIHY3LjMtcmMxLiAgSSBh
+bSBhd2FyZSB0aGF0IHR3byBwYXRjaGVzIHdlcmUgcHJvcG9zZWQgZWFybGllcgoob25lIHJlcGxh
+Y2luZyB0aGUgQlVHKCkgd2l0aCBvY2ZzMl9lcnJvcigpIHBsdXMgbWFrZV9iYWRfaW5vZGUoKSwg
+b25lIHJlamVjdGluZwp0aGUgZmxhZyBpbiBvY2ZzMl92YWxpZGF0ZV9pbm9kZV9ibG9jaykgYW5k
+IHRoYXQgYSByZXZpZXcgYXJndWVkIHRoZSBleGlzdGluZwpCVUcoKSBpcyBhY2NlcHRhYmxlIGZv
+ciBtZXRhZGF0YSBjb3JydXB0aW9uLiAgSSBhbSByZXBvcnRpbmcgdGhlIHJlcHJvZHVjdGlvbgpv
+bmx5OyBpZiB0aGUgY3VycmVudCBiZWhhdmlvdXIgaXMgY29uc2lkZXJlZCBjb3JyZWN0LCBwbGVh
+c2UgZGlzcmVnYXJkIHRoaXMuCgoKUmVwcm9kdWNlcjoKCgpzeXogcmVwcm9kdWNlcjogaHR0cHM6
+Ly9wYXN0ZWJpbi5jb20vcmF3L0MzQmR0cWZFCmNvbnNvbGUgb3V0cHV0OsKgaHR0cHM6Ly9wYXN0
+ZWJpbi5jb20vcmF3L0xkN2RxRWM0Cmtlcm5lbCBjb25maWc6wqBodHRwczovL3Bhc3RlYmluLmNv
+bS9yYXcvU0dBMUhLOTUKCgpLZXJuZWw6CgoKSEVBRCBjb21taXQ6IGNlZTkzOTVhY2Q4MDQzYmUw
+NjQ0YjI1YzM0YmZhODY2MjNmMmI5MzUKZ2l0IHRyZWU6IHVwc3RyZWFtIChsaW51eC5naXQpLCB0
+ZXN0ZWQgdGhyb3VnaCB0aGUgdjcuMy1yYzEgYW5ub3RhdGVkIHRhZyBvYmplY3QKwqAgwqAgwqAg
+wqAgwqAgwqBlNWUwNDcyNmNkZDA0M2UzMDk2NzcwNzFhYjFiNjVhNGIxOGY0MjJiCmtlcm5lbCB2
+ZXJzaW9uOiA3LjMuMC1yYzEgIzEgUFJFRU1QVChmdWxsKQp0ZXN0ZWQgdGFnOiB2Ny4zLXJjMSAo
+TGludXggNy4zLXJjMSwgMjAyNi0wOC0zMCkKCgpMZXQgbWUga25vdyBpZiB5b3UgbmVlZCBtb3Jl
+IGRldGFpbHMgb3IgdGVzdGluZy4KCgpCZXN0IHJlZ2FyZHMsCkNoYW5namlhbgo=
