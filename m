@@ -1,153 +1,113 @@
-Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8EDF31E83D
-	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Sep 2026 03:49:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.170
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1219E346ACE
+	for <ocfs2-devel@lists.linux.dev>; Mon, 14 Sep 2026 05:53:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789357791; cv=none; b=UC9+2Jv8MSJm6yBSpp/w6H3IOCoVuLgKFNRNZsm2C7+066UkcWgTnCt06U0gSLjIhoNGBa8vVdfrnkuH5koCUw+d/evEbHBOS7La281b5VbBxlz18/q/1EnbDjtdZnJZiX8cm0k4dj1VYYMX2lWnRMR4xJskNI0bdk1/XmMSgEM=
+	t=1789365197; cv=none; b=GF0gkQoUryINt93D0H7dUM2Y717rrk1u9tAWodvvIdFPxaqSSWIdioQVLzJJa4pAg7FDv5BxPfH1HPi4l+gUpNJ7uEfiytmL1HqoRhoGdITl0s8UR+JELorqW2U180II7CLWT2iC08UDdaJBnsPVqMkUUbyptgOkXf+qRiV9Vy4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789357791; c=relaxed/simple;
-	bh=q9WE6+wjyeX7fXhtEn7zhcbfhcZOIuWB1HXG6rwgnXE=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=lcJj7ukB86KWZwi26RTg2P0sJncmCApjFzQu6mTqEiduC22aSCN5IkrB1amje11pTuvYxZGPLTNpcjagh7cUj45vsqultZwQDQ03olbAZsemL83pN8Z/Eaz4WZ/dS6vXUOVvXjLZySjk4UUjVxp0O5mon0vXFuXWJPNOdBV8++I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=GnHS19Cv; arc=none smtp.client-ip=209.85.214.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1789365197; c=relaxed/simple;
+	bh=5xKfAPsDRZgRWSGT3oeGlbWjQJ8pKeZkLHnc8er54f0=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=eXRG20PT/EbjVX34HaBrqySUyjCY6W9E1BclBdDEDbLWrjENm6+afvTC1SZCcs8wgchjXJtaw0ulUYzM7vpsnncWgkP7k6ZXuaRLyDDCh+1DIVa77AWz5ZdcP5h4OIFhwkv2p28TYWdMp/rBisXY42+MtKbtOoJLaRTKV3K9Ers=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ib1DR3Uz; arc=none smtp.client-ip=115.124.30.97
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="GnHS19Cv"
-Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-2dd1dcdcf95so20805145ad.1
-        for <ocfs2-devel@lists.linux.dev>; Sun, 13 Sep 2026 20:49:49 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1789357789; x=1789962589; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=kio+heX6pPEISSE575Nmco9JmkqcOqgMUE8R7TgDTQA=;
-        b=GnHS19Cv2SNROu/3PdHwzh2OkcrhxQGHQlS86UvSXvB95iwiS4ubB21IhkN51DVUc4
-         NL7LL+SfWuSDXPy4CGRXohx2aRrHpdil2NdrwtzuejRLWH56aNAkZpPJcSzsNm1IhHXQ
-         5c2BUs9BSS5kzDyU3OSJ1Ij/beSVWmbicUWJP4ifIp+/iiJAtpb5DMBBnPV/woJ5BnWl
-         4Zww6LTr4OcxDkYj4IjWYdDtLGThWWOsoYRFxDX1Wiwku4vMccITe3tcVdabVQ4jiIWc
-         OwSGOfWAyuwajqiEq0JGQ6HoihfPzzlcrLtH+//0uUdneQ0fBlg+ZbN8tEsTiwMZXqQu
-         wW3A==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20251104; t=1789357789; x=1789962589;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=kio+heX6pPEISSE575Nmco9JmkqcOqgMUE8R7TgDTQA=;
-        b=ThXk/UJ0jF+0DPFMDVkeiOBhiERaQ4l7nHmWiRjdg+ESvBb8vTz8/QrgG288/eKVtn
-         zbjEnFZAUo52SER333K0jTHmz/YvNXTgmro/f8AIZz3W2pBOaNtYLLf++Hxg/nQsDW4J
-         SHvjHTPcoS/BzVKvpwgwlHtWC1yx7j6T2takor6tNAVE6ATtpRCDW6uajGr7tOJVhDSZ
-         pTrRp9jvxTdCYKICeP33VSxp0baxXIgXNM1Wcw9c4XPcXPPG8KkmHkwLZnu7omsJ+t0Q
-         9G2kHd0flWaxtf7GmyJ9I/mG29Ie3mVSn4vAnFLI/Ag5RugjOOqxWttDJOhTcwCusqmT
-         l0Wg==
-X-Forwarded-Encrypted: i=1; AKwUvBwdBp2Aie5sStGlSLNMQAuOhNNV20EFbAwpKoSj4Y4qCGCKp/F4eLumcVDipihGCUYpb5l1uCp9mrJNCA==@lists.linux.dev
-X-Gm-Message-State: AFuF++kdSUZkQ1TpcXnTqOUxwvzFZA4rYlnIBgBhfXDjwaH4X8xL5ezl
-	xX1SpyPwsFxtKvKdoXDlzMRFGaqcxo7IKKlsLeScbChS6dO8G2Bsk4T1
-X-Gm-Gg: AYBFou3kyfrKsA+tfDSj4qvG0u4tlRU455YBXiQvyCACD4BMsL4XnYPUjgoPMvqTkQj
-	C9FoLxLA6LisrY8A0S0zhWbV/50lIbx7C9CgUgCulj/SIGKwranb6GLO6xoTMqMNaMdexixj8X6
-	0Z15hTR/rzpVoRGsErRjET59m1yXr5Xh6SNGqRTxXweLcBZ1+7NDCm3bHNTPs/3nOn3hw6aMdc7
-	Pb1I9JC6lH2IC38C29dJwUoIk/Rx8my9M4rFxgeaT/6ILzeiWGwCsuEnS47XvTXtVxT/bOodFmg
-	y/gVTHgzgNMPjoDSY8T2Kvjs12RMMOcyaMgpf4iG/YbopWsBdl3BhTarBoKbHlgZ/iQRDdptb4U
-	C3INFeP+AlbI16jJb33maCVoqpDmhce/jzZIyuwEe66/DjSIlFaOHEmuWdz4Os49cSSp/86XbLT
-	jh0fAajWGiVqE8TMUsTpEykhOHoQeTgudEECt0Z9WEuGi6qilxdzSCQQxhcCce9wQ7eKrfQmEnY
-	oISzvYU4A==
-X-Received: by 2002:a17:903:b8e:b0:2d6:ee34:c043 with SMTP id d9443c01a7336-2dd5f16afcemr63293405ad.11.1789357788987;
-        Sun, 13 Sep 2026 20:49:48 -0700 (PDT)
-Received: from ustb520lab-MS-7E07.. ([115.25.44.221])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2dd2cfce707sm41361815ad.55.2026.09.13.20.49.46
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 13 Sep 2026 20:49:48 -0700 (PDT)
-From: Jiaming Zhang <r772577952@gmail.com>
-To: jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	mark@fasheh.com,
-	ocfs2-devel@lists.linux.dev
-Cc: linux-kernel@vger.kernel.org,
-	syzkaller@googlegroups.com,
-	r772577952@gmail.com,
-	stable@vger.kernel.org
-Subject: [PATCH] ocfs2: fix chunk number of the first chunk in a local quota file
-Date: Mon, 14 Sep 2026 11:49:40 +0800
-Message-ID: <20260914034940.4070970-1-r772577952@gmail.com>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com>
-References: <CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ib1DR3Uz"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1789365185; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=DGCUqYpSgp6dwqHfummvsIu0f3GHTB/sFbpAB8I2TaM=;
+	b=ib1DR3UzYQl/ILtdjF9CNL/jaemBrSA6YKB+kStq0kmLanZ7uXZt0rNiEdjfINyQka9gzUA7eODMjssQgfPwlbh6AXx6fD9M3pZbrHFk7IpOa2qA5HtoCbT8f3DyLiCYjjvlAkbvdCc0GzPGnbqDPL0ZuHP/bTO4rYyivPizYTw=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=12;SR=0;TI=SMTPD_---0XAqpvuP_1789365183;
+Received: from 30.221.129.199(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XAqpvuP_1789365183 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Mon, 14 Sep 2026 13:53:03 +0800
+Message-ID: <c11b5a78-a1d7-4618-beab-dda967863f50@linux.alibaba.com>
+Date: Mon, 14 Sep 2026 13:53:02 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: don't let the root inode outlive a failed mount
+To: Farhad Alemi <farhad.alemi@berkeley.edu>, Mark Fasheh <mark@fasheh.com>,
+ Joel Becker <jlbec@evilplan.org>
+Cc: falemi@asu.edu, ocfs2-devel@lists.linux.dev,
+ Alexander Viro <viro@zeniv.linux.org.uk>,
+ Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org,
+ Jaegeuk Kim <jaegeuk@kernel.org>, Chao Yu <chao@kernel.org>,
+ linux-f2fs-devel@lists.sourceforge.net, linux-kernel@vger.kernel.org
+References: <CA+0ovChT6BRXp0kntaJ_Eiw-2-z=fpofsvyALiwdORe3zG_YWA@mail.gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <CA+0ovChT6BRXp0kntaJ_Eiw-2-z=fpofsvyALiwdORe3zG_YWA@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-The local quota file in OCFS2 is divided into chunks, and each chunk
-begins with a header block holding a bitmap of the quota entries that
-chunk has handed out.  Chunks are numbered from zero, and that number is
-used to convert the file offset of an entry back into a bit position in
-the bitmap. ocfs2_local_quota_add_chunk() appends a new chunk to the
-in-memory list and numbers it one past the chunk that was last:
 
-	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
-	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
-				   struct ocfs2_quota_chunk,
-				   qc_chunk)->qc_num + 1;
 
-The predecessor is looked up after the new chunk is added to the list,
-so if the list was empty, the prev pointer is the list head itself.  The
-head is the dqi_chunk member of struct ocfs2_mem_dqinfo and is not a
-chunk, so reading qc_num through it lands 16 bytes past the start of the
-head, on the dqi_gqinode pointer that follows it.  The first chunk of
-the file is then numbered with the lower half of a kernel pointer
-instead of 0.
+On 9/11/26 5:47 AM, Farhad Alemi wrote:
+> ocfs2_init_global_system_inodes() installs osb->root_inode before the
+> second ocfs2_iget() runs, and when that iget fails ocfs2_initialize_super()
+> jumps to out_dlm_out, which sits below out_system_inodes, so
+> ocfs2_release_system_inodes() never runs and the kfree(osb) that follows
+> makes the stranded root inode reference unreachable.  ocfs2_fill_super()
+> strands the same inode a second way: nothing drops the reference igrab()
+> takes on osb->root_inode when an out_dismount path ahead of d_make_root()
+> is taken, so the ocfs2_release_system_inodes() call inside
+> ocfs2_dismount_volume() cannot free it and the root inode stays hashed on a
+> superblock whose ocfs2_super has already been freed.  The reported KASAN
+> slab-use-after-free write hits an ocfs2_inode_cache object that
+> ocfs2_release_system_inodes() freed during teardown, so an ocfs2 inode
+> reference that survives that call is a lifetime error on those same objects
+> and not a bare leak.  Release the system inodes at that failing
+> ocfs2_iget() and drop the igrab() reference on out_dismount, clearing inode
+> right after d_make_root(), which consumes it on success and on failure
+> alike, so it cannot be dropped twice.
+> 
+> Closes: https://lore.kernel.org/all/CA+0ovCjAKQMn7iF8BJR-3+G9_HBRnRFtJxjr-9P9GuKSxFj+3Q@mail.gmail.com/
+> Signed-off-by: Farhad Alemi <farhad.alemi@berkeley.edu>
+> ---
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
 
-The list is empty when the local quota file header claims the file has
-no chunks.  ocfs2_local_read_info() takes dqi_chunks from that header
-without validating it, so an image with dqi_chunks == 0 takes this path
-when the first quota entry is allocated.
+Seems it is a corrupt patch?
 
-ocfs2_create_local_dquot() turns the bad number into a file offset with
-ol_dqblk_off(), which shifts a 32-bit block number left by the block
-size bits, so the top bits of such a large block number are lost.
-ocfs2_local_release_dquot() turns the offset back into a bit index with
-ol_dqblk_chunk_off(), using the full chunk number, so the lost bits push
-that index far outside the bitmap, and clearing it corrupts unrelated
-memory.
+> @@ -450,6 +450,7 @@ static int ocfs2_init_global_system_inodes(struct
+> ocfs2_super *osb)
+>  	if (IS_ERR(new)) {
+>  		status = PTR_ERR(new);
+>  		mlog_errno(status);
+> +		ocfs2_release_system_inodes(osb);
+>  		goto bail;
+>  	}
+>  	osb->sys_root_inode = new;
+> @@ -1110,6 +1111,8 @@ static int ocfs2_fill_super(struct super_block
+> *sb, struct fs_context *fc)
+>  	}
+> 
+>  	root = d_make_root(inode);
+> +	/* d_make_root() consumed our reference, on success and on failure. */
+> +	inode = NULL;
+>  	if (!root) {
+>  		status = -ENOMEM;
+>  		goto out_dismount;
+> @@ -1163,6 +1166,7 @@ out_dismount:
+>  	atomic_set(&osb->vol_state, VOLUME_DISABLED);
+>  	wake_up(&osb->osb_mount_event);
+>  	ocfs2_free_replay_slots(osb);
 
-Compute the chunk number before putting the chunk on the list, and use 0
-when the list is empty.
+Please rebase on top of the latest linux-next.
+The above 'ocfs2_free_replay_slots(osb)' is removed.
 
-Fixes: 9e33d69f553a ("ocfs2: Implementation of local and global quota file handling")
-Closes: https://lore.kernel.org/lkml/CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com/
-Cc: stable@vger.kernel.org
-Assisted-by: Claude Code:claude-opus-5
-Signed-off-by: Jiaming Zhang <r772577952@gmail.com>
----
- fs/ocfs2/quota_local.c | 9 ++++++---
- 1 file changed, 6 insertions(+), 3 deletions(-)
+Thanks,
+Joseph
 
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index f55810c59b1b..d351cda9211f 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -1071,10 +1071,13 @@ static struct ocfs2_quota_chunk *ocfs2_local_quota_add_chunk(
- 		goto out;
- 	}
- 
-+	if (list_empty(&oinfo->dqi_chunk))
-+		chunk->qc_num = 0;
-+	else
-+		chunk->qc_num = list_entry(oinfo->dqi_chunk.prev,
-+					   struct ocfs2_quota_chunk,
-+					   qc_chunk)->qc_num + 1;
- 	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
--	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
--				   struct ocfs2_quota_chunk,
--				   qc_chunk)->qc_num + 1;
- 	chunk->qc_headerbh = bh;
- 	*offset = 0;
- 	return chunk;
--- 
-2.43.0
+> +	iput(inode);
+>  	ocfs2_dismount_volume(sb, 1);
+>  	goto out;
 
