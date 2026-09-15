@@ -1,121 +1,78 @@
-Received: from www62.your-server.de (www62.your-server.de [213.133.104.62])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B93E03DF01A;
-	Tue, 15 Sep 2026 15:07:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=213.133.104.62
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B12013E0083;
+	Tue, 15 Sep 2026 16:26:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789484873; cv=none; b=g33+q0o8kIyY5tk/qq5Ob2ttZRy6dnfsPEqcgWkLhj8wBeaHR6zTyEf1/m62U6wnIkf/yanfwx1xEcO3RIrK5Y7zNcUv8FnwCUwfTCihKWaccIccP6Q9naYKHowWsml9uOQMjHEgLi2jqgTtwoc4uR88oY8RKwAjJadqjTmvKEU=
+	t=1789489565; cv=none; b=H3vSmXmjeIm1zxpg9uaxrHDaM2x3+LE2z4PXAkQqv5NyVY71dtfbcGwDoI/x3J65q+SdChyk/jAhcKlK55MlFTT8o6HYNqsJ+xtb0/OBS98qJakR1m8+jR3Qy+HKu7qvWuzuaUzCBlmfiDJ+gvlVaivcTGuvP/IvHvRx/hWQQxw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789484873; c=relaxed/simple;
-	bh=PYhg+lZHLzOdUosWz93zB8+JUnSqXWBu4/OVfDYhwCc=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version; b=CZRSKGWhTWy8CmqkkJXx8Nz33OVSYG4icVwsl1ish4P5HiDctnzaOGqzmD57LuPsVQ5uZUWJBnZjt1NDYo9gb0XtvfSAkb/2fhYjLZ6by2LlKO53LuP9ZPDLAtAEKJeO7juEknGUKw5j92iWwxY7WSinKPoE7aHqmXSe5VfGczE=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=iogearbox.net; spf=pass smtp.mailfrom=iogearbox.net; dkim=pass (2048-bit key) header.d=iogearbox.net header.i=@iogearbox.net header.b=lUmtdg00; arc=none smtp.client-ip=213.133.104.62
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=reject dis=none) header.from=iogearbox.net
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=iogearbox.net
+	s=arc-20240116; t=1789489565; c=relaxed/simple;
+	bh=IWZ5r2i9VMZGwcpxwjx8vGKPLpzHbdV65HINqx7pl1E=;
+	h=Content-Type:MIME-Version:Message-Id:In-Reply-To:References:
+	 Subject:From:To:Cc:Date; b=thOIZiPjEPCYLJ05Qh72YjrhpB9boUSRY+NO8akUfHUihjIpV0LyJvWPedLpdyYDDRNnswphlpwgz1q67soyvYFpG80X2b2j9NGI8jh1bFQ3X1PlzaCxRLadEzNarVo4bpqpA1Tik/ChQi3C16qgE84ZwvGPM0dmaAVtx+wzr7g=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=Wyuj2nQB; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=iogearbox.net header.i=@iogearbox.net header.b="lUmtdg00"
-DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed;
-	d=iogearbox.net; s=default2302; h=Content-Transfer-Encoding:MIME-Version:
-	References:In-Reply-To:Message-ID:Date:Subject:Cc:To:From:Sender:Reply-To:
-	Content-Type:Content-ID:Content-Description:Resent-Date:Resent-From:
-	Resent-Sender:Resent-To:Resent-Cc:Resent-Message-ID;
-	bh=cIIBMveQ7jKi3fZhD2t+SiOVvv9aeAZjOxjJNUxRtp0=; b=lUmtdg00S30tu+4o34cmydhE3k
-	hv3gR+2RWAhC0sW6Xdj1F6HuyxvW6fG/d87Y3//keDC1uh6QzYtcLJfm5WzUYbsuVN3JJxx+yyTWb
-	gRMkfoa3bJ6bdnDu9Fkn99o7IlwGcPBsbKKivc9ecFJxbJKhXNqDZkvFBt9wmwqhu5pSa0j8CwgfH
-	M/DHk1cs2Vj0bK2ItQkklYS6h1U/9TnyHT8EYSyoIrkfnaf3Qrt8OMEN8CrWCeBNrcnGBpGHD41EJ
-	kr7tYDyqtcqocm6wzy4jZt3+a0JjfTjqfGZvcWIpPHpmVc0uxwD+9NhRGusXBCjlR0yLq7yqULz3o
-	X7zQXG0g==;
-Received: from localhost ([127.0.0.1])
-	by www62.your-server.de with esmtpsa  (TLS1.3) tls TLS_AES_256_GCM_SHA384
-	(Exim 4.96.2)
-	(envelope-from <daniel@iogearbox.net>)
-	id 1x6Ul3-0007Jt-2r;
-	Tue, 15 Sep 2026 17:07:41 +0200
-From: Daniel Borkmann <daniel@iogearbox.net>
-To: alexei.starovoitov@gmail.com
-Cc: brauner@kernel.org,
-	dwindsor@gmail.com,
-	john.fastabend@gmail.com,
-	memxor@gmail.com,
-	kpsingh@kernel.org,
-	matt@bobrowski.net,
-	bpf@vger.kernel.org,
-	Zhan Xusheng <zhanxusheng@xiaomi.com>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	ocfs2-devel@lists.linux.dev
-Subject: [PATCH bpf-next 1/8] ocfs2: Copy the xattr name in ocfs2_initxattrs
-Date: Tue, 15 Sep 2026 17:07:32 +0200
-Message-ID: <20260915150739.284189-2-daniel@iogearbox.net>
-X-Mailer: git-send-email 2.43.0
-In-Reply-To: <20260915150739.284189-1-daniel@iogearbox.net>
-References: <20260915150739.284189-1-daniel@iogearbox.net>
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="Wyuj2nQB"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 96A701F000FF;
+	Tue, 15 Sep 2026 16:26:03 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1789489564;
+	bh=TPfPTU1hTfOkA3Y3cBRAZUUhMVTXtNeqZyk4bvJBbsM=;
+	h=In-Reply-To:References:Subject:From:To:Cc:Date;
+	b=Wyuj2nQBLvjHCPsJv196FEV0ghYDVMZyMk0QPjktK+nqFJK2e0gqqTAcQHd4Pe1pV
+	 5+fB3JB1xOFYcpSI9NHXk0br1ATUh6iOgGbVgN0zvN3VS8tCieIwbACsRyyFcmb3k+
+	 CevBWaNfGhefPkXfyyS+KNdxIqVxZ+if03Phx7XFdNs/XRbRoGIpVPY/Gk1a0OYvzK
+	 vdUNVn88gTiIxNWOjortB3BU515wg20zzpxF8QNnCHDQhyn3vvtg2q4fsKYULoIVx2
+	 1rkm7JYmWo4SA23j8DlHlrDPwZwAqdw1JQl87HdrHcCxJT12KfGUbAMCFX4DUBzP/e
+	 RW4MvcMKBWmWg==
+Content-Type: multipart/mixed; boundary="===============1551566520676195583=="
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Virus-Scanned: Clear (ClamAV 1.4.3/28124/Tue Sep 15 08:27:28 2026)
+Message-Id: <c3c3d956a7ee6ac3e08b9e352c6d9d635d188971de79bb9037972a74a910012d@mail.kernel.org>
+In-Reply-To: <20260915150739.284189-2-daniel@iogearbox.net>
+References: <20260915150739.284189-2-daniel@iogearbox.net>
+Subject: Re: [PATCH bpf-next 1/8] ocfs2: Copy the xattr name in ocfs2_initxattrs
+From: bot+bpf-ci@kernel.org
+To: daniel@iogearbox.net,alexei.starovoitov@gmail.com
+Cc: brauner@kernel.org,dwindsor@gmail.com,john.fastabend@gmail.com,memxor@gmail.com,kpsingh@kernel.org,matt@bobrowski.net,bpf@vger.kernel.org,zhanxusheng@xiaomi.com,joseph.qi@linux.alibaba.com,ocfs2-devel@lists.linux.dev,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
+Date: Tue, 15 Sep 2026 16:26:03 +0000 (UTC)
 
-ocfs2_mknod() and ocfs2_symlink() ask for the security xattr up front
-through a struct ocfs2_security_xattr_info, so that they can size the
-transaction before setting it. ocfs2_initxattrs() duplicates the value
-since the array security_inode_init_security() hands is freed on return,
-but keeps the name pointer as-is, given so far every LSM stored a string
-constant there. bpf_inode_init_xattr() places the name in the same
-allocation as the value, which security_inode_init_security() frees on
-its way out. Copy the name alongside the value and free both together.
-This is the only special case wrt xattrs in the bpf_inode_init_xattr()
-context.
+--===============1551566520676195583==
+Content-Type: text/plain; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
 
-Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
-Cc: Zhan Xusheng <zhanxusheng@xiaomi.com>
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev
+> ocfs2: Copy the xattr name in ocfs2_initxattrs
+>
+> ocfs2_mknod() and ocfs2_symlink() ask for the security xattr up front
+> through a struct ocfs2_security_xattr_info, so that they can size the
+> transaction before setting it. ocfs2_initxattrs() duplicates the value
+> since the array security_inode_init_security() hands is freed on return,
+> but keeps the name pointer as-is, given so far every LSM stored a string
+> constant there. bpf_inode_init_xattr() places the name in the same
+> allocation as the value, which security_inode_init_security() frees on
+> its way out. Copy the name alongside the value and free both together.
+> This is the only special case wrt xattrs in the bpf_inode_init_xattr()
+> context.
+>
+> Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+> Cc: Zhan Xusheng <zhanxusheng@xiaomi.com>
+> Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+> Cc: ocfs2-devel@lists.linux.dev
+
+Should this include:
+
+  Fixes: 9722955b54307 ("bpf: Add simple xattr support to bpffs")
+
+
 ---
- fs/ocfs2/namei.c | 2 ++
- fs/ocfs2/xattr.c | 5 +++--
- 2 files changed, 5 insertions(+), 2 deletions(-)
+AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
+See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
 
-diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-index e9c7774ccf91..e24f0e337a56 100644
---- a/fs/ocfs2/namei.c
-+++ b/fs/ocfs2/namei.c
-@@ -480,6 +480,7 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
- 
- 	brelse(new_fe_bh);
- 	brelse(parent_fe_bh);
-+	kfree(si.name);
- 	kfree(si.value);
- 
- 	ocfs2_acl_init_release(&acl_state);
-@@ -2068,6 +2069,7 @@ static int ocfs2_symlink(struct mnt_idmap *idmap,
- 
- 	brelse(new_fe_bh);
- 	brelse(parent_fe_bh);
-+	kfree(si.name);
- 	kfree(si.value);
- 	ocfs2_free_dir_lookup_result(&lookup);
- 	if (inode_ac)
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 35bcbb0ff607..d83840b6bed9 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -7524,8 +7524,9 @@ static int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array
- 				    GFP_KERNEL);
- 		if (!si->value)
- 			return -ENOMEM;
--
--		si->name = xattr_array->name;
-+		si->name = kstrdup(xattr_array->name, GFP_KERNEL);
-+		if (!si->name)
-+			return -ENOMEM;
- 		si->value_len = xattr_array->value_len;
- 		return 0;
- 	}
--- 
-2.43.0
-
+CI run summary: https://github.com/kernel-patches/bpf/actions/runs/34989961168
+--===============1551566520676195583==--
