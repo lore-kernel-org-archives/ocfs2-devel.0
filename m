@@ -1,171 +1,122 @@
-Received: from mail-wm2-f13.google.com (mail-wm2-f13.google.com [74.125.225.141])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6BED0368D45
-	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 08:29:15 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.141
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EAB5A4756CA
+	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 09:27:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789460958; cv=none; b=MMu9y2NPPugv95NkZeCFftnWRkWZxcy66OzrbS8bqSjdxNDE8pMgVx35rDoIXET8JszaKDc+3bjLCOFC+bPeDe0tnqaIGsWE3PCagKj0CZO9LNU1b72KrHHK0n+5UyLI+0hJbFUoOCCKG3vNofT/BnxaiMfr1ix34nFIbNoYgyY=
+	t=1789464432; cv=none; b=UT6rybv9gl8hSVFkoa5FXmrGQiE1Ub7YXQHPrf+qMuyTx/qDs9CyGllUkIb6yQPgYdaqP3o9KD0HO7XvVreqBe3dXVku9/q1UfxB8EXDN4PQ/Bb1SbSL8Tmo7Hb7zlDnErgatvn3cSKXh3bCzcJI6IkIhAWqBhdAbdTpO9TNwKo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789460958; c=relaxed/simple;
-	bh=GZN2Gf/Mkslg88zoYNsYAHbRp8SgaHTjwhLMDN7KZng=;
-	h=Content-Type:Mime-Version:Subject:From:In-Reply-To:Date:Cc:
-	 Message-Id:References:To; b=oULFqGFNulcQPl/tsikVwqZDJSIV6AAHK7cpMmmEaFyYNst6gebc6YvOGiGx/GtxAbjmAJkn/r7dsUjaNK922hVJdJYMJzkwv+liuV75DUSmLPQ0i/cNoHklMYXtuUTyVmSlvdlMBkltT+soULCFIG5INBzXZzvkVCrzRvkYoYs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=go4tR3Al; arc=none smtp.client-ip=74.125.225.141
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1789464432; c=relaxed/simple;
+	bh=jrav296c2HpTz0k20Kl+5LAjON8gv8iFrRCvB255baQ=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=YG23GGWdhNDGp+mkuvFOutoG25JC/NqTVbhUEGtp1+ZRFnEhyztR2tDRn+IC01xnu1GVeIVgigU0y12tzJjBn/5/lHdpOv8tD6+H8sjLJdeGFZTEAGLjrxFu5sVCKk3gNDVIWLhuNM1Kml94cbj41aEjOWvZEfHEWNqg2DuCxAI=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=d8dIyBcA; arc=none smtp.client-ip=115.124.30.124
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="go4tR3Al"
-Received: by mail-wm2-f13.google.com with SMTP id 5b1f17b1804b1-49d1fb0cf5eso23437385e9.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 01:29:15 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1789460954; x=1790065754; darn=lists.linux.dev;
-        h=to:references:message-id:content-transfer-encoding:cc:date
-         :in-reply-to:from:subject:mime-version:content-type:from:to:cc
-         :subject:date:message-id:reply-to:content-type;
-        bh=QQqTR7eaNOBZboxAnkgxJv8kBYSdGJq6ndYnKckYxNA=;
-        b=go4tR3AlptJjUOMm7w2DaGyt/BCxv+BLtWj07x+5ZtUeDAkIAbHYm3FDWpq3y3yECA
-         PwYP6j0ziPaVw9Kk+vWEpDm+pTsI42Ko8SQ52rxsAi+mDpKzwylm2X+wacFMMFTO0tKj
-         0rEkaF9AX3naSsKx02ADT73d74mHKHMPU+hTSOGORgCfUksGe8hm7lMD5qWBDNon71IV
-         lipUSfgRV0OX8qt4xwO+MGd9Yrf19ym9HWQU8Ypw+f01eQ1bXr8RXFlMyd40zpLtNibM
-         iup7huhMmHrxduqnxa/gSFW0Ji3RlQcOgaYWszMPGKl4Q0QIRwnt/1rRAhvOWOOf7+Ah
-         Gv8g==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789460954; x=1790065754;
-        h=to:references:message-id:content-transfer-encoding:cc:date
-         :in-reply-to:from:subject:mime-version:content-type:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=QQqTR7eaNOBZboxAnkgxJv8kBYSdGJq6ndYnKckYxNA=;
-        b=Fyo3FKBD6KvW/HUWFcQ+leCqz38Nwww0DmuMA/oOQhcwbNh17zA5XDtoLyolc9Uxw/
-         VM6adils/qMMsngx5Aa7vK78uw031kzIlVfn0nMyLBw+GRcprWVke2vQugZuma+uH2th
-         mqHUsW/Im6ZpGaHh+2BPqULuRGDEshiF07ubDPgX0xsTR9sLuq7t7gv/4j5O0TENF5Mn
-         AJzoybf9PQ7LO+OXMmaKR0mQ4z+wEwAVaRhkU5mXAcVbF0koACps6I28WEetGWYX3mwN
-         qeP19r4+UNC7XRJ8q/f8Sx77rQFS/mHoozUwScWUYcfDRO4stfEv1GklEpMUdbdVDZZd
-         rj5g==
-X-Forwarded-Encrypted: i=1; AKwUvByvXiKeid+q/oaSz0/iznobFPl5u0Z++WzDJw/sILDWcpl+I5Pef8eg2/plXnZKMbo4eKOhmMOKneWV5g==@lists.linux.dev
-X-Gm-Message-State: AFuF++lPFsFK4EazeG1DFLmeUZQVor/ArvVm51f0KhpnqjqGjQbahibl
-	U3ucZQ7wtWgqsWsyNnrATdWzXR5gwOLQykYpSSdiBKMSlVivf4y8kTy0+sfOZzRrhN0=
-X-Gm-Gg: AYBFou2rCAM6Ox5Nut2fMcKmRIxqI4en8TKG6D3bHqSDp5+xq0j4lZkfwXT0597b0Zb
-	7d8LxyCPwzF6p6F8xxM3lEwngDng0IQTURZLU840LY1IttoT2oL/Kqv51o4dpt/cdsw/nkvbSwh
-	ycRSAHQGgIGuCt2obY1UQz4X3ozQwEoJAnprp8xfeNQVLlrEPZZl5vY4Kw/JaeDXXDr4KTItoxn
-	EWroazfG5WUDCbfbxdL87IsKQ4Mv4PHEerW6SDywaTk1RHSKjh+bktecopYLe9jbfQTgIBQZRPP
-	mQJFhEstLmzN4nAaWb+92vkNCwBv33SU3Ddi2KXtIPawwpnZh83FGnazdZ5nBJi4GQH5CmTUqLk
-	TRZ6VE9x9qpliZFIUrcGDwwqk5EqIpx46ytfEXM4hCquMXaMmmVUSsCmt+C4OxqE3xOVVk4qY3k
-	kj7ZZPzDTgaLgmLvQlWH8V0ReOilRPrzEBHUjqIgpu4VGaLkue3pYZUPs4MGJL11ydkQwi060GB
-	A==
-X-Received: by 2002:a05:600c:138f:b0:49c:f617:7cf with SMTP id 5b1f17b1804b1-49e7a5ede89mr112507105e9.0.1789460953640;
-        Tue, 15 Sep 2026 01:29:13 -0700 (PDT)
-Received: from smtpclient.apple ([154.26.180.185])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-33bbeb053a5sm17597753eec.27.2026.09.15.01.29.11
-        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
-        Tue, 15 Sep 2026 01:29:12 -0700 (PDT)
-Content-Type: text/plain;
-	charset=utf-8
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="d8dIyBcA"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1789464420; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=0OZtua8DFLNJVs4PID79pkEn6QrqMiWm6otoJFtXXVc=;
+	b=d8dIyBcAtd/cSg8QhK+EGJgF5E8xuHWFDNEIWvSoTHIG8/WbfwPdgvzvwCqiFuOnA88Kid/YEvcXGU57Tj6eTv6UPMaj9wxGurRgB242z9L6UyqfDhmXKOFEA/ZWAjDRkASuD3d3alkBEjAkSIzXa3pxdeSz12MbM7o49u1LYeM=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R451e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0XB1Au2f_1789464419;
+Received: from 30.166.1.13(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XB1Au2f_1789464419 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 15 Sep 2026 17:27:00 +0800
+Message-ID: <aeb6c68d-5c76-4e0d-b49b-d5a14345aa79@linux.alibaba.com>
+Date: Tue, 15 Sep 2026 17:26:59 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0 (Mac OS X Mail 16.0 \(3901.100.1.1.11\))
-Subject: Re: [PATCH] ocfs2: update xattr count before moving bucket entries
-From: Su Yue <glass.su@suse.com>
-In-Reply-To: <aqj05U-1FXW3293I@p15>
-Date: Tue, 15 Sep 2026 16:28:59 +0800
-Cc: Joseph Qi <joseph.qi@linux.alibaba.com>,
- ocfs2-devel@lists.linux.dev
-Content-Transfer-Encoding: quoted-printable
-Message-Id: <C0FCFF37-0F21-44B7-8992-6E8C21E8B51B@suse.com>
-References: <20260915041633.93575-1-glass.su@suse.com> <aqj05U-1FXW3293I@p15>
-To: Heming Zhao <heming.zhao@suse.com>
-X-Mailer: Apple Mail (2.3901.100.1.1.11)
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: fix chunk number of the first chunk in a local
+ quota file
+To: Jiaming Zhang <r772577952@gmail.com>,
+ Andrew Morton <akpm@linux-foundation.org>
+Cc: jlbec@evilplan.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, syzkaller@googlegroups.com,
+ stable@vger.kernel.org
+References: <CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com>
+ <20260914034940.4070970-1-r772577952@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260914034940.4070970-1-r772577952@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
 
-> On Sep 15, 2026, at 15:42, Heming Zhao <heming.zhao@suse.com> wrote:
->=20
-> On Tue, Sep 15, 2026 at 12:16:33PM +0800, Su Yue wrote:
->> The xh_entries array is annotated with __counted_by_le(xh_count), so
->> FORTIFY uses xh_count to determine its bounds. When inserting an =
-entry
->> into a bucket, ocfs2_xa_bucket_add_entry() shifts existing entries =
-before
->> incrementing xh_count. The destination therefore extends one entry =
-past
->> the bounds described by the old count.
->>=20
->> With CONFIG_CC_HAS_COUNTED_BY and CONFIG_FORTIFY_SOURCE enabled,
->> ocfs2-test: single_run-WIP.sh -t reflink triggers the following =
-failure while
->> adding an extended attribute:
->>=20
->> [  150.156484] memmove: detected buffer overflow: 352 byte write of =
-buffer size 336
->> [  150.156487] WARNING: lib/string_helpers.c:1036 at =
-__fortify_report+0x3d/0x50, CPU#15: reflink_test/2336
->> [  150.160496] RIP: 0010:__fortify_report+0x40/0x50
->> [  150.164031] Call Trace:
->> [  150.164141]  <TASK>
->> [  150.164232]  __fortify_panic+0x9/0xb
->> [  150.164383]  ocfs2_xa_bucket_add_entry.cold+0x17/0x28 [ocfs2]
->> [  150.164661]  ocfs2_xa_set+0x8fb/0xf40 [ocfs2]
->>=20
->> Increment xh_count before memmove() so the destination bounds include
->> the new entry. Keep the local count unchanged to calculate the =
-insertion
->> position and move length from the original number of entries. The =
-caller
->> has already checked that there is enough space for the new entry.
->>=20
->> Fixes: 2f26f58df041b ("ocfs2: annotate flexible array members with =
-__counted_by_le()")
->=20
-> The code looks good to me. Just one note:
-> commit 2f26f58df041b introduced stricter bounds checking rather than =
-fixing a bug.
-> This reference should go into the commit log instead of a Fixes tag.
+On 9/14/26 11:49 AM, Jiaming Zhang wrote:
+> The local quota file in OCFS2 is divided into chunks, and each chunk
+> begins with a header block holding a bitmap of the quota entries that
+> chunk has handed out.  Chunks are numbered from zero, and that number is
+> used to convert the file offset of an entry back into a bit position in
+> the bitmap. ocfs2_local_quota_add_chunk() appends a new chunk to the
+> in-memory list and numbers it one past the chunk that was last:
+> 
+> 	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
+> 	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
+> 				   struct ocfs2_quota_chunk,
+> 				   qc_chunk)->qc_num + 1;
+> 
+> The predecessor is looked up after the new chunk is added to the list,
+> so if the list was empty, the prev pointer is the list head itself.  The
+> head is the dqi_chunk member of struct ocfs2_mem_dqinfo and is not a
+> chunk, so reading qc_num through it lands 16 bytes past the start of the
+> head, on the dqi_gqinode pointer that follows it.  The first chunk of
+> the file is then numbered with the lower half of a kernel pointer
+> instead of 0.
+> 
+> The list is empty when the local quota file header claims the file has
+> no chunks.  ocfs2_local_read_info() takes dqi_chunks from that header
+> without validating it, so an image with dqi_chunks == 0 takes this path
+> when the first quota entry is allocated.
+> 
+> ocfs2_create_local_dquot() turns the bad number into a file offset with
+> ol_dqblk_off(), which shifts a 32-bit block number left by the block
+> size bits, so the top bits of such a large block number are lost.
+> ocfs2_local_release_dquot() turns the offset back into a bit index with
+> ol_dqblk_chunk_off(), using the full chunk number, so the lost bits push
+> that index far outside the bitmap, and clearing it corrupts unrelated
+> memory.
+> 
+> Compute the chunk number before putting the chunk on the list, and use 0
+> when the list is empty.
+> 
+> Fixes: 9e33d69f553a ("ocfs2: Implementation of local and global quota file handling")
+> Closes: https://lore.kernel.org/lkml/CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com/
+> Cc: stable@vger.kernel.org
+> Assisted-by: Claude Code:claude-opus-5
+> Signed-off-by: Jiaming Zhang <r772577952@gmail.com>
 
-IIUC, fixes tag can be used whatever the referenced commit is a bug fix, =
- code refactor or strict checker.
-I think it=E2=80=99s proper here.=20
-Let=E2=80=99s wait for Joseph=E2=80=99s opinion.
-
-=E2=80=94=20
-Su
-
->=20
-> Thanks,
-> Heming
->> Signed-off-by: Su Yue <glass.su@suse.com>
->> ---
->> fs/ocfs2/xattr.c | 7 ++++++-
->> 1 file changed, 6 insertions(+), 1 deletion(-)
->>=20
->> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index 35bcbb0ff607b..49d82ea5a1271 100644
->> --- a/fs/ocfs2/xattr.c
->> +++ b/fs/ocfs2/xattr.c
->> @@ -2076,12 +2076,17 @@ static void ocfs2_xa_bucket_add_entry(struct =
-ocfs2_xa_loc *loc, u32 name_hash)
->> }
->> }
->>=20
->> + /*
->> +  * Increment xh_count before memmove() so __counted_by_le(xh_count)
->> +  * includes the new entry in the destination bounds.
->> +  */
->> + le16_add_cpu(&xh->xh_count, 1);
->> +
->> if (low !=3D count)
->> memmove(&xh->xh_entries[low + 1],
->> &xh->xh_entries[low],
->> ((count - low) * sizeof(struct ocfs2_xattr_entry)));
->>=20
->> - le16_add_cpu(&xh->xh_count, 1);
->> loc->xl_entry =3D &xh->xh_entries[low];
->> memset(loc->xl_entry, 0, sizeof(struct ocfs2_xattr_entry));
->> }
->> --=20
->> 2.55.0
-
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+> ---
+>  fs/ocfs2/quota_local.c | 9 ++++++---
+>  1 file changed, 6 insertions(+), 3 deletions(-)
+> 
+> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+> index f55810c59b1b..d351cda9211f 100644
+> --- a/fs/ocfs2/quota_local.c
+> +++ b/fs/ocfs2/quota_local.c
+> @@ -1071,10 +1071,13 @@ static struct ocfs2_quota_chunk *ocfs2_local_quota_add_chunk(
+>  		goto out;
+>  	}
+>  
+> +	if (list_empty(&oinfo->dqi_chunk))
+> +		chunk->qc_num = 0;
+> +	else
+> +		chunk->qc_num = list_entry(oinfo->dqi_chunk.prev,
+> +					   struct ocfs2_quota_chunk,
+> +					   qc_chunk)->qc_num + 1;
+>  	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
+> -	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
+> -				   struct ocfs2_quota_chunk,
+> -				   qc_chunk)->qc_num + 1;
+>  	chunk->qc_headerbh = bh;
+>  	*offset = 0;
+>  	return chunk;
 
