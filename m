@@ -1,32 +1,32 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id EAB5A4756CA
-	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 09:27:09 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8FFFD4A013A
+	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 11:26:44 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789464432; cv=none; b=UT6rybv9gl8hSVFkoa5FXmrGQiE1Ub7YXQHPrf+qMuyTx/qDs9CyGllUkIb6yQPgYdaqP3o9KD0HO7XvVreqBe3dXVku9/q1UfxB8EXDN4PQ/Bb1SbSL8Tmo7Hb7zlDnErgatvn3cSKXh3bCzcJI6IkIhAWqBhdAbdTpO9TNwKo=
+	t=1789471608; cv=none; b=QCu0VWKvfKI3HS8vXI+NEGaDT+OSrC1HiwK0Ty4300s82KdKsUgyuM0VjoexcsGzr1KmniENpNReLd6c7+xDCgF8hzKMSEmSc4qggB76MVAXz9/Ms4kAJJyt0LyY08mHklv0dqREEeV6axtPQ/Vt/9C0zciMH6jZbD5AoI7n8Lo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789464432; c=relaxed/simple;
-	bh=jrav296c2HpTz0k20Kl+5LAjON8gv8iFrRCvB255baQ=;
+	s=arc-20240116; t=1789471608; c=relaxed/simple;
+	bh=gaA/kxB50cSDMqZM90BCKSuChZ+HkO+qPHzFinQVvOA=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=YG23GGWdhNDGp+mkuvFOutoG25JC/NqTVbhUEGtp1+ZRFnEhyztR2tDRn+IC01xnu1GVeIVgigU0y12tzJjBn/5/lHdpOv8tD6+H8sjLJdeGFZTEAGLjrxFu5sVCKk3gNDVIWLhuNM1Kml94cbj41aEjOWvZEfHEWNqg2DuCxAI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=d8dIyBcA; arc=none smtp.client-ip=115.124.30.124
+	 In-Reply-To:Content-Type; b=f4NXZHO4mlBZ5xHSRLH4Rk1T4EjdShYoKlDx/29Mx/VWrPtitXPITbLfvuC3cLHvl7e+x2TlCWHojweTpo835sXehkbevnaWlaUlhs+kp3qhbcj7438lInxs/ye8pyTKxX6UfcxX0aH+3U9AY+FMUxzbNcS5lueuDarwl/t4JyY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=lF/NmP9+; arc=none smtp.client-ip=115.124.30.132
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="d8dIyBcA"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="lF/NmP9+"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1789464420; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=0OZtua8DFLNJVs4PID79pkEn6QrqMiWm6otoJFtXXVc=;
-	b=d8dIyBcAtd/cSg8QhK+EGJgF5E8xuHWFDNEIWvSoTHIG8/WbfwPdgvzvwCqiFuOnA88Kid/YEvcXGU57Tj6eTv6UPMaj9wxGurRgB242z9L6UyqfDhmXKOFEA/ZWAjDRkASuD3d3alkBEjAkSIzXa3pxdeSz12MbM7o49u1LYeM=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R451e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0XB1Au2f_1789464419;
-Received: from 30.166.1.13(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XB1Au2f_1789464419 cluster:ay36)
+	t=1789471601; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=fCLN93VGucN/fcF3uBa1rWpSUOO9o0juY8XVqVKiJts=;
+	b=lF/NmP9+IIq9zeDco65OgKtN+z9lbmOD79UBUeu/IXO4SUC1w+hLhtmNCVKKB6NpzlRGEhzdAwOYx3Ra6puaL3MzLMcPdny+EInpi4CykpT2inrkRMLGqCo17FY61JphRC4ZxaguHE4yLe2T43Jj0jCirUxooVdvmT4Vh/cfwxo=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=3;SR=0;TI=SMTPD_---0XB1PCzC_1789471600;
+Received: from 30.166.1.13(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XB1PCzC_1789471600 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 15 Sep 2026 17:27:00 +0800
-Message-ID: <aeb6c68d-5c76-4e0d-b49b-d5a14345aa79@linux.alibaba.com>
-Date: Tue, 15 Sep 2026 17:26:59 +0800
+          Tue, 15 Sep 2026 19:26:40 +0800
+Message-ID: <fc9f0268-255e-4a68-ac3c-5bd69c242a73@linux.alibaba.com>
+Date: Tue, 15 Sep 2026 19:26:40 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,89 +34,66 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix chunk number of the first chunk in a local
- quota file
-To: Jiaming Zhang <r772577952@gmail.com>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: jlbec@evilplan.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, syzkaller@googlegroups.com,
- stable@vger.kernel.org
-References: <CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com>
- <20260914034940.4070970-1-r772577952@gmail.com>
+Subject: Re: [PATCH] ocfs2: update xattr count before moving bucket entries
+To: Su Yue <glass.su@suse.com>, Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev
+References: <20260915041633.93575-1-glass.su@suse.com> <aqj05U-1FXW3293I@p15>
+ <C0FCFF37-0F21-44B7-8992-6E8C21E8B51B@suse.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260914034940.4070970-1-r772577952@gmail.com>
+In-Reply-To: <C0FCFF37-0F21-44B7-8992-6E8C21E8B51B@suse.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
 
 
-On 9/14/26 11:49 AM, Jiaming Zhang wrote:
-> The local quota file in OCFS2 is divided into chunks, and each chunk
-> begins with a header block holding a bitmap of the quota entries that
-> chunk has handed out.  Chunks are numbered from zero, and that number is
-> used to convert the file offset of an entry back into a bit position in
-> the bitmap. ocfs2_local_quota_add_chunk() appends a new chunk to the
-> in-memory list and numbers it one past the chunk that was last:
+On 9/15/26 4:28 PM, Su Yue wrote:
 > 
-> 	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
-> 	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
-> 				   struct ocfs2_quota_chunk,
-> 				   qc_chunk)->qc_num + 1;
 > 
-> The predecessor is looked up after the new chunk is added to the list,
-> so if the list was empty, the prev pointer is the list head itself.  The
-> head is the dqi_chunk member of struct ocfs2_mem_dqinfo and is not a
-> chunk, so reading qc_num through it lands 16 bytes past the start of the
-> head, on the dqi_gqinode pointer that follows it.  The first chunk of
-> the file is then numbered with the lower half of a kernel pointer
-> instead of 0.
+>> On Sep 15, 2026, at 15:42, Heming Zhao <heming.zhao@suse.com> wrote:
+>>
+>> On Tue, Sep 15, 2026 at 12:16:33PM +0800, Su Yue wrote:
+>>> The xh_entries array is annotated with __counted_by_le(xh_count), so
+>>> FORTIFY uses xh_count to determine its bounds. When inserting an entry
+>>> into a bucket, ocfs2_xa_bucket_add_entry() shifts existing entries before
+>>> incrementing xh_count. The destination therefore extends one entry past
+>>> the bounds described by the old count.
+>>>
+>>> With CONFIG_CC_HAS_COUNTED_BY and CONFIG_FORTIFY_SOURCE enabled,
+>>> ocfs2-test: single_run-WIP.sh -t reflink triggers the following failure while
+>>> adding an extended attribute:
+>>>
+>>> [  150.156484] memmove: detected buffer overflow: 352 byte write of buffer size 336
+>>> [  150.156487] WARNING: lib/string_helpers.c:1036 at __fortify_report+0x3d/0x50, CPU#15: reflink_test/2336
+>>> [  150.160496] RIP: 0010:__fortify_report+0x40/0x50
+>>> [  150.164031] Call Trace:
+>>> [  150.164141]  <TASK>
+>>> [  150.164232]  __fortify_panic+0x9/0xb
+>>> [  150.164383]  ocfs2_xa_bucket_add_entry.cold+0x17/0x28 [ocfs2]
+>>> [  150.164661]  ocfs2_xa_set+0x8fb/0xf40 [ocfs2]
+>>>
+>>> Increment xh_count before memmove() so the destination bounds include
+>>> the new entry. Keep the local count unchanged to calculate the insertion
+>>> position and move length from the original number of entries. The caller
+>>> has already checked that there is enough space for the new entry.
+>>>
+>>> Fixes: 2f26f58df041b ("ocfs2: annotate flexible array members with __counted_by_le()")
+>>
+>> The code looks good to me. Just one note:
+>> commit 2f26f58df041b introduced stricter bounds checking rather than fixing a bug.
+>> This reference should go into the commit log instead of a Fixes tag.
 > 
-> The list is empty when the local quota file header claims the file has
-> no chunks.  ocfs2_local_read_info() takes dqi_chunks from that header
-> without validating it, so an image with dqi_chunks == 0 takes this path
-> when the first quota entry is allocated.
+> IIUC, fixes tag can be used whatever the referenced commit is a bug fix,  code refactor or strict checker.
+> I think it’s proper here. 
+> Let’s wait for Joseph’s opinion.
 > 
-> ocfs2_create_local_dquot() turns the bad number into a file offset with
-> ol_dqblk_off(), which shifts a 32-bit block number left by the block
-> size bits, so the top bits of such a large block number are lost.
-> ocfs2_local_release_dquot() turns the offset back into a bit index with
-> ol_dqblk_chunk_off(), using the full chunk number, so the lost bits push
-> that index far outside the bitmap, and clearing it corrupts unrelated
-> memory.
-> 
-> Compute the chunk number before putting the chunk on the list, and use 0
-> when the list is empty.
-> 
-> Fixes: 9e33d69f553a ("ocfs2: Implementation of local and global quota file handling")
-> Closes: https://lore.kernel.org/lkml/CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com/
-> Cc: stable@vger.kernel.org
-> Assisted-by: Claude Code:claude-opus-5
-> Signed-off-by: Jiaming Zhang <r772577952@gmail.com>
+It seems the patch is semantically neutral. Same bytes written, same
+control flow, same return values. Only the annotation-derived bound
+during the access changes.
 
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/quota_local.c | 9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-> index f55810c59b1b..d351cda9211f 100644
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -1071,10 +1071,13 @@ static struct ocfs2_quota_chunk *ocfs2_local_quota_add_chunk(
->  		goto out;
->  	}
->  
-> +	if (list_empty(&oinfo->dqi_chunk))
-> +		chunk->qc_num = 0;
-> +	else
-> +		chunk->qc_num = list_entry(oinfo->dqi_chunk.prev,
-> +					   struct ocfs2_quota_chunk,
-> +					   qc_chunk)->qc_num + 1;
->  	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
-> -	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
-> -				   struct ocfs2_quota_chunk,
-> -				   qc_chunk)->qc_num + 1;
->  	chunk->qc_headerbh = bh;
->  	*offset = 0;
->  	return chunk;
+So I'd prefer Heming's suggestion, describe it in commit log instead of
+a standalone Fixes tag.
 
+BTW, please use 12-chars commit id instead.
+
+Thanks,
+Joseph
