@@ -1,132 +1,141 @@
-Received: from mail-wm2-f12.google.com (mail-wm2-f12.google.com [74.125.225.140])
+Received: from mail-ej2-f12.google.com (mail-ej2-f12.google.com [74.125.228.140])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 87D052EA754
-	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 04:16:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.140
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5A30F31DD97
+	for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 07:42:15 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.140
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789445806; cv=none; b=IJA6Kqz5osk7j5QbL7v5bDxiJradVr8H8U4N9/M8/pZVLcylhZX77VpQyTP0U8zpqQLRIclDE1HTZJDbbzkCxDHqCoQjVviipmakIWh1lxiFw4GMGU1HxjXNe/8B9qmQ4WHOudQaq3T5IURFKMBcikwEF4tP5wF/7jMz2fJ/bjc=
+	t=1789458137; cv=none; b=RFwSw0E0p9JpbK3J7WC+qwkrthsLE5m093E90YK0Q9Jnp96X+eedodMh0MgITdhwcG6KVChc6Sq21WdYKvo/X226F412cYpeMGrXpn9D1/r47OTe8k2ju5/DA0yrryGpNAg6QA9KX95AqVhzBkXgZEjqepCroPCBr6dq3BSsTSo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789445806; c=relaxed/simple;
-	bh=9RTDbsI4o/lbxcJqfP8H/3b+5HYfUqH+12sNfrYPGPI=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=HuPxTs1MLC+mW5vNzaRGqIxRrBZro9WhzeamDvqACLV3riSpQgXKwBByAC6dcXgkLWRc8c5oGE0oK/zytoYLNFZPTASeXp2hKs1HkzsnxDIPG0CQwHwWvuVVqPpjgVvHkGXMuQadZ36qgMA7YJa5UD2Wt/vq40VmYFKFjLCoFpo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=FPYd9Gyf; arc=none smtp.client-ip=74.125.225.140
+	s=arc-20240116; t=1789458137; c=relaxed/simple;
+	bh=euDljarMEFR51LJrQNTgr1IkoseD2wP5+hJmPeGJY9Q=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=iesN8mKmYUgDWrky+Fl77rqkPznLuk4QZpt9THhN8UJAE1bbY3e1Nx2Pl+l9a4tlWsNF3b2NMhivGWxp2OhxPf1JidVfmqzWF2lIzEuya4S4FntimYyG+FyKDsc34Xbr/QXNXpIyCW3acIqN7ICBdf0rgAfBZZTq/ZZg77Sur34=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=I+NVpoNR; arc=none smtp.client-ip=74.125.228.140
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="FPYd9Gyf"
-Received: by mail-wm2-f12.google.com with SMTP id 5b1f17b1804b1-49b912d37b5so17487555e9.2
-        for <ocfs2-devel@lists.linux.dev>; Mon, 14 Sep 2026 21:16:44 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="I+NVpoNR"
+Received: by mail-ej2-f12.google.com with SMTP id a640c23a62f3a-c29573ad296so38086266b.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 00:42:15 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1789445803; x=1790050603; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=H7m8J76LGIna+5jEbgNrQJloAyOcCRg92irjbXqHI5k=;
-        b=FPYd9GyfPSQf7z7CqKFKkqliTWalCUGm0/v9ZVDJKMc0Q+1II3g9IxgpAJKkQXqF8h
-         3/PDyihMZ13aPJIr0cYoCIAvmgaqpOKqQTuYXaNQF7IkLNlrQ+DmPv8H0NGx6fljJni4
-         rATNM8eq8187Ze3KdpJCCkGqn+5Znf+ENRdE+PjrgPXv/ZLcgDsmyv5c2H28s1INwHHv
-         D1g8AABcj7xU8hjo0GLwxnpDVaCnyLZ8v3ZVQ8OgHmg80Ux8vlvX6JWaoYFqdVS7iuHM
-         +8ZXXsGbLlMw+ovE5dvhKCkba8ym4DHKcF3rf44mSnJ8fWsF6nmNy7dJq1ZXwD5pDY0k
-         yAOw==
+        d=suse.com; s=google; t=1789458133; x=1790062933; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=Ipaw+WO/xNUFlEuRlZi+JSTZ4mX5i8rU52Vkj/j9Kcw=;
+        b=I+NVpoNR4YZJPgqciT5pg7YtAqPChewTPDcFgdXBStniPuZ5szyAOZYXKmsmB4M91P
+         6aVneZSq7Y5zBjWpLeNC+/YVi3Bv7+fFG2ToPK+baE9MbKDfU6lHVDzs9hDOfNfeQh8T
+         9h72+O+gAqUzOlluBKN+QEHELwBOndDDs1AfxF9C7qpezYhH5EoEQ104SzMCmvcs5f55
+         1pF6Xw8n8hFJQMWARNbiCR0XoRo2LDk9rOINjiAV1AYYq8X0OWGXqeUd7rac7KYEOB9R
+         CwzeGrNzQHyxKDUswj2TqoCewMJuIoU1fw6cK7bJeFhMDSqOPVjCxWzAnk5P/Qzzak67
+         exXQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789445803; x=1790050603;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=H7m8J76LGIna+5jEbgNrQJloAyOcCRg92irjbXqHI5k=;
-        b=TmefCogcgNprP2l8hSMtlice7Wi3VFt9FGFu9TGGqheK6oW1r+YuvqVC3dqvalVvUT
-         V7ubTKg+6dhn7qxtOBn4vsh7nxC+Cqj8l3gQ1U2glGUxNp/HA7Z0ieElInaXVv12dAFH
-         VvWVnDykKr6q5L8GeFLha8RrN4Ya4kasou1CHXe51FoTEytyACM/LzxMKmeuAqjNkRMj
-         RqlfZNtmLdNIjpOnsP0W12wsDgjtOFGMT8WybSewmwZIiwKekcfQCExyORyCIODmQjBg
-         8RnHxHe7TZhhYq/xstj0NRs4OduIaT7fMubH+ZFdZ7RT8g1+BIPOOYvWukE650hEE6my
-         wOUA==
-X-Gm-Message-State: AFuF++maOsFNau9GmZwn+2FMEpC2V6m5JBQ8vCgUQXXxqdRrRhv+XCj3
-	NyNppGgF3Lg6yfSZTGn7jeI1tUViwpZgKa+cjnOhlmltzqdixDyj1inGQMd4J1F8noiP3ipCAK3
-	yEdld5062zA==
-X-Gm-Gg: AYBFou18omt0ptoyfNRVkICgIOIVQs4thKpTn1AjVjf6BgzbMSf1qdbqp6eUqvMcJz7
-	Z4TgpFHJqM/ybozPUKYtW7i9kFYaGK5nj5dN/bdy9V9uM9B98Sk3iaDPHOiZQDuLSNIaqbZewK6
-	80YNlsvLzUtlb/1lGYXcAJl0FSG5SruHMylKFl/mUeqrO83aoVBgDyM9HEgFHpgGPKHwVeUe/+v
-	54LN5JLG2jwgSbrhGdG6+RgJG3PGHibQsG09DgeAaUwttZ7ZPdkh7kdd3tvjX+KywDwXJUxLG2i
-	T2YgMkkypQYh7/2y3ifR9GnJwLOiPL7y8INNNtJhzsC0OOOBiaypDfhJb6UxsPfRnWrct6lF2P5
-	dFPRAcQZGriYVKl6VKECfoN7gsvSlzuSTAT5ox56z+CdJk3rVfWaaRh3IP7eNYoXcAva9AXR/kQ
-	yMsBdb/CCk8+r/vJwRrh0FoWR2Lg6ExD+4N7tTyBBtKrYc1YYZjz2YeK1s3c+2/5PSPxIySdU75
-	G1A0o1P
-X-Received: by 2002:a05:600c:4e45:b0:49e:6050:9fbe with SMTP id 5b1f17b1804b1-49e7a68cefdmr142356055e9.15.1789445802616;
-        Mon, 14 Sep 2026 21:16:42 -0700 (PDT)
-Received: from localhost.localdomain ([2605:52c0:2:27d1:8ca3:89ff:fe18:2252])
-        by smtp.gmail.com with ESMTPSA id a92af1059eb24-14390c0be29sm974616c88.9.2026.09.14.21.16.40
-        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Mon, 14 Sep 2026 21:16:41 -0700 (PDT)
-From: Su Yue <glass.su@suse.com>
-To: ocfs2-devel@lists.linux.dev
-Cc: joseph.qi@linux.alibaba.com,
-	heming.zhao@suse.com,
-	Su Yue <glass.su@suse.com>
-Subject: [PATCH] ocfs2: update xattr count before moving bucket entries
-Date: Tue, 15 Sep 2026 12:16:33 +0800
-Message-ID: <20260915041633.93575-1-glass.su@suse.com>
-X-Mailer: git-send-email 2.54.0
+        d=1e100.net; s=20260707; t=1789458133; x=1790062933;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=Ipaw+WO/xNUFlEuRlZi+JSTZ4mX5i8rU52Vkj/j9Kcw=;
+        b=NlgjZpCTBkuNRsCz6kkAQI7kYs1+OwG1Dsa0bLQj2YuDjePWR7zK5Ky5zCjBbCeCtT
+         e/1D6Az/bDvDwR/XjNX3ZUNuGDk40i1pRPwgd1eY8gPEDvx9Rocg2DqRk8YyKE+L33PN
+         q3E81+tPJXYw644gVtUdKCmWa6xGP1HX6ybEsggDImdF1FWLNfrN9iWYsjGWYf4bmUNT
+         E8tR4Txuxy+HH5V7Am3aX33StAmmkCgiN/7ok4IuBjp9SynukXD+tJPYkMm9oq++zlRS
+         OuWSfbrhMkh/gJAwYDmRFxje4ahtT97s+bTYkR7nhfqbVTAl1vyL9BjbMvAVXm0Z0oy5
+         VCPw==
+X-Gm-Message-State: AFuF++kPcjucYsZw1SA7yhy6jMCzZn31j0X8Pj34qK8uoEjyu2WHTqTl
+	BYqxLr9lHK9Zv4Fp1ojWbZVsj+Ke3VQl7VKn1/J30f9JrPqsyUjPTVzba8XKG7PdfYg=
+X-Gm-Gg: AYBFou04ChgK9JF1YFqS/y6LZc7CMiIIfHiM6KmjU9bNO+tqNm2KuYWo2g0yhNXqZBA
+	8IvJo4qA7nMOcl967kaoTTzo1VGqyw+tbTBIgFAPhbcpHzbBFwzDl8exxa8cdfRwssGaAhaUo3W
+	LyKa/0xW0Ds4aguEtJcTJfYtUPKnxmvPr6ay6pd3i3JpdvqlyebRwpRswRl5i3k0jo+Sv0fQmZu
+	G/ObuxyfGTsN7caPokdbOuRfeFp865QPxzCgzE/sJD0PIqxnGKJZ2YWvbM9yU28n0BkcwC8nrNg
+	N4baq1xO4eFEMSxo2Yb0o/3JXYyhJQan7N5UHB+UvxfwrqofLpbgNr0NNFPQcFWhNmZvbkjg25Y
+	hK49vOHyChHT9DeJqLmBs4oJogktVcC2a2lsju4oWIzONnfEPhTxMgjRQ9fe/1mFEM0tDGYl75Q
+	W6BrfYJVu70X7N00nYeMbCxbTelNOdxmeuhCK2SUQ1jAQBDiNuJE7PNzXe8urQoXdvV9fNuA==
+X-Received: by 2002:a17:907:c649:20b0:c29:cfce:1933 with SMTP id a640c23a62f3a-c29cfce2ecdmr58211066b.2.1789458133357;
+        Tue, 15 Sep 2026 00:42:13 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-86b250c1443sm5818215b3a.4.2026.09.15.00.42.11
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 15 Sep 2026 00:42:12 -0700 (PDT)
+Date: Tue, 15 Sep 2026 15:42:08 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Su Yue <glass.su@suse.com>, joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev
+Subject: Re: [PATCH] ocfs2: update xattr count before moving bucket entries
+Message-ID: <aqj05U-1FXW3293I@p15>
+References: <20260915041633.93575-1-glass.su@suse.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260915041633.93575-1-glass.su@suse.com>
 
-The xh_entries array is annotated with __counted_by_le(xh_count), so
-FORTIFY uses xh_count to determine its bounds. When inserting an entry
-into a bucket, ocfs2_xa_bucket_add_entry() shifts existing entries before
-incrementing xh_count. The destination therefore extends one entry past
-the bounds described by the old count.
+On Tue, Sep 15, 2026 at 12:16:33PM +0800, Su Yue wrote:
+> The xh_entries array is annotated with __counted_by_le(xh_count), so
+> FORTIFY uses xh_count to determine its bounds. When inserting an entry
+> into a bucket, ocfs2_xa_bucket_add_entry() shifts existing entries before
+> incrementing xh_count. The destination therefore extends one entry past
+> the bounds described by the old count.
+> 
+> With CONFIG_CC_HAS_COUNTED_BY and CONFIG_FORTIFY_SOURCE enabled,
+> ocfs2-test: single_run-WIP.sh -t reflink triggers the following failure while
+> adding an extended attribute:
+> 
+> [  150.156484] memmove: detected buffer overflow: 352 byte write of buffer size 336
+> [  150.156487] WARNING: lib/string_helpers.c:1036 at __fortify_report+0x3d/0x50, CPU#15: reflink_test/2336
+> [  150.160496] RIP: 0010:__fortify_report+0x40/0x50
+> [  150.164031] Call Trace:
+> [  150.164141]  <TASK>
+> [  150.164232]  __fortify_panic+0x9/0xb
+> [  150.164383]  ocfs2_xa_bucket_add_entry.cold+0x17/0x28 [ocfs2]
+> [  150.164661]  ocfs2_xa_set+0x8fb/0xf40 [ocfs2]
+> 
+> Increment xh_count before memmove() so the destination bounds include
+> the new entry. Keep the local count unchanged to calculate the insertion
+> position and move length from the original number of entries. The caller
+> has already checked that there is enough space for the new entry.
+> 
+> Fixes: 2f26f58df041b ("ocfs2: annotate flexible array members with __counted_by_le()")
 
-With CONFIG_CC_HAS_COUNTED_BY and CONFIG_FORTIFY_SOURCE enabled,
-ocfs2-test: single_run-WIP.sh -t reflink triggers the following failure while
-adding an extended attribute:
+The code looks good to me. Just one note:
+commit 2f26f58df041b introduced stricter bounds checking rather than fixing a bug.
+This reference should go into the commit log instead of a Fixes tag.
 
-[  150.156484] memmove: detected buffer overflow: 352 byte write of buffer size 336
-[  150.156487] WARNING: lib/string_helpers.c:1036 at __fortify_report+0x3d/0x50, CPU#15: reflink_test/2336
-[  150.160496] RIP: 0010:__fortify_report+0x40/0x50
-[  150.164031] Call Trace:
-[  150.164141]  <TASK>
-[  150.164232]  __fortify_panic+0x9/0xb
-[  150.164383]  ocfs2_xa_bucket_add_entry.cold+0x17/0x28 [ocfs2]
-[  150.164661]  ocfs2_xa_set+0x8fb/0xf40 [ocfs2]
-
-Increment xh_count before memmove() so the destination bounds include
-the new entry. Keep the local count unchanged to calculate the insertion
-position and move length from the original number of entries. The caller
-has already checked that there is enough space for the new entry.
-
-Fixes: 2f26f58df041b ("ocfs2: annotate flexible array members with __counted_by_le()")
-Signed-off-by: Su Yue <glass.su@suse.com>
----
- fs/ocfs2/xattr.c | 7 ++++++-
- 1 file changed, 6 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 35bcbb0ff607b..49d82ea5a1271 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -2076,12 +2076,17 @@ static void ocfs2_xa_bucket_add_entry(struct ocfs2_xa_loc *loc, u32 name_hash)
- 		}
- 	}
- 
-+	/*
-+	 * Increment xh_count before memmove() so __counted_by_le(xh_count)
-+	 * includes the new entry in the destination bounds.
-+	 */
-+	le16_add_cpu(&xh->xh_count, 1);
-+
- 	if (low != count)
- 		memmove(&xh->xh_entries[low + 1],
- 			&xh->xh_entries[low],
- 			((count - low) * sizeof(struct ocfs2_xattr_entry)));
- 
--	le16_add_cpu(&xh->xh_count, 1);
- 	loc->xl_entry = &xh->xh_entries[low];
- 	memset(loc->xl_entry, 0, sizeof(struct ocfs2_xattr_entry));
- }
--- 
-2.55.0
-
+Thanks,
+Heming
+> Signed-off-by: Su Yue <glass.su@suse.com>
+> ---
+>  fs/ocfs2/xattr.c | 7 ++++++-
+>  1 file changed, 6 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 35bcbb0ff607b..49d82ea5a1271 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -2076,12 +2076,17 @@ static void ocfs2_xa_bucket_add_entry(struct ocfs2_xa_loc *loc, u32 name_hash)
+>  		}
+>  	}
+>  
+> +	/*
+> +	 * Increment xh_count before memmove() so __counted_by_le(xh_count)
+> +	 * includes the new entry in the destination bounds.
+> +	 */
+> +	le16_add_cpu(&xh->xh_count, 1);
+> +
+>  	if (low != count)
+>  		memmove(&xh->xh_entries[low + 1],
+>  			&xh->xh_entries[low],
+>  			((count - low) * sizeof(struct ocfs2_xattr_entry)));
+>  
+> -	le16_add_cpu(&xh->xh_count, 1);
+>  	loc->xl_entry = &xh->xh_entries[low];
+>  	memset(loc->xl_entry, 0, sizeof(struct ocfs2_xattr_entry));
+>  }
+> -- 
+> 2.55.0
+> 
