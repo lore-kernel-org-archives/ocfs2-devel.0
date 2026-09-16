@@ -1,154 +1,137 @@
-Received: from mail-ed2-f42.google.com (mail-ed2-f42.google.com [74.125.228.106])
+Received: from mail-wm2-f13.google.com (mail-wm2-f13.google.com [74.125.225.141])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2B68225A2DD
-	for <ocfs2-devel@lists.linux.dev>; Wed, 16 Sep 2026 02:47:50 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.106
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4C06232470E
+	for <ocfs2-devel@lists.linux.dev>; Wed, 16 Sep 2026 02:48:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.141
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789526871; cv=none; b=HPRw9iop3SpQ21hCLNopEbGTv3A9KB1XjhpFwX/D1a0uy6cR64Zf9BSLWwGuUVGb2MLXBGZadYm5UMFRHpFopasx3XEu/waeXtLwDiSrgr1fxWGhC+97KgIpq/YgJBzwkmUs93HyeyRTGtx/bTar0Z83FzRxfrfQhHybDnxhu0s=
+	t=1789526882; cv=none; b=lOr2q+7eOLom2ccxY1tfP/8htY7EAdFJ9dWAOV8wKkQMyb9C49K55jdEcu1nYVsw9ngAJMzSc2Y/KsTAyj4YuwFISBkNea3JiFFubs0XwSASP3Sv3d1+Kkms1mtjRYrBVGK+UgGeGqorWAzYZ83/3yAWLqV1bO/drRNrYqdXLhw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789526871; c=relaxed/simple;
-	bh=wtd/03GFBPFtGkGnsixWJf5NJHyKunU5GA2TDNHK0mc=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=DB+yrcSZn83lOAMzhkN6hRZDkvOVJzWwrNTYPwHfcAiMDw8OKeHrAM1r4JQrzOB7sMVNvDZnVNtbS75WHNLcB/8UOhXWRGammhE0HKFVRs+YD30iR8AxTtW3xCWRV5Gvvcn78SoLBsDtObvHGo5xtDY6pJJF8QwKp9ql0HPAor0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=BlKhgwjq; arc=none smtp.client-ip=74.125.228.106
+	s=arc-20240116; t=1789526882; c=relaxed/simple;
+	bh=GjcB06nBmtpwflUV9qPhMmIq1NhsakSUFvyN3W5mIX0=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=f3elJv2ZAVW1SBpl+pnf/8nmHVQspy15AFi2Gb2o7JBv53XusYYwxnIu4SVTFheITNyyKrYWUv4bD79Ulxz0CiD4QWNObc+F5scfduE0+jyv7tBYhkRw1CzR8m2xgE8r48HOifSjcJVVno7NTj59vdUOILVk9xJ72LZEjcfz8BU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=YrGSgdlh; arc=none smtp.client-ip=74.125.225.141
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="BlKhgwjq"
-Received: by mail-ed2-f42.google.com with SMTP id 4fb4d7f45d1cf-6a5d8ff627eso58259a12.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 19:47:49 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="YrGSgdlh"
+Received: by mail-wm2-f13.google.com with SMTP id 5b1f17b1804b1-49b912df756so2906815e9.3
+        for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 19:48:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1789526868; x=1790131668; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=mbykP5/XyMLit0cz7WlaiYBiK+Q7B+6nW+jCiDoN2jo=;
-        b=BlKhgwjqs2o4ZPHYc2K02cwbavuQHjyW6ECsPxl0dSwNhI+CtcPPBu4S2erqgwWrym
-         Ty6bwjGmIxfjKmiqmpU9mdmu3nuOSl+nK242knj8hLUV0UHL82Y12/K1UbVI4yROBHyd
-         2hGJ/DQwDhScXptO8C2CB2NJLjJ5ZxTVCbLuUgCz1hok5547RztJjeAMJLm1T9/MJ0Ld
-         aFE6kveLtIopQ36crZb424sGocGEnqaGfZ1MY6aHQHy2jBN22sKUMmMHClE4vGivkBLS
-         1BC4STIGNG2XVWDPGiAjF0kP0Gp9BhB38fTvCE/8N03eMvPWV+XpWArFoqvsH7Uysu5t
-         hgvQ==
+        d=suse.com; s=google; t=1789526879; x=1790131679; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=hONIRSTCDTtc4FkplgeXuq38/iUH3dSfh9L1Vqs25vE=;
+        b=YrGSgdlhtlEdl22rTS2+XqUCYOW3iztPSlgU31xYqlm+558LmJF0pB2+ET9e77MiFt
+         AocyGmA1FqTw8V0LfCdixYfWylBoqSw+7vPSyxKuc0/bzQxG54/7vPvKVRbjddxiZ/VO
+         w76NOOuTFi1HeXgQZbEcwFtkbOSrEBsL5wS4wNqloguz9NfqtbVGPMk26u0qCecZ6q2t
+         olTywWehJFEefF6OHcL6rFXtgU0yh5MjCLMRdYprN83MeQPQNJ55dOV3LF8jl1HMyLO+
+         ILeZnsz+zeKzNtPnvkH7kLnU4dKX5Z3Z+RCYzMZ3zAxqAzBP0tEEqxX0OC6+wiF0xrOy
+         YCiw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789526868; x=1790131668;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=mbykP5/XyMLit0cz7WlaiYBiK+Q7B+6nW+jCiDoN2jo=;
-        b=vd9ZWtlgT3lCX+x86fwFGld/uLzxpWihNjJ+K6sFm35SwRL8qhGcajrT9UPjNp7+gK
-         +8Qp+NeiTPQoOwXFK2LHnld3LJirdJDmSZ67jx2l+0lROKWYxKW7fEAf4v+F/qX8Daij
-         uOBBdSuxM9DtLbYaD+CbJjmgZmvX0tylyjb6i/dJuvNGC/Yz4b/+lGB/2JWfJ8ZAYfDq
-         3y6NUlQfDLMIHlGDAtSH2x2EPwCGwNu0xgf0nTHLl5mqy8Ed2qpjtVzPqIkCoQqWDDyT
-         AblQaCVhGagANwERknKiud3R7DumWa1PAk00cR47V+v8N00Huy2XpGa3WPAZTewhXQLc
-         hogg==
-X-Forwarded-Encrypted: i=1; AKwUvBz9boVmnnaXMPVUiN5tJQqDRSU3nDDuSNhpG3e6nrDshXKWjoDuvpmo4cuKnEzhDR+AZxqGz1ZklB/vTw==@lists.linux.dev
-X-Gm-Message-State: AFuF++kJYMu7C6PI/uLiqlJacojd0IrIG9PkNE7OE2WxL9MCbVo36HI3
-	vM020xO2llq8NeuN5qLsslHkq0Ly2oGiTSBs8FjMi5Sj/q2rIQZ5K9veZwfs5JfSAtc=
-X-Gm-Gg: AYBFou1vRj0tnuoFOE7KT430kQgj7wuLeZgj4VYDyfLNP/V+YXynHxNqxer1wrZ2ysz
-	p/Hpnq4+QihQOlN3licnVIsI1MQPnBYyPxGvd0KGE1Lzb0vqsnzOuhQfrMao4iqL/1I9epRXT4w
-	4HmzL586/EE90ltZFJ+uDPQYaGcnbu/6xg7HYZCs5iI+vac2LiyJIU7e50kyTKAK3G9zU+N3DWr
-	5KPzDP7omCgPcOEI/cSrCFo/dmREief1sKi+sI2WxBxoliybb6IEfgE8OhNsE4W29Hajewbkgr3
-	/v5rjl8YeXcXLzzJ5K5VTNVOMP/ZDQLo3RSB90VRb9Yu13ngh7bENOLyFshDE748WiWReofQvF+
-	Rl6O4KE68edEKY/ZLCy45dJd7xg+/X9G9bUL+UxBaYABkR3RpuCiG1/U8h8wC8skli8vq4yPRBX
-	dSZYZ0BzXA91DQoQ61E1EIh2azTClpETCSLp5yFfBFgWS6N0UTMA/JoVnddJ5jdG8D7vm81w==
-X-Received: by 2002:a17:907:3f99:b0:c29:cfce:1933 with SMTP id a640c23a62f3a-c29e530d7c9mr41736766b.2.1789526868385;
-        Tue, 15 Sep 2026 19:47:48 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2dd89d8fd37sm3839675ad.3.2026.09.15.19.47.46
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 15 Sep 2026 19:47:47 -0700 (PDT)
-Date: Wed, 16 Sep 2026 10:47:43 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Daniel Borkmann <daniel@iogearbox.net>
-Cc: alexei.starovoitov@gmail.com, brauner@kernel.org, dwindsor@gmail.com, 
-	john.fastabend@gmail.com, memxor@gmail.com, kpsingh@kernel.org, matt@bobrowski.net, 
-	bpf@vger.kernel.org, Zhan Xusheng <zhanxusheng@xiaomi.com>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev
-Subject: Re: [PATCH bpf-next 1/8] ocfs2: Copy the xattr name in
- ocfs2_initxattrs
-Message-ID: <aqoCVQ78KOo2GZ8S@p15>
-References: <20260915150739.284189-1-daniel@iogearbox.net>
- <20260915150739.284189-2-daniel@iogearbox.net>
+        d=1e100.net; s=20260707; t=1789526879; x=1790131679;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=hONIRSTCDTtc4FkplgeXuq38/iUH3dSfh9L1Vqs25vE=;
+        b=X/n1ksjmo01qGwuS8Za+lWckY1vGEgjwEVtPT1T2PhC5Dp0x+3ujzJ3OophEXr9Mq0
+         F773NVCkkQnPRLplLzWzwpC1iaFGKMsuWgb4Hr6qNsEtJEXPsgKqD9gbIAxk3Gnu/+i2
+         3zV4oLxge0ApqtnZnGOvBnlPVkKpnm2jkrBpMW2V2DFAgSTvWNqZqL4JnNBic2y8peJd
+         dW3LrCPqqdE3QgfGpNuTnLgRelCUabHue1LLaDEWSL3tb8rvSP1V3P3IX2iS5eZyms17
+         vr0WrZNE0csz0kiHN3vzrAnGr78Oc/0xSs745fIutRlt0GgNq+zp/pmHkR4DkYoj2Lau
+         xrZg==
+X-Gm-Message-State: AFuF++kTsSI2RDObqVxHw6e+q1A6ZTdSoGadDZvYAOz4P4TDLKTD2Hty
+	UTuxwE5YM5tIikrdOf71uQeL4e35LHlReNHTbysF3AYWWmfWWabIkDihLdvwgEN5QNENlbrz7KV
+	HaL3zDABelA==
+X-Gm-Gg: AYBFou26TQY0E6PmRcObp04WWxXwGjBNWp5QCMER2aS/m2KrVKbZi0VwSgamxmqFwgq
+	Jwh8Xmeh9gjMdud9vpT4JxKPcpqTzDfzH4AEpnrvJ7bJLrVDHDKmmLsy9ONanL+7aC19+9smA5x
+	EkIj3h3Zb0OrNQvex0HLojwPoMIhAlMFeO05lCtgJOLqa5+XcEZ+fkxvKM0E5HAS+CWN/GsZgcM
+	LarbHuVsCeaNCEfPIBrXoTgaX4QxO4lr5IxfotwOkBWst958D9Yarcsro09bafCQlPT5njh68a6
+	3+YH3biADqG+MZfNeWJn8GkgalsZwFTK1FB2sh4jZyoHtx/FSXUWj27rRmVaLp1kg2lCnYIALg/
+	N6RKJEY9yP7YBKatRlXGlKDK7I8y+3Td2SiGAWKj0ZonVPhAGFP7dogDKzeKdZ9i8lasHIDfJw6
+	NjP5MzVKgwcSR1SFr7e+5vET8v8i2CSNWlmTrfDrq+u/cdt3N3GkKdxiJOUgn8Q6CqXOz35HmNb
+	ruAypU+
+X-Received: by 2002:a05:600c:4505:b0:49c:fc6e:8cae with SMTP id 5b1f17b1804b1-49eb73475efmr6195865e9.18.1789526879347;
+        Tue, 15 Sep 2026 19:47:59 -0700 (PDT)
+Received: from localhost.localdomain ([2605:52c0:2:27d1:8ca3:89ff:fe18:2252])
+        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-33bf5a9fd38sm3254191eec.13.2026.09.15.19.47.56
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Tue, 15 Sep 2026 19:47:58 -0700 (PDT)
+From: Su Yue <glass.su@suse.com>
+To: ocfs2-devel@lists.linux.dev
+Cc: joseph.qi@linux.alibaba.com,
+	heming.zhao@suse.com,
+	Su Yue <glass.su@suse.com>
+Subject: [PATCH v2] ocfs2: update xattr count before moving bucket entries
+Date: Wed, 16 Sep 2026 10:47:50 +0800
+Message-ID: <20260916024750.9450-1-glass.su@suse.com>
+X-Mailer: git-send-email 2.54.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20260915150739.284189-2-daniel@iogearbox.net>
+Content-Transfer-Encoding: 8bit
 
-On Tue, Sep 15, 2026 at 05:07:32PM +0200, Daniel Borkmann wrote:
-> ocfs2_mknod() and ocfs2_symlink() ask for the security xattr up front
-> through a struct ocfs2_security_xattr_info, so that they can size the
-> transaction before setting it. ocfs2_initxattrs() duplicates the value
-> since the array security_inode_init_security() hands is freed on return,
-> but keeps the name pointer as-is, given so far every LSM stored a string
-> constant there. bpf_inode_init_xattr() places the name in the same
+Since commit 2f26f58df041 ("ocfs2: annotate flexible array members
+with __counted_by_le()"), the xh_entries array is annotated with
+__counted_by_le(xh_count), so FORTIFY uses xh_count to determine its
+bounds. When inserting an entry into a bucket, ocfs2_xa_bucket_add_entry()
+shifts existing entries before incrementing xh_count.
+The destination therefore extends one entry past the bounds described
+by the old count.
 
-Typo? I am not familiar with BPF, but I only found inode_init_security in
-include/linux/lsm_hook_defs.h.
+With CONFIG_CC_HAS_COUNTED_BY and CONFIG_FORTIFY_SOURCE enabled,
+ocfs2-test: single_run-WIP.sh -t reflink triggers the following failure
+while adding an extended attribute:
 
-> allocation as the value, which security_inode_init_security() frees on
-> its way out. Copy the name alongside the value and free both together.
-> This is the only special case wrt xattrs in the bpf_inode_init_xattr()
-> context.
-> 
-> Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
-> Cc: Zhan Xusheng <zhanxusheng@xiaomi.com>
-> Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Cc: ocfs2-devel@lists.linux.dev
-> ---
->  fs/ocfs2/namei.c | 2 ++
->  fs/ocfs2/xattr.c | 5 +++--
->  2 files changed, 5 insertions(+), 2 deletions(-)
-> 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index e9c7774ccf91..e24f0e337a56 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -480,6 +480,7 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
->  
->  	brelse(new_fe_bh);
->  	brelse(parent_fe_bh);
-> +	kfree(si.name);
->  	kfree(si.value);
->  
->  	ocfs2_acl_init_release(&acl_state);
-> @@ -2068,6 +2069,7 @@ static int ocfs2_symlink(struct mnt_idmap *idmap,
->  
->  	brelse(new_fe_bh);
->  	brelse(parent_fe_bh);
-> +	kfree(si.name);
->  	kfree(si.value);
->  	ocfs2_free_dir_lookup_result(&lookup);
->  	if (inode_ac)
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 35bcbb0ff607..d83840b6bed9 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -7524,8 +7524,9 @@ static int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array
->  				    GFP_KERNEL);
->  		if (!si->value)
->  			return -ENOMEM;
-> -
-> -		si->name = xattr_array->name;
-> +		si->name = kstrdup(xattr_array->name, GFP_KERNEL);
-> +		if (!si->name)
-> +			return -ENOMEM;
+[  150.156484] memmove: detected buffer overflow: 352 byte write of buffer size 336
+[  150.156487] WARNING: lib/string_helpers.c:1036 at __fortify_report+0x3d/0x50, CPU#15: reflink_test/2336
+[  150.160496] RIP: 0010:__fortify_report+0x40/0x50
+[  150.164031] Call Trace:
+[  150.164141]  <TASK>
+[  150.164232]  __fortify_panic+0x9/0xb
+[  150.164383]  ocfs2_xa_bucket_add_entry.cold+0x17/0x28 [ocfs2]
+[  150.164661]  ocfs2_xa_set+0x8fb/0xf40 [ocfs2]
 
-The ->name is a constant string (i.e., XATTR_NAME_SELINUX). We can refer to
-ext4_initxattrs() => ext4_xattr_set_handle(), which also uses '=' to assign ->name.
+Increment xh_count before memmove() so the destination bounds include
+the new entry. Keep the local count unchanged to calculate the insertion
+position and move length from the original number of entries. The caller
+has already checked that there is enough space for the new entry.
 
-Thanks,
-Heming
->  		si->value_len = xattr_array->value_len;
->  		return 0;
->  	}
-> -- 
-> 2.43.0
-> 
-> 
+Signed-off-by: Su Yue <glass.su@suse.com>
+---
+Changelog:
+v2:
+   Remove fixes tag, mention the commit id in message.
+---
+ fs/ocfs2/xattr.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+index 35bcbb0ff607b..49d82ea5a1271 100644
+--- a/fs/ocfs2/xattr.c
++++ b/fs/ocfs2/xattr.c
+@@ -2076,12 +2076,17 @@ static void ocfs2_xa_bucket_add_entry(struct ocfs2_xa_loc *loc, u32 name_hash)
+ 		}
+ 	}
+ 
++	/*
++	 * Increment xh_count before memmove() so __counted_by_le(xh_count)
++	 * includes the new entry in the destination bounds.
++	 */
++	le16_add_cpu(&xh->xh_count, 1);
++
+ 	if (low != count)
+ 		memmove(&xh->xh_entries[low + 1],
+ 			&xh->xh_entries[low],
+ 			((count - low) * sizeof(struct ocfs2_xattr_entry)));
+ 
+-	le16_add_cpu(&xh->xh_count, 1);
+ 	loc->xl_entry = &xh->xh_entries[low];
+ 	memset(loc->xl_entry, 0, sizeof(struct ocfs2_xattr_entry));
+ }
+-- 
+2.55.0
+
