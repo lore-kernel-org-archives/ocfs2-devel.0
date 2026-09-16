@@ -1,144 +1,154 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-ed2-f42.google.com (mail-ed2-f42.google.com [74.125.228.106])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BA7302874E6;
-	Wed, 16 Sep 2026 01:07:22 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2B68225A2DD
+	for <ocfs2-devel@lists.linux.dev>; Wed, 16 Sep 2026 02:47:50 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.106
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789520844; cv=none; b=R+IrV+C1caeFm6mL3FV9f/rvFXFcS86NcLm0bsdOYvHWShC4ckct8phz9zqnD4UTK4gvDLU+VcoJNlNXrOuVvYxhOeYMclW8IJzAl43AL1XK3f0RVV4rdO8LzTqa+hxNGvVTazR9H1mlO9wKTA1k4Mhndy4X9jByLtOso9epVdU=
+	t=1789526871; cv=none; b=HPRw9iop3SpQ21hCLNopEbGTv3A9KB1XjhpFwX/D1a0uy6cR64Zf9BSLWwGuUVGb2MLXBGZadYm5UMFRHpFopasx3XEu/waeXtLwDiSrgr1fxWGhC+97KgIpq/YgJBzwkmUs93HyeyRTGtx/bTar0Z83FzRxfrfQhHybDnxhu0s=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789520844; c=relaxed/simple;
-	bh=2bDaLvokrw5PalTlJ0DxkspfkFvNbvj9si4zl6W0dJ4=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=IvxAL9vwLNlmV4udabU10ophks6NH59a+67cuF2EQvYe3/rUsE5nsNPef5HduuL3zFRRQQq3YOrD1wOGlxUOFAea0hJ82nGbNJDXxPA3dcwTOHyee39ZogLlfpkZDTG4nChw9M2M1/en9jWtNp3Bt7FQenae/hBVQ5XealZxd4g=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=PqTnLRle; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789526871; c=relaxed/simple;
+	bh=wtd/03GFBPFtGkGnsixWJf5NJHyKunU5GA2TDNHK0mc=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=DB+yrcSZn83lOAMzhkN6hRZDkvOVJzWwrNTYPwHfcAiMDw8OKeHrAM1r4JQrzOB7sMVNvDZnVNtbS75WHNLcB/8UOhXWRGammhE0HKFVRs+YD30iR8AxTtW3xCWRV5Gvvcn78SoLBsDtObvHGo5xtDY6pJJF8QwKp9ql0HPAor0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=BlKhgwjq; arc=none smtp.client-ip=74.125.228.106
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="PqTnLRle"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id F216A1F000FF;
-	Wed, 16 Sep 2026 01:07:21 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="BlKhgwjq"
+Received: by mail-ed2-f42.google.com with SMTP id 4fb4d7f45d1cf-6a5d8ff627eso58259a12.0
+        for <ocfs2-devel@lists.linux.dev>; Tue, 15 Sep 2026 19:47:49 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1789520842;
-	bh=F8rLOmaDy5Alst+sW5lGwCSqiKIKXBBJqz4YrzC1das=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=PqTnLRlecmpF316WnrJbPFPJVncRksSE0lygGK2wmbjcEmAiGdrxvsZQkSuvDzR4m
-	 nft97ovIi9DUe6j+Yz9UEVEGRp7TwUX3Ie6270fH1/Rl8LoWNO61fAYG3KY8tJJDwY
-	 g3V+oVe9ElFwHIgnt2NiJd3Z1dsrk4QgHS/459+w=
-Date: Tue, 15 Sep 2026 18:07:21 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Jiaming Zhang <r772577952@gmail.com>
-Cc: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, mark@fasheh.com,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- syzkaller@googlegroups.com, stable@vger.kernel.org
-Subject: Re: [PATCH] ocfs2: fix chunk number of the first chunk in a local
- quota file
-Message-Id: <20260915180721.1914e74dc8da69e58399d7a6@linux-foundation.org>
-In-Reply-To: <20260914034940.4070970-1-r772577952@gmail.com>
-References: <CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com>
-	<20260914034940.4070970-1-r772577952@gmail.com>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+        d=suse.com; s=google; t=1789526868; x=1790131668; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=mbykP5/XyMLit0cz7WlaiYBiK+Q7B+6nW+jCiDoN2jo=;
+        b=BlKhgwjqs2o4ZPHYc2K02cwbavuQHjyW6ECsPxl0dSwNhI+CtcPPBu4S2erqgwWrym
+         Ty6bwjGmIxfjKmiqmpU9mdmu3nuOSl+nK242knj8hLUV0UHL82Y12/K1UbVI4yROBHyd
+         2hGJ/DQwDhScXptO8C2CB2NJLjJ5ZxTVCbLuUgCz1hok5547RztJjeAMJLm1T9/MJ0Ld
+         aFE6kveLtIopQ36crZb424sGocGEnqaGfZ1MY6aHQHy2jBN22sKUMmMHClE4vGivkBLS
+         1BC4STIGNG2XVWDPGiAjF0kP0Gp9BhB38fTvCE/8N03eMvPWV+XpWArFoqvsH7Uysu5t
+         hgvQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1789526868; x=1790131668;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=mbykP5/XyMLit0cz7WlaiYBiK+Q7B+6nW+jCiDoN2jo=;
+        b=vd9ZWtlgT3lCX+x86fwFGld/uLzxpWihNjJ+K6sFm35SwRL8qhGcajrT9UPjNp7+gK
+         +8Qp+NeiTPQoOwXFK2LHnld3LJirdJDmSZ67jx2l+0lROKWYxKW7fEAf4v+F/qX8Daij
+         uOBBdSuxM9DtLbYaD+CbJjmgZmvX0tylyjb6i/dJuvNGC/Yz4b/+lGB/2JWfJ8ZAYfDq
+         3y6NUlQfDLMIHlGDAtSH2x2EPwCGwNu0xgf0nTHLl5mqy8Ed2qpjtVzPqIkCoQqWDDyT
+         AblQaCVhGagANwERknKiud3R7DumWa1PAk00cR47V+v8N00Huy2XpGa3WPAZTewhXQLc
+         hogg==
+X-Forwarded-Encrypted: i=1; AKwUvBz9boVmnnaXMPVUiN5tJQqDRSU3nDDuSNhpG3e6nrDshXKWjoDuvpmo4cuKnEzhDR+AZxqGz1ZklB/vTw==@lists.linux.dev
+X-Gm-Message-State: AFuF++kJYMu7C6PI/uLiqlJacojd0IrIG9PkNE7OE2WxL9MCbVo36HI3
+	vM020xO2llq8NeuN5qLsslHkq0Ly2oGiTSBs8FjMi5Sj/q2rIQZ5K9veZwfs5JfSAtc=
+X-Gm-Gg: AYBFou1vRj0tnuoFOE7KT430kQgj7wuLeZgj4VYDyfLNP/V+YXynHxNqxer1wrZ2ysz
+	p/Hpnq4+QihQOlN3licnVIsI1MQPnBYyPxGvd0KGE1Lzb0vqsnzOuhQfrMao4iqL/1I9epRXT4w
+	4HmzL586/EE90ltZFJ+uDPQYaGcnbu/6xg7HYZCs5iI+vac2LiyJIU7e50kyTKAK3G9zU+N3DWr
+	5KPzDP7omCgPcOEI/cSrCFo/dmREief1sKi+sI2WxBxoliybb6IEfgE8OhNsE4W29Hajewbkgr3
+	/v5rjl8YeXcXLzzJ5K5VTNVOMP/ZDQLo3RSB90VRb9Yu13ngh7bENOLyFshDE748WiWReofQvF+
+	Rl6O4KE68edEKY/ZLCy45dJd7xg+/X9G9bUL+UxBaYABkR3RpuCiG1/U8h8wC8skli8vq4yPRBX
+	dSZYZ0BzXA91DQoQ61E1EIh2azTClpETCSLp5yFfBFgWS6N0UTMA/JoVnddJ5jdG8D7vm81w==
+X-Received: by 2002:a17:907:3f99:b0:c29:cfce:1933 with SMTP id a640c23a62f3a-c29e530d7c9mr41736766b.2.1789526868385;
+        Tue, 15 Sep 2026 19:47:48 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2dd89d8fd37sm3839675ad.3.2026.09.15.19.47.46
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 15 Sep 2026 19:47:47 -0700 (PDT)
+Date: Wed, 16 Sep 2026 10:47:43 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Daniel Borkmann <daniel@iogearbox.net>
+Cc: alexei.starovoitov@gmail.com, brauner@kernel.org, dwindsor@gmail.com, 
+	john.fastabend@gmail.com, memxor@gmail.com, kpsingh@kernel.org, matt@bobrowski.net, 
+	bpf@vger.kernel.org, Zhan Xusheng <zhanxusheng@xiaomi.com>, 
+	Joseph Qi <joseph.qi@linux.alibaba.com>, ocfs2-devel@lists.linux.dev
+Subject: Re: [PATCH bpf-next 1/8] ocfs2: Copy the xattr name in
+ ocfs2_initxattrs
+Message-ID: <aqoCVQ78KOo2GZ8S@p15>
+References: <20260915150739.284189-1-daniel@iogearbox.net>
+ <20260915150739.284189-2-daniel@iogearbox.net>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20260915150739.284189-2-daniel@iogearbox.net>
 
-On Mon, 14 Sep 2026 11:49:40 +0800 Jiaming Zhang <r772577952@gmail.com> wrote:
+On Tue, Sep 15, 2026 at 05:07:32PM +0200, Daniel Borkmann wrote:
+> ocfs2_mknod() and ocfs2_symlink() ask for the security xattr up front
+> through a struct ocfs2_security_xattr_info, so that they can size the
+> transaction before setting it. ocfs2_initxattrs() duplicates the value
+> since the array security_inode_init_security() hands is freed on return,
+> but keeps the name pointer as-is, given so far every LSM stored a string
+> constant there. bpf_inode_init_xattr() places the name in the same
 
-> The local quota file in OCFS2 is divided into chunks, and each chunk
-> begins with a header block holding a bitmap of the quota entries that
-> chunk has handed out.  Chunks are numbered from zero, and that number is
-> used to convert the file offset of an entry back into a bit position in
-> the bitmap. ocfs2_local_quota_add_chunk() appends a new chunk to the
-> in-memory list and numbers it one past the chunk that was last:
+Typo? I am not familiar with BPF, but I only found inode_init_security in
+include/linux/lsm_hook_defs.h.
+
+> allocation as the value, which security_inode_init_security() frees on
+> its way out. Copy the name alongside the value and free both together.
+> This is the only special case wrt xattrs in the bpf_inode_init_xattr()
+> context.
 > 
-> 	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
-> 	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
-> 				   struct ocfs2_quota_chunk,
-> 				   qc_chunk)->qc_num + 1;
+> Signed-off-by: Daniel Borkmann <daniel@iogearbox.net>
+> Cc: Zhan Xusheng <zhanxusheng@xiaomi.com>
+> Cc: Joseph Qi <joseph.qi@linux.alibaba.com>
+> Cc: ocfs2-devel@lists.linux.dev
+> ---
+>  fs/ocfs2/namei.c | 2 ++
+>  fs/ocfs2/xattr.c | 5 +++--
+>  2 files changed, 5 insertions(+), 2 deletions(-)
 > 
-> The predecessor is looked up after the new chunk is added to the list,
-> so if the list was empty, the prev pointer is the list head itself.  The
-> head is the dqi_chunk member of struct ocfs2_mem_dqinfo and is not a
-> chunk, so reading qc_num through it lands 16 bytes past the start of the
-> head, on the dqi_gqinode pointer that follows it.  The first chunk of
-> the file is then numbered with the lower half of a kernel pointer
-> instead of 0.
-> 
-> The list is empty when the local quota file header claims the file has
-> no chunks.  ocfs2_local_read_info() takes dqi_chunks from that header
-> without validating it, so an image with dqi_chunks == 0 takes this path
-> when the first quota entry is allocated.
-> 
-> ocfs2_create_local_dquot() turns the bad number into a file offset with
-> ol_dqblk_off(), which shifts a 32-bit block number left by the block
-> size bits, so the top bits of such a large block number are lost.
-> ocfs2_local_release_dquot() turns the offset back into a bit index with
-> ol_dqblk_chunk_off(), using the full chunk number, so the lost bits push
-> that index far outside the bitmap, and clearing it corrupts unrelated
-> memory.
-> 
-> Compute the chunk number before putting the chunk on the list, and use 0
-> when the list is empty.
-
-Thanks.
-
-What's missing here is any description of how the fix affects our
-users.  And that's really really important.
-
-> Fixes: 9e33d69f553a ("ocfs2: Implementation of local and global quota file handling")
-> Closes: https://lore.kernel.org/lkml/CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com/
-> Cc: stable@vger.kernel.org
-
-Especially when proposing a -stable backport.
-
-I see from your KASAN report
-(https://lore.kernel.org/CANypQFZ05tpth0Xc33gmP6jgPnkY4VuezyHcsajV-SqCsmN_gg@mail.gmail.com)
-that there's a use-after-free.  But even that wasn't revealed in your
-proposed changelog!
-
-So.
-
-When fixing a bug please always describe the userspace-visible effects
-of that bug.
-
-Describe whether there's a know reproducer.  Tell us whether it's some
-LLM-found-this theoretical thing or whether it's affecting you in the
-real world.
-
-I and all the people downstream from me (Linus, -stable, LTS, distros,
-android, hyperscalars, everyone else) all will want to know these
-things and I'd like you to provide them.
-
-> Assisted-by: Claude Code:claude-opus-5
-
-Great.  Please add prompts to Claude to ensure that all the info I'm
-asking for is included in your changelogs going forward.  Then share
-these prompts across your organization.
-
-> --- a/fs/ocfs2/quota_local.c
-> +++ b/fs/ocfs2/quota_local.c
-> @@ -1071,10 +1071,13 @@ static struct ocfs2_quota_chunk *ocfs2_local_quota_add_chunk(
->  		goto out;
->  	}
+> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
+> index e9c7774ccf91..e24f0e337a56 100644
+> --- a/fs/ocfs2/namei.c
+> +++ b/fs/ocfs2/namei.c
+> @@ -480,6 +480,7 @@ static int ocfs2_mknod(struct mnt_idmap *idmap,
 >  
-> +	if (list_empty(&oinfo->dqi_chunk))
-> +		chunk->qc_num = 0;
-> +	else
-> +		chunk->qc_num = list_entry(oinfo->dqi_chunk.prev,
-> +					   struct ocfs2_quota_chunk,
-> +					   qc_chunk)->qc_num + 1;
->  	list_add_tail(&chunk->qc_chunk, &oinfo->dqi_chunk);
-> -	chunk->qc_num = list_entry(chunk->qc_chunk.prev,
-> -				   struct ocfs2_quota_chunk,
-> -				   qc_chunk)->qc_num + 1;
->  	chunk->qc_headerbh = bh;
->  	*offset = 0;
->  	return chunk;
+>  	brelse(new_fe_bh);
+>  	brelse(parent_fe_bh);
+> +	kfree(si.name);
+>  	kfree(si.value);
+>  
+>  	ocfs2_acl_init_release(&acl_state);
+> @@ -2068,6 +2069,7 @@ static int ocfs2_symlink(struct mnt_idmap *idmap,
+>  
+>  	brelse(new_fe_bh);
+>  	brelse(parent_fe_bh);
+> +	kfree(si.name);
+>  	kfree(si.value);
+>  	ocfs2_free_dir_lookup_result(&lookup);
+>  	if (inode_ac)
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index 35bcbb0ff607..d83840b6bed9 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -7524,8 +7524,9 @@ static int ocfs2_initxattrs(struct inode *inode, const struct xattr *xattr_array
+>  				    GFP_KERNEL);
+>  		if (!si->value)
+>  			return -ENOMEM;
+> -
+> -		si->name = xattr_array->name;
+> +		si->name = kstrdup(xattr_array->name, GFP_KERNEL);
+> +		if (!si->name)
+> +			return -ENOMEM;
 
-whew.  Applied.
+The ->name is a constant string (i.e., XATTR_NAME_SELINUX). We can refer to
+ext4_initxattrs() => ext4_xattr_set_handle(), which also uses '=' to assign ->name.
 
-I'll retain the cc:stable for now, but I don't know why.
-
+Thanks,
+Heming
+>  		si->value_len = xattr_array->value_len;
+>  		return 0;
+>  	}
+> -- 
+> 2.43.0
+> 
+> 
