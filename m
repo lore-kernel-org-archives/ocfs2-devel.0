@@ -1,80 +1,119 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
+Received: from relay.yourmailgateway.de (relay.yourmailgateway.de [194.59.206.189])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1E124E50A6
-	for <ocfs2-devel@lists.linux.dev>; Thu, 17 Sep 2026 04:32:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BEB1B48E0F2;
+	Fri, 18 Sep 2026 06:55:09 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=194.59.206.189
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789619524; cv=none; b=CSuXBaguZKTA+U1DkKIgwgA8nPa+B2LgWT43NnblZSMH3/Mgnyrx4hW1MagPMtszM6rlSK9KkX7OIlJF2UEZwr6tiohKceLJucmLCgBbWa+OkyErXBkFzTHJTJWRK43lOhvv7Gj+keskVhevtEsB+JL6HJ1YLlLmfFh+61qHt5M=
+	t=1789714512; cv=none; b=NAaYf8qMSlnsml16RcOeZgWJTDk2mNvOFREowuAVcLhOpQkZ8HGxqsX3TTdcRknPI4XXj3u9yZovxD3DleLLPWWmFLOB2Ft8x0xzhed4HbPfy2i+IZ3O1E1HkN/1d5x9rI4xo8DoIFqq9IS/Eo/S1ZV86lbuDvf3nT2r9nGa56c=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789619524; c=relaxed/simple;
-	bh=3NEYcgD2T/N8d8i3kHKxDZyeYcSCMgggu+3s6ZWAwnU=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=Tom/HKpjJRJHyhNqUZJfilEkvuWeEiJe3EXp/NTt3t63pzZo/bQEFIvudOJFeeniYycPXt7vdEHpHBgj31snqG6YhuE8lIVdceR9OZQhmldrAEqufc2R6QuqVCzUiSnkiGntupioo/GNqqk69ySqv1cf87SVVdYCN/kAPfopWDM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=jKKw5cE8; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1789714512; c=relaxed/simple;
+	bh=Y9s+V8hIMLVqSdacHfFD88ou9qrojjmYU6uQCjwgbFk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=nROi+QCijOhrtHQOrFRjXBli6Vn2v3NzT5TwmGpnUXPIavvx+6O4L9zsWPEHr2sXkfJHwoGYztZjVxTkbRK2xMWVxUEJACq5Ey+JdXSERxb6bfI/qL6SapkWMRYPlNvw9HmqWIUoUxXNp51B01hJmqypANmZlfuj3FKrmu8eK2c=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=leemhuis.info; spf=pass smtp.mailfrom=leemhuis.info; dkim=pass (2048-bit key) header.d=leemhuis.info header.i=@leemhuis.info header.b=KdXxenMf; arc=none smtp.client-ip=194.59.206.189
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=leemhuis.info
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=leemhuis.info
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="jKKw5cE8"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 1A79C1F000FF;
-	Thu, 17 Sep 2026 04:32:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1789619522;
-	bh=pkmJlAtF/dMHGyfTroUFjxsBHgFL49ATZw117w394xk=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=jKKw5cE873mS2CviFj5ve4gPBx7uFKcjlCP5qE7+dosD9gfzzEFVu/EDgny+cgoLJ
-	 2wDGpSiW6G9hKdk0ypztbuIm0pj5/7OPN3la5/uVfJWTNKwS5V+xIcvLEx8uk/YwK6
-	 B/musbrq7bMclecJxWFyZzWvro8eL8E2D7FNCWKc=
-Date: Wed, 16 Sep 2026 21:32:01 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Su Yue <glass.su@suse.com>
-Cc: ocfs2-devel@lists.linux.dev, joseph.qi@linux.alibaba.com,
- heming.zhao@suse.com
-Subject: Re: [PATCH v2] ocfs2: update xattr count before moving bucket
- entries
-Message-Id: <20260916213201.d2e5b8fe5094c8d49244c8fe@linux-foundation.org>
-In-Reply-To: <20260916024750.9450-1-glass.su@suse.com>
-References: <20260916024750.9450-1-glass.su@suse.com>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+	dkim=pass (2048-bit key) header.d=leemhuis.info header.i=@leemhuis.info header.b="KdXxenMf"
+Received: from relay02-mors.netcup.net (localhost [127.0.0.1])
+	by relay02-mors.netcup.net (Postfix) with ESMTPS id 4hmNfZ2qqhz4RCj;
+	Fri, 18 Sep 2026 08:55:02 +0200 (CEST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/simple; d=leemhuis.info;
+	s=key2; t=1789714502;
+	bh=Y9s+V8hIMLVqSdacHfFD88ou9qrojjmYU6uQCjwgbFk=;
+	h=Date:Subject:To:Cc:References:From:In-Reply-To:From;
+	b=KdXxenMf6Uv0mqlMvf06S7gzLdPoS8tHtOiET/D+FovlrL1jUGVO7dqTp4nKcjKM/
+	 gqFbYIz0CDnYpDKD1OJE1hqAErHI6+asb9OeWLaaVKmNFkYREe3yjrHyMJkOFAubg8
+	 N/YFs9EWEyenHxCwgDnMPB006RYjfJ4DxZcgZsE25DM0pE9MAMSVsMLN5dX5PlvKlS
+	 J/bFZwQyUvT2cfdsyels36Yi3ENMgQsk+nFRyA6UHFETc/MjJveiIIa4/7yf081SE6
+	 DTWhrFoCXea1vEfRbTTlhKZnzeZnLpsLpV7bU60743Qiu4769TxjiGc/0+NJsUJhLT
+	 0l3hKTCxz5hDg==
+Received: from policy02-mors.netcup.net (unknown [46.38.225.35])
+	by relay02-mors.netcup.net (Postfix) with ESMTPS id 4hmNd61CT3z7wv7;
+	Fri, 18 Sep 2026 08:53:46 +0200 (CEST)
+Received: from mxe9fb.netcup.net (unknown [10.243.12.53])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange ECDHE (P-256) server-signature RSA-PSS (2048 bits) server-digest SHA256)
+	(No client certificate requested)
+	by policy02-mors.netcup.net (Postfix) with ESMTPS id 4hmNd46N9yz8scr;
+	Fri, 18 Sep 2026 08:53:44 +0200 (CEST)
+Received: from [IPV6:2a02:8108:8984:1d00:a0cf:1912:4be:477f] (unknown [IPv6:2a02:8108:8984:1d00:a0cf:1912:4be:477f])
+	by mxe9fb.netcup.net (Postfix) with ESMTPSA id A4C195F995;
+	Fri, 18 Sep 2026 08:53:39 +0200 (CEST)
+Authentication-Results: mxe9fb;
+        spf=pass (sender IP is 2a02:8108:8984:1d00:a0cf:1912:4be:477f) smtp.mailfrom=regressions@leemhuis.info smtp.helo=[IPV6:2a02:8108:8984:1d00:a0cf:1912:4be:477f]
+Received-SPF: pass (mxe9fb: connection is authenticated)
+Message-ID: <12e93e0d-0fb8-4ac8-9be2-3d9b5f7c6d4e@leemhuis.info>
+Date: Fri, 18 Sep 2026 08:53:38 +0200
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
+MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] buffer: fix NULL dereference of bh->b_folio in
+ __bh_submit()
+To: Christian Brauner <brauner@kernel.org>
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>,
+ Yalagada Pavan Kumar <pavankumaryalagada@gmail.com>,
+ linux-fsdevel@vger.kernel.org, linux-ext4@vger.kernel.org,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ Srikanth Aithal <Srikanth.Aithal@amd.com>,
+ Luca Weiss <luca.weiss@fairphone.com>, Jan Kara <jack@suse.cz>,
+ Linux kernel regressions list <regressions@lists.linux.dev>
+References: <20260902013357.2815214-1-joseph.qi@linux.alibaba.com>
+ <apiMiLlwujmqyYLP@user>
+ <c3be2678-72e6-4122-94de-ae95e980578b@linux.alibaba.com>
+ <20260904-unkraut-preis-pendel-a57f694a54c5@brauner>
+From: Thorsten Leemhuis <regressions@leemhuis.info>
+Content-Language: de-DE, en-US
+In-Reply-To: <20260904-unkraut-preis-pendel-a57f694a54c5@brauner>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
+X-PPP-Message-ID: <178971442017.268043.15968006172941830620@mxe9fb.netcup.net>
+X-Rspamd-Server: rspamd-worker-8404
+X-Rspamd-Queue-Id: A4C195F995
+X-NC-CID: 3cTDfuCUa7jz5N+rD9oSjy+lGqqoxOGdMhEhVhaaIqK9CZ/Cn2k=
 
-On Wed, 16 Sep 2026 10:47:50 +0800 Su Yue <glass.su@suse.com> wrote:
-
-> Since commit 2f26f58df041 ("ocfs2: annotate flexible array members
-> with __counted_by_le()"), the xh_entries array is annotated with
-> __counted_by_le(xh_count), so FORTIFY uses xh_count to determine its
-> bounds. When inserting an entry into a bucket, ocfs2_xa_bucket_add_entry()
-> shifts existing entries before incrementing xh_count.
-> The destination therefore extends one entry past the bounds described
-> by the old count.
+On 9/4/26 12:35, Christian Brauner wrote:
+> On Thu, Sep 03, 2026 at 09:42:27AM +0800, Joseph Qi wrote:
+>> On 9/3/26 4:52 AM, Yalagada Pavan Kumar wrote:
+>>> On Wed, Sep 02, 2026 at 09:33:57AM +0800, Joseph Qi wrote:
+>>>> Commit a2c924c240e7 ("buffer: set BIO_COMPLETE_IN_TASK for dropbehind
+>>>> writeback") added an unconditional folio_test_dropbehind(bh->b_folio) in
+>>>> __bh_submit().  But jbd2 shadow buffers have a NULL b_folio since commit
+>>>> 5febcba29792 ("jbd2: point the shadow buffer at the frozen data
+>>>> directly") made them point b_data at the kmalloced frozen data rather
+>>>> than a folio.  Submitting such a buffer during journal commit oopses:
+>>>>
+>>>>   BUG: kernel NULL pointer dereference, address: 0000000000000000
+>>> [...]
+>>> I was working on a fix for this syzbot report [1] and didn't realize that you were
+>>> already working on it. I noticed your patch on the mailing list, so i won't
+>>> send a duplicate patch.
+>>>  
+>>>> Fixes: 5febcba29792 ("jbd2: point the shadow buffer at the frozen data directly")
+>>>
+>>> Could you please add the Reported-by: and Closes: tags from the syzbot report
+>>> to your patch? This will help syzbot associate the patch with the reported
+>>> issue and track the fix.
+>>>
+>>> [1]: https://syzkaller.appspot.com/bug?extid=41453ea05ab61c075f1f
+>>>
+>> Could you please address the above when apply the patch? Or should I
+>> resend the patch with them?
 > 
-> With CONFIG_CC_HAS_COUNTED_BY and CONFIG_FORTIFY_SOURCE enabled,
-> ocfs2-test: single_run-WIP.sh -t reflink triggers the following failure
-> while adding an extended attribute:
-> 
-> [  150.156484] memmove: detected buffer overflow: 352 byte write of buffer size 336
-> [  150.156487] WARNING: lib/string_helpers.c:1036 at __fortify_report+0x3d/0x50, CPU#15: reflink_test/2336
-> [  150.160496] RIP: 0010:__fortify_report+0x40/0x50
-> [  150.164031] Call Trace:
-> [  150.164141]  <TASK>
-> [  150.164232]  __fortify_panic+0x9/0xb
-> [  150.164383]  ocfs2_xa_bucket_add_entry.cold+0x17/0x28 [ocfs2]
-> [  150.164661]  ocfs2_xa_set+0x8fb/0xf40 [ocfs2]
-> 
-> Increment xh_count before memmove() so the destination bounds include
-> the new entry. Keep the local count unchanged to calculate the insertion
-> position and move length from the original number of entries. The caller
-> has already checked that there is enough space for the new entry.
-> 
+> I'll do it. Thanks!
+Christian, just wondering, did this fix maybe fall through the cracks?
+This got on my radar because there were a few other reports about this
+regression since then -- and I can't see this or some other fix like
+this in -next.
 
-Thanks, I added
+At the same time it feels a lot like I'm missing something -- or like
+some deeper problem with all of this turned up meanwhile, which required
+more changes that people are still working on. If it's something like
+that and everything is on track, feel free to just ignore this message.
 
-Fixes: 2f26f58df041 ("ocfs2: annotate flexible array members with __counted_by_le()")
-Cc: <stable@vger.kernel.org>
-
-to this, which I assume is appropriate.
+Ciao, Thorsten
