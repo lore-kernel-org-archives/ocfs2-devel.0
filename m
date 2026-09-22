@@ -1,113 +1,309 @@
-Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 15C854A4EEE
-	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Sep 2026 09:17:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 27A5148EC78
+	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Sep 2026 09:34:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790068670; cv=none; b=tQ6PrKo979alpqFyew/fKB05GCNkzcy8P/wZtU1Do9eocCtbFEhxzTQYpSMTL1SiYC1ipk+xGwNEPxwIwcqyi1qjFlxmtm4eTiVPQQMT72GrJwyXMg8LDK5RVQoeXB5sKAzFX3zvXBB+L+v7wDFf/WNF+iReMfzK4P5s3vJWuu0=
+	t=1790069689; cv=none; b=hwCgrqliw//pTaDaRY3Xcy1UN/cndD+0LomjBRsDQUgH8TrtzHjF+pbxS6Z51Wmf1K+mBuwzVKhKPWXWvLEQ0GmhLXb1TJRD1jWEdXdByqWriIgs9m6CwiN4ACqXPnKW1tEuQ7jPPN68UIx2oANvye1UUO4KykRG02QeFKSIcdw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790068670; c=relaxed/simple;
-	bh=rtsiP8kDc3o0j/nyufMKtmZ2cTOYlHhrZzsWss0eXDM=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=hbd5L09lz9o17zNVPoGADUyrwI5B4nwn3v+GUrIEu59hG+KRmRd9Px6fTxJ6JTVw7bXUXWIHLIN0f+kN6ACE+QF2kFXDV5tc4T3+NVUX2JpX2Kt9jx8pbbhIkAwxx2gPfHCjUF2f+ZEBsGlzEgRmlx6j2gjmksWCW91jbn2FB6E=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=n8hFLrrP; arc=none smtp.client-ip=115.124.30.110
+	s=arc-20240116; t=1790069689; c=relaxed/simple;
+	bh=6xte+iViu/H/SWkq1JyajGTAOVeLJBpckVsxnbe4Jm8=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=h751jZkJM+V9SX4L2a0V6MUA0sjwymHzjjuWAzqYv/n5wCxSPxCvVpZzOX1CgVr0wjOXCzdKV1K/Qfa0ajOm96MiqMGHp7KivlEF+o5scdMuKQPcqL3yV1vrzrmXqG1rFCVqIyP0tigHt5YG7/s/n4A+mG6XlpmuEUR0PbJCDz0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=kqiU5Lv7; arc=none smtp.client-ip=115.124.30.100
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="n8hFLrrP"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="kqiU5Lv7"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1790068664; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=zTTjGnYxlGp4uhyjHHQTGKd1EAon2yyy5nOkCWYnFGA=;
-	b=n8hFLrrPdGxr3WpCiZUaeMnb9/J+B4me1GGsbUCHwuLtLgv3zKVbsavru0XvjPlXEILD1YrsWcRAc31db/r7rEcdRQKdfYoxa2LK3OAqJbularGPky+d9OG53i6qZ0YXta2JwdmQKPVbBpkg1/xVaEGpU1WasOLdgGbBdQU1llQ=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=5;SR=0;TI=SMTPD_---0XBTGbzA_1790068663;
-Received: from 30.221.129.227(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XBTGbzA_1790068663 cluster:ay36)
+	t=1790069678; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=U1dGHaaVAPpj28j60FgfbJe7NGFPEoX/POzo1n+am+8=;
+	b=kqiU5Lv7NHx53YmBGvVZA2YmnMYQm4+/ytb2wGsE3NEfPWmkrOSG/MeNBg2+9QorjCqifzK+6DklyFi7YpLURA2mQt65yh2EhMuN1vIlX3C9yiEft7B/LSdUjUr1nGvj7ueqZMs4+d+y78sEXwMwpYNBKgthkGi2vtCpTOIp1v8=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R241e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XBTOVL._1790069677;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XBTOVL._1790069677 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 22 Sep 2026 17:17:43 +0800
-Message-ID: <226c8e43-c943-409d-ae6e-f2f05de6643f@linux.alibaba.com>
-Date: Tue, 22 Sep 2026 17:17:42 +0800
+          Tue, 22 Sep 2026 17:34:37 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: fix possible deadlock between nfs_sync_rwlock and fs_reclaim
+Date: Tue, 22 Sep 2026 17:34:37 +0800
+Message-Id: <20260922093437.954127-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [BUG] ocfs2: assertion failure in _ocfs2_free_suballoc_bits on a
- crafted image
-To: CJ <firefly0158@163.com>,
- "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
-Cc: mark@fasheh.com, jlbec@evilplan.org, linux-kernel@vger.kernel.org
-References: <6a202941.4a55.1a0c7aeef7d.Coremail.firefly0158@163.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <6a202941.4a55.1a0c7aeef7d.Coremail.firefly0158@163.com>
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Out-of-date ocfs2-devel maillist, resend to ocfs2-devel@lists.linux.dev.
+syzbot detected a circular locking dependency on &osb->nfs_sync_rwlock:
 
-Joseph
+       CPU0                    CPU1
+       ----                    ----
+  lock(fs_reclaim);
+                               lock(&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]);
+                               lock(fs_reclaim);
+  rlock(&osb->nfs_sync_rwlock);
 
-On 9/22/26 1:55 PM, CJ wrote:
-> 
-> Hi,
-> 
-> 
-> 
-> I am reporting an issue triggered by a syzkaller reproducer on Linux
-> 7.3.0-rc2. The issue is reproducible with HEAD commit
-> df2908090cda368b01ff43709f51890076c56157.
-> 
-> 
-> The reproducer mounts a crafted ocfs2 image with commit= options and then
-> removes a directory, which makes ocfs2 evict the inode and release its
-> suballocator bits.
-> 
-> 
-> While freeing the bits, _ocfs2_free_suballoc_bits() reads the group
-> descriptor for the target group and checks that the range it is about to
-> clear fits within the group's declared bit count. The check fails and
-> BUG_ON() terminates the kernel. The call path is ocfs2_evict_inode() ->
-> ocfs2_wipe_inode() -> ocfs2_remove_inode() -> ocfs2_free_dinode() ->
-> _ocfs2_free_suballoc_bits(), reached from vfs_rmdir() in the unlinkat
-> syscall context.
-> 
-> 
-> This looks like the on-disk group descriptor and the suballocator chain
-> disagreeing about the size of the group, so the release range computed from
-> the chain falls outside it. Since the image is untrusted input, reporting
-> the inconsistency as a filesystem error instead of an assertion would keep
-> the kernel alive. I have not determined which of the two metadata sources
-> carries the inconsistent value.
-> 
-> 
-> This failure was reported earlier against the linux-6.1 longterm series at
-> https://syzkaller.appspot.com/bug?extid=3b664d98a77a329be77e, and the
-> reproducer below is the one from that report. It still reproduces on the
-> tested mainline kernel.
-> 
-> 
-> Reproducer:
-> 
-> 
-> syz reproducer:   https://pastebin.com/raw/9vVANXgZ
-> console output:  https://pastebin.com/raw/AZMvqBm0
-> kernel config: https://syzkaller.appspot.com/text?tag=KernelConfig&x=6a5cbd268406bf43
-> 
-> 
-> Kernel:
-> 
-> 
-> HEAD commit: df2908090cda368b01ff43709f51890076c56157
-> git tree: mainline
-> kernel version: 7.3.0-rc2
-> tested tag: v7.3-rc2 (annotated tag object 5e036ce12de91c6fd674dad33b169c6150be2a7a)
-> 
-> 
-> Let me know if you need more details or testing.
-> 
-> 
-> Best regards,
-> Changjian Liu 
+ *** DEADLOCK ***
+
+Chain exists of:
+  &osb->nfs_sync_rwlock --> &ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE] --> fs_reclaim
+
+CPU0 is kswapd.  The dentry shrinker runs under fs_reclaim and reaches
+ocfs2_delete_inode() through ->evict_inode():
+
+kswapd
+ balance_pgdat
+  shrink_node
+   shrink_slab
+    super_cache_scan
+     prune_dcache_sb
+      shrink_dentry_list
+       dentry_kill
+        ocfs2_dentry_iput
+         evict
+          ocfs2_evict_inode
+           ocfs2_delete_inode
+            ocfs2_nfs_sync_lock
+             down_read(&osb->nfs_sync_rwlock)      //C0: grabbing
+
+CPU1 is a task deleting an inode.  It takes nfs_sync_rwlock first, then
+the orphan dir and inode alloc system inode i_rwsems, and allocates the
+metadata reservation with GFP_KERNEL while holding them:
+
+evict
+ ocfs2_evict_inode
+  ocfs2_delete_inode
+  + ocfs2_nfs_sync_lock
+  |  down_read(&osb->nfs_sync_rwlock)              //C1: hold
+  + ocfs2_wipe_inode
+     + inode_lock(orphan_dir_inode)                //C1: hold
+     + ocfs2_truncate_for_delete
+     |  ocfs2_commit_truncate
+     |   ocfs2_remove_btree_range
+     |    ocfs2_reserve_blocks_for_rec_trunc
+     |     ocfs2_reserve_new_metadata_blocks
+     |      kzalloc_obj()                          //C1: grabbing
+     |      // GFP_KERNEL -> might_alloc -> fs_reclaim_acquire
+     + ocfs2_remove_inode
+        inode_lock(inode_alloc_inode)
+
+jbd2 pins allocations to GFP_NOFS for the lifetime of a transaction
+handle, but these reservations are made before ocfs2_start_trans(), so
+fs_reclaim is acquired with ocfs2 locks still held and the cycle closes.
+
+The same cycle is reachable from ocfs2_get_dentry() and
+ocfs2_get_parent(), which hold nfs_sync_rwlock for write across
+ocfs2_test_inode_bit() and ocfs2_iget().
+
+This is more than a lockdep artifact.  A GFP_KERNEL allocation under the
+orphan dir i_rwsem enters direct reclaim, which runs the shrinkers,
+which can evict another ocfs2 inode and re-enter ocfs2_wipe_inode() on
+the same task; the second inode_lock() on the singleton orphan dir inode
+then self-deadlocks, since i_rwsem is not recursive.
+
+Establish a GFP_NOFS allocation context for the whole nfs_sync_rwlock
+critical section so that nothing holding it can recurse into filesystem
+reclaim.  Do it in ocfs2_nfs_sync_lock()/ocfs2_nfs_sync_unlock() rather
+than at the call sites, so that future callers cannot forget it.
+
+Reported-by: syzbot+a68ce48df87b8e36e915@syzkaller.appspotmail.com
+Closes: https://syzkaller.appspot.com/bug?extid=a68ce48df87b8e36e915
+Fixes: 6ca497a83e59 ("ocfs2: fix rare stale inode errors when exporting via nfs")
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/dlmglue.c | 29 +++++++++++++++++++++++++----
+ fs/ocfs2/dlmglue.h |  5 +++--
+ fs/ocfs2/export.c  | 10 ++++++----
+ fs/ocfs2/inode.c   |  5 +++--
+ 4 files changed, 37 insertions(+), 12 deletions(-)
+
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index cf3318b0d3a8c..6bc4a21cf5f02 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -18,6 +18,7 @@
+ #include <linux/time.h>
+ #include <linux/delay.h>
+ #include <linux/quotaops.h>
++#include <linux/sched/mm.h>
+ #include <linux/sched/signal.h>
+ #include <linux/string_choices.h>
+ 
+@@ -2861,21 +2862,34 @@ void ocfs2_rename_unlock(struct ocfs2_super *osb)
+ 		ocfs2_cluster_unlock(osb, lockres, DLM_LOCK_EX);
+ }
+ 
+-int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex)
++int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex, unsigned int *nofs_flag)
+ {
+ 	int status;
++	unsigned int flags;
+ 	struct ocfs2_lock_res *lockres = &osb->osb_nfs_sync_lockres;
+ 
+ 	if (ocfs2_is_hard_readonly(osb))
+ 		return -EROFS;
+ 
++	/*
++	 * ocfs2_delete_inode() takes this lock from ->evict_inode(), which the
++	 * dentry shrinker reaches while holding fs_reclaim.  Anything allocated
++	 * under the lock must therefore stay out of filesystem reclaim, or
++	 * reclaim recurses back into the shrinker and tries to take this lock
++	 * again.  Cover the whole critical section, including the cluster lock
++	 * and the sysfile inode locks the callers take below it.
++	 */
++	flags = memalloc_nofs_save();
++
+ 	if (ex)
+ 		down_write(&osb->nfs_sync_rwlock);
+ 	else
+ 		down_read(&osb->nfs_sync_rwlock);
+ 
+-	if (ocfs2_mount_local(osb))
++	if (ocfs2_mount_local(osb)) {
++		*nofs_flag = flags;
+ 		return 0;
++	}
+ 
+ 	status = ocfs2_cluster_lock(osb, lockres, ex ? LKM_EXMODE : LKM_PRMODE,
+ 				    0, 0);
+@@ -2886,12 +2900,17 @@ int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex)
+ 			up_write(&osb->nfs_sync_rwlock);
+ 		else
+ 			up_read(&osb->nfs_sync_rwlock);
++		memalloc_nofs_restore(flags);
++		return status;
+ 	}
+ 
+-	return status;
++	*nofs_flag = flags;
++
++	return 0;
+ }
+ 
+-void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex)
++void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex,
++			   unsigned int nofs_flag)
+ {
+ 	struct ocfs2_lock_res *lockres = &osb->osb_nfs_sync_lockres;
+ 
+@@ -2902,6 +2921,8 @@ void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex)
+ 		up_write(&osb->nfs_sync_rwlock);
+ 	else
+ 		up_read(&osb->nfs_sync_rwlock);
++
++	memalloc_nofs_restore(nofs_flag);
+ }
+ 
+ int ocfs2_trim_fs_lock(struct ocfs2_super *osb,
+diff --git a/fs/ocfs2/dlmglue.h b/fs/ocfs2/dlmglue.h
+index a3ebd7303ea20..faa58ed8699b1 100644
+--- a/fs/ocfs2/dlmglue.h
++++ b/fs/ocfs2/dlmglue.h
+@@ -161,8 +161,9 @@ void ocfs2_orphan_scan_unlock(struct ocfs2_super *osb, u32 seqno);
+ 
+ int ocfs2_rename_lock(struct ocfs2_super *osb);
+ void ocfs2_rename_unlock(struct ocfs2_super *osb);
+-int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex);
+-void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex);
++int ocfs2_nfs_sync_lock(struct ocfs2_super *osb, int ex, unsigned int *nofs_flag);
++void ocfs2_nfs_sync_unlock(struct ocfs2_super *osb, int ex,
++			   unsigned int nofs_flag);
+ void ocfs2_trim_fs_lock_res_init(struct ocfs2_super *osb);
+ void ocfs2_trim_fs_lock_res_uninit(struct ocfs2_super *osb);
+ int ocfs2_trim_fs_lock(struct ocfs2_super *osb,
+diff --git a/fs/ocfs2/export.c b/fs/ocfs2/export.c
+index 9c2665dd24e21..90b9e510e700d 100644
+--- a/fs/ocfs2/export.c
++++ b/fs/ocfs2/export.c
+@@ -37,6 +37,7 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
+ 	struct inode *inode;
+ 	struct ocfs2_super *osb = OCFS2_SB(sb);
+ 	u64 blkno = handle->ih_blkno;
++	unsigned int nofs_flag = 0;
+ 	int status, set;
+ 	struct dentry *result;
+ 
+@@ -59,7 +60,7 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
+ 	 * This will synchronize us against ocfs2_delete_inode() on
+ 	 * all nodes
+ 	 */
+-	status = ocfs2_nfs_sync_lock(osb, 1);
++	status = ocfs2_nfs_sync_lock(osb, 1, &nofs_flag);
+ 	if (status < 0) {
+ 		mlog(ML_ERROR, "getting nfs sync lock(EX) failed %d\n", status);
+ 		goto check_err;
+@@ -90,7 +91,7 @@ static struct dentry *ocfs2_get_dentry(struct super_block *sb,
+ 	inode = ocfs2_iget(osb, blkno, 0, 0);
+ 
+ unlock_nfs_sync:
+-	ocfs2_nfs_sync_unlock(osb, 1);
++	ocfs2_nfs_sync_unlock(osb, 1, nofs_flag);
+ 
+ check_err:
+ 	if (status < 0) {
+@@ -133,12 +134,13 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+ 	u64 blkno;
+ 	struct dentry *parent;
+ 	struct inode *dir = d_inode(child);
++	unsigned int nofs_flag = 0;
+ 	int set;
+ 
+ 	trace_ocfs2_get_parent(child, child->d_name.len, child->d_name.name,
+ 			       (unsigned long long)OCFS2_I(dir)->ip_blkno);
+ 
+-	status = ocfs2_nfs_sync_lock(OCFS2_SB(dir->i_sb), 1);
++	status = ocfs2_nfs_sync_lock(OCFS2_SB(dir->i_sb), 1, &nofs_flag);
+ 	if (status < 0) {
+ 		mlog(ML_ERROR, "getting nfs sync lock(EX) failed %d\n", status);
+ 		parent = ERR_PTR(status);
+@@ -183,7 +185,7 @@ static struct dentry *ocfs2_get_parent(struct dentry *child)
+ 	ocfs2_inode_unlock(dir, 0);
+ 
+ unlock_nfs_sync:
+-	ocfs2_nfs_sync_unlock(OCFS2_SB(dir->i_sb), 1);
++	ocfs2_nfs_sync_unlock(OCFS2_SB(dir->i_sb), 1, nofs_flag);
+ 
+ bail:
+ 	trace_ocfs2_get_parent_end(parent);
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 92f3450010fbb..80c36c60a8cef 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1109,6 +1109,7 @@ static void ocfs2_delete_inode(struct inode *inode)
+ {
+ 	int wipe, status;
+ 	sigset_t oldset;
++	unsigned int nofs_flag = 0;
+ 	struct buffer_head *di_bh = NULL;
+ 	struct ocfs2_dinode *di = NULL;
+ 
+@@ -1143,7 +1144,7 @@ static void ocfs2_delete_inode(struct inode *inode)
+ 	 * shared mode so that all nodes can still concurrently
+ 	 * process deletes.
+ 	 */
+-	status = ocfs2_nfs_sync_lock(OCFS2_SB(inode->i_sb), 0);
++	status = ocfs2_nfs_sync_lock(OCFS2_SB(inode->i_sb), 0, &nofs_flag);
+ 	if (status < 0) {
+ 		mlog(ML_ERROR, "getting nfs sync lock(PR) failed %d\n", status);
+ 		ocfs2_cleanup_delete_inode(inode, 0);
+@@ -1215,7 +1216,7 @@ static void ocfs2_delete_inode(struct inode *inode)
+ 	brelse(di_bh);
+ 
+ bail_unlock_nfs_sync:
+-	ocfs2_nfs_sync_unlock(OCFS2_SB(inode->i_sb), 0);
++	ocfs2_nfs_sync_unlock(OCFS2_SB(inode->i_sb), 0, nofs_flag);
+ 
+ bail_unblock:
+ 	ocfs2_unblock_signals(&oldset);
+-- 
+2.39.3
 
