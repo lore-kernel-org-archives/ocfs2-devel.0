@@ -1,74 +1,71 @@
-Received: from mail-pj2-f43.google.com (mail-pj2-f43.google.com [74.125.227.171])
+Received: from mail-pz2-f40.google.com (mail-pz2-f40.google.com [74.125.228.40])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E435261B71
-	for <ocfs2-devel@lists.linux.dev>; Sun, 20 Sep 2026 14:07:17 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.227.171
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2C0C32110E
+	for <ocfs2-devel@lists.linux.dev>; Tue, 22 Sep 2026 06:01:00 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.40
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1789913239; cv=none; b=PTnSINzBSeItiCjL8PyQRmn2RhADNWeXlT3kNU5xSzPJkOm0xtWsWRcDczYblcuhiy4VZFaOLM2AXxPi4100i553cpNTbnoqu4LyQpNh8l4WLWixoqrY4X8ITKB987aBc+D85afZpyrx+TQJxz2iDtg1kCRFXbtdqG2K/nJ4ec0=
+	t=1790056862; cv=none; b=lS1cBFdO/Y2gJgmtNaRFaHXRQDWpIvlqf6mh5ls372s8NxOsvy75kUUp/R20Riz8nraQujb2M//7MxH8qqbPwyEML2X8/W0dJTUgvo3Pf9RVuknPEZScOEanwcqHuAFcFEnqsFneGfdG3a2DMAjqT/QYZAull2lY9Utlggms0x8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1789913239; c=relaxed/simple;
-	bh=N9zgMZUmRtGjeQkwy9uC7pOTrkEICynCHJ4xdsK23WU=;
-	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=tSKen6KQIMJI+GiaQSoAlB6E0+F5Kpmh6pMIeqC+Ffb8MV8Kzp+ElNBNxpEAHRl20yrEHuC0ObovAv+ygBVfI6Q46f/WELHx2scs3b2j90OuoOeXEaDk5+MWmK68pJ2NvNmcmRBDj5YBgnDvjYedmSG68XALbOHbctiP80X7sBU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Vju2CGPr; arc=none smtp.client-ip=74.125.227.171
+	s=arc-20240116; t=1790056862; c=relaxed/simple;
+	bh=jwRMV2lzKqCP4gBEUdEB/8pqORMqENAic+GrSVlSju4=;
+	h=From:To:Cc:Subject:Date:Message-ID:MIME-Version; b=S6AqVzGlkhaY300LraQSGDWFylzjtLt5odsKInJjurB8yn8w+6gkIqACrLpY/jcYlJCuh8RqhanOJeAcREJoaOWzSNRRNnqK9WDoT1jncrecqmMAiTVUL/t4idOhobLOhE3PpktN4Bjyp3KibaYGGFqtllzenHTc+trcyyqPcd0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=h7PYHVC9; arc=none smtp.client-ip=74.125.228.40
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Vju2CGPr"
-Received: by mail-pj2-f43.google.com with SMTP id d9443c01a7336-2d747ee1f9bso18602205ad.3
-        for <ocfs2-devel@lists.linux.dev>; Sun, 20 Sep 2026 07:07:17 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="h7PYHVC9"
+Received: by mail-pz2-f40.google.com with SMTP id 41be03b00d2f7-cc74520b20bso536843a12.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 21 Sep 2026 23:01:00 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1789913237; x=1790518037; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1790056860; x=1790661660; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=LGAc0ce7w1GSttHp685etQ7+sb7oh3MesfpogRplBgc=;
-        b=Vju2CGPrPt6c+QVmuQKhNjtPRP/66I3OGMhoMpCQsj1tIge2fzyeJG2LixMdLSR+Gp
-         d2AmkQGGM/jbv3CmogXFZtRy2Y+cC8Ib88Sn654QfWaD89ieNvM8MnFZfcMOv1QUNt2V
-         dK38De4IKaqB2fdohuOjEOw2PTncZbrXW1m4VYMm6VjPAwGWs/AYdn9bJQj0ZDPrgAQh
-         xDptEu6cINUCJ0V4p9+4GGPyTnlyDpvA/zXkevihyq3oNVJ8oKvLQkwFnQAAfDVPByNJ
-         uPGaxJ5CkYJ41oRgxDtugJjGH5WY49ryHGSohazk9IaqNFJKTFx6OSBbOvPxdP3pqzku
-         Jhsg==
+        bh=zD1+CNlJQSHstEQSAiUKt4lsgldAJyFYDs7AdpQW/fI=;
+        b=h7PYHVC9h7kJ+N4dVHFXeKOLolaf2JmMUkbs35aD7rgV2Z6KwUn+tq3yfQHuVFCxMF
+         sd9QVgi1kIgRo4pkDeUclDgvkCN0Ws580pLOE78MjG/9oFQmimf2kh76RkwgUZmt3xGk
+         9mU7tQdIOeYve9BjxoDUlcP20Y6mPZ5ZrTtTGxF0TtqOEA3pbVk0YJtsRpppBEkZF3CO
+         yrrlSNxZU6qxKJCxCm4b1HIa3tTpTN7A0zqGpZDn+zvk2iGUH66KznXFQ/sm78M83PoW
+         HVHe8j+q59WZObHw4ijgvNxx+/y8BejnUk7K/h7B/po9f18uDQedb6UFHHBogOI4EO0f
+         YU+g==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1789913237; x=1790518037;
+        d=1e100.net; s=20260707; t=1790056860; x=1790661660;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=LGAc0ce7w1GSttHp685etQ7+sb7oh3MesfpogRplBgc=;
-        b=DoKyLHVkpHyOxvbigPYbA31q/CClZKp5u4PmPiaMkYZJYxOJ2L4rIFHYHIRaD9mOAf
-         gAFxT1UA+SFkiC5Gqze3SFUK7TdLckbhqhb8xXAM++XF9OZJlZ9sa+FBa+MO2+NlB7bJ
-         HWZYe8B1Byjt9VB8Ag5OpvMADV6EFxS26xmR5G1dgqMqnHTDv09Pu9mio37dj+aV6H9z
-         SdwBXErBfHATVdicnofylQY/Bl7JCFiomovwk6jDPK1rtgLGOyDqlyi742BsYyrXmswL
-         3ilpEtAH3rG7MvosEOrZwHqdJbiTc6l5FZsFparhSXLnQAv+rrt70zoV8ye6cPLf38L8
-         7+oA==
-X-Forwarded-Encrypted: i=1; AKwUvBx/Lt/1Q3mY+AnekZVnmx8sJ2jExqQncirbR7p4Hdr7ROg9m1rYXchkcDrgsfPVAOl3VzzY1MpcOSOk5A==@lists.linux.dev
-X-Gm-Message-State: AFuF++mbER90mVgz+G9x0ZDY2csVxe+qnM0lQHP7c8iTV3J6PcZv4Tq2
-	T0Hq4Vh721Z0kNqiRgqvvGNhwq2dzhGGzlnZhag78TacMqNgKrblV6sa
-X-Gm-Gg: AYBFou1+5KmsogIt/BAPq624ak/k4Z9KsyIGkujtWx6DE0rPFH2K9oNdCtyNjcEwA6N
-	04bkh1K9nPyuJk1zlA+DD/5gh5Ib3/oO/meSWGupm8yMctmhpyVUt5XDyGC1d+MCGyxJ1BYQ4kF
-	cQpexkGFdo06kfx4rJF2yvMf5kmUdipigX7qwWvg7xo6n8qWmWC/xpKQ86K7cTlI0K+s8bDxH59
-	K5qBk7MgzwpInFJtCUkMhg4v9VVGX3xR3qv69sPKp22BCyl1vLXDMeiMv2CgNqmAlqh6MfysoQK
-	V878xRzS7TzTWuu1/d+K1eTRFp8DY4fMTUYSTqajfGM6ek6IeVmBs/uYXntSI9vOP3r1FJxjYk+
-	AQuJCWhp88sN13hI/usoBfse75MGe/2fcyyZiMTje5CguT1aIQnw1Fs0wd/cjLhh5TXKBN0KqWL
-	0XZ+WnOzsz6UzBnKl9C0aDVUxcj4tnadBLktrb5MLEVd35w+/DvczWcOmVhSqhIa5TAuMsKQhLV
-	IvcFuriIdY1ExM=
-X-Received: by 2002:a17:902:e747:b0:2d8:d4cc:be63 with SMTP id d9443c01a7336-2ddb1bb4722mr116046595ad.16.1789913237123;
-        Sun, 20 Sep 2026 07:07:17 -0700 (PDT)
-Received: from thangnn-ASUS.. ([2405:4802:1d4a:e90:2022:c2a9:de8:d005])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ddc178701csm20516355ad.13.2026.09.20.07.07.14
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 20 Sep 2026 07:07:16 -0700 (PDT)
-From: Nguyen Ngoc Thang <ngocthang2710.1999@gmail.com>
+        bh=zD1+CNlJQSHstEQSAiUKt4lsgldAJyFYDs7AdpQW/fI=;
+        b=XxaE+kb1W3n3xczejSM7cmPgnogfx4CCE+11/ZU1PKkDMVuCVu4NTHSlFVpUu0KemV
+         Wegojmd3JNC40xdM+PknIeuw/iCQNPWZsyOHcJymWUWmqTWk/4qsYfWSueuDGC7Ys27S
+         We6vhQJegyhL1quXUVCrL5TW/A9C98Osr1FoNco36yf1HGdL2FYPhvd4NXPgDYEeAuVR
+         8GJ3MmIbFnagQePuSxZCE4Q7x3qVIerVAwoVC+P1GCDwC7pUOVr+R0ia+pBkjlCZ32FE
+         kPHPnW8qoNoKtsdlpnjyfNJ24lk9LVCVj2/1Z607AkZ/8gpF6z7WCFNyLXMBhop5vA0t
+         q6pQ==
+X-Gm-Message-State: AFuF++ngnw/rHURJTi1GkbrdEs/AayyBzh7M/yYOvK8ou9f2B+Fa/wdC
+	b8cv9p7VOqpdpHiaBLn9JU6IELK+eqUoJJI3gQtqFRZu0PbXeO6UvqRenMD7W1UN
+X-Gm-Gg: AYBFou21o8RcfcNeqtaVhVuWDy4fAJV+Tk9kAVhB3Hur/ZfGUB3RVsrKNXkzuLP89l/
+	nR+2l82trIb2J7sj4t+HKozjlmrH7uqpQgpXr05tVY/OD50OSbbIT6Xxonpf7L0G3IZIQEut9h3
+	WzgGGyjR8BTRvvwtKU29t8XjTzcERybh0xv9lf8OBXPJ8FPhBhRLNKAnowL36NLA04x7/vI1M8u
+	ziNpRD+hfOnijhPsdhzaXihMG8wx8ICar6fnGoM/RBii+GSfkt1fkyRsBOwWJbBACq13qHKZyY+
+	iPl6G86frK63EEmOeXshPfa+A+8lyFWy7MdgWbOKVNudxADKRw2dmZn04RF5SVHN/7ALmea9Z46
+	8AlyYPeKHBoTRid5mg239sfasUGf1tLncHtDwUUlcQnrhuVcD+kX8LDN6a5XPrQWP/BrV06ydb7
+	YvyZQHcGblD2uS/NduZN0Q+Xk4ecT1fLlUMYmgr0h6OA6ZH69WP560dX0tmkCQA5lCb2YISNUQW
+	AD/1BV3OboUUHXmpMqyYRc3ZB08aipUTg==
+X-Received: by 2002:a17:90a:d2cf:b0:39d:feca:f48d with SMTP id 98e67ed59e1d1-3a0735e2284mr40422a91.3.1790056859956;
+        Mon, 21 Sep 2026 23:00:59 -0700 (PDT)
+Received: from localhost.localdomain ([202.189.109.160])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3a06dfd6705sm1423138a91.0.2026.09.21.23.00.54
+        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
+        Mon, 21 Sep 2026 23:00:59 -0700 (PDT)
+From: Ginger Li <ginger.jzllee@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	ocfs2-devel@lists.linux.dev
-Cc: linux-kernel@vger.kernel.org,
-	Nguyen Ngoc Thang <ngocthang2710.1999@gmail.com>,
-	syzbot+03aaa576f1daa1c1f2f0@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: validate chunk and block counts of the local quota file
-Date: Sun, 20 Sep 2026 21:07:10 +0700
-Message-ID: <20260920140710.43938-1-ngocthang2710.1999@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	joseph.qi@linux.alibaba.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org
+Subject: [PATCH] ocfs2: Protect local_alloc_state updates in load/shutdown
+Date: Tue, 22 Sep 2026 14:00:48 +0800
+Message-ID: <20260922060048.13158-1-ginger.jzllee@gmail.com>
+X-Mailer: git-send-email 2.46.0
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -77,78 +74,60 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_local_read_info() trusts dqi_chunks and dqi_blocks from the local
-quota file header.  If dqi_blocks is too small,
-ocfs2_extend_local_quota_file() computes a bogus chunk length, extends the
-file, and maps logical block dqi_blocks, which is already in the inode's
-metadata cache (the header or a chunk header read at mount).  sb_getblk()
-returns that cached buffer and ocfs2_set_new_buffer_uptodate() hits
-BUG_ON(ocfs2_buffer_cached()):
+My static analyzer identified a potential issue in 'fs/ocfs2/localalloc.c':
+osb->local_alloc_state is documented as protected by osb->osb_lock in
+struct ocfs2_super, and most of the code follows that rule:
+ocfs2_local_alloc_seen_free_bits(), ocfs2_la_enable_worker() and
+ocfs2_recalc_la_window() all update the field with the lock held.
 
-  kernel BUG at fs/ocfs2/uptodate.c:509!
-  ocfs2_extend_local_quota_file+0x45c/0x1100
-  ocfs2_create_local_dquot+0x8ac/0xb50
-  ocfs2_acquire_dquot+0x614/0xae0
-  ocfs2_get_init_inode+0xe9/0x1b0
-  ocfs2_mkdir+0x174/0x430
+ocfs2_load_local_alloc() and ocfs2_shutdown_local_alloc() update
+local_alloc_state, and local_alloc_bh next to it, without taking osb_lock, so
+those stores can race with the reads and writes done by the local alloc
+reserve path.  Those two writers predate the locking convention and were
+never converted.
 
-ocfs2_local_quota_add_chunk() has the same exposure.
+Take osb->osb_lock when updating both fields.
 
-Reject a header whose counts don't fit the chunk layout or exceed i_size.
-
-Reproduced with a crafted image (dqi_blocks = 1, chunk 0 dqc_free = 0);
-syzbot has no reproducer for this report.
-
-Reported-by: syzbot+03aaa576f1daa1c1f2f0@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=03aaa576f1daa1c1f2f0
-Fixes: 9e33d69f553a ("ocfs2: Implementation of local and global quota file handling")
-Signed-off-by: Nguyen Ngoc Thang <ngocthang2710.1999@gmail.com>
+Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+Signed-off-by: Ginger Li <ginger.jzllee@gmail.com>
 ---
- fs/ocfs2/quota_local.c | 24 ++++++++++++++++++++++++
- 1 file changed, 24 insertions(+)
+ fs/ocfs2/localalloc.c | 6 ++++++
+ 1 file changed, 6 insertions(+), 0 deletions(-)
 
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index f55810c59b1b..1c9afe38e40e 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -245,6 +245,25 @@ static void ocfs2_release_local_quota_bitmaps(struct list_head *head)
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -342,8 +342,10 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
+ 		goto bail;
  	}
- }
  
-+/* Check that the on-disk chunk and block counts match the file layout */
-+static int ocfs2_check_local_quota_info(struct inode *inode,
-+					unsigned int chunks,
-+					unsigned int blocks)
-+{
-+	u64 chunk_len = ol_chunk_blocks(inode->i_sb) + 1;
-+	u64 min_blocks = chunks ? 1 + chunk_len * (chunks - 1) + 1 : 1;
-+	u64 max_blocks = 1 + chunk_len * chunks;
-+
-+	if (blocks >= min_blocks && blocks <= max_blocks &&
-+	    blocks <= i_size_read(inode) >> inode->i_sb->s_blocksize_bits)
-+		return 0;
-+
-+	return ocfs2_error(inode->i_sb,
-+			   "Quota file %llu has bad info: %u chunks, %u blocks\n",
-+			   (unsigned long long)OCFS2_I(inode)->ip_blkno,
-+			   chunks, blocks);
-+}
-+
- /* Load quota bitmaps into memory */
- static int ocfs2_load_local_quota_bitmaps(struct inode *inode,
- 			struct ocfs2_local_disk_dqinfo *ldinfo,
-@@ -733,6 +752,11 @@ static int ocfs2_local_read_info(struct super_block *sb, int type)
- 	oinfo->dqi_blocks = le32_to_cpu(ldinfo->dqi_blocks);
- 	oinfo->dqi_libh = bh;
++	spin_lock(&osb->osb_lock);
+ 	osb->local_alloc_bh = alloc_bh;
+ 	osb->local_alloc_state = OCFS2_LA_ENABLED;
++	spin_unlock(&osb->osb_lock);
  
-+	status = ocfs2_check_local_quota_info(lqinode, oinfo->dqi_chunks,
-+					      oinfo->dqi_blocks);
-+	if (status < 0)
-+		goto out_err;
-+
- 	/* We crashed when using local quota file? */
- 	if (!(oinfo->dqi_flags & OLQF_CLEAN)) {
- 		rec = OCFS2_SB(sb)->quota_rec;
+ bail:
+ 	if (status < 0)
+@@ -392,7 +394,9 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *os
+ 		goto out;
+ 	}
+ 
++	spin_lock(&osb->osb_lock);
+ 	osb->local_alloc_state = OCFS2_LA_DISABLED;
++	spin_unlock(&osb->osb_lock);
+ 
+ 	ocfs2_resmap_uninit(&osb->osb_la_resmap);
+ 
+@@ -441,8 +445,10 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *os
+ 	ocfs2_journal_dirty(handle, bh);
+ 
+ 	brelse(bh);
++	spin_lock(&osb->osb_lock);
+ 	osb->local_alloc_bh = NULL;
+ 	osb->local_alloc_state = OCFS2_LA_UNUSED;
++	spin_unlock(&osb->osb_lock);
+ 
+ 	status = ocfs2_sync_local_to_main(osb, handle, alloc_copy,
+ 					  main_bm_inode, main_bm_bh);
 -- 
 2.43.0
-
