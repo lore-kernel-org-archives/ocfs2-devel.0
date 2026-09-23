@@ -1,130 +1,112 @@
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-qk2-f43.google.com (mail-qk2-f43.google.com [74.125.230.235])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 543D93515F2
-	for <ocfs2-devel@lists.linux.dev>; Wed, 23 Sep 2026 01:27:55 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.101
-ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790126878; cv=none; b=KtpGHgCmXuTgApkJAshDv6e7vmFVGQK+vdxyLVhgei4UbyaiEd3zvFUtaBzN/rKbphdNDjLteJ6c98uF7pkir4OHG5u+8LD6iUhkD4K9D1uyf/krKSnrtFqZQPAqU2VYz7zlRZmT9dE1n/O+MHJH17r707g1viSOqron5tRGyws=
-ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790126878; c=relaxed/simple;
-	bh=mW3Vkfkxjp+H+5FmxGrHaec7y+NgR5m7QC1Xm8DDNl0=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=YuWZv/3EivE0FeqYkeqgKCnUpgEaSnvc6tGljq2NrKfrVu8EKeXlACBrVaeOHRgCinsigW9E49ncFCoddKvX3X+giXC//RiyHwCEZksPAQDQz8FeGIcSNYu8r7hpXRaRpGKaTEObZ8ZbHSebr+G7sBR6C6oJqXSA+iWt/TH0+Mk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=MenRviod; arc=none smtp.client-ip=115.124.30.101
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4A9D936D50D
+	for <ocfs2-devel@lists.linux.dev>; Wed, 23 Sep 2026 02:13:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.230.235
+ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790129582; cv=pass; b=nxUzOs0C9/OcV4POUnrB1kuLVYiK5hH9o8grHvXEePAMyQ0pKrwDiobPP2QkqH0AadusdLCnms23NmpDPk4Z8d8dTd0TYAOpysOo1T6lgMPAVXZmPKCveilXcTL5PwiM6qGIp60wnQy1zJ/PQLcRIItVLK//ijTO10xkLW/vibo=
+ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790129582; c=relaxed/simple;
+	bh=JueReRxXF36/Y6Fa8OTRaKAq+634SD8b+cgAtq1zZgg=;
+	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
+	 To:Cc:Content-Type; b=jM3icpnXxvoiEsj9iSaORAVjNEq0lyL69lRJe85eYRhdQIJubQrvvRW0t6OqP4a4jwxu/bbj6tytpHB+VUN1LdNBjF1nOGxfeeronbo1ZgYwCNkPO7NltUIPWiMPPbgZLAEzMn98Op75nliSY5SXAE+TCvWJxbiGTAas8FDb1TE=
+ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fasheh.com; spf=none smtp.mailfrom=fasheh.com; dkim=pass (2048-bit key) header.d=fasheh.com header.i=@fasheh.com header.b=MMiWCodY; arc=pass smtp.client-ip=74.125.230.235
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=fasheh.com
+Authentication-Results: smtp.subspace.kernel.org; spf=none smtp.mailfrom=fasheh.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="MenRviod"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1790126872; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=cD1YZ/WyUkw2qCPI2vFSMU0Kjpp4BrTGZOfKp+4KDFA=;
-	b=MenRviodAWpyhOyywxWe8gbb1EHKmmTfKjmXOyTxfs6GqaYywmHvMmrEOsVgYw0pYzdjtYO0Q+jgm6Cs40RFWIAyNKGN31sGrlPFhfRonOaT/dmuMCR53egmpjHmRhtBt2AD2HIM3LJceiYwSdu4A4WA++t/nOKq++iswDlcnU0=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0XBVIAlL_1790126871;
-Received: from 30.170.56.46(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XBVIAlL_1790126871 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Wed, 23 Sep 2026 09:27:52 +0800
-Message-ID: <c83f90ca-6712-4c84-8417-451cef65567e@linux.alibaba.com>
-Date: Wed, 23 Sep 2026 09:27:51 +0800
+	dkim=pass (2048-bit key) header.d=fasheh.com header.i=@fasheh.com header.b="MMiWCodY"
+Received: by mail-qk2-f43.google.com with SMTP id d75a77b69052e-52fb76c9deeso4794441cf.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 22 Sep 2026 19:13:01 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1790129580; cv=none;
+        d=google.com; s=arc-20260327;
+        b=NzmWcXnYbRTR2k5EmgKkM2JU9VePlNDDBpgj8SPeywXr76F8zKss3V5bpSL0w6G+fm
+         Dr6q7BYwEVl5A/BT9auRDNBNNtXLsE6HfjsDHrvlOVE8ZmMMQ595ec3F3ZPNZwG6029k
+         bbJPl6RpBoss1iXKvPYeoejS83aYd2dejcpR0JuvJN4/K6LjIWqC7P+9ljhs05kFcG2p
+         4O5yrAD7qqSv3hJbhAGfHEAEk32zsWtNiP/qZbaHaVOGDmXMAR5OD12EXbh7OalDMXIV
+         2yfFxTMqzk8492pVnCDnM1KNzUjvgAnK+yFZejqL91bbx7idWV21dABMjE/NvS6q61zM
+         91RA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=content-transfer-encoding:cc:to:subject:message-id:date:from
+         :in-reply-to:references:mime-version:dkim-signature;
+        bh=8+NKsnMYUdtlXCVGR3Ho4DQYC3dNIX0jhxzsZA1mWNs=;
+        fh=pNW56Q3s7ungvWpiVmo7BrtMXJFwVV6M9JUed3u28hE=;
+        b=qfec+SK7R62Isvu3jWA5wKKTLmsXi1KdQ7vgt7F/mA5St20gq8ZY4TxzgwiO1zlCf5
+         h35i8OwJ24+R4uADopPm+tIosVkQk9zgGGLU99VT7MXXy0um1ImMCSwm0/5pxJth4Xjf
+         MvK6/KH392lson8UYFD5uYsFEr4yjFEYi5yQKPSV6L6IROLe9+NraCemIRYZLMV2EGKf
+         ahA70V3Ag4ruQAK/M2Vtz/MuRSifk1DhkB8U5LgFu2v7vubImPaMM+p8Jlo/SoI3yIJc
+         h2R9QK57/fzQR8eenFhFIwlfQDt8S2NaAAKVrn+ABGm4MVJhfRTNJF9CqgDqYJkKS6AK
+         W5Sw==;
+        darn=lists.linux.dev
+ARC-Authentication-Results: i=1; mx.google.com; arc=none
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=fasheh.com; s=google; t=1790129580; x=1790734380; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=8+NKsnMYUdtlXCVGR3Ho4DQYC3dNIX0jhxzsZA1mWNs=;
+        b=MMiWCodYyHmsD1wYNbvg+sVqAjVNK/LwKi/UInFP16rHIZXfZ1DqpJ4vJXG3Zc15JE
+         3fWVEXz1IinYX/uYK0Ut0mnJngpYuJAQOszK9e2OgEZKWZal4CvgqIK+ZaMYQfb2t5Wr
+         5Omix4yvd7VqhqHnimqklu/8mW8pWg3XkSw9ew5IWmdTkwVusEcawczNUZWo08MQq1vs
+         9qdnDXoeYNnIfPFiGg3UVYL2M6j6ghgA8Qe16z3EbZhWp4/wF6nZv3FWVsA1VU6aqabY
+         haTuMN1v0j+I3Ac0+bXpsMxTNzSb7HQbW4tgBbE4MXrWehJpULYNndeDyn8C8B9fPu/7
+         1pwg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1790129580; x=1790734380;
+        h=content-transfer-encoding:content-type:cc:to:subject:message-id
+         :date:from:in-reply-to:references:mime-version:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=8+NKsnMYUdtlXCVGR3Ho4DQYC3dNIX0jhxzsZA1mWNs=;
+        b=wA1a4x91Wj+Ajwe9OwuHb3rWCxXmIJuDj36+uHBXNW/BhcJHK7Yj79fPikNLgiHXn+
+         761JhaKZ556t37Bd2T+RWUuGWiA1zCbnte+F0ghvo2EU2+HvNIV+OVBQGQf7epMio3C4
+         /wYRKzNJ3xQV+64QJkqN8/3gnpQx8vvN3ee8gON7++AVz+jJp7WKbgj81BdEyyvDek8M
+         97A6tez41nxJjCboh8d0DHcxZi0JNGAEOhOlaYkb9Y9Yx7uiyIEQTnqN/aE5LQbPbfEO
+         mnsk7EqVkibFYdDelIq+7LxLwZ7yawcxnMJOyK3rsXDwV+fUcIGqyDY2KG53YdjIS5c6
+         ILfw==
+X-Forwarded-Encrypted: i=1; AKwUvBydmCYcTRj9qr9yXkoAPdDzdlLTfDJC/1iWhNgq7UMEHQGBwnhmPrzcZwh0gDoCuLjUTOMeUEJ0sggXdg==@lists.linux.dev
+X-Gm-Message-State: AFuF++n44+8CWoXnrGAGRd2ydcManu6jzbmupSAWNMlZ/rktYFIJUCPS
+	8h0xzgAIb9GOtjgCQ6qA8YRA9bcNSQLHJt8eHdsjVVFewOEyU+0VY56fXi0PxZpNUC1ZnPtQ8WD
+	FrvvcqH7hLu4aNR0V/RelK6YSLLJ91WCXRNUSajiQT7VqffCWZuePnnM=
+X-Gm-Gg: AYBFou0oqwUXg90UPQTkXtnffr8VRhptDFT1EkwVzFdx4yuQJiK/D8y/QudWYDckOzd
+	lhNKnXeDWKoEQuaJmoAFLizWNaIS8kgXZoCyO1sHNHq5a1HyR0JamS0U/gdgDEkA35yYoeywI78
+	tA89bukp8u/jnWaakqBPPB+nDiwP5XM7VrqzJU8zNq35GFBAD5INHr12nbmj4blibWATQAQHel1
+	eGbEiNtx2GH6usokxzCTVttpVmzfIfgYb6Xu9naPD/iWNmoOIMu0chjSm/DU+sCQl4thF+9yP1A
+	YmzEJBVRphV961LenWwf8H775IOd6zlpBCPvNfTeXm6J0/ILJufn6yYa6UQ/NLy1TGrg87fPsEg
+	0hMyEebjRba6V
+X-Received: by 2002:a05:622a:390:b0:532:9ca3:a400 with SMTP id
+ d75a77b69052e-532eac690d2mr24213961cf.16.1790129580278; Tue, 22 Sep 2026
+ 19:13:00 -0700 (PDT)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix array out of bound access in
- __ocfs2_find_path()
-To: Giorgi Kobakhia <gkobakhi@asu.edu>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
- Xiang Mei <xmei5@asu.edu>, stable@vger.kernel.org
-References: <20260922202159.2421642-1-gkobakhi@asu.edu>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20260922202159.2421642-1-gkobakhi@asu.edu>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+References: <20260923003920.2382398-1-joseph.qi@linux.alibaba.com>
+In-Reply-To: <20260923003920.2382398-1-joseph.qi@linux.alibaba.com>
+From: Mark Fasheh <mark@fasheh.com>
+Date: Tue, 22 Sep 2026 19:12:49 -0700
+X-Gm-Features: AcwNN1UpkX3jOorW0vjOas-FroH4RgfpD_GIVXXvNGML4JW5Y6f9y4ClrdqhKt0
+Message-ID: <CAGe7X7=pfXetdZ0Yze_nFWpa4XqFoQFXWkCtH7qh0eRHC5drjg@mail.gmail.com>
+Subject: Re: [PATCH] MAINTAINERS: add Heming Zhao as ocfs2 reviewer
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, Heming Zhao <heming.zhao@suse.com>, 
+	Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
+	linux-kernel@vger.kernel.org
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
 
+On Tue, Sep 22, 2026 at 5:39=E2=80=AFPM Joseph Qi <joseph.qi@linux.alibaba.=
+com> wrote:
+>
+> Heming Zhao has contributed ocfs2 a lot recent years, both as a author
+> and reviewer. So add him as ocfs2 reviewer.
+>
+> Cc: Heming Zhao <heming.zhao@suse.com>
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
+Acked-by: Mark Fasheh <mark@fasheh.com>
 
-On 9/23/26 4:21 AM, Giorgi Kobakhia wrote:
-> __ocfs2_find_path() walks down the extent tree and records path by calling
-> find_path_ins(), which appends entry to path->p_node[]. It only has 5
-> spots.
-> 
-> A corrupted ocfs2 image whose extent block is pointing to itself causes
-> __ocfs2_find_path() descent endlessly, writing past the end of
-> path->p_node[] array.
-> 
->  UBSAN: array-index-out-of-bounds in fs/ocfs2/alloc.c:677:14
->  index 5 is out of range for type 'ocfs2_path_item [5]'
->  Call Trace:
->   <TASK>
->   find_path_ins (fs/ocfs2/alloc.c:677 fs/ocfs2/alloc.c:1914)
->   __ocfs2_find_path.constprop.0 (fs/ocfs2/alloc.c:1882)
->   ocfs2_commit_truncate (fs/ocfs2/alloc.c:1924 fs/ocfs2/alloc.c:7286)
->   ocfs2_truncate_file (fs/ocfs2/file.c:515)
->   ocfs2_setattr (fs/ocfs2/file.c:1224)
->   notify_change (fs/attr.c:556)
->   do_truncate (fs/open.c:68)
->   do_ftruncate (fs/open.c:194 (discriminator 1))
->   ksys_ftruncate (fs/open.c:206)
->   __x64_sys_ftruncate (fs/open.c:211 fs/open.c:209 fs/open.c:209)
-> 
-> Commit a406aff8c051 ("ocfs2: validate l_tree_depth to avoid
-> out-of-bounds access") already restricts el->l_tree_depth to be less than
-> OCFS2_MAX_PATH_DEPTH, which is equal to 5. However, does not handle the
-> infinite descent case.
-> 
-> Check if the el->l_tree_depth decreases on each descent. Maximum
-> descents are restricted to 4 and the path->p_node[] array does not
-> overflow.
-> 
-> Fixes: dcd0538ff4e8 ("ocfs2: sparse b-tree support")
-> Cc: stable@vger.kernel.org
-> Assisted-by: LLM
-> Tested-by: Xiang Mei <xmei5@asu.edu>
-> Signed-off-by: Giorgi Kobakhia <gkobakhi@asu.edu>
-
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
-> ---
->  fs/ocfs2/alloc.c | 9 ++++++---
->  1 file changed, 6 insertions(+), 3 deletions(-)
-> 
-> diff --git a/fs/ocfs2/alloc.c b/fs/ocfs2/alloc.c
-> index be09e766ac1f..c85a472965d5 100644
-> --- a/fs/ocfs2/alloc.c
-> +++ b/fs/ocfs2/alloc.c
-> @@ -1817,6 +1817,7 @@ static int __ocfs2_find_path(struct ocfs2_caching_info *ci,
->  	int i, ret = 0;
->  	u32 range;
->  	u64 blkno;
-> +	u32 prev_depth = OCFS2_MAX_PATH_DEPTH;
->  	struct buffer_head *bh = NULL;
->  	struct ocfs2_extent_block *eb;
->  	struct ocfs2_extent_list *el;
-> @@ -1824,14 +1825,16 @@ static int __ocfs2_find_path(struct ocfs2_caching_info *ci,
->  
->  	el = root_el;
->  	while (el->l_tree_depth) {
-> -		if (unlikely(le16_to_cpu(el->l_tree_depth) >= OCFS2_MAX_PATH_DEPTH)) {
-> +		if (unlikely(le16_to_cpu(el->l_tree_depth) >= prev_depth)) {
->  			ocfs2_error(ocfs2_metadata_cache_get_super(ci),
-> -				    "Owner %llu has invalid tree depth %u in extent list\n",
-> +				    "Owner %llu has invalid tree depth %u in extent list (max %u)\n",
->  				    (unsigned long long)ocfs2_metadata_cache_owner(ci),
-> -				    le16_to_cpu(el->l_tree_depth));
-> +				    le16_to_cpu(el->l_tree_depth), prev_depth - 1);
->  			ret = -EROFS;
->  			goto out;
->  		}
-> +		prev_depth = le16_to_cpu(el->l_tree_depth);
-> +
->  		if (!el->l_next_free_rec || !el->l_count) {
->  			ocfs2_error(ocfs2_metadata_cache_get_super(ci),
->  				    "Owner %llu has empty extent list at depth %u\n"
-
+Thank you, Heming, for your contributions!
+   --Mark
