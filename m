@@ -1,134 +1,105 @@
-Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.4])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail.ispras.ru (mail.ispras.ru [83.149.199.84])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0B93E447805
-	for <ocfs2-devel@lists.linux.dev>; Sat, 26 Sep 2026 14:00:10 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.4
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 139913D1AB5
+	for <ocfs2-devel@lists.linux.dev>; Sun, 27 Sep 2026 11:09:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=83.149.199.84
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790431222; cv=none; b=eyHqtSXBV/rPD8juWJ/JKgTegaLpXOFaALl2CzwIPZ5Rxrwpk7E+HH0UxTYsR3ljOVt7WmXlWY3D41LKUtGxWYdT7YWgcKCcRso7WfFhfwliWDuBH2jjcutPKVbpzpZBSnJXax9FaQpikx0mxwLFbWzl0b/bAoVBeWiYa1SQE4M=
+	t=1790507373; cv=none; b=PrUdrtphKyrjL6Ds8yftOS0qsHA33UWvAYh9wdqaReCyKJtYMSgshZeC55zkGNW9MNv8PWDrJWfJgo2DaxrPChIuPozm3gj5eFmqWQwyoKG8D8E2O92VZ26ciwR4FU9v4yJxYZUG5n8cs0ALGn0sW23q5iOglR4s+vQzvDy27fo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790431222; c=relaxed/simple;
-	bh=ZrqvVyMHr+q5Ctxd+RO7kvJ/wsARCDpgVsakUvrSNm4=;
-	h=Date:From:To:Subject:In-Reply-To:References:Content-Type:
-	 MIME-Version:Message-ID; b=EuGJ9p+iWQ4IdbpInngZiV/8PzbtiSPdKJcSbDSQRYpqSarrMob2oulI34g/p+XFYdb6s65fznMdaHwXEZxxauCaAQ6Uj+Qwh4faZJSylcw1Zjs34RGOK8r+ZudIU/9dNicezw+WoYvhd4dqE/fnE1xMWrhcgfrcdIURy8Y/C3E=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=YLSXdY36; arc=none smtp.client-ip=220.197.31.4
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
+	s=arc-20240116; t=1790507373; c=relaxed/simple;
+	bh=Z232fkqmBSqnY/i4iSKSELPwmDRECacG3kEOk3fm3Ak=;
+	h=MIME-Version:Date:From:To:Cc:Subject:In-Reply-To:References:
+	 Message-ID:Content-Type; b=Uowcup8y4ksw1cI0VtBQFKaMgqjTlukScdrIiaD9N4jhUhGhB5oP9KlaDvvvaAWz1TQU6iDQYu0TzaP09j2hveIe6KcaTazwSok66NgiKgV7ixKopsKub/Bw3Z2EUh3QYtUxtt3x0Y/uEGPXEiSR1aGQrcNbWuGBEZ4I4Rf+G0s=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=ispras.ru; spf=pass smtp.mailfrom=ispras.ru; dkim=pass (1024-bit key) header.d=ispras.ru header.i=@ispras.ru header.b=SXabLuGR; arc=none smtp.client-ip=83.149.199.84
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=ispras.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ispras.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="YLSXdY36"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
-	Message-ID; bh=ZrqvVyMHr+q5Ctxd+RO7kvJ/wsARCDpgVsakUvrSNm4=; b=Y
-	LSXdY368w4qLazwainIq8hj/iNnwjG2naV+EorwKm0bRx/dBX3s/xXuZHTi37XxI
-	3gt9VqRq9NzRaCeZFN6fUyI0w+/AuZ58AtYMhWacGnWzTgWM5eBiOtDRFh5Oy1Sx
-	24CXbo/Fw+BlngWEy2ACFoJ/7uwRN4VFOurWeAi1DE=
-Date: Sat, 26 Sep 2026 21:59:22 +0800 (CST)
-From: "jiale yao" <19888972804@163.com>
-To: "Mark Fasheh" <mark@fasheh.com>, "Joel Becker" <jlbec@evilplan.org>,
-	"Joseph Qi" <joseph.qi@linux.alibaba.com>,
-	"Andrew Morton" <akpm@linux-foundation.org>,
-	"ZhengYuan Huang" <gality369@gmail.com>, ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: Re:[PATCH] ocfs2: validate filecheck inode slots
-X-Priority: 3
-X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
- 20260511(2e539873) Copyright (c) 2002-2026 www.mailtech.cn 163com
-In-Reply-To: <20260926135354.3420193-1-yaojiale02@163.com>
-References: <20260926135354.3420193-1-yaojiale02@163.com>
-X-NTES-SC: AL_Qu2SAviYvkkt5CWbZ+kcn08ShO49XMOyvfoi2YFTc+8GoRzV9zoEcVtuJUDT4v2BAg6MjQaKQSNj8spzXJZ2yNByWiWJPMRVrFxj52osKA==
-Content-Transfer-Encoding: base64
-Content-Type: text/plain; charset=GBK
+	dkim=pass (1024-bit key) header.d=ispras.ru header.i=@ispras.ru header.b="SXabLuGR"
+Received: from mail.ispras.ru (unknown [83.149.199.84])
+	by mail.ispras.ru (Postfix) with ESMTPSA id 4E38340ACE1C;
+	Sun, 27 Sep 2026 11:04:05 +0000 (UTC)
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail.ispras.ru 4E38340ACE1C
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ispras.ru;
+	s=default; t=1790507045;
+	bh=pEwqmaQGVJMOUs+I+q+ouqHz6Y36+m3fssmb0zfY2Fo=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:From;
+	b=SXabLuGRuw2PZglTQ9WoCwbLOS97SfREFBWpDGBWWZh3W5vJnX+HkAYn5a5vUSX8N
+	 gfgqu8hZCOk4z2ZegiAqwKd5+O500RuCuEyPZP2tO5jZ7yTTNKEnwr3k7Z7RbE0F/j
+	 xrQjNO9rZLn4ikxXGeQOnYb4VAo6C1AJ/RY8dQG0=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Message-ID: <41659397.1e4f.1a0de0370ab.Coremail.19888972804@163.com>
-X-Coremail-Locale: zh_CN
-X-CM-TRANSID:kygvCgD3v967z7dqBMBOAA--.711W
-X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzhuq5Gq3z7sctgAA3Y
-X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
+Date: Sun, 27 Sep 2026 14:04:05 +0300
+From: d.morgun@ispras.ru
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ linux-kernel@vger.kernel.org, lvc-project@linuxtesting.org,
+ ocfs2-devel@lists.linux.dev
+Subject: Re: [PATCH] ocfs2: validate la_size before ocfs2_clear_local_alloc()
+In-Reply-To: <2927fd14-46be-4cb1-8dac-0f4249f16014@linux.alibaba.com>
+References: <20260810113508.8513-1-d.morgun@ispras.ru>
+ <2927fd14-46be-4cb1-8dac-0f4249f16014@linux.alibaba.com>
+Message-ID: <e13b47fa02d27dbf4c44ae300fc082a6@ispras.ru>
+X-Sender: d.morgun@ispras.ru
+Content-Type: text/plain; charset=US-ASCII;
+ format=flowed
+Content-Transfer-Encoding: 7bit
 
-QXQgMjAyNi0wOS0yNiAyMTo1Mzo1MywgIkppYWxlIFlhbyIgPHlhb2ppYWxlMDJAMTYzLmNvbT4g
-d3JvdGU6Cj5UaGUgb25saW5lIGZpbGVjaGVjayBwYXRoIHJlYWRzIGlub2RlcyB3aXRoCj5vY2Zz
-Ml9maWxlY2hlY2tfdmFsaWRhdGVfaW5vZGVfYmxvY2soKSBpbnN0ZWFkIG9mCj5vY2ZzMl92YWxp
-ZGF0ZV9pbm9kZV9ibG9jaygpLiAgSXQgZG9lcyBub3QgY2hlY2sgdGhlIHNsb3QgZmllbGRzIHRo
-YXQKPmFyZSB1c2VkIGFzIGluZGljZXMgaW50byBhcnJheXMgc2l6ZWQgYnkgb3NiLT5tYXhfc2xv
-dHMuCj4KPkEgY29ycnVwdGVkIGRpbm9kZSBjYW4gc2V0IE9DRlMyX09SUEhBTkVEX0ZMIG9yCj5P
-Q0ZTMl9ESU9fT1JQSEFORURfRkwgd2hpbGUgY2FycnlpbmcgYW4gb3V0LW9mLXJhbmdlIG9ycGhh
-biBzbG90LiAgQW4KPm91dC1vZi1yYW5nZSBpX3N1YmFsbG9jX3Nsb3QgY2FuIGFsc28gYnlwYXNz
-IHRoZSBub3JtYWwgdmFsaWRhdG9yCj50aHJvdWdoIHRoZSBmaWxlY2hlY2sgcGF0aC4gIFRoZXNl
-IHZhbHVlcyBjYW4gbGF0ZXIgYmUgdXNlZCB0byBpbmRleAo+dGhlIHNsb3QtbG9jYWwgc3lzdGVt
-IGlub2RlIGFycmF5LgoKUmVwcm9kdWNlZCBvbiA3LjMtcmM0ICh4ODZfNjQgUUVNVSwgS0FTQU4p
-OgoKWyAgIDQ1Ljk0Mjc4M10gQlVHOiBLQVNBTjogc2xhYi1vdXQtb2YtYm91bmRzIGluIG9jZnMy
-X2V2aWN0X2lub2RlKzB4MjhmNy8weDNhYzAKWyAgIDQ1Ljk0MjgxOF0gUmVhZCBvZiBzaXplIDQg
-YXQgYWRkciBmZmZmODg4MQpbICAgNDUuOTQyODI3XSBDYWxsIFRyYWNlOgpbICAgNDUuOTQyODI5
-XSAgZHVtcF9zdGFja19sdmwrMHgyZC8weDcwClsgICA0NS45NDI4MzNdICBwcmludF9yZXBvcnQr
-MHgxNzUvMHg3ZDAKWyAgIDQ1Ljk0MjgzNl0gIGthc2FuX3JlcG9ydCsweDEzOS8weDE3MApbICAg
-NDUuOTQyODM5XSAgb2NmczJfZXZpY3RfaW5vZGUrMHgyOGY3LzB4M2FjMApbICAgNDUuOTQyODQw
-XSAgZXZpY3QrMHgzNDQvMHg2ZTAKWyAgIDQ1Ljk0Mjg0Ml0gID8gaXB1dCsweDQ1ZC8weDczMApb
-ICAgNDUuOTQyODQzXSAgb2NmczJfZmlsZWNoZWNrX2F0dHJfc3RvcmUrMHg5NmEvMHhkMzAKWyAg
-IDQ1Ljk0Mjg0Nl0gIG9jZnMyX2ZpbGVjaGVja19zdG9yZSsweDVkLzB4OTAKWyAgIDQ1Ljk0Mjg0
-N10gIGtlcm5mc19mb3Bfd3JpdGVfaXRlcisweDI2Mi8weDM3MApbICAgNDUuOTQyODQ5XSAgdmZz
-X3dyaXRlKzB4OTMzLzB4Y2IwClsgICA0NS45NDI4NTJdICBrc3lzX3dyaXRlKzB4ZjIvMHgxYjAK
-WyAgIDQ1Ljk0Mjg1M10gIGRvX3N5c2NhbGxfNjQrMHgxNWIvMHg0MjAKWyAgIDQ1Ljk0Mjg1Nl0g
-IGVudHJ5X1NZU0NBTExfNjRfYWZ0ZXJfaHdmcmFtZQouLi4KWyAgIDQ1Ljk0Mjg2N10gQWxsb2Nh
-dGVkIGJ5IHRhc2sgODE6ClsgICA0NS45NDI4NzBdICBfX2thc2FuX2ttYWxsb2MrMHg3Mi8weDkw
-ClsgICA0NS45NDI4NzFdICBfX2ttYWxsb2Nfbm9wcm9mKzB4MWQyLzB4NDcwClsgICA0NS45NDI4
-NzVdICBvY2ZzMl9maWxsX3N1cGVyKzB4MTk1Yi8weDU5ZjBzLCAuLi4pClsgICA0NS45NDI4ODVd
-IFRoZSBidWdneSBhZGRyZXNzIGlzIGxvY2F0ZWQgNCBieXRlcyB0byB0aGUgcmlnaHQgb2YKWyAg
-IDQ1Ljk0Mjg4NV0gIGFsbG9jYXRlZCA0LWJ5dGUgcmVnaW9uIFtmZmZmODg4MTA1ZjA0YTQwLCBm
-ZmZmODg4MTA1ZjA0YTQ0KQpbICAgNDUuOTQyOTEwXSBPb3BzOiBnZW5lcmFsIHByb3RlY3Rpb24g
-ZmF1bHQsIHByb2JhYmx5IGZvciBub24tY2Fub25pY2FsCiAgICAgICAgICAgYWRkcmVzcyAuLi4g
-KHRoZSBwb2ludGVyIHJlYWQgcGFzdCBpbm9kZSkKCj5NaXJyb3IgdGhlIG5vcm1hbCB2YWxpZGF0
-b3IncyBzbG90IGNoZWNrcyBpbiB0aGUgZmlsZWNoZWNrIHZhbGlkYXRvci4KPlJlamVjdCBpbnZh
-bGlkIHNsb3RzIGluIHRoZSByZXBhaXIgcGF0aCBhcyB3ZWxsLCBzaW5jZSB0aGUgY29ycmVjdAo+
-c2xvdCBjYW5ub3QgYmUgcmVjb3ZlcmVkLgo+Cj5GaXhlczogYmI4ODEzMWM5ODMxICgib2NmczI6
-IHZhbGlkYXRlIERJTyBvcnBoYW4gc2xvdCBkdXJpbmcgaW5vZGUgcmVhZCIpCj5TaWduZWQtb2Zm
-LWJ5OiBKaWFsZSBZYW8gPHlhb2ppYWxlMDJAMTYzLmNvbT4KPi0tLQo+IGZzL29jZnMyL2lub2Rl
-LmMgfCA0NSArKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysKPiAx
-IGZpbGUgY2hhbmdlZCwgNDUgaW5zZXJ0aW9ucygrKQo+Cj5kaWZmIC0tZ2l0IGEvZnMvb2NmczIv
-aW5vZGUuYyBiL2ZzL29jZnMyL2lub2RlLmMKPmluZGV4IDE4MDEwN2ExMTA0Ni4uYWI4MmNmOTE0
-NmVmIDEwMDY0NAo+LS0tIGEvZnMvb2NmczIvaW5vZGUuYwo+KysrIGIvZnMvb2NmczIvaW5vZGUu
-Ywo+QEAgLTE3NTQsNiArMTc1NCw0NCBAQCBpbnQgb2NmczJfdmFsaWRhdGVfaW5vZGVfYmxvY2so
-c3RydWN0IHN1cGVyX2Jsb2NrICpzYiwKPiAJcmV0dXJuIHJjOwo+IH0KPiAKPisvKgo+KyAqIFZh
-bGlkYXRlIHRoZSBzbG90IGZpZWxkcyB1c2VkIGFzIGluZGljZXMgaW50byBhcnJheXMgc2l6ZWQg
-YnkKPisgKiBvc2ItPm1heF9zbG90cy4gIFRoZSBmaWxlY2hlY2sgcGF0aCB1c2VzIHRoaXMgdmFs
-aWRhdG9yIGluc3RlYWQgb2YKPisgKiBvY2ZzMl92YWxpZGF0ZV9pbm9kZV9ibG9jaygpLCBzbyBp
-dCBtdXN0IGVuZm9yY2UgdGhlIHNhbWUgYm91bmRzLgo+KyAqLwo+K3N0YXRpYyBpbnQgb2NmczJf
-ZmlsZWNoZWNrX3ZhbGlkYXRlX3Nsb3RzKHN0cnVjdCBzdXBlcl9ibG9jayAqc2IsCj4rCQkJCQkg
-IHN0cnVjdCBvY2ZzMl9kaW5vZGUgKmRpLAo+KwkJCQkJICB1bnNpZ25lZCBsb25nIGxvbmcgYmxr
-bm8pCj4rewo+KwlzdHJ1Y3Qgb2NmczJfc3VwZXIgKm9zYiA9IE9DRlMyX1NCKHNiKTsKPisKPisJ
-aWYgKGxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpICE9ICh1MTYpT0NGUzJfSU5WQUxJ
-RF9TTE9UICYmCj4rCSAgICAodTMyKWxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpID4g
-b3NiLT5tYXhfc2xvdHMgLSAxKSB7Cj4rCQltbG9nKE1MX0VSUk9SLAo+KwkJICAgICAiRmlsZWNo
-ZWNrOiBpbnZhbGlkIGRpbm9kZSAjJWxsdTogc3ViYWxsb2Mgc2xvdCAldVxuIiwKPisJCSAgICAg
-Ymxrbm8sIGxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpKTsKPisJCXJldHVybiAtT0NG
-UzJfRklMRUNIRUNLX0VSUl9JTlZBTElESU5POwo+Kwl9Cj4rCj4rCWlmICgobGUzMl90b19jcHUo
-ZGktPmlfZmxhZ3MpICYgT0NGUzJfT1JQSEFORURfRkwpICYmCj4rCSAgICBsZTE2X3RvX2NwdShk
-aS0+aV9vcnBoYW5lZF9zbG90KSA+PSBvc2ItPm1heF9zbG90cykgewo+KwkJbWxvZyhNTF9FUlJP
-UiwKPisJCSAgICAgIkZpbGVjaGVjazogaW52YWxpZCBkaW5vZGUgIyVsbHU6IG9ycGhhbmVkIHNs
-b3QgJXVcbiIsCj4rCQkgICAgIGJsa25vLCBsZTE2X3RvX2NwdShkaS0+aV9vcnBoYW5lZF9zbG90
-KSk7Cj4rCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfSU5WQUxJRElOTzsKPisJfQo+Kwo+
-KwlpZiAoKGxlMzJfdG9fY3B1KGRpLT5pX2ZsYWdzKSAmIE9DRlMyX0RJT19PUlBIQU5FRF9GTCkg
-JiYKPisJICAgIGxlMTZfdG9fY3B1KGRpLT5pX2Rpb19vcnBoYW5lZF9zbG90KSA+PSBvc2ItPm1h
-eF9zbG90cykgewo+KwkJbWxvZyhNTF9FUlJPUiwKPisJCSAgICAgIkZpbGVjaGVjazogaW52YWxp
-ZCBkaW5vZGUgIyVsbHU6IERJTyBvcnBoYW5lZCBzbG90ICV1XG4iLAo+KwkJICAgICBibGtubywg
-bGUxNl90b19jcHUoZGktPmlfZGlvX29ycGhhbmVkX3Nsb3QpKTsKPisJCXJldHVybiAtT0NGUzJf
-RklMRUNIRUNLX0VSUl9JTlZBTElESU5POwo+Kwl9Cj4rCj4rCXJldHVybiAwOwo+K30KPisKPiBz
-dGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3Vw
-ZXJfYmxvY2sgKnNiLAo+IAkJCQkJCXN0cnVjdCBidWZmZXJfaGVhZCAqYmgpCj4gewo+QEAgLTE4
-MzUsNiArMTg3MywxMCBAQCBzdGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0ZV9pbm9k
-ZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLAo+IAkJZ290byBiYWlsOwo+IAl9Cj4gCj4r
-CXJjID0gb2NmczJfZmlsZWNoZWNrX3ZhbGlkYXRlX3Nsb3RzKHNiLCBkaSwgYmgtPmJfYmxvY2tu
-cik7Cj4rCWlmIChyYykKPisJCWdvdG8gYmFpbDsKPisKPiAJaWYgKG9jZnMyX2Rpbm9kZV9oYXNf
-c2l6ZV93aXRob3V0X2NsdXN0ZXJzKHNiLCBkaSkpIHsKPiAJCWlmIChTX0lTRElSKGxlMTZfdG9f
-Y3B1KGRpLT5pX21vZGUpKSkKPiAJCQltbG9nKE1MX0VSUk9SLAo+QEAgLTE4OTMsNiArMTkzNSw5
-IEBAIHN0YXRpYyBpbnQgb2NmczJfZmlsZWNoZWNrX3JlcGFpcl9pbm9kZV9ibG9jayhzdHJ1Y3Qg
-c3VwZXJfYmxvY2sgKnNiLAo+IAkJcmV0dXJuIC1PQ0ZTMl9GSUxFQ0hFQ0tfRVJSX1ZBTElERkxB
-RzsKPiAJfQo+IAo+KwlpZiAob2NmczJfZmlsZWNoZWNrX3ZhbGlkYXRlX3Nsb3RzKHNiLCBkaSwg
-YmgtPmJfYmxvY2tucikpCj4rCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfSU5WQUxJRElO
-TzsKPisKPiAJaWYgKGxlNjRfdG9fY3B1KGRpLT5pX2Jsa25vKSAhPSBiaC0+Yl9ibG9ja25yKSB7
-Cj4gCQlkaS0+aV9ibGtubyA9IGNwdV90b19sZTY0KGJoLT5iX2Jsb2NrbnIpOwo+IAkJY2hhbmdl
-ZCA9IDE7Cj4tLSAKPjIuMzQuMQo=
+On 8/11/26 9:57 AM, Joseph Qi wrote:
+> I think we can validate localalloc inode during block read in
+> ocfs2_validate_inode_block(), which will drop the duplicate code in
+> callers.
+
+Hi Joseph,
+
+Thanks for the suggestion. I moved the la_size check there, and it
+does catch the current reproducer during mount. Before dropping the
+duplicate checks in ocfs2_begin_local_alloc_recovery() and
+ocfs2_load_local_alloc(), I'd like to raise two concerns:
+
+1. ocfs2_begin_local_alloc_recovery() reads the inode with
+    OCFS2_BH_IGNORE_CACHE, and ocfs2_read_blocks() skips validation
+    for dirty buffers. I traced through jbd2 replay: 
+ocfs2_replay_journal()
+    calls jbd2_journal_flush() right after jbd2_journal_load(), and
+    jbd2_journal_recover() itself calls sync_blockdev(), which should
+    clear the dirty flag before ocfs2_begin_local_alloc_recovery() runs.
+    So this may not be reachable in practice, but I haven't been able
+    to confirm it directly. The current reproducer hits the
+    validator with a clean buffer during the initial mount, before
+    recovery is reached at all. Is it possible to confirm that the
+    buffer is guaranteed to be clean by that point?
+
+2. The check is gated on OCFS2_LOCAL_ALLOC_FL, but
+    ocfs2_validate_inode_block() doesn't receive the inode's expected
+    type, so it can't verify that the on-disk flags actually match
+    what the caller expects. A corrupted local alloc inode with the
+    flag cleared would skip the check, even though
+    ocfs2_clear_local_alloc() still treats its id2 as i_lab. Is there
+    an existing way to check this correspondence? Otherwise, this
+    might call for a separate per-type validation helper that takes
+    the expected inode type, which could also help elsewhere.
+
+My inclination is: v1 (the check directly in
+ocfs2_begin_local_alloc_recovery() and ocfs2_load_local_alloc())
+has held up in testing so far, with a small additional fix on my
+end. Both call sites operate in the LOCAL_ALLOC_SYSTEM_INODE context
+and check la_size before using id2 as i_lab, so they do not depend on
+OCFS2_LOCAL_ALLOC_FL for deciding whether to validate la_size.
+Returning this new error also made a separate, pre-existing bug in
+the recovery thread reachable, for which I have a small follow-up
+fix.
+
+If the two concerns with ocfs2_validate_inode_block() can be
+addressed without too much churn, I agree it is the better place
+for this check, since it would cover every caller uniformly.
+Otherwise, I'd rather keep it in v1's approach.
+
+Does this seem reasonable, or would you weigh it differently?
+
+Thanks,
+Dmitry
