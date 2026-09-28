@@ -1,72 +1,72 @@
-Received: from mail-ed2-f33.google.com (mail-ed2-f33.google.com [74.125.228.97])
+Received: from mail-ej2-f42.google.com (mail-ej2-f42.google.com [74.125.228.170])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 42CDB339847
-	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 05:18:49 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0DE9F443307
+	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 07:39:19 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.170
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790572730; cv=none; b=tE3Ylmrs10dOhU9WXt36NpNDk4UfPXEzIEPGGYmCxqpP3PyDKId+25wS3qwD98LrQUWWQZjWGVIfyATkxF47icPiK6QLDTR2qjfklPDG0rZmOcgwqGct0nXpppMu8NizFy67SV1l2JlPNYho1H2fVsSwT3bPHlm+FQLAtmtMo+U=
+	t=1790581161; cv=none; b=cGgKrSmqxKnByKjRyv0V5+8gisqNzwXVR+MG2Apql8lx+ISCPuz6XjaflkyvtgOEGne6YH0UIFHW1YGkTohO43gLA7/t9utYPvF0pk0TAn1LZGcfnlbU/LDmvaCHKQTuPp2/naHKU/SmPMyC9MDo7UvAF1mYMQ3t0FYsxwm/ccI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790572730; c=relaxed/simple;
-	bh=0U+mL4Cz0OFJUraDh13qs6pe7BCHS1EnZDU5ZEcmVnw=;
+	s=arc-20240116; t=1790581161; c=relaxed/simple;
+	bh=Ee1O85EU6mL4A+k6BaSrrjPcrUn1HmO7/SaFHlvVrt8=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=OWfPf/naITqSPwQXs1crj5Ig50byCU/WfNYPEUeWJxZxKmzc/+Pdt6AOH3hUXkeN9cR2NJ2NL8Ys7g1XMPW2z2ZGCgJxULwG4Iwtux4i4zawBdBEZ3hAfF6YrCCE8kZQCK3jYXorzxzMdub3RHpWE3FLtjfQi7riT6nyMJREEEA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=FkLPz9pu; arc=none smtp.client-ip=74.125.228.97
+	 Content-Type:Content-Disposition:In-Reply-To; b=hN0B42b5PzLui12m3g08ZLIVVw0LGqoDQbRnEnZPISYBjnpnaBy/JTP9eqVAtNY3bLBeNgON889VeSqjdCpAhSUUtLIP8JqdJYimmjJ7E8KAFEc8S32GnP83mmmx+NKE6n1vteZlXoltLGf/cA+liYLDlPsd8hokBjdlGcgPqV0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=FgQcCEFC; arc=none smtp.client-ip=74.125.228.170
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="FkLPz9pu"
-Received: by mail-ed2-f33.google.com with SMTP id 4fb4d7f45d1cf-6ac6d9a3d50so164999a12.3
-        for <ocfs2-devel@lists.linux.dev>; Sun, 27 Sep 2026 22:18:49 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="FgQcCEFC"
+Received: by mail-ej2-f42.google.com with SMTP id a640c23a62f3a-c2c89ebe1b7so7825266b.1
+        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 00:39:19 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1790572727; x=1791177527; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1790581158; x=1791185958; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=JrcsFhimSFFpvPxn7z9kfbGviN4GpU7NSPm5ovf6tpY=;
-        b=FkLPz9pu0X0bZkkB+mZHlpz2g9fVQrsyVTYhfZibMyCVsTTqX6S9cNpYGG62oMWwoH
-         ZA54KiKyh4oKx90HpX7eQXLo/ziGrO1Ptvnz7p6g8asTQcVwh2H7Q25Pt4FtfMj83j+x
-         fQgrKMxdOFZY4XwnNaLrer41JYsjRtlCqzUZBZVJ5QPU7clSt3yQ+O94dOTSPigXCAaI
-         1Hp9WF0aMtNjsoCschTz/BQg7zO39rryTaHH91S+qM6+AIKnBYI441L1f+d6u6sJjz6U
-         1umBUF8r3QJQlrjzzMyO12In9+As03ZARssdL/e+Lou1cyYCiOYF9MziS1K2r1QaHA+c
-         V3rA==
+        bh=poKTzHIbdYPKoKWNDbZeL46WSq1iGtUDaGIwgKIDsjM=;
+        b=FgQcCEFC00EfYsnY8G+4N8QoxBSmcuPZ+ZoZn5OTSzsyUE+jCeDu5zf6fwvCosX8wR
+         dQPlhl4BITz6C+C509crN1g+jmTYnG+GpQ3If+wTRo3qbPQYG/CnPpbZaBo/8lN7jl/x
+         KO97OP2lgtfkVIG5pHRtqUbeu4lR2xzmuw3np8KlzrGcwyDgHuAMZoPiG4Wo/hDcAbD6
+         rFuW/he9dSotJaBFMp1ydxtkIlCNGRqv1tEnlthWTD1gNtQsTcdhFsp7+G/bjPfwVBNY
+         4YJx2t1PklD2qGoCD1uC68FoCVRx4TioS1W6QETddvTL3YE0OB1kVKkVdsmqbD0XGW2f
+         O0QA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790572727; x=1791177527;
+        d=1e100.net; s=20260707; t=1790581158; x=1791185958;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=JrcsFhimSFFpvPxn7z9kfbGviN4GpU7NSPm5ovf6tpY=;
-        b=zptjLNuKnRUmfUgNAKUq3kqq9l4NSUcy4F8cVR0cSQXKeY2mmUSCjdXJrSGWh8KLtA
-         wWwcJymrlxYQQwItqt7m5f0efZ7N6XPdQsX2VEN6QtWc+VGIYK37ihn7vWXU0iBoHWIa
-         IFjNxtLpSmc5EFftxuPjNZe3+RqwlPyTR1fvD4N12527xGuSpdldwqAasH10gAfd4LOW
-         Y6ebdemmoY2Z2N4Pbo41K3BX1URszs1J/Xk1art/eZKBZoSqtWsvx4Nlj7CY0G3Xae/6
-         xFO6bvYe+aNAinjKMM3OTC+S8Ej0wrs+s5j3CscpGd8qDZ7+EC4EcZvr5bIx0euZ7Sm7
-         9Utg==
-X-Forwarded-Encrypted: i=1; AKwUvByDDYpo8AGuXvlW8CCrKwv7X7gW8HUKzyNIzqpG8HUOAKPRc4/Kjqg0V7jbIX35Lf/8Opq3iRY4uL5rdg==@lists.linux.dev
-X-Gm-Message-State: AFuF++kfxPPsFgAihyg2WYhohwyHae6ioIhVEWARW5E3W7jYznDH6Sgo
-	ORiEgh8QmE3unzM6LbkRjtNAhl96IwzQf6QhvIBbTM2+RVu2ToQE67ZF/foRKxPgTk0=
-X-Gm-Gg: AYBFou2zhw+LhMcNwOOA3x2FCK+w2d4R7Mekq66yXXGBFd7yrh6H2iK3+GVdbmPJSLk
-	r943O73DV4WyY46buJ3pHAlJKexMMvT/cSIF3gT5e1Aid4747YmJWlsAS7mWwXufPNeacrmyDah
-	yvkdB/bUJwDzcDCJaAVtYcr8q15raNUIDcX6eBM79rVbuDHsy4pVaxx3i4kQG4tgWTPGQnFvOnN
-	Edr/vH2b+khU+I7+I9peMSjIJH78dt31NBZj+0t6lfsY+vMgwEsmtnLSXycwdgtMDnXhj/8rYR4
-	zFCtYgD89tbo1ABzf1UcZwPgf4bk+F/PNw2+m1lawBchdeegOEIlmj/N0VYCnM8QLvfNN/8ZYEb
-	LFWF5JL2TdeendRw6pG2eI1iTCkyjXj4C77NMsrvKEFUSYlu5LPsvC3+3+HhtmKQOT9i079WUpK
-	un9cLGOA9I3ynx9f9Nm+fv2++jDHeThxwcFT2sf7/BGOwwRvalUhVOI47jvMc7iRxoE/xJ
-X-Received: by 2002:a17:907:d08:b0:c25:2ded:ad36 with SMTP id a640c23a62f3a-c2ac2053cb1mr1106011066b.0.1790572727431;
-        Sun, 27 Sep 2026 22:18:47 -0700 (PDT)
+        bh=poKTzHIbdYPKoKWNDbZeL46WSq1iGtUDaGIwgKIDsjM=;
+        b=jwowXOU8wEgT/bylMJvbUSeRLRhqlwEk7ImqVM/YMVnCPHkKHC99AU5To0UiBLplHE
+         3ZF8DhHT4S82TgYePqeT0PEP3EpNW8xPE8a+igZ87CB6w4JNPyFIdMc8h0PgcecWEziI
+         j1s8hg/77ewoBW7dNlULgvkRESKkmuMNJt9L0X5k8Zs3MYkuMKDJQR9L93H8UalVkqKY
+         n3UKGQg/sYqFUQgvmkan7+vjsU9g8JUuPP3zgi7bKqlcPAu9kNSctWszoNz1pF4JGQnU
+         NShBbkX6A4ePSx7ecejjSSOGNTtVSS5X97MIY7/Z74NYGtVVcuSqiT39FM8FlTajEocv
+         SqFg==
+X-Forwarded-Encrypted: i=1; AKwUvBzoFWPZ0LVU1ZrKzDvgsKOiBjT47OcVVIn80B2SPQHGMgYwArGX+x72D9sxgP3SKS4lUOZgSV4ituweRQ==@lists.linux.dev
+X-Gm-Message-State: AFuF++lMpIiaDLY91ot56BIq4GqFyRlB3xi+8beq1lypsjCi2qYeTjQx
+	j+C8+D42WWO4FC1o8c8hWYuqO7iSeOgMNiRvKFaXSjS5hXJG8Dcw4FKyBW4x/KxSAv0=
+X-Gm-Gg: AYBFou3Rgv1+UgCosAClyVSJ9dFu2OA7D2Y99iiV+5S014ID7+wI3u770++wCb3jKy+
+	9wpTOVEfRmf0eIAdx1d8WLoNlhzK5AgXFJuV+4j2xzSAjEPvzfrdZRvx964woyINuVv5HXx2gYZ
+	Lx6qNl6x4lsMmD6hP+uXkuxIG04sCyIbnUHh3iLmADZqc3ux81VyCOWK4JuXa3nnd2g9ZxPqmxx
+	ZRyp/7b49FWh5ZKNZ42K2OKZa/Vary0qNlBTDyhMYdQYImGO9C4uLFHtv/3LJkf5CoQTOVNI/Ls
+	9ojLu5zWHjVb2JHLurNN4JsuTl9duU1YpWyL0IHVZH2jYoTQnN7hafNsARK0uSe9qH2e/UNLeGD
+	KP9Cu7n27UhBzpzf8UJMKFRSi+5Bk+zhHtVv+Vc3T+ozTbojUlaqjuHEcKTrgkxSoaaukqxOrs+
+	5tB/LNVEKbvEqVH+6DlcaJ2nREs9xhn1SXERi6arvZp1mOhrgXpPJJOA1XWkN1KEIA5H1v
+X-Received: by 2002:a17:907:9719:b0:c2d:e6a7:81d5 with SMTP id a640c23a62f3a-c2de6a7d020mr58347466b.1.1790581158165;
+        Mon, 28 Sep 2026 00:39:18 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2df913fcbbfsm34936535ad.30.2026.09.27.22.18.45
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-87fea19030bsm3742545b3a.11.2026.09.28.00.39.16
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 27 Sep 2026 22:18:46 -0700 (PDT)
-Date: Mon, 28 Sep 2026 13:18:42 +0800
+        Mon, 28 Sep 2026 00:39:17 -0700 (PDT)
+Date: Mon, 28 Sep 2026 15:39:14 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>, yaojiale02@163.com
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
 	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
 	linux-kernel@vger.kernel.org
 Subject: Re: [PATCH] ocfs2: validate extent list in filecheck repair
-Message-ID: <arn2x2Y688K9Js4N@p15>
+Message-ID: <aroZaYiB-DUxFyLs@p15>
 References: <20260926131848.3379842-1-yaojiale02@163.com>
  <744a70bd-5455-421f-a37d-1c0a63f54b60@linux.alibaba.com>
 Precedence: bulk
@@ -101,6 +101,17 @@ On Mon, Sep 28, 2026 at 09:33:12AM +0800, Joseph Qi wrote:
 > > Fixes: d56a8f32e4c6 ("ocfs2: check/fix inode block for online file check")
 > 
 > I'd like make this as a new ability rather than a bug fix.
+
+Agree
+
+In my experience, users run online file checks only when inode data is corrupted,
+or when fsck/debugfs has already reported an inode issue prior to the check.
+
+The Fixes tag should only be used for the patch that fixes the unintended panic
+and read-only issue introduced by commit d56a8f32e4c6.
+
+- Heming
+
 > 
 > > Signed-off-by: Jiale Yao <yaojiale02@163.com>
 > > ---
@@ -159,69 +170,6 @@ On Mon, Sep 28, 2026 at 09:33:12AM +0800, Joseph Qi wrote:
 > 
 > Thanks,
 > Joseph
-
-Hi Joseph,
-
-The code logic is identical for ocfs2_validate_inode_block() and
-ocfs2_filecheck_validate_inode_block(), except for their error handling style.
-It seems possible to merge them into ocfs2_validate_inode_block() by adding
-a bool check parameter to distinguish between the two behaviors, and then remove
-ocfs2_filecheck_validate_inode_block().
-
-The new code logic: replace ocfs2_error() with mlog(), and then "goto bail".
-At the bail label, handle the two cases separately using "if (check)".
-
-i.e.:
-//adding a new parameter "check"
-int ocfs2_validate_inode_block(struct super_block *sb,
-			       struct buffer_head *bh, bool check)
-
-
-code change from:
-```
-	int rc;
-
-	... ...
-
-	if (!OCFS2_IS_VALID_DINODE(di))
-                rc = ocfs2_error(sb, "Invalid dinode #%llu: signature = %.*s\n",
-		     (unsigned long long)bh->b_blocknr, 7,
-                     di->i_signature);
-                goto bail;
-        }
-```
-
-to
-```
-	int rc = 0;
-
-	... ...
-
-	if (!OCFS2_IS_VALID_DINODE(di))
-                mlog(sb, "Invalid dinode #%llu: signature = %.*s\n",
-		     (unsigned long long)bh->b_blocknr, 7,
-                     di->i_signature);
-                goto bail;
-        }
-
-	... ...
-
-	return rc;
-
-bail:
-	if (check) {
-		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-	} else {
-		rc = ocfs2_error(sb, "invalid dinode\n");
-	}
-
-	return rc;
-}
-```
-
-Thanks,
-Heming
-
 > 
 > > +
 > >  /*
