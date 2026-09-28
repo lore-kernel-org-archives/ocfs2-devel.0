@@ -1,161 +1,162 @@
-Received: from mail-yx2-f42.google.com (mail-yx2-f42.google.com [74.125.224.170])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from mout.web.de (mout.web.de [212.227.15.14])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0C894466AED
-	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 08:05:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.224.170
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790582704; cv=pass; b=XdmiZS/4NVYGMcSTDZBgAsonvVzpJkCcM+eAcMwrdbWxhJ7dOIlX19XOGlyV/J8U1jGsr9iAziqvoyGM2tSZjhesvGGbBdjWx+5f3CPhfMZ3MQy2WbzM81lz2L5cNWd/ICgCYSYANwYoIHeNeBYjdWolhW+WqXtUsk1HiaOznOc=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790582704; c=relaxed/simple;
-	bh=rYGzTv4II1xcif7R0OCDIGqLZTgPuzaXkmrhhhmD0oI=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=rDB8DTmMtKlQI42RTUeEhI/cdCcIOXalDa035+rgOvZoRv6zOv3fLCet2LCUGsu17Yc9p5hA44fruEKG8CM67JStDLd4t7qT7ASqjCEZ/HqwY2JeEwp7acTY7GOM/nk0r80tr7lj7L3sxk37XLt+kuylLFvgl7rP3MWyDXzlPIs=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=A7FE6EDt; arc=pass smtp.client-ip=74.125.224.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E11304734F3
+	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 08:41:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=212.227.15.14
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1790584869; cv=none; b=usO8uVZDtdRfvhYBWgTC6lqOnJrqqV7Hg4ni9N11avEl8aKLh/dCk+Hhen+fcSt1iNoWfm7B66sBlIE5PcKGSnkKsFBYgVeLxSfxy4Ti1bTt1OXgs1fKghguMDIpp0+FJhc8beYnH8FgghfvYw+2xABR1o6CabqW3Nb/Xf1DCrw=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1790584869; c=relaxed/simple;
+	bh=6r3vpx/NkYETsM/mPEp3V9vb/MNzPolgc/j6bVjGvhk=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=bp2451v5EIKLDrs0TS/Kq5M98CicnlyUhzPwZOoNXrL93/XiBZ5KXvgd3U0mqLzVHCVabtX+Dqddzqwm33nQYEdVBW5KZ0fSbRHXIV8WIB8U8+fj9s7E5alahb3A58qUkvmG8w1oJ5VVvTep3FXTfjuIcvX4VFVOgB5JNnqLrnY=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de; spf=pass smtp.mailfrom=web.de; dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b=uDNJkzBl; arc=none smtp.client-ip=212.227.15.14
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=web.de
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=web.de
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="A7FE6EDt"
-Received: by mail-yx2-f42.google.com with SMTP id 956f58d0204a3-6730c3bdb35so1643482d50.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 01:05:01 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1790582701; cv=none;
-        d=google.com; s=arc-20260327;
-        b=oArVf4qHFBqTZ1JQdECuiU3hRVSsZRvWZAm+4gP4UkttxUxhToBSDlv3yIiNttJwaw
-         StUfEcoEY1uDRh5iDIHmgy0n71mOWTgm+koWIa0cVDZxEXdzpBTUQMzZBJVwLJBFTfrg
-         w7dgQRyqGX5eZFZ/RsG0FIYfP2ps/JP323OLeOUzGNbq9JQJqau+j92e7O/b2LQAZu6n
-         h9mJn1N20kIb2Q/GmhCaf+m8ikZnS3ZtnZ4yZkejkgGueXWwdVijXRO7urMISRtcUuoR
-         1JM090Na3A+VcDuqizB5G3vbS+M9l3OA4PXnlJtS6gCGDYKdWybaS1/V9BcJCn2x7XIa
-         fQ7Q==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=weemlP5ww78KHBN9CNOBBf9t9fcK7VK8fKkN44aV56o=;
-        fh=pmPOXAqPKXYsRV81qCzttcnlvUro4EAqnGxc9D03bc0=;
-        b=d1EAirS3k6ucbp8yHWhtJPDl5XnOQCpuPKEpZCsGowbXVHetu0YaM7EGMmasBG7ZBZ
-         pRRiC4AE3HGj+VlWOmiWeBm//AZsKlyNQJnnGPcGRLhgzMXLyFKYwWwf8lTW5bCRTwBK
-         6nc7uijsIZNcxpr9vmax5SSlgr8pRpt4JHrc9xJTW98mhbFVfllMSrjEnseiU/WRva+k
-         kuGVflj/zzZhuyjMICpX69FYrrg6QQnIEPjcIsgyoJKVDtlucMHGpCTq5D6L8sriMEtG
-         HP0GxBpCqWhH60V0sfkNwbikv/1gbrR5yiMUzJ5oLzledev7F/v9LOgFuSqoANz4VN0i
-         RkpA==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1790582701; x=1791187501; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=weemlP5ww78KHBN9CNOBBf9t9fcK7VK8fKkN44aV56o=;
-        b=A7FE6EDty5s9s6qTGYlmz63+0KfqKlMrQebKa4FOiA5ib8IcwI1p81UWKxeFDdNhiX
-         aOJX53mrxM1N31rG0tkpmo0/M19IU1789iJ6KGYNYE+i42MKox+xfpulL6ntNiV0oaX/
-         wHBt9AoUgqL82/Se0KIOTam4mT2TTSVg73mMeBTF4rrFlsXL/p+LLMBYNzX1q3owWKFU
-         THlnFS8uznjV96B0fQG7ylaRkRwkokYDwlXIWidU+VHXE86AtQgbVH5cRHh0q0x+jBFE
-         i4JV3Be0aEpJccNXxiQM4BocVE+rBKLTjsfaHQ7RG87/qUeqpnUkBPYWxQCR9sW9dD5e
-         8img==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790582701; x=1791187501;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=weemlP5ww78KHBN9CNOBBf9t9fcK7VK8fKkN44aV56o=;
-        b=cCJt42/rC5b69dLGtgeBgw79aPOTFAhxjVJE1TlEow2bPeEmGj6/CER0rgFGIRsVBR
-         EHJ2rqk3ziMgdl3DvakDfpRcMKMbqM4oFwu2b9Aj2ZErYgCJ700X8oP4YWY60dQb/apf
-         ZwEoKEKvgq63wkdvg8mH5nHc3Yj88pr9Ls1POOYwawXZ4uBtC4g3HQ1O/ZpGmi9/B62f
-         /Mi0GZ+8WGntpcMwGkaS76mcGDyyRYdsTU5RVQZPJ2RJMlHjx+fI/DeiHAv4lkwE8x2J
-         Qk3L6EDurAU766U355O0f/+hJ6bzTUB2pc3htezUgSjOstxPx9fzJq3jFm90+ZebT1jp
-         NV6w==
-X-Gm-Message-State: AFq9FYLxCzIlnr17DNijjydgGPSI1S/gkMtPrW8RsRHN9PlTMj5gkRig
-	w4XqWT/jxa4RNpN3kUSvuz5IVgQgKrHEZ+XSsKRavoIP12y7Wpee/Mn0VDL7KZIgFEHHeQAdWbq
-	nlBTAlDlF6q4BAQ34bG5r1dUe+TeDJFQ=
-X-Gm-Gg: AYBFou1SneNJxZE/MNCClr6krn1CBMHcp3+8M05jBgwpd9FFFvCjJDobQ5pdBV78+Jn
-	pPLkiDLNocZj6N0vmTBbM/yNOmCBZW2+fB9RGG1OXQWhUKhir1e75zg2zoQjQsQuI3Y6Z/OIS4s
-	L1fmA12mqSyBUPG+ISdUL+NLtBKaQt7vOi58GHx6ZFrvGsisfg1IbCawfBYJ+jvf9KgQ2NZKfwO
-	2WmHqzu1SWaw1dNPjTZFBeARgw1EXFqgh65iLrCGCI7SUEOc68g/kDnPHK6AUYF8fHvi+fvcu9n
-	53adP2Kj3jgW9yv5sBhk+e3wRJFjxydWR5vJpVgaLNeg2H/dEoHOLy8=
-X-Received: by 2002:a53:d4cc:0:b0:672:ae78:caf1 with SMTP id
- 956f58d0204a3-672ed553f55mr3376425d50.50.1790582700894; Mon, 28 Sep 2026
- 01:05:00 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=web.de header.i=markus.elfring@web.de header.b="uDNJkzBl"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=web.de;
+	s=s29768273; t=1790584839; x=1791189639; i=markus.elfring@web.de;
+	bh=6r3vpx/NkYETsM/mPEp3V9vb/MNzPolgc/j6bVjGvhk=;
+	h=X-UI-Sender-Class:Message-ID:Date:MIME-Version:Subject:To:Cc:
+	 References:From:In-Reply-To:Content-Type:
+	 Content-Transfer-Encoding:cc:content-transfer-encoding:
+	 content-type:date:from:message-id:mime-version:reply-to:subject:
+	 to;
+	b=uDNJkzBlkLDfnH7CrnWulsiOnaLix0dNizYNlmwbBQ9FICjUSI7G0KWPRofjCKT3
+	 o+MVrpx+8r79QqhsMV8SpxzyIJAP51DM0Egce0DZWEbq8PM1HD8tFOrN/Y+bFD6D9
+	 yfrB2pkonlNtlHSMFvb56JuChK2vSBAFE5ky5tXDvY2IQBhn2JygTrm/jW8sn11mu
+	 HpxxPgb/rJH1FisNDxG72Ur462TNZ4NtpUjIhF1fZCuiFzyYFNHf5ojXVgmcj5Pn3
+	 +55N87KM3r6E1H0G7JHUdjGbscwKtgxqKtrxL7H+vvCaJcv5LQ9GOfxaoHXoC3HKu
+	 6EVUE2bLXoLO92a8Qw==
+X-UI-Sender-Class: 814a7b36-bfc1-4dae-8640-3722d8ec6cd6
+Received: from client.hidden.invalid by smtp.web.de (mrweb005
+ [213.165.67.108]) with ESMTPSA (Nemesis) id 1MY5fd-1xEjZi2jWP-00IxnB; Mon, 28
+ Sep 2026 10:40:39 +0200
+Message-ID: <716be0b1-d28a-41d9-8433-ab58843bbadf@web.de>
+Date: Mon, 28 Sep 2026 10:40:07 +0200
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <20260922060048.13158-1-ginger.jzllee@gmail.com> <97f59588-8236-4566-bd8c-7be1a735cc1e@web.de>
-In-Reply-To: <97f59588-8236-4566-bd8c-7be1a735cc1e@web.de>
-From: Ginger <ginger.jzllee@gmail.com>
-Date: Mon, 28 Sep 2026 10:04:49 +0200
-X-Gm-Features: AclHuK86-mxPjYzK6T9aKDFOww6nLLaEc7jcFJWsZ-8gLplzX4I03ZZcu834sZE
-Message-ID: <CAGp+u1ZcA5vNhZ_Vx2HscEP2x3uXc_CrLQ0f7FNTa3UKFYyVTA@mail.gmail.com>
+User-Agent: Mozilla Thunderbird
 Subject: Re: [PATCH] ocfs2: Protect local_alloc_state updates in load/shutdown
-To: Markus Elfring <Markus.Elfring@web.de>
-Cc: ocfs2-devel@lists.linux.dev, Joel Becker <jlbec@evilplan.org>, 
-	Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>, 
-	LKML <linux-kernel@vger.kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+To: Ginger <ginger.jzllee@gmail.com>, ocfs2-devel@lists.linux.dev
+Cc: Joel Becker <jlbec@evilplan.org>, Joseph Qi
+ <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>,
+ LKML <linux-kernel@vger.kernel.org>
+References: <20260922060048.13158-1-ginger.jzllee@gmail.com>
+ <97f59588-8236-4566-bd8c-7be1a735cc1e@web.de>
+ <CAGp+u1ZcA5vNhZ_Vx2HscEP2x3uXc_CrLQ0f7FNTa3UKFYyVTA@mail.gmail.com>
+Content-Language: en-GB, de-DE
+From: Markus Elfring <Markus.Elfring@web.de>
+In-Reply-To: <CAGp+u1ZcA5vNhZ_Vx2HscEP2x3uXc_CrLQ0f7FNTa3UKFYyVTA@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+X-Provags-ID: V03:K1:VUAeb+HgLGcjqB5/DYx8uasr+onXUnIL0ApPfgOVz8H1OCdJA4F
+ sMErt2+gWIGgH0t0TJYZyVT033gylUyrny3mFXQiWM3WJwqT1ciSLdzW6Hu3J8JoPfxkoC8
+ dYY6aFj/QOskHzScKXguK6LA9dfUpQ9xTMfbj9FfZGIcDsA2lvKz3sL+bORqaLyi/n7bXnD
+ QfmiMRX+bGp+fwsCT5P6Q==
+X-Spam-Flag: NO
+UI-OutboundReport: notjunk:1;M01:P0:I639+ApSh3c=;twf9cbrKQMQ1ersJc2xD7fk/0rI
+ 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
+ XspB2jWHZbHQT
 
-Hi Markus,
+> Thanks for checking. Do the following changes match your expectation?
 
-Thanks for checking. Do the following changes match your expectation? Thank=
-s.
+I guess that source code indentation should be adjusted according to the proposed
+usage of scoped lock guards.
+Will further patch versions follow for improved applications of scope-based resource management?
 
-Sincerely,
-Ginger
----
- fs/ocfs2/localalloc.c | 16 +++++++++++-----
- 1 file changed, 11 insertions(+), 5 deletions(-)
-
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -342,8 +342,10 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
-  goto bail;
-  }
-
-- osb->local_alloc_bh =3D alloc_bh;
-- osb->local_alloc_state =3D OCFS2_LA_ENABLED;
-+ scoped_guard(spinlock, &osb->osb_lock) {
-+ osb->local_alloc_bh =3D alloc_bh;
-+ osb->local_alloc_state =3D OCFS2_LA_ENABLED;
-+ }
-
- bail:
-  if (status < 0)
-@@ -392,7 +394,9 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *os
-  goto out;
-  }
-
-- osb->local_alloc_state =3D OCFS2_LA_DISABLED;
-+ scoped_guard(spinlock, &osb->osb_lock) {
-+ osb->local_alloc_state =3D OCFS2_LA_DISABLED;
-+ }
-
-  ocfs2_resmap_uninit(&osb->osb_la_resmap);
-
-@@ -441,8 +445,10 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *os
-  ocfs2_journal_dirty(handle, bh);
-
-  brelse(bh);
-- osb->local_alloc_bh =3D NULL;
-- osb->local_alloc_state =3D OCFS2_LA_UNUSED;
-+ scoped_guard(spinlock, &osb->osb_lock) {
-+ osb->local_alloc_bh =3D NULL;
-+ osb->local_alloc_state =3D OCFS2_LA_UNUSED;
-+ }
-
-  status =3D ocfs2_sync_local_to_main(osb, handle, alloc_copy,
-   main_bm_inode, main_bm_bh);
---=20
-2.43.0
-
-On Thu, Sep 24, 2026 at 6:55=E2=80=AFPM Markus Elfring <Markus.Elfring@web.=
-de> wrote:
->
-> =E2=80=A6
-> > Take osb->osb_lock when updating both fields.
->
-> May lock guards be applied in affected function implementations?
->
-> Regards,
-> Markus
+Regards,
+Markus
