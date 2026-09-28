@@ -1,228 +1,162 @@
-Received: from mail-ej2-f42.google.com (mail-ej2-f42.google.com [74.125.228.170])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.4])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0DE9F443307
-	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 07:39:19 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.228.170
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D8D81400967
+	for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 08:03:28 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.4
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790581161; cv=none; b=cGgKrSmqxKnByKjRyv0V5+8gisqNzwXVR+MG2Apql8lx+ISCPuz6XjaflkyvtgOEGne6YH0UIFHW1YGkTohO43gLA7/t9utYPvF0pk0TAn1LZGcfnlbU/LDmvaCHKQTuPp2/naHKU/SmPMyC9MDo7UvAF1mYMQ3t0FYsxwm/ccI=
+	t=1790582613; cv=none; b=JHhu+AbMAQpP5sgxAg5Z8r62u9qhF+SODn3YRpSi1mY312FoaNvLHzh9kACj1ue2NaqDExbIoFVaH0IoiMYB/1UuHeldA9pIKHUfSfV/j89V+ocEdM62cu+H7ETHdBYPTitbK3Ki7tfllE7Th0i/YSX6WF6rhGu9u6sVBYKY5eA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790581161; c=relaxed/simple;
-	bh=Ee1O85EU6mL4A+k6BaSrrjPcrUn1HmO7/SaFHlvVrt8=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=hN0B42b5PzLui12m3g08ZLIVVw0LGqoDQbRnEnZPISYBjnpnaBy/JTP9eqVAtNY3bLBeNgON889VeSqjdCpAhSUUtLIP8JqdJYimmjJ7E8KAFEc8S32GnP83mmmx+NKE6n1vteZlXoltLGf/cA+liYLDlPsd8hokBjdlGcgPqV0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=FgQcCEFC; arc=none smtp.client-ip=74.125.228.170
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	s=arc-20240116; t=1790582613; c=relaxed/simple;
+	bh=GtPKEtkWKuhpySHNHIyHNubstmFh+KJEjwtqiEYln5A=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:Content-Type:
+	 MIME-Version:Message-ID; b=ifZprWhl131UgY3hcvDsmmBAzR90N0qDssNcOHSGC0lo4XvRktD3/pGfj+dQmPZmnW3U84V9omjDOSrXqiZ4CWMPA3FkCrZgzxZWxdgI2WIzcpbvxyNlX7ZPaAJgeC/FtQjmt94WouFCnf/QJyROfeM2GNq5EYpGq54B2c6Hiwo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=jqYfBJ33; arc=none smtp.client-ip=117.135.210.4
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="FgQcCEFC"
-Received: by mail-ej2-f42.google.com with SMTP id a640c23a62f3a-c2c89ebe1b7so7825266b.1
-        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 00:39:19 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1790581158; x=1791185958; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=poKTzHIbdYPKoKWNDbZeL46WSq1iGtUDaGIwgKIDsjM=;
-        b=FgQcCEFC00EfYsnY8G+4N8QoxBSmcuPZ+ZoZn5OTSzsyUE+jCeDu5zf6fwvCosX8wR
-         dQPlhl4BITz6C+C509crN1g+jmTYnG+GpQ3If+wTRo3qbPQYG/CnPpbZaBo/8lN7jl/x
-         KO97OP2lgtfkVIG5pHRtqUbeu4lR2xzmuw3np8KlzrGcwyDgHuAMZoPiG4Wo/hDcAbD6
-         rFuW/he9dSotJaBFMp1ydxtkIlCNGRqv1tEnlthWTD1gNtQsTcdhFsp7+G/bjPfwVBNY
-         4YJx2t1PklD2qGoCD1uC68FoCVRx4TioS1W6QETddvTL3YE0OB1kVKkVdsmqbD0XGW2f
-         O0QA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790581158; x=1791185958;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=poKTzHIbdYPKoKWNDbZeL46WSq1iGtUDaGIwgKIDsjM=;
-        b=jwowXOU8wEgT/bylMJvbUSeRLRhqlwEk7ImqVM/YMVnCPHkKHC99AU5To0UiBLplHE
-         3ZF8DhHT4S82TgYePqeT0PEP3EpNW8xPE8a+igZ87CB6w4JNPyFIdMc8h0PgcecWEziI
-         j1s8hg/77ewoBW7dNlULgvkRESKkmuMNJt9L0X5k8Zs3MYkuMKDJQR9L93H8UalVkqKY
-         n3UKGQg/sYqFUQgvmkan7+vjsU9g8JUuPP3zgi7bKqlcPAu9kNSctWszoNz1pF4JGQnU
-         NShBbkX6A4ePSx7ecejjSSOGNTtVSS5X97MIY7/Z74NYGtVVcuSqiT39FM8FlTajEocv
-         SqFg==
-X-Forwarded-Encrypted: i=1; AKwUvBzoFWPZ0LVU1ZrKzDvgsKOiBjT47OcVVIn80B2SPQHGMgYwArGX+x72D9sxgP3SKS4lUOZgSV4ituweRQ==@lists.linux.dev
-X-Gm-Message-State: AFuF++lMpIiaDLY91ot56BIq4GqFyRlB3xi+8beq1lypsjCi2qYeTjQx
-	j+C8+D42WWO4FC1o8c8hWYuqO7iSeOgMNiRvKFaXSjS5hXJG8Dcw4FKyBW4x/KxSAv0=
-X-Gm-Gg: AYBFou3Rgv1+UgCosAClyVSJ9dFu2OA7D2Y99iiV+5S014ID7+wI3u770++wCb3jKy+
-	9wpTOVEfRmf0eIAdx1d8WLoNlhzK5AgXFJuV+4j2xzSAjEPvzfrdZRvx964woyINuVv5HXx2gYZ
-	Lx6qNl6x4lsMmD6hP+uXkuxIG04sCyIbnUHh3iLmADZqc3ux81VyCOWK4JuXa3nnd2g9ZxPqmxx
-	ZRyp/7b49FWh5ZKNZ42K2OKZa/Vary0qNlBTDyhMYdQYImGO9C4uLFHtv/3LJkf5CoQTOVNI/Ls
-	9ojLu5zWHjVb2JHLurNN4JsuTl9duU1YpWyL0IHVZH2jYoTQnN7hafNsARK0uSe9qH2e/UNLeGD
-	KP9Cu7n27UhBzpzf8UJMKFRSi+5Bk+zhHtVv+Vc3T+ozTbojUlaqjuHEcKTrgkxSoaaukqxOrs+
-	5tB/LNVEKbvEqVH+6DlcaJ2nREs9xhn1SXERi6arvZp1mOhrgXpPJJOA1XWkN1KEIA5H1v
-X-Received: by 2002:a17:907:9719:b0:c2d:e6a7:81d5 with SMTP id a640c23a62f3a-c2de6a7d020mr58347466b.1.1790581158165;
-        Mon, 28 Sep 2026 00:39:18 -0700 (PDT)
-Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-87fea19030bsm3742545b3a.11.2026.09.28.00.39.16
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 28 Sep 2026 00:39:17 -0700 (PDT)
-Date: Mon, 28 Sep 2026 15:39:14 +0800
-From: Heming Zhao <heming.zhao@suse.com>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>, yaojiale02@163.com
-Cc: Andrew Morton <akpm@linux-foundation.org>, 
-	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
-	linux-kernel@vger.kernel.org
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="jqYfBJ33"
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
+	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
+	Message-ID; bh=GtPKEtkWKuhpySHNHIyHNubstmFh+KJEjwtqiEYln5A=; b=j
+	qYfBJ33uPBM17j1vTF9awn46ZDr/aHZkJ7u6c22ANzoYDL9DVZBA0ySwzXSTnXke
+	aABNI7dLmpc85ircfFpOdM6g2TAvybj7PjlQGqYD0+UrpwNmVy+vEcHZOYMFixm7
+	GQPQ4rT4YD3sMQM1ahnHALeUf25jdvDH5+6aLkith8=
+Date: Mon, 28 Sep 2026 16:02:47 +0800 (CST)
+From: "jiale yao" <19888972804@163.com>
+To: "Heming Zhao" <heming.zhao@suse.com>
+Cc: "Joseph Qi" <joseph.qi@linux.alibaba.com>,
+	"Andrew Morton" <akpm@linux-foundation.org>,
+	"Mark Fasheh" <mark@fasheh.com>, "Joel Becker" <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
 Subject: Re: [PATCH] ocfs2: validate extent list in filecheck repair
-Message-ID: <aroZaYiB-DUxFyLs@p15>
+X-Priority: 3
+X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
+ 20260511(2e539873) Copyright (c) 2002-2026 www.mailtech.cn 163com
+In-Reply-To: <aroZaYiB-DUxFyLs@p15>
 References: <20260926131848.3379842-1-yaojiale02@163.com>
  <744a70bd-5455-421f-a37d-1c0a63f54b60@linux.alibaba.com>
+ <aroZaYiB-DUxFyLs@p15>
+X-NTES-SC: AL_Qu2SAvmTvU0t4SeQYekcn08ShO49XMOyvfoi2YFTc+gGmTzU3j0if1JyFELowOyzNySDujGrVSdF5ct2e7h6JeGqFpsnAqSGE5/CRRLWYg==
+Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=GBK
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <744a70bd-5455-421f-a37d-1c0a63f54b60@linux.alibaba.com>
+Message-ID: <6e19a760.6fea.1a0e709b376.Coremail.19888972804@163.com>
+X-Coremail-Locale: zh_CN
+X-CM-TRANSID:iCgvCgD3H4gnH7pqkIJPAA--.50504W
+X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzQcaVGq6HyeN0gAA3z
+X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
 
-On Mon, Sep 28, 2026 at 09:33:12AM +0800, Joseph Qi wrote:
-> 
-> 
-> On 9/26/26 9:18 PM, Jiale Yao wrote:
-> > ocfs2_filecheck_validate_inode_block() does not validate the embedded
-> > extent list, while ocfs2_filecheck_repair_inode_block() only clamps
-> > l_next_free_rec to l_count.  The normal inode read path requires l_count
-> > to be non-zero, limits it to the number of extent records that fit in the
-> > inode, and requires l_next_free_rec not to exceed l_count.
-> > 
-> > Without the same checks, filecheck can report SUCCESS while leaving an
-> > invalid extent list on disk.  A later read through the normal inode
-> > validation path rejects the inode and makes the filesystem read-only.
-> > 
-> > Add a shared helper for the filecheck paths to check these invariants.
-> > The filecheck validator now rejects all three cases.  The repair path
-> > still clamps l_next_free_rec, but refuses to repair zero or oversized
-> > l_count values.
-> > 
-> > Fixes: d56a8f32e4c6 ("ocfs2: check/fix inode block for online file check")
-> 
-> I'd like make this as a new ability rather than a bug fix.
-
-Agree
-
-In my experience, users run online file checks only when inode data is corrupted,
-or when fsck/debugfs has already reported an inode issue prior to the check.
-
-The Fixes tag should only be used for the patch that fixes the unintended panic
-and read-only issue introduced by commit d56a8f32e4c6.
-
-- Heming
-
-> 
-> > Signed-off-by: Jiale Yao <yaojiale02@163.com>
-> > ---
-> >  fs/ocfs2/inode.c | 71 ++++++++++++++++++++++++++++++++++++++++++++++++
-> >  1 file changed, 71 insertions(+)
-> > 
-> > diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> > index 180107a11046..57168ed02915 100644
-> > --- a/fs/ocfs2/inode.c
-> > +++ b/fs/ocfs2/inode.c
-> > @@ -249,6 +249,41 @@ static int ocfs2_dinode_has_extents(struct ocfs2_dinode *di)
-> >  	return 1;
-> >  }
-> >  
-> > +enum ocfs2_extent_list_status {
-> > +	OCFS2_EXTENT_LIST_OK,
-> > +	OCFS2_EXTENT_LIST_ZERO_COUNT,
-> > +	OCFS2_EXTENT_LIST_OVERSIZED,
-> > +	OCFS2_EXTENT_LIST_BAD_NEXT_FREE,
-> > +};
-> > +
-> > +static enum ocfs2_extent_list_status
-> > +ocfs2_check_extent_list(struct super_block *sb, struct ocfs2_dinode *di)
-> > +{
-> > +	struct ocfs2_extent_list *el = &di->id2.i_list;
-> > +	u16 count;
-> > +	u16 next_free;
-> > +
-> > +	if (!ocfs2_dinode_has_extents(di))
-> > +		return OCFS2_EXTENT_LIST_OK;
-> > +
-> > +	count = le16_to_cpu(el->l_count);
-> > +	next_free = le16_to_cpu(el->l_next_free_rec);
-> > +	if (count == 0)
-> > +		return OCFS2_EXTENT_LIST_ZERO_COUNT;
-> > +	/*
-> > +	 * The exact capacity depends on i_xattr_inline_size, another
-> > +	 * unvalidated on-disk field. Inline xattrs only shrink the
-> > +	 * list, so the no-xattr maximum is a safe upper bound that a
-> > +	 * valid l_count never exceeds.
-> > +	 */
-> > +	if (count > ocfs2_extent_recs_per_inode(sb))
-> > +		return OCFS2_EXTENT_LIST_OVERSIZED;
-> > +	if (next_free > count)
-> > +		return OCFS2_EXTENT_LIST_BAD_NEXT_FREE;
-> > +
-> > +	return OCFS2_EXTENT_LIST_OK;
-> > +}
-> 
-> This seems a duplicated check in ocfs2_validate_inode_block().
-> So I sugguest just extract the helper from it instead of duplicating
-> a new one.
-> 
-> BTW, seems we don't have to introduce enum ocfs2_extent_list_status,
-> to make the checks simple.
-> 
-> Thanks,
-> Joseph
-> 
-> > +
-> >  /*
-> >   * here's how inodes get read from disk:
-> >   * iget5_locked -> find_actor -> OCFS2_FIND_ACTOR
-> > @@ -1835,6 +1870,33 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
-> >  		goto bail;
-> >  	}
-> >  
-> > +	switch (ocfs2_check_extent_list(sb, di)) {
-> > +	case OCFS2_EXTENT_LIST_OK:
-> > +		break;
-> > +	case OCFS2_EXTENT_LIST_ZERO_COUNT:
-> > +		mlog(ML_ERROR,
-> > +		     "Filecheck: invalid dinode #%llu: extent list l_count is zero\n",
-> > +		     (unsigned long long)bh->b_blocknr);
-> > +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> > +		goto bail;
-> > +	case OCFS2_EXTENT_LIST_OVERSIZED:
-> > +		mlog(ML_ERROR,
-> > +		     "Filecheck: invalid dinode #%llu: extent list l_count %u exceeds max %u\n",
-> > +		     (unsigned long long)bh->b_blocknr,
-> > +		     le16_to_cpu(di->id2.i_list.l_count),
-> > +		     ocfs2_extent_recs_per_inode(sb));
-> > +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> > +		goto bail;
-> > +	case OCFS2_EXTENT_LIST_BAD_NEXT_FREE:
-> > +		mlog(ML_ERROR,
-> > +		     "Filecheck: invalid dinode #%llu: extent list l_next_free_rec %u exceeds l_count %u\n",
-> > +		     (unsigned long long)bh->b_blocknr,
-> > +		     le16_to_cpu(di->id2.i_list.l_next_free_rec),
-> > +		     le16_to_cpu(di->id2.i_list.l_count));
-> > +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> > +		goto bail;
-> > +	}
-> > +
-> >  	if (ocfs2_dinode_has_size_without_clusters(sb, di)) {
-> >  		if (S_ISDIR(le16_to_cpu(di->i_mode)))
-> >  			mlog(ML_ERROR,
-> > @@ -1893,6 +1955,15 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
-> >  		return -OCFS2_FILECHECK_ERR_VALIDFLAG;
-> >  	}
-> >  
-> > +	switch (ocfs2_check_extent_list(sb, di)) {
-> > +	case OCFS2_EXTENT_LIST_OK:
-> > +	case OCFS2_EXTENT_LIST_BAD_NEXT_FREE:
-> > +		break;
-> > +	case OCFS2_EXTENT_LIST_ZERO_COUNT:
-> > +	case OCFS2_EXTENT_LIST_OVERSIZED:
-> > +		return -OCFS2_FILECHECK_ERR_INVALIDINO;
-> > +	}
-> > +
-> >  	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
-> >  		di->i_blkno = cpu_to_le64(bh->b_blocknr);
-> >  		changed = 1;
-> 
+VGhhbmtzIGZvciB0aGUgcmV2aWV3LiBJIGFncmVlIHRoYXQgdGhpcyBzaG91bGQgYmUgdHJlYXRl
+ZCBhcyBhbgpleHRlbnNpb24gb2Ygb25saW5lIGZpbGVjaGVjayByYXRoZXIgdGhhbiBhIGZpeCBm
+b3IgZDU2YThmMzJlNGM2LgoKSSB3aWxsIHByZXBhcmUgYSB2MiB3aXRoIHRoZSBmb2xsb3dpbmcg
+Y2hhbmdlczoKCi0gRHJvcCB0aGUgRml4ZXMgYW5kIHN0YWJsZSB0YWdzIGFuZCBkZXNjcmliZSB0
+aGUgY2hhbmdlIGFzIGFkZGl0aW9uYWwKICAgZmlsZWNoZWNrIHZhbGlkYXRpb24uCi0gRXh0cmFj
+dCB0aGUgZXhpc3RpbmcgZXh0ZW50LWxpc3QgY2hlY2tzIGZyb20KICAgb2NmczJfdmFsaWRhdGVf
+aW5vZGVfYmxvY2soKSBpbnRvIGEgc21hbGwgc2hhcmVkIGhlbHBlciBpbnN0ZWFkIG9mCiAgIGR1
+cGxpY2F0aW5nIHRoZW0uCi0gUmVtb3ZlIGVudW0gb2NmczJfZXh0ZW50X2xpc3Rfc3RhdHVzLgot
+IEtlZXAgdGhlIHJlcGFpciBwb2xpY3kgdW5jaGFuZ2VkOiByZWplY3QgYW4gaW52YWxpZCBsX2Nv
+dW50LCB3aGlsZQogICBhbGxvd2luZyB0aGUgZXhpc3RpbmcgY29kZSB0byBjbGFtcCBsX25leHRf
+ZnJlZV9yZWMgdG8gbF9jb3VudC4KClRoYW5rcywKSmlhbGUKCgpBdCAyMDI2LTA5LTI4IDE1OjM5
+OjE0LCAiSGVtaW5nIFpoYW8iIDxoZW1pbmcuemhhb0BzdXNlLmNvbT4gd3JvdGU6Cj5PbiBNb24s
+IFNlcCAyOCwgMjAyNiBhdCAwOTozMzoxMkFNICswODAwLCBKb3NlcGggUWkgd3JvdGU6Cj4+IAo+
+PiAKPj4gT24gOS8yNi8yNiA5OjE4IFBNLCBKaWFsZSBZYW8gd3JvdGU6Cj4+ID4gb2NmczJfZmls
+ZWNoZWNrX3ZhbGlkYXRlX2lub2RlX2Jsb2NrKCkgZG9lcyBub3QgdmFsaWRhdGUgdGhlIGVtYmVk
+ZGVkCj4+ID4gZXh0ZW50IGxpc3QsIHdoaWxlIG9jZnMyX2ZpbGVjaGVja19yZXBhaXJfaW5vZGVf
+YmxvY2soKSBvbmx5IGNsYW1wcwo+PiA+IGxfbmV4dF9mcmVlX3JlYyB0byBsX2NvdW50LiAgVGhl
+IG5vcm1hbCBpbm9kZSByZWFkIHBhdGggcmVxdWlyZXMgbF9jb3VudAo+PiA+IHRvIGJlIG5vbi16
+ZXJvLCBsaW1pdHMgaXQgdG8gdGhlIG51bWJlciBvZiBleHRlbnQgcmVjb3JkcyB0aGF0IGZpdCBp
+biB0aGUKPj4gPiBpbm9kZSwgYW5kIHJlcXVpcmVzIGxfbmV4dF9mcmVlX3JlYyBub3QgdG8gZXhj
+ZWVkIGxfY291bnQuCj4+ID4gCj4+ID4gV2l0aG91dCB0aGUgc2FtZSBjaGVja3MsIGZpbGVjaGVj
+ayBjYW4gcmVwb3J0IFNVQ0NFU1Mgd2hpbGUgbGVhdmluZyBhbgo+PiA+IGludmFsaWQgZXh0ZW50
+IGxpc3Qgb24gZGlzay4gIEEgbGF0ZXIgcmVhZCB0aHJvdWdoIHRoZSBub3JtYWwgaW5vZGUKPj4g
+PiB2YWxpZGF0aW9uIHBhdGggcmVqZWN0cyB0aGUgaW5vZGUgYW5kIG1ha2VzIHRoZSBmaWxlc3lz
+dGVtIHJlYWQtb25seS4KPj4gPiAKPj4gPiBBZGQgYSBzaGFyZWQgaGVscGVyIGZvciB0aGUgZmls
+ZWNoZWNrIHBhdGhzIHRvIGNoZWNrIHRoZXNlIGludmFyaWFudHMuCj4+ID4gVGhlIGZpbGVjaGVj
+ayB2YWxpZGF0b3Igbm93IHJlamVjdHMgYWxsIHRocmVlIGNhc2VzLiAgVGhlIHJlcGFpciBwYXRo
+Cj4+ID4gc3RpbGwgY2xhbXBzIGxfbmV4dF9mcmVlX3JlYywgYnV0IHJlZnVzZXMgdG8gcmVwYWly
+IHplcm8gb3Igb3ZlcnNpemVkCj4+ID4gbF9jb3VudCB2YWx1ZXMuCj4+ID4gCj4+ID4gRml4ZXM6
+IGQ1NmE4ZjMyZTRjNiAoIm9jZnMyOiBjaGVjay9maXggaW5vZGUgYmxvY2sgZm9yIG9ubGluZSBm
+aWxlIGNoZWNrIikKPj4gCj4+IEknZCBsaWtlIG1ha2UgdGhpcyBhcyBhIG5ldyBhYmlsaXR5IHJh
+dGhlciB0aGFuIGEgYnVnIGZpeC4KPgo+QWdyZWUKPgo+SW4gbXkgZXhwZXJpZW5jZSwgdXNlcnMg
+cnVuIG9ubGluZSBmaWxlIGNoZWNrcyBvbmx5IHdoZW4gaW5vZGUgZGF0YSBpcyBjb3JydXB0ZWQs
+Cj5vciB3aGVuIGZzY2svZGVidWdmcyBoYXMgYWxyZWFkeSByZXBvcnRlZCBhbiBpbm9kZSBpc3N1
+ZSBwcmlvciB0byB0aGUgY2hlY2suCj4KPlRoZSBGaXhlcyB0YWcgc2hvdWxkIG9ubHkgYmUgdXNl
+ZCBmb3IgdGhlIHBhdGNoIHRoYXQgZml4ZXMgdGhlIHVuaW50ZW5kZWQgcGFuaWMKPmFuZCByZWFk
+LW9ubHkgaXNzdWUgaW50cm9kdWNlZCBieSBjb21taXQgZDU2YThmMzJlNGM2Lgo+Cj4tIEhlbWlu
+Zwo+Cj4+IAo+PiA+IFNpZ25lZC1vZmYtYnk6IEppYWxlIFlhbyA8eWFvamlhbGUwMkAxNjMuY29t
+Pgo+PiA+IC0tLQo+PiA+ICBmcy9vY2ZzMi9pbm9kZS5jIHwgNzEgKysrKysrKysrKysrKysrKysr
+KysrKysrKysrKysrKysrKysrKysrKysrKysrKysrCj4+ID4gIDEgZmlsZSBjaGFuZ2VkLCA3MSBp
+bnNlcnRpb25zKCspCj4+ID4gCj4+ID4gZGlmZiAtLWdpdCBhL2ZzL29jZnMyL2lub2RlLmMgYi9m
+cy9vY2ZzMi9pbm9kZS5jCj4+ID4gaW5kZXggMTgwMTA3YTExMDQ2Li41NzE2OGVkMDI5MTUgMTAw
+NjQ0Cj4+ID4gLS0tIGEvZnMvb2NmczIvaW5vZGUuYwo+PiA+ICsrKyBiL2ZzL29jZnMyL2lub2Rl
+LmMKPj4gPiBAQCAtMjQ5LDYgKzI0OSw0MSBAQCBzdGF0aWMgaW50IG9jZnMyX2Rpbm9kZV9oYXNf
+ZXh0ZW50cyhzdHJ1Y3Qgb2NmczJfZGlub2RlICpkaSkKPj4gPiAgCXJldHVybiAxOwo+PiA+ICB9
+Cj4+ID4gIAo+PiA+ICtlbnVtIG9jZnMyX2V4dGVudF9saXN0X3N0YXR1cyB7Cj4+ID4gKwlPQ0ZT
+Ml9FWFRFTlRfTElTVF9PSywKPj4gPiArCU9DRlMyX0VYVEVOVF9MSVNUX1pFUk9fQ09VTlQsCj4+
+ID4gKwlPQ0ZTMl9FWFRFTlRfTElTVF9PVkVSU0laRUQsCj4+ID4gKwlPQ0ZTMl9FWFRFTlRfTElT
+VF9CQURfTkVYVF9GUkVFLAo+PiA+ICt9Owo+PiA+ICsKPj4gPiArc3RhdGljIGVudW0gb2NmczJf
+ZXh0ZW50X2xpc3Rfc3RhdHVzCj4+ID4gK29jZnMyX2NoZWNrX2V4dGVudF9saXN0KHN0cnVjdCBz
+dXBlcl9ibG9jayAqc2IsIHN0cnVjdCBvY2ZzMl9kaW5vZGUgKmRpKQo+PiA+ICt7Cj4+ID4gKwlz
+dHJ1Y3Qgb2NmczJfZXh0ZW50X2xpc3QgKmVsID0gJmRpLT5pZDIuaV9saXN0Owo+PiA+ICsJdTE2
+IGNvdW50Owo+PiA+ICsJdTE2IG5leHRfZnJlZTsKPj4gPiArCj4+ID4gKwlpZiAoIW9jZnMyX2Rp
+bm9kZV9oYXNfZXh0ZW50cyhkaSkpCj4+ID4gKwkJcmV0dXJuIE9DRlMyX0VYVEVOVF9MSVNUX09L
+Owo+PiA+ICsKPj4gPiArCWNvdW50ID0gbGUxNl90b19jcHUoZWwtPmxfY291bnQpOwo+PiA+ICsJ
+bmV4dF9mcmVlID0gbGUxNl90b19jcHUoZWwtPmxfbmV4dF9mcmVlX3JlYyk7Cj4+ID4gKwlpZiAo
+Y291bnQgPT0gMCkKPj4gPiArCQlyZXR1cm4gT0NGUzJfRVhURU5UX0xJU1RfWkVST19DT1VOVDsK
+Pj4gPiArCS8qCj4+ID4gKwkgKiBUaGUgZXhhY3QgY2FwYWNpdHkgZGVwZW5kcyBvbiBpX3hhdHRy
+X2lubGluZV9zaXplLCBhbm90aGVyCj4+ID4gKwkgKiB1bnZhbGlkYXRlZCBvbi1kaXNrIGZpZWxk
+LiBJbmxpbmUgeGF0dHJzIG9ubHkgc2hyaW5rIHRoZQo+PiA+ICsJICogbGlzdCwgc28gdGhlIG5v
+LXhhdHRyIG1heGltdW0gaXMgYSBzYWZlIHVwcGVyIGJvdW5kIHRoYXQgYQo+PiA+ICsJICogdmFs
+aWQgbF9jb3VudCBuZXZlciBleGNlZWRzLgo+PiA+ICsJICovCj4+ID4gKwlpZiAoY291bnQgPiBv
+Y2ZzMl9leHRlbnRfcmVjc19wZXJfaW5vZGUoc2IpKQo+PiA+ICsJCXJldHVybiBPQ0ZTMl9FWFRF
+TlRfTElTVF9PVkVSU0laRUQ7Cj4+ID4gKwlpZiAobmV4dF9mcmVlID4gY291bnQpCj4+ID4gKwkJ
+cmV0dXJuIE9DRlMyX0VYVEVOVF9MSVNUX0JBRF9ORVhUX0ZSRUU7Cj4+ID4gKwo+PiA+ICsJcmV0
+dXJuIE9DRlMyX0VYVEVOVF9MSVNUX09LOwo+PiA+ICt9Cj4+IAo+PiBUaGlzIHNlZW1zIGEgZHVw
+bGljYXRlZCBjaGVjayBpbiBvY2ZzMl92YWxpZGF0ZV9pbm9kZV9ibG9jaygpLgo+PiBTbyBJIHN1
+Z2d1ZXN0IGp1c3QgZXh0cmFjdCB0aGUgaGVscGVyIGZyb20gaXQgaW5zdGVhZCBvZiBkdXBsaWNh
+dGluZwo+PiBhIG5ldyBvbmUuCj4+IAo+PiBCVFcsIHNlZW1zIHdlIGRvbid0IGhhdmUgdG8gaW50
+cm9kdWNlIGVudW0gb2NmczJfZXh0ZW50X2xpc3Rfc3RhdHVzLAo+PiB0byBtYWtlIHRoZSBjaGVj
+a3Mgc2ltcGxlLgo+PiAKPj4gVGhhbmtzLAo+PiBKb3NlcGgKPj4gCj4+ID4gKwo+PiA+ICAvKgo+
+PiA+ICAgKiBoZXJlJ3MgaG93IGlub2RlcyBnZXQgcmVhZCBmcm9tIGRpc2s6Cj4+ID4gICAqIGln
+ZXQ1X2xvY2tlZCAtPiBmaW5kX2FjdG9yIC0+IE9DRlMyX0ZJTkRfQUNUT1IKPj4gPiBAQCAtMTgz
+NSw2ICsxODcwLDMzIEBAIHN0YXRpYyBpbnQgb2NmczJfZmlsZWNoZWNrX3ZhbGlkYXRlX2lub2Rl
+X2Jsb2NrKHN0cnVjdCBzdXBlcl9ibG9jayAqc2IsCj4+ID4gIAkJZ290byBiYWlsOwo+PiA+ICAJ
+fQo+PiA+ICAKPj4gPiArCXN3aXRjaCAob2NmczJfY2hlY2tfZXh0ZW50X2xpc3Qoc2IsIGRpKSkg
+ewo+PiA+ICsJY2FzZSBPQ0ZTMl9FWFRFTlRfTElTVF9PSzoKPj4gPiArCQlicmVhazsKPj4gPiAr
+CWNhc2UgT0NGUzJfRVhURU5UX0xJU1RfWkVST19DT1VOVDoKPj4gPiArCQltbG9nKE1MX0VSUk9S
+LAo+PiA+ICsJCSAgICAgIkZpbGVjaGVjazogaW52YWxpZCBkaW5vZGUgIyVsbHU6IGV4dGVudCBs
+aXN0IGxfY291bnQgaXMgemVyb1xuIiwKPj4gPiArCQkgICAgICh1bnNpZ25lZCBsb25nIGxvbmcp
+YmgtPmJfYmxvY2tucik7Cj4+ID4gKwkJcmMgPSAtT0NGUzJfRklMRUNIRUNLX0VSUl9JTlZBTElE
+SU5POwo+PiA+ICsJCWdvdG8gYmFpbDsKPj4gPiArCWNhc2UgT0NGUzJfRVhURU5UX0xJU1RfT1ZF
+UlNJWkVEOgo+PiA+ICsJCW1sb2coTUxfRVJST1IsCj4+ID4gKwkJICAgICAiRmlsZWNoZWNrOiBp
+bnZhbGlkIGRpbm9kZSAjJWxsdTogZXh0ZW50IGxpc3QgbF9jb3VudCAldSBleGNlZWRzIG1heCAl
+dVxuIiwKPj4gPiArCQkgICAgICh1bnNpZ25lZCBsb25nIGxvbmcpYmgtPmJfYmxvY2tuciwKPj4g
+PiArCQkgICAgIGxlMTZfdG9fY3B1KGRpLT5pZDIuaV9saXN0LmxfY291bnQpLAo+PiA+ICsJCSAg
+ICAgb2NmczJfZXh0ZW50X3JlY3NfcGVyX2lub2RlKHNiKSk7Cj4+ID4gKwkJcmMgPSAtT0NGUzJf
+RklMRUNIRUNLX0VSUl9JTlZBTElESU5POwo+PiA+ICsJCWdvdG8gYmFpbDsKPj4gPiArCWNhc2Ug
+T0NGUzJfRVhURU5UX0xJU1RfQkFEX05FWFRfRlJFRToKPj4gPiArCQltbG9nKE1MX0VSUk9SLAo+
+PiA+ICsJCSAgICAgIkZpbGVjaGVjazogaW52YWxpZCBkaW5vZGUgIyVsbHU6IGV4dGVudCBsaXN0
+IGxfbmV4dF9mcmVlX3JlYyAldSBleGNlZWRzIGxfY291bnQgJXVcbiIsCj4+ID4gKwkJICAgICAo
+dW5zaWduZWQgbG9uZyBsb25nKWJoLT5iX2Jsb2NrbnIsCj4+ID4gKwkJICAgICBsZTE2X3RvX2Nw
+dShkaS0+aWQyLmlfbGlzdC5sX25leHRfZnJlZV9yZWMpLAo+PiA+ICsJCSAgICAgbGUxNl90b19j
+cHUoZGktPmlkMi5pX2xpc3QubF9jb3VudCkpOwo+PiA+ICsJCXJjID0gLU9DRlMyX0ZJTEVDSEVD
+S19FUlJfSU5WQUxJRElOTzsKPj4gPiArCQlnb3RvIGJhaWw7Cj4+ID4gKwl9Cj4+ID4gKwo+PiA+
+ICAJaWYgKG9jZnMyX2Rpbm9kZV9oYXNfc2l6ZV93aXRob3V0X2NsdXN0ZXJzKHNiLCBkaSkpIHsK
+Pj4gPiAgCQlpZiAoU19JU0RJUihsZTE2X3RvX2NwdShkaS0+aV9tb2RlKSkpCj4+ID4gIAkJCW1s
+b2coTUxfRVJST1IsCj4+ID4gQEAgLTE4OTMsNiArMTk1NSwxNSBAQCBzdGF0aWMgaW50IG9jZnMy
+X2ZpbGVjaGVja19yZXBhaXJfaW5vZGVfYmxvY2soc3RydWN0IHN1cGVyX2Jsb2NrICpzYiwKPj4g
+PiAgCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfVkFMSURGTEFHOwo+PiA+ICAJfQo+PiA+
+ICAKPj4gPiArCXN3aXRjaCAob2NmczJfY2hlY2tfZXh0ZW50X2xpc3Qoc2IsIGRpKSkgewo+PiA+
+ICsJY2FzZSBPQ0ZTMl9FWFRFTlRfTElTVF9PSzoKPj4gPiArCWNhc2UgT0NGUzJfRVhURU5UX0xJ
+U1RfQkFEX05FWFRfRlJFRToKPj4gPiArCQlicmVhazsKPj4gPiArCWNhc2UgT0NGUzJfRVhURU5U
+X0xJU1RfWkVST19DT1VOVDoKPj4gPiArCWNhc2UgT0NGUzJfRVhURU5UX0xJU1RfT1ZFUlNJWkVE
+Ogo+PiA+ICsJCXJldHVybiAtT0NGUzJfRklMRUNIRUNLX0VSUl9JTlZBTElESU5POwo+PiA+ICsJ
+fQo+PiA+ICsKPj4gPiAgCWlmIChsZTY0X3RvX2NwdShkaS0+aV9ibGtubykgIT0gYmgtPmJfYmxv
+Y2tucikgewo+PiA+ICAJCWRpLT5pX2Jsa25vID0gY3B1X3RvX2xlNjQoYmgtPmJfYmxvY2tucik7
+Cj4+ID4gIAkJY2hhbmdlZCA9IDE7Cj4+IAo=
