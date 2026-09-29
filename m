@@ -1,72 +1,75 @@
-Received: from mail-wm2-f13.google.com (mail-wm2-f13.google.com [74.125.225.141])
+Received: from mail-wr2-f12.google.com (mail-wr2-f12.google.com [74.125.225.76])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4FD623CAA55
-	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Sep 2026 02:59:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.141
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6DFA93DC4B3
+	for <ocfs2-devel@lists.linux.dev>; Tue, 29 Sep 2026 04:13:33 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=74.125.225.76
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1790650777; cv=none; b=P7kNatGJi08MQUBsywECLAPfmJGKz5fZ6fOsyFihZ/CYYaYByhwrdnycC+tg7JpquUkC2F4Xo5unRcH/xwfkCy+yXNxBl5PL7Vp2awU2drNxuNN+iSctId5kDH1wKw1MVq5wRvq9Xqgku6+u4zb5msb1UY4IEfHfH32v+q+tB84=
+	t=1790655215; cv=none; b=jptGI9+ivZ5woGWVHH2fq0UDlZxu12MJXAdnF7Wh54j8j8KGvHTc+gP5Wg/ZuLwvuU9MzA+wGGCVPOz0yZ6KJYKH28QIOhUAszr8nnaUydc+wqdAhXQxJGe47d18458eW5n48AWZEmR7rZufZMTnU6xl8Xfyfvl1I4BIuh3sTcQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1790650777; c=relaxed/simple;
-	bh=LL1eMOxoibboDf2sqy283DenGQo0UIJfc+tQH5HrZm8=;
+	s=arc-20240116; t=1790655215; c=relaxed/simple;
+	bh=zIvEOC+XsP3lXg3aRF4/tY6ZEjP4/7XrWVFSulwDxkc=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=jnMpmPUUR6b2I7kvXKbPiBi/0qmISZmUWuJpHTrM3rp4Gghyr9JDtU12JT+RZC0N1ud1js0crkmdd1H2j1HJZnwt5PdFRX/bMC0ZjJlWiCxJeeGUxHSDyaQlJS1+D7iDn8xpsfOK4qYGCDuo6RwWrEUOhIb5kq/NpP7qwCfjFVg=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=f8MJTdNZ; arc=none smtp.client-ip=74.125.225.141
+	 Content-Type:Content-Disposition:In-Reply-To; b=jKJhSloP3q5nudZTcbNyjW+YpnRs9vw4I8GDH/MEhHmz5dWB1MVd2scCLWFo6IMLZu34+oXx4HnTBlXKV5R9dzs6zZDzWvUzaS4kXEb2RxXYntThiQjMlnR6040gZAqX1QkFvOXBT2T+7fr2uShgMjPqpjpgl19HIx+gEGTKUE0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=ONlxXsam; arc=none smtp.client-ip=74.125.225.76
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="f8MJTdNZ"
-Received: by mail-wm2-f13.google.com with SMTP id 5b1f17b1804b1-49b93204449so2579105e9.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 19:59:34 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="ONlxXsam"
+Received: by mail-wr2-f12.google.com with SMTP id ffacd0b85a97d-482e1b55da8so394471f8f.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 28 Sep 2026 21:13:33 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1790650773; x=1791255573; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1790655211; x=1791260011; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=C0p+hB3kZAdlvGeRUtCIMr+NV0GRwVEcUScE2UAkvn4=;
-        b=f8MJTdNZJEuV1Pf/MmInu/sFwJsD1xofIGEsFBsQsx7N128Az4qftZP3l1NXlRluz2
-         B4m/TZqIPPZUqpTTeI8EDv7xeg/blol115GQjw8QhwHn+zXG2mu+ZMWvoppawf+nBACa
-         GXUbzOdEZIQyWSznQCaJ4KdVfaCByS2xMP2miXer/eXgUzy2mHtRg/c2kfNy68xEWaOI
-         v4qmdH662m6fYky/OGHaPUO1a+OR/JXuDTVHRxRuTApOGCNatXaU+rdMVJ3s1GozuK2d
-         iUyV58/ORmYPN+u57pa68qBe3pZRj6hXmDc4wCrjlxwqql5J6r7RyYXNxv4aepWdxn0Q
-         qUSw==
+        bh=901GbOx2BRhQA8Zxfo2Ky3itLYYimn6S4GN4hXMrzZw=;
+        b=ONlxXsamiBzMSZMH6foy7KQJoKl50rLwBI2Lbo2EEjsg1VdB94ijYH6V5wtHNATa1G
+         58+5Y/xXNSy9tlYvZ8yJe7xWg5PgV0jNO/dfuPYrmcAJ/1pXKwgZlpn4bvBMp0Dky/t3
+         zUcXhsLvJWRFGVRwU9Gr7FjlQ4XXzgR95+N5BVQgzoyACMc77VxQokk9s362iKKMAbQb
+         TaW217aSujmJYWvMBg+y65EDu4DzihB7xCTSuwowecibhr+ofOKE1Ny2eWAh7Fq2/ivM
+         QL4Tl/V6CdYH3p+7R8RqIb/1r2YJMSAdAHZrmjv1yOhiO96Ta1hDl21sT92jrShZR8Ey
+         SFLQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1790650773; x=1791255573;
+        d=1e100.net; s=20260707; t=1790655211; x=1791260011;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=C0p+hB3kZAdlvGeRUtCIMr+NV0GRwVEcUScE2UAkvn4=;
-        b=TtCLJfwVESyWQCWfAiqko6N5j1AjhWkgqhmCTiueeWAtVUIJ5y91b67T33bFf+nv0O
-         pnSf1Azrl7NgtMScMnrx/ar/lW5Hv/OsN43+PDc2ihJ/bEesBrP96RGUzMaha6YNlf8C
-         BrLL0oB6278oz/3fInDfTNRXJWf97VzfhZwvJr5OE2WckStK+X4Q2hLkh7FUrAipdLUo
-         IecaeQQ+kqxVBypnKGKbN2Gf65Xe7Qt8Hvi/JaIjfmTxKWn/Mzi/P0dD9lp6L1tkvHiW
-         xoPZbJK6wcrLYPGS7s/JZBf4SkyCrj8V/FKBIbCaINEWlPJ7az5E1Ous1zL1jLOI+4qG
-         fXvw==
-X-Forwarded-Encrypted: i=1; AKwUvBxkDeYLHmNc445ylUAl5zLfbHD45ZgjySH06+MxuFykRd9b8b1xLBgWJjRpxWm0CS1Zqz0F012E2ACqIw==@lists.linux.dev
-X-Gm-Message-State: AFuF++lCNYrp3Dl6s7YNd3yKH1FIF37drmvL4aRn/sH/7I1KEQA/elvx
-	727WQVHL2rgMT++mWoh/FkRkFo2mvHDzEaXN+LtZtcr1pMDWJo1CyAktBr2srfw6k+I=
-X-Gm-Gg: AYBFou25w6atK/cQbyKvaJ/O394bASbEJuF4TgEFdWjHd3gm2PmiojqQW7zMFsFXtVH
-	D+Cx35wK0zpiSphrbezYgZaXVEcixaz44OY0e3HpMpF6nqPkciudgVuJ8RP/es3xVd098Bd/DnR
-	XwJmG6/QVBTygPjvjtRNMVC6/Heng7gIH99cg7NYcxCIWBwCPc33BaPyY8KI/X1WiRiWsxMRmRx
-	lRG7rXJieVJEjGuAfNxpSfTq+o5un66cG+T8R8wEdyE/t12bfeuxkrYaWlKW309TQndmrgk5AD6
-	6vgDcCMOTqbsZU2vGHNXDmSWm8WztW1J2u6Xv9dd0VCUKCzTUBPT1J77o4bIts/a4vhZX4qLGlr
-	PmrvxdI8L9q3r/nUoXy76VB0XyUs92KCpJ14MsWDYSH7FAND+u2JEHkCcNH097bGvlZHrX96Ang
-	iQHbmiAPzIUE0rwdDtVPOHHu8IbScLkFnxbSG/w1RF2WiPcJIRafc/SwNep4SVF8SfiTsX
-X-Received: by 2002:a05:600c:548e:b0:49c:f9b8:bae0 with SMTP id 5b1f17b1804b1-49fede023d8mr200822235e9.2.1790650773345;
-        Mon, 28 Sep 2026 19:59:33 -0700 (PDT)
+        bh=901GbOx2BRhQA8Zxfo2Ky3itLYYimn6S4GN4hXMrzZw=;
+        b=bMM0ybKhNwPB7C/KOAitD1h5eeHQaoY++FDAQTDsns+6VAHYUUD6ABG6YLW/HaiY+v
+         Ir64oeCSf7wY9z7FnpWdijcCxXJfKOEZ51m/F22Voep9T3jUrIg61nRpRaU0ZhW6/898
+         EUhfQz++NeKo703/OjFPJw6DZ4pTdwDF9zAZeGM0WYwuyGJ4N/+KYQT46SrpItDhL7UF
+         qAqO2rDWYAmtDiWcSKN6JB7+aeAK0NAGuNUclwD8BF/N9ku8F8AUlwQ2GP6o3dY0lrbe
+         fcERpxqiWw+02Zs+Po5CzqTnnGzcvtiObJSFoGUDmRXMCrnpjcsJvsnV8/MmVnNUc2aS
+         +A5A==
+X-Forwarded-Encrypted: i=1; AKwUvByRdUtkPyl/QKgVzYTv+zNyY2mnfuBJsgJgU8AjeLmaXofrsS1iq2AHGcCb5mj7JWpRINEP2JSkpPgdnw==@lists.linux.dev
+X-Gm-Message-State: AFuF++kx76jyI3o5+JxOiflR3LQ3N60f/FD88F2F8VgE/391gZCPa0cK
+	8OxWEjIf1iGQ1HTGkiMXWau0j7L3XVa2Ym/93kbM4H8EP+rR+/cWsDOhDFzLxuxPZ5g=
+X-Gm-Gg: AYBFou1gHylkafALQ+Ctyw4xuvQP1CK6C14EpDYwNCg64ERwghHiYgThP/Alh4fVKWU
+	vBZtdGDkbFKcd7R5uctAuXeYz1i485YfpyxNLLELept7CfdxdtZ4qzo+PbYMgrshucdFd7Y2y4t
+	UJ/W8laYhM/OgPSTKNLMmldAj6+yTVnXZo/HFpQTqDrGg1egpjCmqZZZfbNLiZvp/sRB4ALbHu7
+	ies4eU+QuezI6/aC1wxocd0GbtgMklfVRpkFiWNb3A5wLjBuSbSdOBxHBIHTaEIsS9ty6P25i8P
+	Tr4Y5c7GP6u/zoDcg2d/Ig5Gp4Ixl2xf5MBXS3//r2bSAxSM1hUknQ1MlQHvRev0csqqORabiK/
+	/bgbtjZ4FHY70YFzaXgXbFVsAq1vEpmBxp/mM+eE9fxw++pF0adHTDsRoNH5K9Hbq4q2XCKu5KL
+	kY0VnpQjPIkRlEdcTTJBvdHFmKwLQD7EIQ74HMwTFdjwJ+7gTs+KL41KZ3V50deuz7EcA3
+X-Received: by 2002:a05:600d:b:b0:4a0:1a3:bf6 with SMTP id 5b1f17b1804b1-4a001a30da8mr77286095e9.0.1790655211608;
+        Mon, 28 Sep 2026 21:13:31 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e2b4bc736fsm15265955ad.74.2026.09.28.19.59.31
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2df9140545bsm48849465ad.39.2026.09.28.21.13.29
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 28 Sep 2026 19:59:32 -0700 (PDT)
-Date: Tue, 29 Sep 2026 10:59:29 +0800
+        Mon, 28 Sep 2026 21:13:30 -0700 (PDT)
+Date: Tue, 29 Sep 2026 12:13:27 +0800
 From: Heming Zhao <heming.zhao@suse.com>
-To: Ginger Li <ginger.jzllee@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] ocfs2: Protect local_alloc_state updates in load/shutdown
-Message-ID: <arsnHB6Ak3q4Ztsn@p15>
-References: <20260922060048.13158-1-ginger.jzllee@gmail.com>
+To: d.morgun@ispras.ru
+Cc: Joseph Qi <joseph.qi@linux.alibaba.com>, Mark Fasheh <mark@fasheh.com>, 
+	Joel Becker <jlbec@evilplan.org>, linux-kernel@vger.kernel.org, lvc-project@linuxtesting.org, 
+	ocfs2-devel@lists.linux.dev
+Subject: Re: [PATCH] ocfs2: validate la_size before ocfs2_clear_local_alloc()
+Message-ID: <ars491U6UjiFdf1_@p15>
+References: <20260810113508.8513-1-d.morgun@ispras.ru>
+ <2927fd14-46be-4cb1-8dac-0f4249f16014@linux.alibaba.com>
+ <e13b47fa02d27dbf4c44ae300fc082a6@ispras.ru>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -75,78 +78,72 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20260922060048.13158-1-ginger.jzllee@gmail.com>
+In-Reply-To: <e13b47fa02d27dbf4c44ae300fc082a6@ispras.ru>
 
-On Tue, Sep 22, 2026 at 02:00:48PM +0800, Ginger Li wrote:
-> My static analyzer identified a potential issue in 'fs/ocfs2/localalloc.c':
-> osb->local_alloc_state is documented as protected by osb->osb_lock in
-> struct ocfs2_super, and most of the code follows that rule:
-> ocfs2_local_alloc_seen_free_bits(), ocfs2_la_enable_worker() and
-> ocfs2_recalc_la_window() all update the field with the lock held.
+On Sun, Sep 27, 2026 at 02:04:05PM +0300, d.morgun@ispras.ru wrote:
+> On 8/11/26 9:57 AM, Joseph Qi wrote:
+> > I think we can validate localalloc inode during block read in
+> > ocfs2_validate_inode_block(), which will drop the duplicate code in
+> > callers.
 > 
-> ocfs2_load_local_alloc() and ocfs2_shutdown_local_alloc() update
-> local_alloc_state, and local_alloc_bh next to it, without taking osb_lock, so
-> those stores can race with the reads and writes done by the local alloc
-> reserve path.  Those two writers predate the locking convention and were
-> never converted.
+> Hi Joseph,
 > 
-> Take osb->osb_lock when updating both fields.
+> Thanks for the suggestion. I moved the la_size check there, and it
+> does catch the current reproducer during mount. Before dropping the
+> duplicate checks in ocfs2_begin_local_alloc_recovery() and
+> ocfs2_load_local_alloc(), I'd like to raise two concerns:
 > 
-> Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-> Signed-off-by: Ginger Li <ginger.jzllee@gmail.com>
-> ---
->  fs/ocfs2/localalloc.c | 6 ++++++
->  1 file changed, 6 insertions(+), 0 deletions(-)
-> 
-> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-> --- a/fs/ocfs2/localalloc.c
-> +++ b/fs/ocfs2/localalloc.c
-> @@ -342,8 +342,10 @@ int ocfs2_load_local_alloc(struct ocfs2_super *osb)
->  		goto bail;
->  	}
->  
-> +	spin_lock(&osb->osb_lock);
->  	osb->local_alloc_bh = alloc_bh;
->  	osb->local_alloc_state = OCFS2_LA_ENABLED;
-> +	spin_unlock(&osb->osb_lock);
->  
+> 1. ocfs2_begin_local_alloc_recovery() reads the inode with
+>    OCFS2_BH_IGNORE_CACHE, and ocfs2_read_blocks() skips validation
+>    for dirty buffers. I traced through jbd2 replay: ocfs2_replay_journal()
+>    calls jbd2_journal_flush() right after jbd2_journal_load(), and
+>    jbd2_journal_recover() itself calls sync_blockdev(), which should
+>    clear the dirty flag before ocfs2_begin_local_alloc_recovery() runs.
+>    So this may not be reachable in practice, but I haven't been able
+>    to confirm it directly. The current reproducer hits the
+>    validator with a clean buffer during the initial mount, before
+>    recovery is reached at all. Is it possible to confirm that the
+>    buffer is guaranteed to be clean by that point?
 
-This function is triggered during the mount phase. The la (localalloc) is only
-active after this point, and the fs is still in the initialization state, so no
-inodes can be created. Therefore, we don't need to worry about any race conditions.
+In my view, OCFS2_BH_IGNORE_CACHE tells the lower layer to bypass the cache.
+If the buffer is dirty on this code path, that would be a separate bug.
 
->  bail:
->  	if (status < 0)
-> @@ -392,7 +394,9 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *os
->  		goto out;
->  	}
->  
-> +	spin_lock(&osb->osb_lock);
->  	osb->local_alloc_state = OCFS2_LA_DISABLED;
-> +	spin_unlock(&osb->osb_lock);
->  
->  	ocfs2_resmap_uninit(&osb->osb_la_resmap);
->  
-> @@ -441,8 +445,10 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *os
->  	ocfs2_journal_dirty(handle, bh);
->  
->  	brelse(bh);
-> +	spin_lock(&osb->osb_lock);
->  	osb->local_alloc_bh = NULL;
->  	osb->local_alloc_state = OCFS2_LA_UNUSED;
-> +	spin_unlock(&osb->osb_lock);
->  
->  	status = ocfs2_sync_local_to_main(osb, handle, alloc_copy,
->  					  main_bm_inode, main_bm_bh);
-> -- 
-> 2.43.0
+> 
+> 2. The check is gated on OCFS2_LOCAL_ALLOC_FL, but
+>    ocfs2_validate_inode_block() doesn't receive the inode's expected
+>    type, so it can't verify that the on-disk flags actually match
+>    what the caller expects. A corrupted local alloc inode with the
+>    flag cleared would skip the check, even though
+>    ocfs2_clear_local_alloc() still treats its id2 as i_lab. Is there
+>    an existing way to check this correspondence? Otherwise, this
+>    might call for a separate per-type validation helper that takes
+>    the expected inode type, which could also help elsewhere.
+> 
+> My inclination is: v1 (the check directly in
+> ocfs2_begin_local_alloc_recovery() and ocfs2_load_local_alloc())
+> has held up in testing so far, with a small additional fix on my
+> end. Both call sites operate in the LOCAL_ALLOC_SYSTEM_INODE context
+> and check la_size before using id2 as i_lab, so they do not depend on
+> OCFS2_LOCAL_ALLOC_FL for deciding whether to validate la_size.
+> Returning this new error also made a separate, pre-existing bug in
+> the recovery thread reachable, for which I have a small follow-up
+> fix.
+> 
+> If the two concerns with ocfs2_validate_inode_block() can be
+> addressed without too much churn, I agree it is the better place
+> for this check, since it would cover every caller uniformly.
+> Otherwise, I'd rather keep it in v1's approach.
+> 
+> Does this seem reasonable, or would you weigh it differently?
+> 
+> Thanks,
+> Dmitry
 > 
 
-When the code enters the umount phase, the VFS layer ensures that there are
-no other references to the fs, so no race can occur at this time.
-
-At last, if you have reproducible steps, please provide them to help us
-understand the issue better.
+Hope I understand your concerns correctly.
+You can reject further operations in ocfs2_begin_local_alloc_recovery() when
+OCFS2_LOCAL_ALLOC_FL is not set, while keeping the la_size check in
+ocfs2_validate_inode_block() guarded by OCFS2_LOCAL_ALLOC_FL.
 
 Thanks,
 Heming
