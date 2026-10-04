@@ -1,202 +1,126 @@
-Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
+Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.2])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B90638F947
-	for <ocfs2-devel@lists.linux.dev>; Sun,  4 Oct 2026 07:07:01 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=220.197.31.5
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2203C222597
+	for <ocfs2-devel@lists.linux.dev>; Sun,  4 Oct 2026 07:16:41 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.2
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791097626; cv=none; b=tPYkj8foAFjAn5mMni/T1e36EKFX0dZW0XH7csj+xU53OiZ2p/SnhdPiORuO6ismG1EXkwl6CQiSGXckJzRhaq1DuOWAhaNidFTFkqLepiS6Rz9haWanv+PcxJbPpI4i/gP9iKHiMudDz01YFoTB6qar7hoV+u9wZTPen3isPR0=
+	t=1791098206; cv=none; b=Stj/wOGcIwAURwF9OU/5221N6NnAYa55CvwF3vCGVF6Qtpn69wH7zVqIyGA00AdFpmWXnw3W7/XIUFyTtTJoyfPW4KfdFOkyMIjFzCdGIz0Ra+5vHsjxyRlzgxLzxgCv6AUmlr8Z3pi2bppZ69z9CbdWZJh7uquq4Db5TV/LyCI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791097626; c=relaxed/simple;
-	bh=DK2eifcovet8h/SmwwScHQv3176cktcJee8HEgGjHIM=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=ktUcnGHMOpJ/h9F81OI51g9ynBiHBIovIPxWt7OoT5j4tCcFUK0DSxpysuMrYso2yG6xbqHTETPqr23UdssXM6ETGCW2zooLqv/re1BZuUlkHO3JTKIujcfUA8lrQ0gz2P1cs6Cp7W6Ei7zGZdrxxM420Nzp0NS253hIXQXs56Q=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=lNxJb7az; arc=none smtp.client-ip=220.197.31.5
+	s=arc-20240116; t=1791098206; c=relaxed/simple;
+	bh=lA7IaW3ik9a7U42tmbTluHj//Biaz0Oz+GsehxRt6p8=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References:Content-Type:
+	 MIME-Version:Message-ID; b=QauVNtndOvkJOUFuFm2m7oefqY3lDSK6AA5pilEeYLKqLRal23yYuA4XiWG0S4rFNX0Oksz5jAVTFKRfABa/x7EE2KW3QJRp/GkUUxUARzsv3NStiYmVk6HKu/1WnoBD0ca1xIymou8b6RnLhgkZGlBM9IYAMes4dBUHQj8NXfU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=WEWWfaPs; arc=none smtp.client-ip=117.135.210.2
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="lNxJb7az"
+	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="WEWWfaPs"
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=Eo
-	fF1pUuYM/8yrp9ow9pXLzzi6rmvkTnwrMZgD5i4Rg=; b=lNxJb7aznl4moU1bzv
-	TMujjpXjDIHD4cPzlgP2m7sd107SWELxVddVM5jE/5KruR5kE8CVn89LjuG0HwaC
-	eyYKXCly9Hf6B59icr602oHUZv3J0ubQG2LBSwJIl2hWYjymDNvBB8E0OtK8dbEP
-	ZWVYgn9oSzQwCwsWV860uEq7Y=
-Received: from pc.localdomain (unknown [])
-	by gzga-smtp-mtada-g0-2 (Coremail) with SMTP id _____wDXv8vw+sFqXKtkCQ--.30279S2;
-	Sun, 04 Oct 2026 15:06:25 +0800 (CST)
-From: Jiale Yao <yaojiale02@163.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Gang He <ghe@suse.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	ocfs2-devel@lists.linux.dev,
+	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
+	Message-ID; bh=lA7IaW3ik9a7U42tmbTluHj//Biaz0Oz+GsehxRt6p8=; b=W
+	EWWfaPsq164aS+9j6ER++9qyzGtu8QJEAlkeptXhtaWGmQsqAXbiGcDu8uc5YLyt
+	Jl7yfE7KkYhuzRaOqZi81ody8KRohvTwTKdF4yxDUG4yYLeUrZUBVRQQcLGO37ie
+	uk5kb0AnxYJRYjtQctP9JJK45acdxjupESTYM34eCQ=
+Received: from 19888972804$163.com (
+ [2408:8207:2421:84e0:61d7:4f14:bc92:6eb5] ) by ajax-webmail-wmsvr-40-144
+ (Coremail) ; Sun, 4 Oct 2026 15:16:02 +0800 (CST)
+Date: Sun, 4 Oct 2026 15:16:02 +0800 (CST)
+From: "jiale yao" <19888972804@163.com>
+To: "Joseph Qi" <joseph.qi@linux.alibaba.com>
+Cc: "Andrew Morton" <akpm@linux-foundation.org>,
+	"Mark Fasheh" <mark@fasheh.com>, "Joel Becker" <jlbec@evilplan.org>,
+	"ZhengYuan Huang" <gality369@gmail.com>,
+	"Heming Zhao" <heming.zhao@suse.com>, ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Cc: Jiale Yao <yaojiale02@163.com>
-Subject: [PATCH v2] ocfs2: validate filecheck inode slots
-Date: Sun,  4 Oct 2026 15:06:21 +0800
-Message-Id: <20261004070621.1514598-1-yaojiale02@163.com>
-X-Mailer: git-send-email 2.34.1
+Subject: Re:Re: [PATCH] ocfs2: validate filecheck inode slots
+X-Priority: 3
+X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
+ 20260511(2e539873) Copyright (c) 2002-2026 www.mailtech.cn 163com
+In-Reply-To: <159ee826-9183-4ab9-a8f3-fdac061830ed@linux.alibaba.com>
+References: <20260926135354.3420193-1-yaojiale02@163.com>
+ <159ee826-9183-4ab9-a8f3-fdac061830ed@linux.alibaba.com>
+X-NTES-SC: AL_Qu2SA/ySt0kt5CGRYukdmE8Uges8WcC0svki1YJUc+wGgwDS/RwQQXJ+G1vY7OaCNhuhvT2zTjZ3yOl6eJFAfhU5MzDOtzeOsJQhVOP99g==
+Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=GBK
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:_____wDXv8vw+sFqXKtkCQ--.30279S2
-X-Coremail-Antispam: 1Uf129KBjvJXoW3XF4xWFyfAry8WrWfuryxAFb_yoW7Cr4DpF
-	yYvryagrW8JFyxuas7try2qw1Skw1UG347GrsIy34Yvrn0yFyqkF95J347WFyrKry8Xw12
-	ga15urW7WayxuaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x0pEqg47UUUUU=
-X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbC7xEGQGrB+vHmmQAA3n
+Message-ID: <1df8e908.ca1.1a105c50c1b.Coremail.19888972804@163.com>
+X-Coremail-Locale: zh_CN
+X-CM-TRANSID:kCgvCgD3X7ky_cFqZaFSAA--.4719W
+X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzRKW0GrB-TLy1gAA3Z
+X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
 
-The online filecheck path reads inodes with
-ocfs2_filecheck_validate_inode_block() instead of
-ocfs2_validate_inode_block(). It does not check the slot fields used by
-ocfs2_get_system_file_inode() to index slot-local system inodes.
-
-A corrupted dinode can set OCFS2_ORPHANED_FL or
-OCFS2_DIO_ORPHANED_FL while carrying an out-of-range orphan slot. An
-out-of-range i_suballoc_slot can also bypass the normal validator through
-the filecheck path. These values can later cause an out-of-bounds access
-when used as slot indices.
-
-Share predicate helpers between the normal and filecheck validators so
-both paths enforce the same bounds while retaining their own logging and
-error handling. Reject invalid slots in the repair path as well, since the
-correct slot cannot be recovered.
-
-This was reproduced on Linux 7.3-rc4 in an x86_64 QEMU guest with KASAN.
-Online filecheck of a corrupted inode reported a slab-out-of-bounds read
-in ocfs2_evict_inode(), reached from ocfs2_filecheck_attr_store().
-
-Fixes: d56a8f32e4c6 ("ocfs2: check/fix inode block for online file check")
-Signed-off-by: Jiale Yao <yaojiale02@163.com>
----
-
-Notes:
-    Changes in v2:
-    - Extract the slot validity conditions from ocfs2_validate_inode_block()
-      into predicates shared with the filecheck paths.
-    - Keep logging and error handling local to each validator.
-    - Fix the Fixes tag and include the KASAN reproduction information.
-
- fs/ocfs2/inode.c | 68 +++++++++++++++++++++++++++++++++++++++++++-----
- 1 file changed, 62 insertions(+), 6 deletions(-)
-
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 180107a11046..e5a7e53fffe5 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -249,6 +249,33 @@ static int ocfs2_dinode_has_extents(struct ocfs2_dinode *di)
- 	return 1;
- }
- 
-+static int
-+ocfs2_dinode_has_invalid_suballoc_slot(struct super_block *sb,
-+				       struct ocfs2_dinode *di)
-+{
-+	u16 slot = le16_to_cpu(di->i_suballoc_slot);
-+
-+	return slot != (u16)OCFS2_INVALID_SLOT &&
-+	       slot >= OCFS2_SB(sb)->max_slots;
-+}
-+
-+static int
-+ocfs2_dinode_has_invalid_orphan_slot(struct super_block *sb,
-+				     struct ocfs2_dinode *di)
-+{
-+	return (le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
-+	       le16_to_cpu(di->i_orphaned_slot) >= OCFS2_SB(sb)->max_slots;
-+}
-+
-+static int
-+ocfs2_dinode_has_invalid_dio_orphan_slot(struct super_block *sb,
-+					 struct ocfs2_dinode *di)
-+{
-+	return (le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
-+	       le16_to_cpu(di->i_dio_orphaned_slot) >=
-+	       OCFS2_SB(sb)->max_slots;
-+}
-+
- /*
-  * here's how inodes get read from disk:
-  * iget5_locked -> find_actor -> OCFS2_FIND_ACTOR
-@@ -1520,24 +1547,21 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		goto bail;
- 	}
- 
--	if (le16_to_cpu(di->i_suballoc_slot) != (u16)OCFS2_INVALID_SLOT &&
--	    (u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1) {
-+	if (ocfs2_dinode_has_invalid_suballoc_slot(sb, di)) {
- 		rc = ocfs2_error(sb, "Invalid dinode %llu: suballoc slot %u\n",
- 				 (unsigned long long)bh->b_blocknr,
- 				 le16_to_cpu(di->i_suballoc_slot));
- 		goto bail;
- 	}
- 
--	if ((le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
--	    le16_to_cpu(di->i_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
-+	if (ocfs2_dinode_has_invalid_orphan_slot(sb, di)) {
- 		rc = ocfs2_error(sb, "Invalid dinode %llu: orphaned slot %u\n",
- 				 (unsigned long long)bh->b_blocknr,
- 				 le16_to_cpu(di->i_orphaned_slot));
- 		goto bail;
- 	}
- 
--	if ((le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
--	    le16_to_cpu(di->i_dio_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
-+	if (ocfs2_dinode_has_invalid_dio_orphan_slot(sb, di)) {
- 		rc = ocfs2_error(sb, "Invalid dinode %llu: DIO orphaned slot %u\n",
- 				 (unsigned long long)bh->b_blocknr,
- 				 le16_to_cpu(di->i_dio_orphaned_slot));
-@@ -1835,6 +1859,33 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
- 		goto bail;
- 	}
- 
-+	if (ocfs2_dinode_has_invalid_suballoc_slot(sb, di)) {
-+		mlog(ML_ERROR,
-+		     "Filecheck: invalid dinode #%llu: suballoc slot %u\n",
-+		     (unsigned long long)bh->b_blocknr,
-+		     le16_to_cpu(di->i_suballoc_slot));
-+		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-+		goto bail;
-+	}
-+
-+	if (ocfs2_dinode_has_invalid_orphan_slot(sb, di)) {
-+		mlog(ML_ERROR,
-+		     "Filecheck: invalid dinode #%llu: orphaned slot %u\n",
-+		     (unsigned long long)bh->b_blocknr,
-+		     le16_to_cpu(di->i_orphaned_slot));
-+		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-+		goto bail;
-+	}
-+
-+	if (ocfs2_dinode_has_invalid_dio_orphan_slot(sb, di)) {
-+		mlog(ML_ERROR,
-+		     "Filecheck: invalid dinode #%llu: DIO orphaned slot %u\n",
-+		     (unsigned long long)bh->b_blocknr,
-+		     le16_to_cpu(di->i_dio_orphaned_slot));
-+		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-+		goto bail;
-+	}
-+
- 	if (ocfs2_dinode_has_size_without_clusters(sb, di)) {
- 		if (S_ISDIR(le16_to_cpu(di->i_mode)))
- 			mlog(ML_ERROR,
-@@ -1893,6 +1944,11 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
- 		return -OCFS2_FILECHECK_ERR_VALIDFLAG;
- 	}
- 
-+	if (ocfs2_dinode_has_invalid_suballoc_slot(sb, di) ||
-+	    ocfs2_dinode_has_invalid_orphan_slot(sb, di) ||
-+	    ocfs2_dinode_has_invalid_dio_orphan_slot(sb, di))
-+		return -OCFS2_FILECHECK_ERR_INVALIDINO;
-+
- 	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
- 		di->i_blkno = cpu_to_le64(bh->b_blocknr);
- 		changed = 1;
--- 
-2.34.1
-
+QXQgMjAyNi0wOS0yOCAxNzo1ODowMywgIkpvc2VwaCBRaSIgPGpvc2VwaC5xaUBsaW51eC5hbGli
+YWJhLmNvbT4gd3JvdGU6Cj4KPgo+T24gOS8yNi8yNiA5OjUzIFBNLCBKaWFsZSBZYW8gd3JvdGU6
+Cj4+IFRoZSBvbmxpbmUgZmlsZWNoZWNrIHBhdGggcmVhZHMgaW5vZGVzIHdpdGgKPj4gb2NmczJf
+ZmlsZWNoZWNrX3ZhbGlkYXRlX2lub2RlX2Jsb2NrKCkgaW5zdGVhZCBvZgo+PiBvY2ZzMl92YWxp
+ZGF0ZV9pbm9kZV9ibG9jaygpLiAgSXQgZG9lcyBub3QgY2hlY2sgdGhlIHNsb3QgZmllbGRzIHRo
+YXQKPj4gYXJlIHVzZWQgYXMgaW5kaWNlcyBpbnRvIGFycmF5cyBzaXplZCBieSBvc2ItPm1heF9z
+bG90cy4KPj4gCj4+IEEgY29ycnVwdGVkIGRpbm9kZSBjYW4gc2V0IE9DRlMyX09SUEhBTkVEX0ZM
+IG9yCj4+IE9DRlMyX0RJT19PUlBIQU5FRF9GTCB3aGlsZSBjYXJyeWluZyBhbiBvdXQtb2YtcmFu
+Z2Ugb3JwaGFuIHNsb3QuICBBbgo+PiBvdXQtb2YtcmFuZ2UgaV9zdWJhbGxvY19zbG90IGNhbiBh
+bHNvIGJ5cGFzcyB0aGUgbm9ybWFsIHZhbGlkYXRvcgo+PiB0aHJvdWdoIHRoZSBmaWxlY2hlY2sg
+cGF0aC4gIFRoZXNlIHZhbHVlcyBjYW4gbGF0ZXIgYmUgdXNlZCB0byBpbmRleAo+PiB0aGUgc2xv
+dC1sb2NhbCBzeXN0ZW0gaW5vZGUgYXJyYXkuCj4+IAo+PiBNaXJyb3IgdGhlIG5vcm1hbCB2YWxp
+ZGF0b3IncyBzbG90IGNoZWNrcyBpbiB0aGUgZmlsZWNoZWNrIHZhbGlkYXRvci4KPj4gUmVqZWN0
+IGludmFsaWQgc2xvdHMgaW4gdGhlIHJlcGFpciBwYXRoIGFzIHdlbGwsIHNpbmNlIHRoZSBjb3Jy
+ZWN0Cj4+IHNsb3QgY2Fubm90IGJlIHJlY292ZXJlZC4KPj4gCj4+IEZpeGVzOiBiYjg4MTMxYzk4
+MzEgKCJvY2ZzMjogdmFsaWRhdGUgRElPIG9ycGhhbiBzbG90IGR1cmluZyBpbm9kZSByZWFkIikK
+Pgo+RG9uJ3Qgc2VlIHdoeSBibGFtZXMgdGhpcyBjb21taXQuCj4KPj4gU2lnbmVkLW9mZi1ieTog
+SmlhbGUgWWFvIDx5YW9qaWFsZTAyQDE2My5jb20+Cj4+IC0tLQo+PiAgZnMvb2NmczIvaW5vZGUu
+YyB8IDQ1ICsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKwo+PiAg
+MSBmaWxlIGNoYW5nZWQsIDQ1IGluc2VydGlvbnMoKykKPj4gCj4+IGRpZmYgLS1naXQgYS9mcy9v
+Y2ZzMi9pbm9kZS5jIGIvZnMvb2NmczIvaW5vZGUuYwo+PiBpbmRleCAxODAxMDdhMTEwNDYuLmFi
+ODJjZjkxNDZlZiAxMDA2NDQKPj4gLS0tIGEvZnMvb2NmczIvaW5vZGUuYwo+PiArKysgYi9mcy9v
+Y2ZzMi9pbm9kZS5jCj4+IEBAIC0xNzU0LDYgKzE3NTQsNDQgQEAgaW50IG9jZnMyX3ZhbGlkYXRl
+X2lub2RlX2Jsb2NrKHN0cnVjdCBzdXBlcl9ibG9jayAqc2IsCj4+ICAJcmV0dXJuIHJjOwo+PiAg
+fQo+PiAgCj4+ICsvKgo+PiArICogVmFsaWRhdGUgdGhlIHNsb3QgZmllbGRzIHVzZWQgYXMgaW5k
+aWNlcyBpbnRvIGFycmF5cyBzaXplZCBieQo+PiArICogb3NiLT5tYXhfc2xvdHMuICBUaGUgZmls
+ZWNoZWNrIHBhdGggdXNlcyB0aGlzIHZhbGlkYXRvciBpbnN0ZWFkIG9mCj4+ICsgKiBvY2ZzMl92
+YWxpZGF0ZV9pbm9kZV9ibG9jaygpLCBzbyBpdCBtdXN0IGVuZm9yY2UgdGhlIHNhbWUgYm91bmRz
+Lgo+PiArICovCj4+ICtzdGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0ZV9zbG90cyhz
+dHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLAo+PiArCQkJCQkgIHN0cnVjdCBvY2ZzMl9kaW5vZGUgKmRp
+LAo+PiArCQkJCQkgIHVuc2lnbmVkIGxvbmcgbG9uZyBibGtubykKPj4gK3sKPj4gKwlzdHJ1Y3Qg
+b2NmczJfc3VwZXIgKm9zYiA9IE9DRlMyX1NCKHNiKTsKPj4gKwo+PiArCWlmIChsZTE2X3RvX2Nw
+dShkaS0+aV9zdWJhbGxvY19zbG90KSAhPSAodTE2KU9DRlMyX0lOVkFMSURfU0xPVCAmJgo+PiAr
+CSAgICAodTMyKWxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpID4gb3NiLT5tYXhfc2xv
+dHMgLSAxKSB7Cj4+ICsJCW1sb2coTUxfRVJST1IsCj4+ICsJCSAgICAgIkZpbGVjaGVjazogaW52
+YWxpZCBkaW5vZGUgIyVsbHU6IHN1YmFsbG9jIHNsb3QgJXVcbiIsCj4+ICsJCSAgICAgYmxrbm8s
+IGxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpKTsKPj4gKwkJcmV0dXJuIC1PQ0ZTMl9G
+SUxFQ0hFQ0tfRVJSX0lOVkFMSURJTk87Cj4+ICsJfQo+PiArCj4+ICsJaWYgKChsZTMyX3RvX2Nw
+dShkaS0+aV9mbGFncykgJiBPQ0ZTMl9PUlBIQU5FRF9GTCkgJiYKPj4gKwkgICAgbGUxNl90b19j
+cHUoZGktPmlfb3JwaGFuZWRfc2xvdCkgPj0gb3NiLT5tYXhfc2xvdHMpIHsKPj4gKwkJbWxvZyhN
+TF9FUlJPUiwKPj4gKwkJICAgICAiRmlsZWNoZWNrOiBpbnZhbGlkIGRpbm9kZSAjJWxsdTogb3Jw
+aGFuZWQgc2xvdCAldVxuIiwKPj4gKwkJICAgICBibGtubywgbGUxNl90b19jcHUoZGktPmlfb3Jw
+aGFuZWRfc2xvdCkpOwo+PiArCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfSU5WQUxJRElO
+TzsKPj4gKwl9Cj4+ICsKPj4gKwlpZiAoKGxlMzJfdG9fY3B1KGRpLT5pX2ZsYWdzKSAmIE9DRlMy
+X0RJT19PUlBIQU5FRF9GTCkgJiYKPj4gKwkgICAgbGUxNl90b19jcHUoZGktPmlfZGlvX29ycGhh
+bmVkX3Nsb3QpID49IG9zYi0+bWF4X3Nsb3RzKSB7Cj4+ICsJCW1sb2coTUxfRVJST1IsCj4+ICsJ
+CSAgICAgIkZpbGVjaGVjazogaW52YWxpZCBkaW5vZGUgIyVsbHU6IERJTyBvcnBoYW5lZCBzbG90
+ICV1XG4iLAo+PiArCQkgICAgIGJsa25vLCBsZTE2X3RvX2NwdShkaS0+aV9kaW9fb3JwaGFuZWRf
+c2xvdCkpOwo+PiArCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfSU5WQUxJRElOTzsKPj4g
+Kwl9Cj4+ICsKPj4gKwlyZXR1cm4gMDsKPj4gK30KPj4gKwo+Cj5UaGUgc2FtZSBjb21tZW50cyB3
+aXRoIGV4dGVudCBsaXN0IGZpbGVjaGVjayBwYXRjaC4KPlBsZWFzZSBhYnRyYWN0IGNvbW1vbiBo
+ZWxwZXJzIGZvciB0aGlzLgoKSG93IGFib3V0IHRoaXMgb25lLApodHRwczovL2xvcmUua2VybmVs
+Lm9yZy9hbGwvMjAyNjEwMDQwNzA2MjEuMTUxNDU5OC0xLXlhb2ppYWxlMDJAMTYzLmNvbS8KCj4K
+PlRoYW5rcywKPkpvc2VwaAo+Cj4+ICBzdGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0
+ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLAo+PiAgCQkJCQkJc3RydWN0IGJ1
+ZmZlcl9oZWFkICpiaCkKPj4gIHsKPj4gQEAgLTE4MzUsNiArMTg3MywxMCBAQCBzdGF0aWMgaW50
+IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sg
+KnNiLAo+PiAgCQlnb3RvIGJhaWw7Cj4+ICAJfQo+PiAgCj4+ICsJcmMgPSBvY2ZzMl9maWxlY2hl
+Y2tfdmFsaWRhdGVfc2xvdHMoc2IsIGRpLCBiaC0+Yl9ibG9ja25yKTsKPj4gKwlpZiAocmMpCj4+
+ICsJCWdvdG8gYmFpbDsKPj4gKwo+PiAgCWlmIChvY2ZzMl9kaW5vZGVfaGFzX3NpemVfd2l0aG91
+dF9jbHVzdGVycyhzYiwgZGkpKSB7Cj4+ICAJCWlmIChTX0lTRElSKGxlMTZfdG9fY3B1KGRpLT5p
+X21vZGUpKSkKPj4gIAkJCW1sb2coTUxfRVJST1IsCj4+IEBAIC0xODkzLDYgKzE5MzUsOSBAQCBz
+dGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja19yZXBhaXJfaW5vZGVfYmxvY2soc3RydWN0IHN1cGVy
+X2Jsb2NrICpzYiwKPj4gIAkJcmV0dXJuIC1PQ0ZTMl9GSUxFQ0hFQ0tfRVJSX1ZBTElERkxBRzsK
+Pj4gIAl9Cj4+ICAKPj4gKwlpZiAob2NmczJfZmlsZWNoZWNrX3ZhbGlkYXRlX3Nsb3RzKHNiLCBk
+aSwgYmgtPmJfYmxvY2tucikpCj4+ICsJCXJldHVybiAtT0NGUzJfRklMRUNIRUNLX0VSUl9JTlZB
+TElESU5POwo+PiArCj4+ICAJaWYgKGxlNjRfdG9fY3B1KGRpLT5pX2Jsa25vKSAhPSBiaC0+Yl9i
+bG9ja25yKSB7Cj4+ICAJCWRpLT5pX2Jsa25vID0gY3B1X3RvX2xlNjQoYmgtPmJfYmxvY2tucik7
+Cj4+ICAJCWNoYW5nZWQgPSAxOwo=
