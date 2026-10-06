@@ -1,126 +1,210 @@
-Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.2])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail.ispras.ru (mail.ispras.ru [83.149.199.84])
+	(using TLSv1.2 with cipher DHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2203C222597
-	for <ocfs2-devel@lists.linux.dev>; Sun,  4 Oct 2026 07:16:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=117.135.210.2
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8EC7D3BB689
+	for <ocfs2-devel@lists.linux.dev>; Tue,  6 Oct 2026 12:29:58 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=83.149.199.84
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791098206; cv=none; b=Stj/wOGcIwAURwF9OU/5221N6NnAYa55CvwF3vCGVF6Qtpn69wH7zVqIyGA00AdFpmWXnw3W7/XIUFyTtTJoyfPW4KfdFOkyMIjFzCdGIz0Ra+5vHsjxyRlzgxLzxgCv6AUmlr8Z3pi2bppZ69z9CbdWZJh7uquq4Db5TV/LyCI=
+	t=1791289802; cv=none; b=gceYuksZuxpR7Ypo1AkCqMF2CHcCW3NSVnqCEoo0xC9ykTRhQDRq2uVONvnf27apmGAsRWuo9AcEeMo1X/muzoTAdzWLBdlUoyxC+5Be8Lt+Nrpya1LChhg6txJt0J1acds0052ug/nQYz2JhSsEt/u94/CyIsfLYI4eCxF7RyE=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791098206; c=relaxed/simple;
-	bh=lA7IaW3ik9a7U42tmbTluHj//Biaz0Oz+GsehxRt6p8=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References:Content-Type:
-	 MIME-Version:Message-ID; b=QauVNtndOvkJOUFuFm2m7oefqY3lDSK6AA5pilEeYLKqLRal23yYuA4XiWG0S4rFNX0Oksz5jAVTFKRfABa/x7EE2KW3QJRp/GkUUxUARzsv3NStiYmVk6HKu/1WnoBD0ca1xIymou8b6RnLhgkZGlBM9IYAMes4dBUHQj8NXfU=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com; spf=pass smtp.mailfrom=163.com; dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b=WEWWfaPs; arc=none smtp.client-ip=117.135.210.2
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
+	s=arc-20240116; t=1791289802; c=relaxed/simple;
+	bh=LR2U809jmcLqe6/1R4HYlcvGcjd9RXk3n5XV4Y5q2LU=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=L0hPeQ+sLiGV8roWTDRljmZpQpuR5/V8r4lYxecSZ89RTdiNzW4Tr1m6IAzro/7qQT7++WSZP4QELW70le+ja1BFD+aobuI0Z+/owJl7YiVmaKVxnfiMJOT2lVnvxsQOP8ZoauQwF4Sx/IqAG3JjY46HnbFsFoNiJvlBiXorax8=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=ispras.ru; spf=pass smtp.mailfrom=ispras.ru; dkim=pass (1024-bit key) header.d=ispras.ru header.i=@ispras.ru header.b=jQJv8aqg; arc=none smtp.client-ip=83.149.199.84
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=ispras.ru
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=ispras.ru
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=163.com header.i=@163.com header.b="WEWWfaPs"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
-	Message-ID; bh=lA7IaW3ik9a7U42tmbTluHj//Biaz0Oz+GsehxRt6p8=; b=W
-	EWWfaPsq164aS+9j6ER++9qyzGtu8QJEAlkeptXhtaWGmQsqAXbiGcDu8uc5YLyt
-	Jl7yfE7KkYhuzRaOqZi81ody8KRohvTwTKdF4yxDUG4yYLeUrZUBVRQQcLGO37ie
-	uk5kb0AnxYJRYjtQctP9JJK45acdxjupESTYM34eCQ=
-Received: from 19888972804$163.com (
- [2408:8207:2421:84e0:61d7:4f14:bc92:6eb5] ) by ajax-webmail-wmsvr-40-144
- (Coremail) ; Sun, 4 Oct 2026 15:16:02 +0800 (CST)
-Date: Sun, 4 Oct 2026 15:16:02 +0800 (CST)
-From: "jiale yao" <19888972804@163.com>
-To: "Joseph Qi" <joseph.qi@linux.alibaba.com>
-Cc: "Andrew Morton" <akpm@linux-foundation.org>,
-	"Mark Fasheh" <mark@fasheh.com>, "Joel Becker" <jlbec@evilplan.org>,
-	"ZhengYuan Huang" <gality369@gmail.com>,
-	"Heming Zhao" <heming.zhao@suse.com>, ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: Re:Re: [PATCH] ocfs2: validate filecheck inode slots
-X-Priority: 3
-X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
- 20260511(2e539873) Copyright (c) 2002-2026 www.mailtech.cn 163com
-In-Reply-To: <159ee826-9183-4ab9-a8f3-fdac061830ed@linux.alibaba.com>
-References: <20260926135354.3420193-1-yaojiale02@163.com>
- <159ee826-9183-4ab9-a8f3-fdac061830ed@linux.alibaba.com>
-X-NTES-SC: AL_Qu2SA/ySt0kt5CGRYukdmE8Uges8WcC0svki1YJUc+wGgwDS/RwQQXJ+G1vY7OaCNhuhvT2zTjZ3yOl6eJFAfhU5MzDOtzeOsJQhVOP99g==
-Content-Transfer-Encoding: base64
-Content-Type: text/plain; charset=GBK
+	dkim=pass (1024-bit key) header.d=ispras.ru header.i=@ispras.ru header.b="jQJv8aqg"
+Received: from ubuntu-jammy.. (unknown [91.79.139.3])
+	by mail.ispras.ru (Postfix) with ESMTPSA id 998FF402837F;
+	Tue,  6 Oct 2026 12:29:38 +0000 (UTC)
+DKIM-Filter: OpenDKIM Filter v2.11.0 mail.ispras.ru 998FF402837F
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=ispras.ru;
+	s=default; t=1791289779;
+	bh=BKBLXEA4pqAaaEOi5MqPw1pne2B6VSvXehQSyxAjCEY=;
+	h=From:To:Cc:Subject:Date:From;
+	b=jQJv8aqg5r9Go2zX0tkhQlF9D+OZdYfKG9x7cwmHtUYjPLfGjV4XlrakKpO3sYhsf
+	 xQoCx+QEFmFIRvnHyDwVhHHuzip4NLtfwEeeT7Q1BTB7en6x9H/SWSDGrOdLe63Iue
+	 DcymS9r+TW19fvahKP1WwTqrdFwRFm9Fvlv2RgQQ=
+From: Dmitry Morgun <d.morgun@ispras.ru>
+To: ocfs2-devel@lists.linux.dev
+Cc: joseph.qi@linux.alibaba.com,
+	heming.zhao@suse.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
+	linux-kernel@vger.kernel.org,
+	lvc-project@linuxtesting.org
+Subject: [PATCH v4] ocfs2: validate la_size before ocfs2_clear_local_alloc()
+Date: Tue,  6 Oct 2026 12:28:42 +0000
+Message-Id: <20261006122842.1537-1-d.morgun@ispras.ru>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Message-ID: <1df8e908.ca1.1a105c50c1b.Coremail.19888972804@163.com>
-X-Coremail-Locale: zh_CN
-X-CM-TRANSID:kCgvCgD3X7ky_cFqZaFSAA--.4719W
-X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzRKW0GrB-TLy1gAA3Z
-X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
+Content-Transfer-Encoding: 8bit
 
-QXQgMjAyNi0wOS0yOCAxNzo1ODowMywgIkpvc2VwaCBRaSIgPGpvc2VwaC5xaUBsaW51eC5hbGli
-YWJhLmNvbT4gd3JvdGU6Cj4KPgo+T24gOS8yNi8yNiA5OjUzIFBNLCBKaWFsZSBZYW8gd3JvdGU6
-Cj4+IFRoZSBvbmxpbmUgZmlsZWNoZWNrIHBhdGggcmVhZHMgaW5vZGVzIHdpdGgKPj4gb2NmczJf
-ZmlsZWNoZWNrX3ZhbGlkYXRlX2lub2RlX2Jsb2NrKCkgaW5zdGVhZCBvZgo+PiBvY2ZzMl92YWxp
-ZGF0ZV9pbm9kZV9ibG9jaygpLiAgSXQgZG9lcyBub3QgY2hlY2sgdGhlIHNsb3QgZmllbGRzIHRo
-YXQKPj4gYXJlIHVzZWQgYXMgaW5kaWNlcyBpbnRvIGFycmF5cyBzaXplZCBieSBvc2ItPm1heF9z
-bG90cy4KPj4gCj4+IEEgY29ycnVwdGVkIGRpbm9kZSBjYW4gc2V0IE9DRlMyX09SUEhBTkVEX0ZM
-IG9yCj4+IE9DRlMyX0RJT19PUlBIQU5FRF9GTCB3aGlsZSBjYXJyeWluZyBhbiBvdXQtb2YtcmFu
-Z2Ugb3JwaGFuIHNsb3QuICBBbgo+PiBvdXQtb2YtcmFuZ2UgaV9zdWJhbGxvY19zbG90IGNhbiBh
-bHNvIGJ5cGFzcyB0aGUgbm9ybWFsIHZhbGlkYXRvcgo+PiB0aHJvdWdoIHRoZSBmaWxlY2hlY2sg
-cGF0aC4gIFRoZXNlIHZhbHVlcyBjYW4gbGF0ZXIgYmUgdXNlZCB0byBpbmRleAo+PiB0aGUgc2xv
-dC1sb2NhbCBzeXN0ZW0gaW5vZGUgYXJyYXkuCj4+IAo+PiBNaXJyb3IgdGhlIG5vcm1hbCB2YWxp
-ZGF0b3IncyBzbG90IGNoZWNrcyBpbiB0aGUgZmlsZWNoZWNrIHZhbGlkYXRvci4KPj4gUmVqZWN0
-IGludmFsaWQgc2xvdHMgaW4gdGhlIHJlcGFpciBwYXRoIGFzIHdlbGwsIHNpbmNlIHRoZSBjb3Jy
-ZWN0Cj4+IHNsb3QgY2Fubm90IGJlIHJlY292ZXJlZC4KPj4gCj4+IEZpeGVzOiBiYjg4MTMxYzk4
-MzEgKCJvY2ZzMjogdmFsaWRhdGUgRElPIG9ycGhhbiBzbG90IGR1cmluZyBpbm9kZSByZWFkIikK
-Pgo+RG9uJ3Qgc2VlIHdoeSBibGFtZXMgdGhpcyBjb21taXQuCj4KPj4gU2lnbmVkLW9mZi1ieTog
-SmlhbGUgWWFvIDx5YW9qaWFsZTAyQDE2My5jb20+Cj4+IC0tLQo+PiAgZnMvb2NmczIvaW5vZGUu
-YyB8IDQ1ICsrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKysrKwo+PiAg
-MSBmaWxlIGNoYW5nZWQsIDQ1IGluc2VydGlvbnMoKykKPj4gCj4+IGRpZmYgLS1naXQgYS9mcy9v
-Y2ZzMi9pbm9kZS5jIGIvZnMvb2NmczIvaW5vZGUuYwo+PiBpbmRleCAxODAxMDdhMTEwNDYuLmFi
-ODJjZjkxNDZlZiAxMDA2NDQKPj4gLS0tIGEvZnMvb2NmczIvaW5vZGUuYwo+PiArKysgYi9mcy9v
-Y2ZzMi9pbm9kZS5jCj4+IEBAIC0xNzU0LDYgKzE3NTQsNDQgQEAgaW50IG9jZnMyX3ZhbGlkYXRl
-X2lub2RlX2Jsb2NrKHN0cnVjdCBzdXBlcl9ibG9jayAqc2IsCj4+ICAJcmV0dXJuIHJjOwo+PiAg
-fQo+PiAgCj4+ICsvKgo+PiArICogVmFsaWRhdGUgdGhlIHNsb3QgZmllbGRzIHVzZWQgYXMgaW5k
-aWNlcyBpbnRvIGFycmF5cyBzaXplZCBieQo+PiArICogb3NiLT5tYXhfc2xvdHMuICBUaGUgZmls
-ZWNoZWNrIHBhdGggdXNlcyB0aGlzIHZhbGlkYXRvciBpbnN0ZWFkIG9mCj4+ICsgKiBvY2ZzMl92
-YWxpZGF0ZV9pbm9kZV9ibG9jaygpLCBzbyBpdCBtdXN0IGVuZm9yY2UgdGhlIHNhbWUgYm91bmRz
-Lgo+PiArICovCj4+ICtzdGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0ZV9zbG90cyhz
-dHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLAo+PiArCQkJCQkgIHN0cnVjdCBvY2ZzMl9kaW5vZGUgKmRp
-LAo+PiArCQkJCQkgIHVuc2lnbmVkIGxvbmcgbG9uZyBibGtubykKPj4gK3sKPj4gKwlzdHJ1Y3Qg
-b2NmczJfc3VwZXIgKm9zYiA9IE9DRlMyX1NCKHNiKTsKPj4gKwo+PiArCWlmIChsZTE2X3RvX2Nw
-dShkaS0+aV9zdWJhbGxvY19zbG90KSAhPSAodTE2KU9DRlMyX0lOVkFMSURfU0xPVCAmJgo+PiAr
-CSAgICAodTMyKWxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpID4gb3NiLT5tYXhfc2xv
-dHMgLSAxKSB7Cj4+ICsJCW1sb2coTUxfRVJST1IsCj4+ICsJCSAgICAgIkZpbGVjaGVjazogaW52
-YWxpZCBkaW5vZGUgIyVsbHU6IHN1YmFsbG9jIHNsb3QgJXVcbiIsCj4+ICsJCSAgICAgYmxrbm8s
-IGxlMTZfdG9fY3B1KGRpLT5pX3N1YmFsbG9jX3Nsb3QpKTsKPj4gKwkJcmV0dXJuIC1PQ0ZTMl9G
-SUxFQ0hFQ0tfRVJSX0lOVkFMSURJTk87Cj4+ICsJfQo+PiArCj4+ICsJaWYgKChsZTMyX3RvX2Nw
-dShkaS0+aV9mbGFncykgJiBPQ0ZTMl9PUlBIQU5FRF9GTCkgJiYKPj4gKwkgICAgbGUxNl90b19j
-cHUoZGktPmlfb3JwaGFuZWRfc2xvdCkgPj0gb3NiLT5tYXhfc2xvdHMpIHsKPj4gKwkJbWxvZyhN
-TF9FUlJPUiwKPj4gKwkJICAgICAiRmlsZWNoZWNrOiBpbnZhbGlkIGRpbm9kZSAjJWxsdTogb3Jw
-aGFuZWQgc2xvdCAldVxuIiwKPj4gKwkJICAgICBibGtubywgbGUxNl90b19jcHUoZGktPmlfb3Jw
-aGFuZWRfc2xvdCkpOwo+PiArCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfSU5WQUxJRElO
-TzsKPj4gKwl9Cj4+ICsKPj4gKwlpZiAoKGxlMzJfdG9fY3B1KGRpLT5pX2ZsYWdzKSAmIE9DRlMy
-X0RJT19PUlBIQU5FRF9GTCkgJiYKPj4gKwkgICAgbGUxNl90b19jcHUoZGktPmlfZGlvX29ycGhh
-bmVkX3Nsb3QpID49IG9zYi0+bWF4X3Nsb3RzKSB7Cj4+ICsJCW1sb2coTUxfRVJST1IsCj4+ICsJ
-CSAgICAgIkZpbGVjaGVjazogaW52YWxpZCBkaW5vZGUgIyVsbHU6IERJTyBvcnBoYW5lZCBzbG90
-ICV1XG4iLAo+PiArCQkgICAgIGJsa25vLCBsZTE2X3RvX2NwdShkaS0+aV9kaW9fb3JwaGFuZWRf
-c2xvdCkpOwo+PiArCQlyZXR1cm4gLU9DRlMyX0ZJTEVDSEVDS19FUlJfSU5WQUxJRElOTzsKPj4g
-Kwl9Cj4+ICsKPj4gKwlyZXR1cm4gMDsKPj4gK30KPj4gKwo+Cj5UaGUgc2FtZSBjb21tZW50cyB3
-aXRoIGV4dGVudCBsaXN0IGZpbGVjaGVjayBwYXRjaC4KPlBsZWFzZSBhYnRyYWN0IGNvbW1vbiBo
-ZWxwZXJzIGZvciB0aGlzLgoKSG93IGFib3V0IHRoaXMgb25lLApodHRwczovL2xvcmUua2VybmVs
-Lm9yZy9hbGwvMjAyNjEwMDQwNzA2MjEuMTUxNDU5OC0xLXlhb2ppYWxlMDJAMTYzLmNvbS8KCj4K
-PlRoYW5rcywKPkpvc2VwaAo+Cj4+ICBzdGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0
-ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sgKnNiLAo+PiAgCQkJCQkJc3RydWN0IGJ1
-ZmZlcl9oZWFkICpiaCkKPj4gIHsKPj4gQEAgLTE4MzUsNiArMTg3MywxMCBAQCBzdGF0aWMgaW50
-IG9jZnMyX2ZpbGVjaGVja192YWxpZGF0ZV9pbm9kZV9ibG9jayhzdHJ1Y3Qgc3VwZXJfYmxvY2sg
-KnNiLAo+PiAgCQlnb3RvIGJhaWw7Cj4+ICAJfQo+PiAgCj4+ICsJcmMgPSBvY2ZzMl9maWxlY2hl
-Y2tfdmFsaWRhdGVfc2xvdHMoc2IsIGRpLCBiaC0+Yl9ibG9ja25yKTsKPj4gKwlpZiAocmMpCj4+
-ICsJCWdvdG8gYmFpbDsKPj4gKwo+PiAgCWlmIChvY2ZzMl9kaW5vZGVfaGFzX3NpemVfd2l0aG91
-dF9jbHVzdGVycyhzYiwgZGkpKSB7Cj4+ICAJCWlmIChTX0lTRElSKGxlMTZfdG9fY3B1KGRpLT5p
-X21vZGUpKSkKPj4gIAkJCW1sb2coTUxfRVJST1IsCj4+IEBAIC0xODkzLDYgKzE5MzUsOSBAQCBz
-dGF0aWMgaW50IG9jZnMyX2ZpbGVjaGVja19yZXBhaXJfaW5vZGVfYmxvY2soc3RydWN0IHN1cGVy
-X2Jsb2NrICpzYiwKPj4gIAkJcmV0dXJuIC1PQ0ZTMl9GSUxFQ0hFQ0tfRVJSX1ZBTElERkxBRzsK
-Pj4gIAl9Cj4+ICAKPj4gKwlpZiAob2NmczJfZmlsZWNoZWNrX3ZhbGlkYXRlX3Nsb3RzKHNiLCBk
-aSwgYmgtPmJfYmxvY2tucikpCj4+ICsJCXJldHVybiAtT0NGUzJfRklMRUNIRUNLX0VSUl9JTlZB
-TElESU5POwo+PiArCj4+ICAJaWYgKGxlNjRfdG9fY3B1KGRpLT5pX2Jsa25vKSAhPSBiaC0+Yl9i
-bG9ja25yKSB7Cj4+ICAJCWRpLT5pX2Jsa25vID0gY3B1X3RvX2xlNjQoYmgtPmJfYmxvY2tucik7
-Cj4+ICAJCWNoYW5nZWQgPSAxOwo=
+la_size, like the journal dirty flag, is read from disk. If dirty != 0,
+ocfs2_begin_local_alloc_recovery() is called, which invokes
+ocfs2_clear_local_alloc(). At this point, ocfs2_clear_local_alloc()
+uses la_size as the loop bound without validating it first. If
+la_size is oversized, the loop writes past the end of la_bitmap and
+may eventually start writing into memory that has already been freed.
+
+BUG: KASAN: use-after-free in ocfs2_clear_local_alloc fs/ocfs2/localalloc.c:919 [inline]
+BUG: KASAN: use-after-free in ocfs2_begin_local_alloc_recovery+0xb07/0xc00 fs/ocfs2/localalloc.c:515
+CPU: 1 PID: 2386 Comm: syz.2.190 Not tainted 6.1.174-syzkaller-00520-g10c505401422 #0
+Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.17.0-debian-1.17.0-1 04/01/2014
+Call Trace:
+ <TASK>
+ ocfs2_clear_local_alloc fs/ocfs2/localalloc.c:919 [inline]
+ ocfs2_begin_local_alloc_recovery+0xb07/0xc00 fs/ocfs2/localalloc.c:515
+ ocfs2_check_volume fs/ocfs2/super.c:2448 [inline]
+ ocfs2_mount_volume fs/ocfs2/super.c:1819 [inline]
+ ocfs2_fill_super+0x2033/0x3dc0 fs/ocfs2/super.c:1082
+ mount_bdev+0x356/0x410 fs/super.c:1443
+ legacy_get_tree+0x108/0x220 fs/fs_context.c:632
+ vfs_get_tree+0x8e/0x300 fs/super.c:1573
+ do_new_mount fs/namespace.c:3078 [inline]
+ path_mount+0x6af/0x1f70 fs/namespace.c:3408
+ do_mount fs/namespace.c:3421 [inline]
+ __do_sys_mount fs/namespace.c:3629 [inline]
+ __se_sys_mount fs/namespace.c:3606 [inline]
+ __x64_sys_mount+0x283/0x300 fs/namespace.c:3606
+ do_syscall_x64 arch/x86/entry/common.c:46 [inline]
+ do_syscall_64+0x35/0x80 fs/namespace.c:76
+ entry_SYSCALL_64_after_hwframe+0x6e/0xd8
+
+The existing la_size check in ocfs2_load_local_alloc() runs after
+ocfs2_clear_local_alloc() on this recovery path. Memory corruption
+can therefore occur before the invalid size is detected and
+-EINVAL is returned.
+
+Reject inodes without OCFS2_LOCAL_ALLOC_FL in
+ocfs2_begin_local_alloc_recovery() before copying or clearing the
+bitmap, returning -EINVAL. The recovery code interprets id2 as
+i_lab, so it must not proceed when the local allocation flag is
+missing.
+
+Add la_size validation to ocfs2_validate_inode_block() for inodes
+marked with OCFS2_LOCAL_ALLOC_FL. Reject zero or a size exceeding
+the bitmap capacity through ocfs2_error(), which marks the
+filesystem read-only and returns -EROFS. The flag check in recovery
+prevents a corrupted inode from bypassing this validation by
+clearing OCFS2_LOCAL_ALLOC_FL.
+
+Keep the existing size check in ocfs2_load_local_alloc(), whose
+flag check also accepts OCFS2_BITMAP_FL without OCFS2_LOCAL_ALLOC_FL.
+
+The new checks can also return errors during node recovery. The
+recovery thread leaves a failed node in the recovery map and
+immediately retries it, so a persistent error prevents the loop
+from completing. Release the super lock and exit through the
+worker error path on failure, preserving the error status and
+leaving the failed node in the recovery map.
+
+Found by Linux Verification Center (linuxtesting.org) with Syzkaller.
+
+Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+Cc: stable@vger.kernel.org
+Signed-off-by: Dmitry Morgun <d.morgun@ispras.ru>
+---
+v4:
+- Supersede v3, which was an unintended resend of the v1-based
+  implementation.
+- Move la_size validation from
+  ocfs2_begin_local_alloc_recovery() to
+  ocfs2_validate_inode_block() (Joseph Qi).
+- Reject local allocation recovery when OCFS2_LOCAL_ALLOC_FL is
+  missing, before copying or clearing the bitmap (Heming Zhao).
+- Keep the existing size check in ocfs2_load_local_alloc().
+- Release the super lock and exit the recovery thread on error,
+  preserving the error status and the failed recovery-map entry
+  instead of immediately retrying the same node.
+
+Link to v3:
+https://lore.kernel.org/ocfs2-devel/20260831143734.7243-1-d.morgun@ispras.ru/
+
+v3:
+- Unintended resend of the v1-based implementation.
+
+v2:
+- Not posted publicly.
+
+Link to v1:
+https://lore.kernel.org/all/20260810113508.8513-1-d.morgun@ispras.ru/
+
+ fs/ocfs2/inode.c      | 13 +++++++++++++
+ fs/ocfs2/journal.c    |  2 ++
+ fs/ocfs2/localalloc.c |  9 ++++++++-
+ 3 files changed, 23 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 9a6b1af4c..cc2233268 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1477,6 +1477,19 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		}
+ 	}
+ 
++	if (le32_to_cpu(di->i_flags) & OCFS2_LOCAL_ALLOC_FL) {
++		struct ocfs2_local_alloc *la = &di->id2.i_lab;
++
++		if (la->la_size == 0 ||
++		    le16_to_cpu(la->la_size) > ocfs2_local_alloc_size(sb)) {
++			rc = ocfs2_error(sb,
++					 "Invalid dinode #%llu: invalid la_size %u\n",
++					 (unsigned long long)bh->b_blocknr,
++					 le16_to_cpu(la->la_size));
++			goto bail;
++		}
++	}
++
+ 	rc = 0;
+ 
+ bail:
+diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+index 7f5fd16d3..46983a061 100644
+--- a/fs/ocfs2/journal.c
++++ b/fs/ocfs2/journal.c
+@@ -1525,6 +1525,8 @@ static int __ocfs2_recovery_thread(void *arg)
+ 			     status, node_num,
+ 			     MAJOR(osb->sb->s_dev), MINOR(osb->sb->s_dev));
+ 			mlog(ML_ERROR, "Volume requires unmount.\n");
++			ocfs2_super_unlock(osb, 1);
++			goto bail;
+ 		}
+ 
+ 		spin_lock(&osb->osb_lock);
+diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+index c4426d12a..c5c80a17b 100644
+--- a/fs/ocfs2/localalloc.c
++++ b/fs/ocfs2/localalloc.c
+@@ -504,6 +504,14 @@ int ocfs2_begin_local_alloc_recovery(struct ocfs2_super *osb,
+ 		goto bail;
+ 	}
+ 
++	alloc = (struct ocfs2_dinode *)alloc_bh->b_data;
++	if (!(le32_to_cpu(alloc->i_flags) & OCFS2_LOCAL_ALLOC_FL)) {
++		mlog(ML_ERROR, "Invalid local alloc inode, %llu\n",
++		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
++		status = -EINVAL;
++		goto bail;
++	}
++
+ 	*alloc_copy = kmalloc(alloc_bh->b_size, GFP_KERNEL);
+ 	if (!(*alloc_copy)) {
+ 		status = -ENOMEM;
+@@ -511,7 +519,6 @@ int ocfs2_begin_local_alloc_recovery(struct ocfs2_super *osb,
+ 	}
+ 	memcpy((*alloc_copy), alloc_bh->b_data, alloc_bh->b_size);
+ 
+-	alloc = (struct ocfs2_dinode *) alloc_bh->b_data;
+ 	ocfs2_clear_local_alloc(alloc);
+ 
+ 	ocfs2_compute_meta_ecc(osb->sb, alloc_bh->b_data, &alloc->i_check);
+-- 
+2.34.1
+
