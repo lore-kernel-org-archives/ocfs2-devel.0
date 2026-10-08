@@ -1,32 +1,32 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B3ABB192B75
-	for <ocfs2-devel@lists.linux.dev>; Thu,  8 Oct 2026 05:43:34 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1A6521DDFE
+	for <ocfs2-devel@lists.linux.dev>; Thu,  8 Oct 2026 09:26:32 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.99
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791438219; cv=none; b=O4LlR6s7mmHsSGUPyescdKlAEGD7XhRqtC8S51nFEg42mHLcLQqJ+aPAp31bZjcZt1VmvvpTN7eM90MDHfS8q75Lb+biAMvsbNPSKCRZTEVBDY1QXdyhc65eGsG+ndq4ApfHOgH8kTthua6AdHom1cY5HNtjTRVGPf21+EATRoc=
+	t=1791451596; cv=none; b=NsrDgc6kD2gCob402AlV3vgvqmGiAATCDu4xDBwavijxEPZ0+BEApAZ7uS4yEeBParOF6Llphu1uzDraUdzx+cWBWrKp9C7pLe2L50sDU//nOEdPs/hLhyC2M+xre8CdLEgBF7euSO0YOebKN2Qq3W7xxXBopZ/pRr6ienBAiKk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791438219; c=relaxed/simple;
-	bh=RKPQvuzYcnEoA1+2OIfPiThF1mYVZhGB5ePjjPvkH9Y=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:From:Cc:
-	 In-Reply-To:Content-Type; b=JrbICp/+C/sXU/UpBjLpk5BHEnhlyYfZcWMMRnZOLbgDtf62/btdXAnZhNCXYSda1IY5Vl9p9gL4B9IP3y4P7DaupclMNIBuznpwHwCQF5BkvceGHZzLNo5mE5WHs98ODqOiogV+g8zxHHkRGvtWo+kJGFHlrqVyoSA59lulA7Y=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=KZzI2LP8; arc=none smtp.client-ip=115.124.30.124
+	s=arc-20240116; t=1791451596; c=relaxed/simple;
+	bh=AEAXAuTCdshlj5vRoyiPc7JMFlLaifZhRawd6zu8CKo=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=k0yHQCTGj1HXpbPb12lkMSEI/L+9dA8T/zUjRqwW1ghnnfOk5BeYwzGe9JfL+TPqkiSXRWNBnRUeqVYN4i1VJ0Y0xX6AoGQdiSTtPh93BbonFxhDZ9JkMVX7psKtBFxFBeYzz2bX6lxyhycy8ESNZaxKyhoCprti2uPn+nREPEk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=JQOLT+2t; arc=none smtp.client-ip=115.124.30.99
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="KZzI2LP8"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="JQOLT+2t"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1791438204; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=RKPQvuzYcnEoA1+2OIfPiThF1mYVZhGB5ePjjPvkH9Y=;
-	b=KZzI2LP89ST+L4jZSgyOc9ndU9OeL+mSQ432AlvovWI4vh5ZzFttICSsoyTQk8GT4HdmSW5CWau8yHw8zPYqctchk9jOdW8lrZK3z+W4IXg56nXWPVrexSr5ssny/flOQnxX3EwPx6U2da3t3WnY+I6uSENYpPDNa0/msL26KRg=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R401e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=2;SR=0;TI=SMTPD_---0XCKsXNv_1791438203;
-Received: from 30.221.149.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCKsXNv_1791438203 cluster:ay36)
+	t=1791451589; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=IvCHuh0QHvSSi6smvSQRsZh/QZENLvAcoAmd6HNiFHo=;
+	b=JQOLT+2tVgaeLbjeDDOgqAi7FLDH8NAOStGHftLngpVPRUI399bhfFK6ReblyQYsKlEMTvmifwODDDJQtUi61P53bAPYK2s5MRoUNGKXQ3EsQFFtgL3winTFMvP1YLeF0UkZzpf4qPbGBii4+0Ys+UWCxvh+MlppvUydGiV8HZI=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XCNMuXW_1791451587;
+Received: from 30.221.149.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCNMuXW_1791451587 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Thu, 08 Oct 2026 13:43:23 +0800
-Message-ID: <5ea330b4-6b04-4415-a2c0-287d500c46db@linux.alibaba.com>
-Date: Thu, 8 Oct 2026 13:43:23 +0800
+          Thu, 08 Oct 2026 17:26:28 +0800
+Message-ID: <ad5a4d68-0667-46b4-ba28-a0ff0be5c1fb@linux.alibaba.com>
+Date: Thu, 8 Oct 2026 17:26:26 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,63 +34,188 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: ocfs2: lookup fails with ENOENT for filenames containing bytes >=
- 0x80 on 6.12 (works on 6.1 and 4.9); readdir and debugfs.ocfs2 show entries
- correctly
-To: Anderson Ferneda <anderson.ferneda@braza.com.br>
-References: <CP5P284MB2780AC2C3C2AB2CF2B6CB7AFBE942@CP5P284MB2780.BRAP284.PROD.OUTLOOK.COM>
+Subject: Re: [PATCH v4] ocfs2: validate la_size before
+ ocfs2_clear_local_alloc()
+To: Dmitry Morgun <d.morgun@ispras.ru>, ocfs2-devel@lists.linux.dev
+Cc: heming.zhao@suse.com, mark@fasheh.com, jlbec@evilplan.org,
+ linux-kernel@vger.kernel.org, lvc-project@linuxtesting.org
+References: <20261006122842.1537-1-d.morgun@ispras.ru>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
-In-Reply-To: <CP5P284MB2780AC2C3C2AB2CF2B6CB7AFBE942@CP5P284MB2780.BRAP284.PROD.OUTLOOK.COM>
+In-Reply-To: <20261006122842.1537-1-d.morgun@ispras.ru>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
-Hi,
 
-On 10/8/26 4:16 AM, Anderson Ferneda wrote:
-> Hi,
-> I'm seeing what looks like a regression (or an incompatibility) in ocfs2 lookup on kernel 6.12 for filenames containing non-ASCII bytes. The same volume works fine on older kernels.
-> SUMMARY
-> On a shared ocfs2 volume, files whose names contain bytes >= 0x80 (Latin-1 encoded names, e.g. "a\xe3o") are listed by readdir but cannot be looked up (stat/open/ls -l return ENOENT) on a node running kernel 6.12. ASCII-only names work normally. The same files are accessed without any problem from nodes running older kernels.
-> ENVIRONMENT
-> Failing node: Debian 13 (trixie), kernel 6.12.111+deb13-amd64, x86_64, VMware guest, ocfs2-tools 1.8.8-3
-> Working nodes: Debian 12 (kernel 6.1.0-38) and Debian 9 (kernel 4.9.0-18), same volume, same cluster
-> Cluster stack: o2cb, mounted with "ordered data mode"
-> Storage: shared LUN via multipath, device-mapper device
-> Volume features (tunefs.ocfs2 -Q "%M %H
-> "):
-> backup-super strict-journal-super sparse extended-slotmap inline-data xattr indexed-dirs refcount discontig-bg
-> The files were created over time by applications running on the older nodes (names are in ISO-8859-1, not UTF-8; the kernel should treat them as opaque bytes).
-> SYMPTOMS
-> ls in the directory prints one error per affected file:
-> ls: cannot access 'Jo'$'\343''o ...': No such file or directory
-> and, without -l, lists the names correctly.
-> LC_ALL=C stat $'a\xe3o.xls' -> "No such file or directory"
-> Names with only ASCII characters in the same directory are fine.
-> Locale makes no difference (same result with LANG=en_US.UTF-8, LC_ALL=C and POSIX).
-> No related errors in dmesg after the volume is mounted (the only errors were -107 from earlier mount attempts, before the o2cb port was opened in the firewall).
-> WHAT I HAVE RULED OUT
-> Locale/charset: the failure happens with LC_ALL=C and with raw byte names.
-> On-disk data: debugfs.ocfs2 run from the failing node ("ls -l <dir>") shows all entries with correct names and inodes.
-> Name integrity: the same files copied via tar from a 6.1 node and extracted on a local filesystem on the 6.12 node work fine.
-> Same volume on 6.1 and 4.9 kernels: all names resolve correctly.
-> Multipath/block layer: no I/O errors, and readdir returns the correct entries from the same blocks.
-> HYPOTHESIS
-> Since the volume has indexed-dirs enabled, I suspect the directory index (dx) lookup, e.g. the name hash computation or comparison for bytes >= 0x80, behaves differently on 6.12 than on older kernels, so the index lookup misses entries that the linear readdir finds. I have not looked at the code or bisected this, so this is only a guess.
-> QUESTIONS
-> Is this a known issue or a known change in dx hash / lookup handling between 6.1 and 6.12?
-> Is there something I can run (debugfs.ocfs2 commands, tracing) to confirm whether the index lookup is what fails?
-> Is it safe to assume that a 6.12 node must not write to directories containing such names while other nodes run older kernels?
-> I can provide more output (debugfs.ocfs2 stat of the directory, dx root info, kernel config) and test patches or other kernel versions if useful.
 
-It seems the root cause is not an ocfs2 change. It is commit
-3bc753c06dd0 ("kbuild: treat char as always unsigned"), which added
--funsigned-char to KBUILD_CFLAGS and thereby changed the on-disk dx
-name hash ocfs2 computes for any name containing a byte >= 0x80.
+On 10/6/26 8:28 PM, Dmitry Morgun wrote:
+> la_size, like the journal dirty flag, is read from disk. If dirty != 0,
+> ocfs2_begin_local_alloc_recovery() is called, which invokes
+> ocfs2_clear_local_alloc(). At this point, ocfs2_clear_local_alloc()
+> uses la_size as the loop bound without validating it first. If
+> la_size is oversized, the loop writes past the end of la_bitmap and
+> may eventually start writing into memory that has already been freed.
+> 
+> BUG: KASAN: use-after-free in ocfs2_clear_local_alloc fs/ocfs2/localalloc.c:919 [inline]
+> BUG: KASAN: use-after-free in ocfs2_begin_local_alloc_recovery+0xb07/0xc00 fs/ocfs2/localalloc.c:515
+> CPU: 1 PID: 2386 Comm: syz.2.190 Not tainted 6.1.174-syzkaller-00520-g10c505401422 #0
+> Hardware name: QEMU Standard PC (i440FX + PIIX, 1996), BIOS 1.17.0-debian-1.17.0-1 04/01/2014
+> Call Trace:
+>  <TASK>
+>  ocfs2_clear_local_alloc fs/ocfs2/localalloc.c:919 [inline]
+>  ocfs2_begin_local_alloc_recovery+0xb07/0xc00 fs/ocfs2/localalloc.c:515
+>  ocfs2_check_volume fs/ocfs2/super.c:2448 [inline]
+>  ocfs2_mount_volume fs/ocfs2/super.c:1819 [inline]
+>  ocfs2_fill_super+0x2033/0x3dc0 fs/ocfs2/super.c:1082
+>  mount_bdev+0x356/0x410 fs/super.c:1443
+>  legacy_get_tree+0x108/0x220 fs/fs_context.c:632
+>  vfs_get_tree+0x8e/0x300 fs/super.c:1573
+>  do_new_mount fs/namespace.c:3078 [inline]
+>  path_mount+0x6af/0x1f70 fs/namespace.c:3408
+>  do_mount fs/namespace.c:3421 [inline]
+>  __do_sys_mount fs/namespace.c:3629 [inline]
+>  __se_sys_mount fs/namespace.c:3606 [inline]
+>  __x64_sys_mount+0x283/0x300 fs/namespace.c:3606
+>  do_syscall_x64 arch/x86/entry/common.c:46 [inline]
+>  do_syscall_64+0x35/0x80 fs/namespace.c:76
+>  entry_SYSCALL_64_after_hwframe+0x6e/0xd8
+> 
+> The existing la_size check in ocfs2_load_local_alloc() runs after
+> ocfs2_clear_local_alloc() on this recovery path. Memory corruption
+> can therefore occur before the invalid size is detected and
+> -EINVAL is returned.
+> 
+> Reject inodes without OCFS2_LOCAL_ALLOC_FL in
+> ocfs2_begin_local_alloc_recovery() before copying or clearing the
+> bitmap, returning -EINVAL. The recovery code interprets id2 as
+> i_lab, so it must not proceed when the local allocation flag is
+> missing.
+> 
+> Add la_size validation to ocfs2_validate_inode_block() for inodes
+> marked with OCFS2_LOCAL_ALLOC_FL. Reject zero or a size exceeding
+> the bitmap capacity through ocfs2_error(), which marks the
+> filesystem read-only and returns -EROFS. The flag check in recovery
 
-Seems we have to support 'signed char' in str2hashbuf() to retain
-the previous behavior. I'll send a patch later.
+The behavior depends on errors= settings, so -EROFS is not always true. 
+
+> prevents a corrupted inode from bypassing this validation by
+> clearing OCFS2_LOCAL_ALLOC_FL.
+> 
+> Keep the existing size check in ocfs2_load_local_alloc(), whose
+> flag check also accepts OCFS2_BITMAP_FL without OCFS2_LOCAL_ALLOC_FL.
+> 
+> The new checks can also return errors during node recovery. The
+> recovery thread leaves a failed node in the recovery map and
+> immediately retries it, so a persistent error prevents the loop
+> from completing. Release the super lock and exit through the
+> worker error path on failure, preserving the error status and
+> leaving the failed node in the recovery map.
+> 
+> Found by Linux Verification Center (linuxtesting.org) with Syzkaller.
+> 
+> Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Dmitry Morgun <d.morgun@ispras.ru>
+> ---
+> v4:
+> - Supersede v3, which was an unintended resend of the v1-based
+>   implementation.
+> - Move la_size validation from
+>   ocfs2_begin_local_alloc_recovery() to
+>   ocfs2_validate_inode_block() (Joseph Qi).
+> - Reject local allocation recovery when OCFS2_LOCAL_ALLOC_FL is
+>   missing, before copying or clearing the bitmap (Heming Zhao).
+> - Keep the existing size check in ocfs2_load_local_alloc().
+> - Release the super lock and exit the recovery thread on error,
+>   preserving the error status and the failed recovery-map entry
+>   instead of immediately retrying the same node.
+> 
+> Link to v3:
+> https://lore.kernel.org/ocfs2-devel/20260831143734.7243-1-d.morgun@ispras.ru/
+> 
+> v3:
+> - Unintended resend of the v1-based implementation.
+> 
+> v2:
+> - Not posted publicly.
+> 
+> Link to v1:
+> https://lore.kernel.org/all/20260810113508.8513-1-d.morgun@ispras.ru/
+> 
+>  fs/ocfs2/inode.c      | 13 +++++++++++++
+>  fs/ocfs2/journal.c    |  2 ++
+>  fs/ocfs2/localalloc.c |  9 ++++++++-
+>  3 files changed, 23 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+> index 9a6b1af4c..cc2233268 100644
+> --- a/fs/ocfs2/inode.c
+> +++ b/fs/ocfs2/inode.c
+> @@ -1477,6 +1477,19 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+>  		}
+>  	}
+>  
+> +	if (le32_to_cpu(di->i_flags) & OCFS2_LOCAL_ALLOC_FL) {
+> +		struct ocfs2_local_alloc *la = &di->id2.i_lab;
+> +
+> +		if (la->la_size == 0 ||
+> +		    le16_to_cpu(la->la_size) > ocfs2_local_alloc_size(sb)) {
+> +			rc = ocfs2_error(sb,
+> +					 "Invalid dinode #%llu: invalid la_size %u\n",
+> +					 (unsigned long long)bh->b_blocknr,
+> +					 le16_to_cpu(la->la_size));
+> +			goto bail;
+> +		}
+> +	}
+> +
+>  	rc = 0;
+>  
+>  bail:
+> diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
+> index 7f5fd16d3..46983a061 100644
+> --- a/fs/ocfs2/journal.c
+> +++ b/fs/ocfs2/journal.c
+> @@ -1525,6 +1525,8 @@ static int __ocfs2_recovery_thread(void *arg)
+>  			     status, node_num,
+>  			     MAJOR(osb->sb->s_dev), MINOR(osb->sb->s_dev));
+>  			mlog(ML_ERROR, "Volume requires unmount.\n");
+> +			ocfs2_super_unlock(osb, 1);
+> +			goto bail;
+
+This fires on any non-zero status from ocfs2_recover_node(), not only on
+persistent ones, e.g. -ENOMEM returns from
+ocfs2_begin_local_alloc_recovery().
 
 Thanks,
 Joseph
+
+>  		}
+>  
+>  		spin_lock(&osb->osb_lock);
+> diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
+> index c4426d12a..c5c80a17b 100644
+> --- a/fs/ocfs2/localalloc.c
+> +++ b/fs/ocfs2/localalloc.c
+> @@ -504,6 +504,14 @@ int ocfs2_begin_local_alloc_recovery(struct ocfs2_super *osb,
+>  		goto bail;
+>  	}
+>  
+> +	alloc = (struct ocfs2_dinode *)alloc_bh->b_data;
+> +	if (!(le32_to_cpu(alloc->i_flags) & OCFS2_LOCAL_ALLOC_FL)) {
+> +		mlog(ML_ERROR, "Invalid local alloc inode, %llu\n",
+> +		     (unsigned long long)OCFS2_I(inode)->ip_blkno);
+> +		status = -EINVAL;
+> +		goto bail;
+> +	}
+> +
+>  	*alloc_copy = kmalloc(alloc_bh->b_size, GFP_KERNEL);
+>  	if (!(*alloc_copy)) {
+>  		status = -ENOMEM;
+> @@ -511,7 +519,6 @@ int ocfs2_begin_local_alloc_recovery(struct ocfs2_super *osb,
+>  	}
+>  	memcpy((*alloc_copy), alloc_bh->b_data, alloc_bh->b_size);
+>  
+> -	alloc = (struct ocfs2_dinode *) alloc_bh->b_data;
+>  	ocfs2_clear_local_alloc(alloc);
+>  
+>  	ocfs2_compute_meta_ecc(osb->sb, alloc_bh->b_data, &alloc->i_check);
 
