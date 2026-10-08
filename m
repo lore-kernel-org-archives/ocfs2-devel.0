@@ -1,213 +1,231 @@
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 30D9449E5C7
-	for <ocfs2-devel@lists.linux.dev>; Thu,  8 Oct 2026 12:59:12 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 416DF38F65C;
+	Thu,  8 Oct 2026 17:08:13 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791464355; cv=none; b=XZnRXMJlE2RbyyMywsyYQXT5pVK7BvU8vYwTceDaBYjPB1lzvQFpxjjen1/Ke3x0sOLPx3OGcXqK0+7BFoOFoo3AQ7YL/kC36JKP+IO2yR1duw6tFEN0X5lbekld0Uwxq7jbFl/cJNkelgg91wEo5GFHeYEaI5HJcYKXgLx36tY=
+	t=1791479295; cv=none; b=mxvv8DFLFPgTS9Paom/fMZmWgRX55Eo12TZ/arOx3l1ICAzdcR6Bx1qIPXwz9/Dcslx0cBY4Slgo+Fm5Vit7lUORQQDZSb5lemems9SWnZT3umZ+u44K8Yey8j5RHxKQXDlgNSZpb+t+UPDGt7vDvnbPwqw1pmiFgUz+fV8bCps=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791464355; c=relaxed/simple;
-	bh=DgAsKS9JvwInHXRpeBq9EtB+MtkPMfsQVYaRjgxcRpc=;
-	h=Message-ID:Date:MIME-Version:Subject:To:References:Cc:From:
-	 In-Reply-To:Content-Type; b=oLMA84A40aJCIwRjatwOmVbYEY7MI+5G+EDuRw/7BQAaUL4bgmT5cISE6AOAYha32mwyIspmE5eMG3HJpX432VwoyNLJvjzGntEaindLwPQLlySy006Gb89V7IjD2LFQtBdZoMxYc6B34Nt/0xKji9IKPufJ87tUk456qiWJdc8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=mB8bBy5R; arc=none smtp.client-ip=115.124.30.124
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	s=arc-20240116; t=1791479295; c=relaxed/simple;
+	bh=0eBtMTu0/gfhzOhtCIIjYp5dd3J2nx+mqrVP8/rXKb4=;
+	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
+	 Mime-Version:Content-Type; b=dmfGvSX2JhHgujMuEkYAU2zJpKM7y3Fpek9DYt2q8Y/9iwafV2sVi5bSTf63kYVrkPOEQ+zvDGmzhMiEwH8hfpUccHVcRsxP2Tz71IwhEKGMWzLhqDtx1DDgus1w9EO+yGzbF277gRcjB7oS4DQf3UizoX3ne191fYP3SqlzkNs=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=csdqprA4; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="mB8bBy5R"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1791464347; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=UQ3AWBfwIgF+TFIDso++283qqFfL3TrJ8DKata4q3xI=;
-	b=mB8bBy5Rmcbao3R1/0A8VL7NIYJw3ntpRXcweX3C/6pwziH1anAmBX9x+/sXjqmcwxHGuO+Is2fr7X9lUiwt74ViQkIQhoTlWu3Xvs61gDllU0FLQDPXEPLpRafLMiXmYIRYV2gAx60yVEe+tVyscvSl6JzfgpqYkvZ3kIteCqA=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R211e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0XCQ7o1P_1791464346;
-Received: from 30.221.149.122(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCQ7o1P_1791464346 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 08 Oct 2026 20:59:06 +0800
-Message-ID: <b5773b48-d9be-4789-845b-a8d94a701fa5@linux.alibaba.com>
-Date: Thu, 8 Oct 2026 20:59:05 +0800
+	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="csdqprA4"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7C96D1F000FF;
+	Thu,  8 Oct 2026 17:08:13 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1791479293;
+	bh=40UmGtsWvKZUKUpHoZBUqaWRitaTWsYb5pdsjbLrFbc=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=csdqprA4ZZqt4Jvt9d+z8dNJvB443wlcluTVQvjFtrKp8TUZICyWcXqBapadTNldC
+	 QdYL+b8STFSRrWvvQ00GgMU8AixHHUkCp4+nWQmHNPkadSFl++BN356EwDBUdtaOTT
+	 HrH6+T3//qPRmIo+OQJijugBSP4K/KPyye8l/1aY=
+Date: Thu, 8 Oct 2026 10:08:12 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Heming Zhao <heming.zhao@suse.com>, Anderson Ferneda
+ <anderson.ferneda@braza.com.br>, Mark Fasheh <mark@fasheh.com>, Joel Becker
+ <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 1/2] ocfs2: deal with legacy signed dir index name hash
+ values
+Message-Id: <20261008100812.0969af222022821d4ed72fad@linux-foundation.org>
+In-Reply-To: <20261008122743.616779-1-joseph.qi@linux.alibaba.com>
+References: <20261008122743.616779-1-joseph.qi@linux.alibaba.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: validate filecheck inode slots
-To: Jiale Yao <yaojiale02@163.com>
-References: <20261004070621.1514598-1-yaojiale02@163.com>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- Gang He <ghe@suse.com>, Andrew Morton <akpm@linux-foundation.org>,
- Heming Zhao <heming.zhao@suse.com>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20261004070621.1514598-1-yaojiale02@163.com>
-Content-Type: text/plain; charset=UTF-8
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
+On Thu,  8 Oct 2026 20:27:42 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
 
-
-On 10/4/26 3:06 PM, Jiale Yao wrote:
-> The online filecheck path reads inodes with
-> ocfs2_filecheck_validate_inode_block() instead of
-> ocfs2_validate_inode_block(). It does not check the slot fields used by
-> ocfs2_get_system_file_inode() to index slot-local system inodes.
+> Commit 3bc753c06dd0 ("kbuild: treat char as always unsigned") set
+> -funsigned-char globally, which changed the result of the naked 'char'
+> load in str2hashbuf():
 > 
-> A corrupted dinode can set OCFS2_ORPHANED_FL or
-> OCFS2_DIO_ORPHANED_FL while carrying an out-of-range orphan slot. An
-> out-of-range i_suballoc_slot can also bypass the normal validator through
-> the filecheck path. These values can later cause an out-of-bounds access
-> when used as slot indices.
+> 	val = msg[i] + (val << 8);
 > 
-> Share predicate helpers between the normal and filecheck validators so
-> both paths enforce the same bounds while retaining their own logging and
-> error handling. Reject invalid slots in the repair path as well, since the
-> correct slot cannot be recovered.
+> A name byte >= 0x80 used to sign-extend and now zero-extends, so
+> ocfs2_dx_dir_name_hash() computes a different hash pair for every name
+> containing one.  The pair is written into the dx leaf when the entry is
+> created, so an index built by an older kernel no longer matches and
+> ocfs2_dx_dir_search() returns -ENOENT for a name that readdir still
+> lists.
 > 
-> This was reproduced on Linux 7.3-rc4 in an x86_64 QEMU guest with KASAN.
-> Online filecheck of a corrupted inode reported a slab-out-of-bounds read
-> in ocfs2_evict_inode(), reached from ocfs2_filecheck_attr_store().
+> Search with the current unsigned hash and, on a miss, retry with the
+> legacy signed one, as ext4 does in commit f3bbac32475b2 ("ext4: deal
+> with legacy signed xattr name hash values").  New entries are always
+> indexed under the unsigned hash.  Skip the retry when the two hashes
+> are equal, so that a miss on an ASCII name does not walk the index
+> twice.
 > 
-> Fixes: d56a8f32e4c6 ("ocfs2: check/fix inode block for online file check")
-> Signed-off-by: Jiale Yao <yaojiale02@163.com>
+> The retry costs a second walk of the dx tree, so a negative lookup of a
+> name containing a byte >= 0x80 does twice the work.  That is bounded and
+> worth it, and directories whose dx root is still inline pay nothing
+> extra, since there the retry only rescans the root block that is already
+> loaded.  Nothing retires it at runtime: a legacy entry keeps its legacy
+> hash, because neither deleting nor updating an entry rewrites the dx
+> hash, and the only code that rehashes existing dirents is
+> ocfs2_expand_inline_dir() on the inline to extent conversion.
+> Rebuilding the index offline is what removes the cost for good.
+> 
+> Also spell out the signedness in str2hashbuf() instead of leaving the
+> current hash to -funsigned-char, as commit 854f0912f813 ("ext4: make
+> xattr char unsignedness in hash explicit") did, so that both variants
+> stay correct if this is backported to a kernel without the flag.
+> 
+> Reported-by: Anderson Ferneda <anderson.ferneda@braza.com.br>
+> Link: https://lore.kernel.org/ocfs2-devel/CP5P284MB2780AC2C3C2AB2CF2B6CB7AFBE942@CP5P284MB2780.BRAP284.PROD.OUTLOOK.COM/
+> Exposed-by: 3bc753c06dd0 ("kbuild: treat char as always unsigned")
+> Cc: stable@vger.kernel.org # 6.2+
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 > ---
+>  fs/ocfs2/dir.c | 76 ++++++++++++++++++++++++++++++++++++++++++--------
+>  1 file changed, 65 insertions(+), 11 deletions(-)
 > 
-> Notes:
->     Changes in v2:
->     - Extract the slot validity conditions from ocfs2_validate_inode_block()
->       into predicates shared with the filecheck paths.
->     - Keep logging and error handling local to each validator.
->     - Fix the Fixes tag and include the KASAN reproduction information.
-> 
->  fs/ocfs2/inode.c | 68 +++++++++++++++++++++++++++++++++++++++++++-----
->  1 file changed, 62 insertions(+), 6 deletions(-)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 180107a11046..e5a7e53fffe5 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -249,6 +249,33 @@ static int ocfs2_dinode_has_extents(struct ocfs2_dinode *di)
->  	return 1;
+> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
+> index 55c4a305a282..3f159a20a248 100644
+> --- a/fs/ocfs2/dir.c
+> +++ b/fs/ocfs2/dir.c
+> @@ -221,7 +221,8 @@ static void TEA_transform(__u32 buf[4], __u32 const in[])
+>  	buf[1] += b1;
 >  }
 >  
-> +static int
-> +ocfs2_dinode_has_invalid_suballoc_slot(struct super_block *sb,
-> +				       struct ocfs2_dinode *di)
+> -static void str2hashbuf(const char *msg, int len, __u32 *buf, int num)
+> +static void str2hashbuf(const char *msg, int len, __u32 *buf, int num,
+> +			bool legacy_signed)
+>  {
+>  	__u32	pad, val;
+>  	int	i;
+> @@ -235,7 +236,10 @@ static void str2hashbuf(const char *msg, int len, __u32 *buf, int num)
+>  	for (i = 0; i < len; i++) {
+>  		if ((i % 4) == 0)
+>  			val = pad;
+> -		val = msg[i] + (val << 8);
+> +		if (legacy_signed)
+> +			val = (signed char)msg[i] + (val << 8);
+> +		else
+> +			val = (unsigned char)msg[i] + (val << 8);
+>  		if ((i % 4) == 3) {
+>  			*buf++ = val;
+>  			val = pad;
+> @@ -248,8 +252,9 @@ static void str2hashbuf(const char *msg, int len, __u32 *buf, int num)
+>  		*buf++ = pad;
+>  }
+>  
+> -static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+> -				   struct ocfs2_dx_hinfo *hinfo)
+> +static void __ocfs2_dx_dir_name_hash(struct inode *dir, const char *name,
+> +				     int len, struct ocfs2_dx_hinfo *hinfo,
+> +				     bool legacy_signed)
+>  {
+>  	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
+>  	const char	*p;
+> @@ -279,7 +284,7 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+>  
+>  	p = name;
+>  	while (len > 0) {
+> -		str2hashbuf(p, len, in, 4);
+> +		str2hashbuf(p, len, in, 4, legacy_signed);
+>  		TEA_transform(buf, in);
+>  		len -= 16;
+>  		p += 16;
+> @@ -290,6 +295,19 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+>  	hinfo->minor_hash = buf[1];
+>  }
+>  
+> +static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
+> +				   struct ocfs2_dx_hinfo *hinfo)
 > +{
-> +	u16 slot = le16_to_cpu(di->i_suballoc_slot);
-> +
-> +	return slot != (u16)OCFS2_INVALID_SLOT &&
-> +	       slot >= OCFS2_SB(sb)->max_slots;
+> +	__ocfs2_dx_dir_name_hash(dir, name, len, hinfo, false);
 > +}
-
-Use 'static bool' instead, to keep consistent with
-ocfs2_dinode_has_size_without_clusters().
-
-And it seems your another patch also changes the same context, so please
-send the two together as a series.
-
-BTW, you should rebase on top of the latest linux-next. This conflicts
-with the series of 25bf9e549360 ("ocfs2: restrict OCFS2_INVALID_SLOT
-suballoc slot to system inodes"), and you have to teach the helper about
-OCFS2_SYSTEM_FL.
-
-Thanks,
-Joseph
-
 > +
-> +static int
-> +ocfs2_dinode_has_invalid_orphan_slot(struct super_block *sb,
-> +				     struct ocfs2_dinode *di)
+> +static void ocfs2_dx_dir_name_hash_signed(struct inode *dir, const char *name,
+> +					  int len,
+> +					  struct ocfs2_dx_hinfo *hinfo)
 > +{
-> +	return (le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
-> +	       le16_to_cpu(di->i_orphaned_slot) >= OCFS2_SB(sb)->max_slots;
-> +}
-> +
-> +static int
-> +ocfs2_dinode_has_invalid_dio_orphan_slot(struct super_block *sb,
-> +					 struct ocfs2_dinode *di)
-> +{
-> +	return (le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
-> +	       le16_to_cpu(di->i_dio_orphaned_slot) >=
-> +	       OCFS2_SB(sb)->max_slots;
+> +	__ocfs2_dx_dir_name_hash(dir, name, len, hinfo, true);
 > +}
 > +
 >  /*
->   * here's how inodes get read from disk:
->   * iget5_locked -> find_actor -> OCFS2_FIND_ACTOR
-> @@ -1520,24 +1547,21 @@ int ocfs2_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
+>   * bh passed here can be an inode block or a dir data block, depending
+>   * on the inode inline data flag.
+> @@ -1021,10 +1039,10 @@ static int ocfs2_dx_dir_lookup(struct inode *inode,
+>  	return ret;
+>  }
 >  
-> -	if (le16_to_cpu(di->i_suballoc_slot) != (u16)OCFS2_INVALID_SLOT &&
-> -	    (u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1) {
-> +	if (ocfs2_dinode_has_invalid_suballoc_slot(sb, di)) {
->  		rc = ocfs2_error(sb, "Invalid dinode %llu: suballoc slot %u\n",
->  				 (unsigned long long)bh->b_blocknr,
->  				 le16_to_cpu(di->i_suballoc_slot));
->  		goto bail;
->  	}
+> -static int ocfs2_dx_dir_search(const char *name, int namelen,
+> -			       struct inode *dir,
+> -			       struct ocfs2_dx_root_block *dx_root,
+> -			       struct ocfs2_dir_lookup_result *res)
+> +static int __ocfs2_dx_dir_search(const char *name, int namelen,
+> +				 struct inode *dir,
+> +				 struct ocfs2_dx_root_block *dx_root,
+> +				 struct ocfs2_dir_lookup_result *res)
+>  {
+>  	int ret, i, found;
+>  	u64 phys;
+> @@ -1037,8 +1055,6 @@ static int ocfs2_dx_dir_search(const char *name, int namelen,
+>  	struct ocfs2_extent_list *dr_el;
+>  	struct ocfs2_dx_entry_list *entry_list;
 >  
-> -	if ((le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
-> -	    le16_to_cpu(di->i_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
-> +	if (ocfs2_dinode_has_invalid_orphan_slot(sb, di)) {
->  		rc = ocfs2_error(sb, "Invalid dinode %llu: orphaned slot %u\n",
->  				 (unsigned long long)bh->b_blocknr,
->  				 le16_to_cpu(di->i_orphaned_slot));
->  		goto bail;
->  	}
+> -	ocfs2_dx_dir_name_hash(dir, name, namelen, &res->dl_hinfo);
+> -
+>  	if (ocfs2_dx_root_inline(dx_root)) {
+>  		entry_list = &dx_root->dr_entries;
+>  		goto search;
+> @@ -1135,6 +1151,44 @@ static int ocfs2_dx_dir_search(const char *name, int namelen,
+>  	return ret;
+>  }
 >  
-> -	if ((le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
-> -	    le16_to_cpu(di->i_dio_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
-> +	if (ocfs2_dinode_has_invalid_dio_orphan_slot(sb, di)) {
->  		rc = ocfs2_error(sb, "Invalid dinode %llu: DIO orphaned slot %u\n",
->  				 (unsigned long long)bh->b_blocknr,
->  				 le16_to_cpu(di->i_dio_orphaned_slot));
-> @@ -1835,6 +1859,33 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
->  		goto bail;
->  	}
->  
-> +	if (ocfs2_dinode_has_invalid_suballoc_slot(sb, di)) {
-> +		mlog(ML_ERROR,
-> +		     "Filecheck: invalid dinode #%llu: suballoc slot %u\n",
-> +		     (unsigned long long)bh->b_blocknr,
-> +		     le16_to_cpu(di->i_suballoc_slot));
-> +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> +		goto bail;
-> +	}
+> +static int ocfs2_dx_dir_search(const char *name, int namelen,
+> +			       struct inode *dir,
+> +			       struct ocfs2_dx_root_block *dx_root,
+> +			       struct ocfs2_dir_lookup_result *res)
+> +{
+> +	struct ocfs2_dx_hinfo legacy;
+> +	int ret;
 > +
-> +	if (ocfs2_dinode_has_invalid_orphan_slot(sb, di)) {
-> +		mlog(ML_ERROR,
-> +		     "Filecheck: invalid dinode #%llu: orphaned slot %u\n",
-> +		     (unsigned long long)bh->b_blocknr,
-> +		     le16_to_cpu(di->i_orphaned_slot));
-> +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> +		goto bail;
-> +	}
+> +	ocfs2_dx_dir_name_hash(dir, name, namelen, &res->dl_hinfo);
 > +
-> +	if (ocfs2_dinode_has_invalid_dio_orphan_slot(sb, di)) {
-> +		mlog(ML_ERROR,
-> +		     "Filecheck: invalid dinode #%llu: DIO orphaned slot %u\n",
-> +		     (unsigned long long)bh->b_blocknr,
-> +		     le16_to_cpu(di->i_dio_orphaned_slot));
-> +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-> +		goto bail;
-> +	}
+> +	ret = __ocfs2_dx_dir_search(name, namelen, dir, dx_root, res);
+> +	if (ret != -ENOENT)
+> +		return ret;
 > +
->  	if (ocfs2_dinode_has_size_without_clusters(sb, di)) {
->  		if (S_ISDIR(le16_to_cpu(di->i_mode)))
->  			mlog(ML_ERROR,
-> @@ -1893,6 +1944,11 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
->  		return -OCFS2_FILECHECK_ERR_VALIDFLAG;
->  	}
->  
-> +	if (ocfs2_dinode_has_invalid_suballoc_slot(sb, di) ||
-> +	    ocfs2_dinode_has_invalid_orphan_slot(sb, di) ||
-> +	    ocfs2_dinode_has_invalid_dio_orphan_slot(sb, di))
-> +		return -OCFS2_FILECHECK_ERR_INVALIDINO;
+> +	/*
+> +	 * Nothing under the current hash.  The entry may have been indexed by
+> +	 * an older kernel, which sign-extended the name bytes when hashing.
+> +	 * New entries are always indexed under the unsigned hash, so only fall
+> +	 * back to the legacy signed one when it can actually differ: an ASCII
+> +	 * name hashes the same either way, and a genuine miss on one should
+> +	 * not have to walk the index twice.
+> +	 */
+> +	ocfs2_dx_dir_name_hash_signed(dir, name, namelen, &legacy);
+> +	if (legacy.major_hash == res->dl_hinfo.major_hash &&
+> +	    legacy.minor_hash == res->dl_hinfo.minor_hash)
+> +		return ret;
 > +
->  	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
->  		di->i_blkno = cpu_to_le64(bh->b_blocknr);
->  		changed = 1;
-
+> +	res->dl_hinfo = legacy;
+> +
+> +	ret = __ocfs2_dx_dir_search(name, namelen, dir, dx_root, res);
+> +	if (ret)
+> +		return ret;
+> +
+> +	pr_warn_once("ocfs2: directory index with signed name hash\n");
+> +
+> +	return 0;
+> +}
+> +
+>  static int ocfs2_find_entry_dx(const char *name, int namelen,
+>  			       struct inode *dir,
+>  			       struct ocfs2_dir_lookup_result *lookup)
+> -- 
+> 2.39.3
