@@ -1,66 +1,66 @@
-Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
+Received: from mail-wm1-f54.google.com (mail-wm1-f54.google.com [209.85.128.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B22484E36F9
-	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 15:08:02 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7A48E48C403
+	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 15:09:18 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791558484; cv=none; b=CAxLKqAwp8LI/CilzSLdE/Vs8IrHCH6l47YRvE1WtPT/4hg9rJTnPe9eCWVxc9OeChClJa4OGKjjGLsuUymuh7SSX7XE0tM0+opO486R98cJMdSuBGwlieqlgt4erGNDqeMNUr2BcayNKvGzC6BiHn7x+HM+K3NSxpILFL8nmdM=
+	t=1791558560; cv=none; b=A8GyIribWf2yA70WmrgQ6TtV8ntdeMOeAKVPDhYUSsqGI+brarJbgjV7OPsImDWXd4EMwDEBwEr6+fuAK1haK9SNBG/8PHA5X5vO+FS+iJsb6+evQOww8i0EiJWUa4B5PyrIlhHKf/eqN9BORIN3hilivUylPPiwPpx5WT8ahdk=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791558484; c=relaxed/simple;
+	s=arc-20240116; t=1791558560; c=relaxed/simple;
 	bh=5622vFjjrUQ8N4J/FirkFRj5hIIji0qwNLtjg3ohHK8=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=uJc1zUjFGt8ZZQC3YOCWYfubLqhretOiqNs39Eb15lgwLcp6Vohl8s/ewZxzgNu7mxh2pppHtMe8yhAefHi9bhp7MqOTpCQGNg30x3N90NRhr9F95TjCIQpnFj798Xm/5DoLgXIZJdtZ5l4aUo7VlTr8li1CqNdnEVLVH79271I=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=JT9vV5vo; arc=none smtp.client-ip=209.85.128.42
+	 Content-Type:Content-Disposition:In-Reply-To; b=sFkLs13k7vs4FSmsW5K16Z8/4M5VBtAeJ9XORz1NnU+eT5VacuFLe4NcBIlGfCCJmbWD0LySSz3rk5rsN8/fgo14vcz1yKXzgG9zPHHM+j8ZOrMZxyFSYZ3qKvH0LNBEDK2X7q/ke2KO29TPhTE35kvo+453RPp1pX+oREAbD24=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=AmNgMPQE; arc=none smtp.client-ip=209.85.128.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="JT9vV5vo"
-Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-49e71fc84bbso2139205e9.3
-        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Oct 2026 08:08:02 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="AmNgMPQE"
+Received: by mail-wm1-f54.google.com with SMTP id 5b1f17b1804b1-49e6b771d06so6895695e9.2
+        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Oct 2026 08:09:18 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1791558481; x=1792163281; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1791558557; x=1792163357; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:from:to:cc:subject
          :date:message-id:reply-to:content-type;
         bh=l7FAggyg1PuXiF2goI0uppUUtryZ3eugWEM0zzhFv98=;
-        b=JT9vV5voDR6ZImgYlMFcmCrzsLlpKyk75grduvDpNI1ec5l1iH6q5cp9CHxu5lZrNZ
-         Waks+CicHl0CcYQE6gpsPVFvWOzs3qAEZDhHgQzysl7XBE+INHr+M1ClszXbNvry1GB1
-         B24ADoH0Ra1rbXssDsaqNZjap4/rc3Wt/12icWy6+9SnKhBOR0f5oBb815SW7SidHHTV
-         ECoWQHTChZM9j3j+hkQPcyr2IBe9A27+fHkvoYfZYifPhPDB/JwDZ/R50onAXQDQgzbs
-         J4eYj9PNegVX0cURWx4LehjU92sP8WnGVlJeGQjNuCjtkRudJ2R7LS4OZJPmX2b7R3UP
-         Dblw==
+        b=AmNgMPQEnq6m83Y9jz4Y1j3ydzHaqSH5r3ZKKPekz5vBfqieR9kK7uZCzhNaD68GBG
+         4QXRAxq51WQi9Zn/PYLNXeFnVU0xptHbMFkEbiwXK0YHrKfmfVn40t+UVZlSHl4aGPTd
+         TO8ozNesU8spbOvsx65bzaBEtwDdCTlxw1p7zDQjNl8aBVPhbj3mZlFbSRO2+5MNzozN
+         rrHptKDvUhrfEPYykGcJKGKfS9rknqQgVC0KG07E6a98ozpubsPF4R5zuHO0VFsDjuA9
+         CwmQL0MU0fZUMNfLSkNW2CvfgQdlrJSLU5rwIYBiKxPb/5A79pGHWOhqwSAC6qKviAIp
+         3zOQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791558481; x=1792163281;
+        d=1e100.net; s=20260707; t=1791558557; x=1792163357;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
         bh=l7FAggyg1PuXiF2goI0uppUUtryZ3eugWEM0zzhFv98=;
-        b=2N0raQi4jLlQuOrPq72xaO8rM6VYVOPolVv2E9LG/3iRd09XsH20KqDju1+0okK5t7
-         ZKru6DOwYPiybanrK9wHTvzROofeAEKP/FO+xdox2PP96I/RWRoOUmy/H9U0CvicXGCF
-         vpfIJyK2hbdATdHr9NgghTV8CZZDZNaQ7ZGyfhOWgqu3fZ0ABG0DS+esJBA+GaY9RE3k
-         VxMuVrCPtKI/2GxHUixSUl4AyQmFUEBNYDSJ3eQeyq9WWieieGiwUJbI4Vj82XFp1vZf
-         ZjabOn1WEHFMFk1F/Gm7iW6tJuU3IDof//iYNQ1oeTTkN7WZsG5ivv1TfC4A7i6UEhrZ
-         BwEA==
-X-Forwarded-Encrypted: i=1; AKwUvByusSg0bXkZqh/XN3A0qe8jyibVl0uyxTjbgCt3lK1bms46JREdm6aoi9LBTSnd/tB75599bdzyp+xT+g==@lists.linux.dev
-X-Gm-Message-State: AFuF++nlGmbQduAeyUrOAFDS2HS1Qf0gTVaXE0tsxGIBr6ZqUyI19imh
-	XZgcO9pgZCYp3f6EGii+JlDlVJT/lLQwYVcm66GDpXtMkaNbaxsYSV8kbsIUPYgBbr46lyFgCoZ
-	eNKXiqaw=
-X-Gm-Gg: AYBFou2ox7OY6WLB8u4db5kMpgaaIOLsCX57RkL0XjKupsKTUGzMldQKKIla3bBTuvb
-	s40M1xHDrr1m+wBh6X2R1T6Isuxx+KFLX4u/zXGZzn13FcjbHEgWbI5JYXhT/gt4f21451xEQQq
-	L9NLavkKkLDUWLyFZO2tB9P1sfQDKftNzGvB6WQv8o07FaKYC8fIE6IQ4vnlim3ZbpdCuEObvf+
-	4W3kGHMCxNdgl1VVgk/q9fqVvbR4ninZMRBS2hkiecNgFKGDnPDuzodGMS00KiKiyBZyO4Yv3Hy
-	6nAgLigWEXW+8U/G88tM8d34V8StL3og2i0q+LVScbdqfnXkXmtjrgMSeE/KdXaBfw+LLfyqBpa
-	Wo1LCz4OEBi43Xw+RjGzQlaUcwDbd4p07K+FPfF8VeU/9Jh7ALAW9uAg2iVhLvTmQJDtWZ06YI0
-	HGqNxJkbVCHwGX3I9ihTUXlcAYI0NuDlz3YEH/WaqYWQFMAo2ffwEO7Ew8tNUBnCYj8zlp
-X-Received: by 2002:a05:600c:1912:b0:4a0:1e9f:64f6 with SMTP id 5b1f17b1804b1-4a18e3ef211mr38754775e9.0.1791558480773;
-        Fri, 09 Oct 2026 08:08:00 -0700 (PDT)
+        b=r9/C5uEph1NMXxIkJv+0/S5UwlwREuIa69TC3MJ5Czfa0VDtHbbEWxJVG2B2YNrWTe
+         PlwJMxsgbW6z8fXvAq55fikF5cIWjQtmlQq72RIfG+oUA9R0NQTkhFp38W07Crc8n95f
+         LIDHcCN6X5JWEgb2XRkTjEo2HQGPcrRvBs8+uJ+qWPYQz6axCETLk2f6GCA6yi7V0yjR
+         VEJMkV4MMD9Yh74RM4RvVd5N6GfKnvrxJk9X/UP+HtCQxqCcRpzlcrBmhX0etJ+E8L5E
+         fyBH13YPBe+U1PUpFN4Rt8Y2houLCbQpa7M19zZSSv+uibQiOIE9gQPuOs7Bu83RGZGI
+         dWUQ==
+X-Forwarded-Encrypted: i=1; AKwUvBx2/tn5nv0AS95p3DioiGNInx8vn7eOvTc9ky5w6EsAPG9/xLG13xLfk6psXYiYJi41W2h1F4XSf2bD5A==@lists.linux.dev
+X-Gm-Message-State: AFuF++lFz7Po0CWwxdSiHLcq7YuO48RbLFpckJF7a2D2Aok7JHBYOuwn
+	oLkAKjxLxVhH1kogw3cMwDwS+ddSO1pgBckojMeNmRTz7y7uO38LITP1u3n5EwcC/5yllZy6RdZ
+	UFu1z6qc=
+X-Gm-Gg: AYBFou3g8TqdpDk78kzqhina3DRSgM4hNGjTEX3qI1R5kixcz+IpCo7zsKIBqHahG75
+	7hbBqCMoDKtp2AZtys234TSJblCeDGXSP3RxBv9Rhjk2HpI68ibtO9XFohMGTf2ygBtyvnV+H4p
+	w+1EvdGLPYO51eNAclvfpB3SAzerFYzG5KgHC/HnAYGckEtb51uuFeXLKC27uwnUjbLjYte28id
+	YYkPMgqujx8sq80IzpE+oJSjUheS2ljmTMX8eXBLEpqks6fSR46w8/Nv6UjRe/F9f0aUsn1c++n
+	XW+/jie6KIoIOsA5pGVO/YIoW5OzSbgdfWeuLMQtBPpaBwxOJhv2w/7NtrpoJSRUh70U/wBBiz2
+	nPU6u824hv1lJnzuuPdB40PwhmuY8kOM8ngX+4JNn2e1Oauc2LLsElxYd3O+3aslNBnQhhFBx8t
+	fyDCHVIW3lP4DgkWSXivOw4HHXGUvVTYYO0xFz7RfUJp+7RZOJRWyi79ew8eXIFkwHsuEJbw==
+X-Received: by 2002:a05:600c:1e0f:b0:4a1:8469:e6c8 with SMTP id 5b1f17b1804b1-4a18e46f48fmr42865885e9.1.1791558556633;
+        Fri, 09 Oct 2026 08:09:16 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab36ed0daesm3998972a91.5.2026.10.09.08.07.59
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab38ff0d34sm4261482a91.14.2026.10.09.08.09.14
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 09 Oct 2026 08:07:59 -0700 (PDT)
-Date: Fri, 9 Oct 2026 23:05:51 +0800
+        Fri, 09 Oct 2026 08:09:15 -0700 (PDT)
+Date: Fri, 9 Oct 2026 23:08:07 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
@@ -68,7 +68,7 @@ Cc: Andrew Morton <akpm@linux-foundation.org>,
 	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
 Subject: Re: [PATCH v2 2/3] ocfs2: use the stored hash when checking xattr
  bucket collision
-Message-ID: <askCqE-GKFv8tK1q@p15>
+Message-ID: <askDOj3-b_20RTu-@p15>
 References: <20261009083002.2621201-1-joseph.qi@linux.alibaba.com>
  <20261009083002.2621201-3-joseph.qi@linux.alibaba.com>
 Precedence: bulk
