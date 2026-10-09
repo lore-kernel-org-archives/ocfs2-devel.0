@@ -1,80 +1,74 @@
-Received: from mail-pf1-f178.google.com (mail-pf1-f178.google.com [209.85.210.178])
+Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 446103C0607
-	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 10:01:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 258674A8406
+	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 10:04:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.173
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791540094; cv=none; b=ghxKs2Iizx6Z+RYHON++Ud80xDNEZ45r79xVQUy5QKKA+5W5SliE8VoE+hG4xAJeLhNQVcez18gXp5q/20Wa9MW0laci14pWARCuNQuISW1F7M6AXmysiUi/JYo5/fTrY+DimM4fb9Uy0b2BM9rc8TN+Fcmr7ZjGQPSM5RAz7x0=
+	t=1791540305; cv=none; b=Rs2lA7HALRAoyhddbrFRhhR+c8Pm99q/B7ub8rVYyg+zZsDYAJWora2HAMw+0O/Q1TDiDdC+IgprNxiZ+6rox5zR0AY6j2n6KPXPfXaOfEF19eJHwQ2mtVG4oGfCDasbArnk6LnjJE/1hGJZcYGdZajOLTxGy+WeEEkf8Y66ulU=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791540094; c=relaxed/simple;
-	bh=fsQsZ+2NTBEQHO1bSyIeaS0icE1pgKIaijb3ej7DD3Y=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=EbOG+dYt1vVr/5GPxi6ESAtRupuGKqCV2ULZElEgM7b6zbLMh2wZL9okOrxBTN4FsjPPL6RjDj1Rb6oZoX7h6XrWRmDKcOB4W69n7ZzLjZkhtp/EiyEOSIgvfojiuqaMSe6IKJmC5Uzdy+z9SXke2EYUlMJQml5uJbdM2PQyp7w=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=BRCCReWv; arc=none smtp.client-ip=209.85.210.178
+	s=arc-20240116; t=1791540305; c=relaxed/simple;
+	bh=zeWR0WfokKp9ZtwxmTpL1MQF6hizvBIjf5JyD3r1Rd8=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=s0l8wWFQkJp7z73wQU/lrofuF4f7yRDkH19Un8gZH+Ed9FmFfEPZbggKLcQrhzFinoNUnbajolCz1faXfUZbqq8AuTNgPFBNbdMFie4ObGIJ3d7lKX8EkzGUPnsCUYb7agcEmR4ix+1x+TJ0nFl5KQU5L7RO4IsNI0/yTwTbKCQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Sh8DzW1u; arc=none smtp.client-ip=209.85.214.173
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="BRCCReWv"
-Received: by mail-pf1-f178.google.com with SMTP id d2e1a72fcca58-8899a204034so2302513b3a.2
-        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Oct 2026 03:01:32 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Sh8DzW1u"
+Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-2e81738d24eso12202965ad.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Oct 2026 03:04:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791540091; x=1792144891; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:mime-version:message-id:date
-         :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=J2r2j+124EZwxoHjlkMce/YRKhVj0c9JCcBiSTT0WCc=;
-        b=BRCCReWvXJa+d08NwrKWFR9FlvHt46ACemY5ctGmM78PyF3ouG1bxprmnkZlcI7xk3
-         NBfxZ7FX3+5IkN9jbemPyi2HN9ujcJiUEIXklTYvBAhYZL4fx1E32pHFjbQWRtk+rPh7
-         zqBaFnf1YHbps/g05kSbgBpsTdUi9V/wqS0KLr3olFGP3u+B5Mm+sjUZsQya+FUdvxxE
-         C31gmLr0lsrsTuHTzSOCjvCuz1fGUF8ye9LYua4lsJHIx8ABU4R+ybnrBoGS5GV/MyiR
-         HqFNHgT59m7M9Er5jjDbpkXcxfqYXzGkaZlfu4R1JIRYU7mBjqmdm/Ma8Hgvl+IgMxAt
-         XDQg==
+        d=gmail.com; s=20251104; t=1791540296; x=1792145096; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=ogu/BtajEQWyJ3zFLux+gZr1Wq4ynKnt7QP0d0lnwTs=;
+        b=Sh8DzW1u72/lcsiNayb/dd5sIaR1ws4N2Ce0wkM81WZZxzbfL0TVEQSmElTYyBpddm
+         Of6YpjfAr2rr7OJElhd82g/JjnxwLfUtI0nRct0Xz1hqYqgy7S8bSWr2v+llhRpBAGWe
+         FB743wC2mpwnAFmqF47hkiYjaWorHGTSrgcU1GWNx8F91BsSaR95a2JysYmjAnPEFuoE
+         cUU278gbY/5v5KCL1mRnSIQDChegzF3w1Im5SBKnW1Vpl8S9V+MGEURyULuBYT++qdxP
+         23cGz7GZeiK+8CRjluQJ9O9/hSasrauxHDg26cjhGrnjlaycNdgsC03ucvbrzjVJBYwg
+         2DrA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791540091; x=1792144891;
-        h=content-transfer-encoding:content-type:mime-version:message-id:date
-         :subject:cc:to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=J2r2j+124EZwxoHjlkMce/YRKhVj0c9JCcBiSTT0WCc=;
-        b=Z4WvBm3fF2kT1/BeUirXvY/HKod1P08yL3BlhVKYTEpZGugdAx1gtAH37G2eMnVOFw
-         05IwaJc/UmjJzEzgPhd14Ljm1zwoc60joEpdBPn2FhoapikPP7M/i4RW/RK9/s6wUoo2
-         P1wPOBtAmqrHC4td2KZEdvDDUyfUF2pdRxCxV1qYvt2Spi1nxOTy4AL6pTT5555D9CGX
-         1fzEH3h+AuzxVnlnE0+cKlhGKyystM4S+/LK20Ucxe+n5bJmRBBK9hE0usbNmTKyxnBK
-         +jno3WhRO5KiY+M6cf6S0SWoWTsp1q1Z/Rcv6GxOuErgwkl0UFLO/46KijNxEyoF5/Ki
-         zCmg==
-X-Gm-Message-State: AFq9FYIhgBG6MPg/2Wr7m8vVfIEB1vabDqtz1PS1/qWLgCFuQ6K04Eqf
-	lab0QgZiWSjALyBpr81oy75cMaaupBwjKoBy/COMOGvYhdiSdEqq26dp
-X-Gm-Gg: AYBFou0KUM3Mxe42/uxIxsB0zCAzq5BEQfT2zmTjv6xi/REIjvP5MBAl19+5X3aHjcW
-	H2MbgF7PgfaSoOeyzL2MQrFXotqzrDIuzF8N40P7QjI878bkska4SQer1mumoHR1yGKEakqeDj4
-	OGnt4MwHjvB5Nok9JuRpe8LVR3vGk3LXFhIT7wMIvP/NlaiGu0zXAK5cIClY2UnrSOf5oLlx9Wm
-	EQpe8/XlC8Rzjx8uPfauKlsv4yC4/BihJdv9ukpllaBpyI4LEiZClzHjEiOTCPHbrOTFyL0/8bP
-	ZhJh9BDLxil4IsIBIOxavg6MmbfgxmwXDhy07+yZ5rdDxIJbR4D7aldOD/r6+j4Fj+x98YBHAzo
-	WHhCc4uump91NFpt9oMc3flSDepsk9Lo/+4PrsFzvEGN8RNogsd7It9aedqiwhi4MAjKMr+Qhve
-	oRk000eVB3KbZbfadVR9jHvj0EQGipZhNdfpXqpb2ZDLnKogSM0GPK6G3+oVWR6PV8B21A/uEL8
-	A2k
-X-Received: by 2002:a05:6a00:4195:b0:874:705d:f643 with SMTP id d2e1a72fcca58-897c77da504mr1014452b3a.37.1791540091477;
-        Fri, 09 Oct 2026 03:01:31 -0700 (PDT)
+        d=1e100.net; s=20260707; t=1791540296; x=1792145096;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=ogu/BtajEQWyJ3zFLux+gZr1Wq4ynKnt7QP0d0lnwTs=;
+        b=Urd6X/mFNU7O559hsbzmPR8orlxAK5m0ZZaIEq3UtnPWF++ZWUZ3uwFqojTb1inL4t
+         r76o/0b+hmKi0SD4nd88/YIQTT8FLmako9nMaTKC7cHk3JHDDuhyUK65OZF0kbdT9Mc0
+         48/a01fwHtXBON9Yvdac9nLkt/eqhbLOid0IKKclqOJ1Cr8G9jcSNj4wVK6ThMxSG4nq
+         tnzF6srqf6SnMkN8+bFhkFoiZq0xSnt3cUjFoNb7u8Eq7ntbWUF66IAuZQAggpnyJXaJ
+         3DV+37Q/p/aM0UbD1+fbQJiGb0XddKd0YBUIp+fyCl1RQYQhNTOpufIgBRWuJ6DPIXQU
+         t8EA==
+X-Gm-Message-State: AFq9FYIVG8xLkxsQSeOTVnzfb1lllM8341j8LLQTeB6KOSrx1PTcGWig
+	v5jAKq+OEn5U5kxCYDty9gIrPgIZaCSKyvkUPfTm9xyiqYVWp4XPVcEG
+X-Gm-Gg: AYBFou1QRSYgzVFVeYZ6GDM0lh5AXdncVZQ/euGhv6/LaWNzapOf9svzoTyI6Dp35zv
+	vxxtfulaHK568xaqHmrc9NqNy6ZHDUTsMMZdLQPvqdfFmer+3thr1FHKEyno0m6McxPEsE8LsqN
+	g2877a4ZBPoGg5ZxrjhB35yEZ7XeZKrxAbNaDtdHzbgO46dsqbGD5as22qOiQqttmhOjM9zcAvQ
+	gAB2JxEXz1QklUXLjsH258ElPpbKPrKUWp41ELCdO8Nj5ezXbWIhr5EE5c1kA7y4/s2HfOwjGyT
+	HYPYqaa2CgFvEpLPtg7H5BZHi6QY2x9sWOBLXzxygkSImFKoo6IRuBeo2zLJjYcuCiFmbNiGHvL
+	dpx/TE/lhbsIDiObI0pbOHvypd/h6wt4CR3s0mZhh1wdPMeIMwmtB4fkrME1cD4SzpulJCnvMF8
+	Ci3HAsAC4YwESqMGJOik+RKQrr/SeBzngUVYo/bOHqJOim3wfyu0aU8BdKjfj4BHHfHg==
+X-Received: by 2002:a17:903:17cc:b0:2df:a972:e48c with SMTP id d9443c01a7336-2e842f37fe2mr11158855ad.55.1791540296059;
+        Fri, 09 Oct 2026 03:04:56 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-896c3107373sm657534b3a.9.2026.10.09.03.01.27
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e8422e1643sm6131975ad.70.2026.10.09.03.04.52
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 09 Oct 2026 03:01:31 -0700 (PDT)
+        Fri, 09 Oct 2026 03:04:55 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
-	kees@kernel.org,
-	jack@suse.cz,
-	rppt@kernel.org,
-	hexlabsecurity@proton.me,
-	sunil.mushran@oracle.com,
-	akpm@linux-foundation.org
+	akpm@linux-foundation.org,
+	ghe@suse.com
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com,
 	zzzccc427@gmail.com
-Subject: [PATCH] ocfs2/dlm: Serialize recovery list teardown with debug reads
-Date: Fri,  9 Oct 2026 18:01:24 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0049-v2-a5d5091b8900dc3f9849@gmail.com>
+Subject: [PATCH] ocfs2: Publish the filecheck owner before adding sysfs attributes
+Date: Fri,  9 Oct 2026 18:04:49 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0086-v2-646731c4254a02823b4d@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -82,134 +76,62 @@ List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-Recovery participant records must remain alive while debug_state_print()
-walks reco.node_data and formats their fields. The formatter holds
-dlm->spinlock, but dlm_destroy_recovery_area() detaches the list under
-dlm_reco_state_lock and frees the records without taking dlm->spinlock.
+ocfs2_filecheck_create_sysfs() initializes the filecheck allocation
+before calling kobject_init_and_add(), but assigns entry->fs_fcheck
+only after that call returns. The default attribute group can already
+be visible while registration is in progress. A concurrent read can
+therefore enter ocfs2_filecheck_attr_show() with a NULL fs_fcheck and
+try to lock its fc_lock.
 
-When a recovery master finishes recovering a dead node, a concurrent
-open of the domain's dlm_state file can reach the participant list after
-the master's last dlm->spinlock section. The following ordering is
-possible:
+Assign the initialized owner before adding the kobject, so every
+activated attribute has valid state. Clear the pointer when addition
+fails, preserving the existing teardown guard and error cleanup.
 
-    Debugfs open                      Recovery thread
-    debug_state_print()
-      lock dlm->spinlock
-      select participant
-                                      dlm_destroy_recovery_area()
-                                        lock dlm_reco_state_lock
-                                        detach participant list
-                                        unlock dlm_reco_state_lock
-                                        kfree(participant)
-      read node->state/node_num
-      unlock dlm->spinlock
+A controlled probe-instrumented test kernel with the original OCFS2
+registration ordering produced this Oops during a concurrent sysfs read:
 
-The field read or the next list iteration then accesses freed memory.
-Debugfs removal protects the domain lifetime, but session completion
-leaves the file installed, so it does not drain this open callback.
+  KASAN: null-ptr-deref in range [0x0000000000000028-0x000000000000002f]
+  RIP: 0010:kasan_byte_accessible+0x15/0x30
+  Call Trace:
+   <TASK>
+   __kasan_check_byte+0x13/0x50
+   lock_acquire+0x113/0x300
+   _raw_spin_lock+0x31/0x40
+   ocfs2_filecheck_attr_show+0x138/0x5f0
+   ocfs2_filecheck_show+0x5d/0x90
+   sysfs_kf_seq_show+0x1d3/0x360
+   seq_read_iter+0x480/0x1110
+   kernfs_fop_read_iter+0x419/0x5a0
+   vfs_read+0x7d2/0xc20
+   ksys_read+0x111/0x200
+   do_syscall_64+0x114/0x620
+   entry_SYSCALL_64_after_hwframe+0x77/0x7f
+   </TASK>
+  Modules linked in:
 
-Take dlm->spinlock around the existing locked list detachment. A debug
-reader must now finish before detachment, and later readers see an empty
-list. Keep the frees outside both locks. This also covers cleanup after
-partial allocation failure in dlm_init_recovery_area().
-
-KASAN report as below:
-
-    BUG: KASAN: slab-use-after-free in debug_state_open+0x1169/0x12d0
-    Read of size 4 at addr ffff88810662ef80 by task dlm-state-stres/896
-
-    CPU: 1 UID: 0 PID: 896 Comm: dlm-state-stres Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
-    Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-    Call Trace:
-     <TASK>
-     dump_stack_lvl+0x93/0xd0
-     print_report+0xce/0x630
-     ? debug_state_open+0x1169/0x12d0
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __virt_addr_valid+0x20e/0x420
-     ? debug_state_open+0x1169/0x12d0
-     kasan_report+0xe0/0x110
-     ? debug_state_open+0x1169/0x12d0
-     debug_state_open+0x1169/0x12d0
-     ? __pfx_debug_state_open+0x10/0x10
-     full_proxy_open_regular+0x193/0x310
-     do_dentry_open+0x595/0x12d0
-     ? __pfx_full_proxy_open_regular+0x10/0x10
-     vfs_open_consume+0xd1/0x400
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     path_openat+0x18d0/0x2020
-     ? __pfx_path_openat+0x10/0x10
-     do_file_open+0x21e/0x470
-     ? __pfx_do_file_open+0x10/0x10
-     ? _raw_spin_unlock+0x23/0x40
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? alloc_fd+0x3a6/0x6b0
-     do_sys_openat2+0xf4/0x1b0
-     ? __pfx_do_sys_openat2+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __fput+0x5b5/0xa60
-     __x64_sys_openat+0x136/0x1e0
-     ? __pfx___x64_sys_openat+0x10/0x10
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-    [Register dump omitted.]
-     </TASK>
-
-    Allocated by task 880:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     __kasan_kmalloc+0xaa/0xb0
-     __kmalloc_cache_noprof+0x28d/0x610
-     dlm_remaster_locks+0x147/0x1d90
-     dlm_do_recovery+0xde1/0x1580
-     dlm_recovery_thread+0x109/0x300
-     kthread+0x351/0x460
-     ret_from_fork+0x659/0x940
-     ret_from_fork_asm+0x1a/0x30
-
-    Freed by task 880:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     kasan_save_free_info+0x3b/0x60
-     __kasan_slab_free+0x5f/0x80
-     kfree+0x308/0x580
-     dlm_destroy_recovery_area+0x285/0x460
-     dlm_remaster_locks+0x17c4/0x1d90
-     dlm_do_recovery+0xde1/0x1580
-     dlm_recovery_thread+0x109/0x300
-     kthread+0x351/0x460
-     ret_from_fork+0x659/0x940
-     ret_from_fork_asm+0x1a/0x30
-
-    The buggy address belongs to the object at ffff88810662ef80
-     which belongs to the cache kmalloc-32 of size 32
-    The buggy address is located 0 bytes inside of
-     freed 32-byte region [ffff88810662ef80, ffff88810662efa0)
-
-    [Page and memory-state dumps omitted.]
-
-Fixes: 007dce53a29c ("ocfs2/dlm: Dump the dlm state in a debugfs file")
+Fixes: a860f6eb4c6a ("ocfs2: sysfile interfaces for online file check")
 Assisted-by: LLM
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 ---
+ fs/ocfs2/filecheck.c | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
-index 9d4a2695b9594d1ad8bd60de9cec8ee701355f09..5719c2b88e4292cff38e26b10b29c8a4a0deccda 100644
---- a/fs/ocfs2/dlm/dlmrecovery.c
-+++ b/fs/ocfs2/dlm/dlmrecovery.c
-@@ -764,9 +764,12 @@ static void dlm_destroy_recovery_area(struct dlm_ctxt *dlm)
- 	struct dlm_reco_node_data *ndata, *next;
- 	LIST_HEAD(tmplist);
+diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
+index be713d7d24a76b9aa8fcded3d83b3d91d124eb6e..862c1ee7099c943b2e3e57e31f887380c6dc8a88 100644
+--- a/fs/ocfs2/filecheck.c
++++ b/fs/ocfs2/filecheck.c
+@@ -181,2 +181,4 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
  
-+	/* Serialize list detachment with debug_state_print(). */
-+	spin_lock(&dlm->spinlock);
- 	spin_lock(&dlm_reco_state_lock);
- 	list_splice_init(&dlm->reco.node_data, &tmplist);
- 	spin_unlock(&dlm_reco_state_lock);
-+	spin_unlock(&dlm->spinlock);
++	/* Publish the initialized owner before activating its sysfs callbacks. */
++	entry->fs_fcheck = fcheck;
+ 	entry->fs_kobj.kset = osb->osb_dev_kset;
+@@ -186,2 +188,3 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
+ 	if (ret) {
++		entry->fs_fcheck = NULL;
+ 		kobject_put(&entry->fs_kobj);
+@@ -191,3 +194,2 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
  
- 	list_for_each_entry_safe(ndata, next, &tmplist, list) {
- 		list_del_init(&ndata->list);
+-	entry->fs_fcheck = fcheck;
+ 	return 0;
