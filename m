@@ -1,32 +1,32 @@
-Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D0F4E49A3D2;
-	Fri,  9 Oct 2026 09:36:25 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.97
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E0ADC499F27;
+	Fri,  9 Oct 2026 09:41:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.110
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791538604; cv=none; b=fGcd3yjMq3/MZXaGjNVb63lKLT28iY/zm6AJETvZRQSeLcFLc4hVGEDhTLSooCLst0C3CJY8ggngAbprPH5NkE5cWqEOYa/TdcpsHcgzZDa1VDkrx0/dfA9psAhiXSrqKJITna9jBRm17Nk0YeVhYZBHqDiIYjiu0AvH8jtYLBc=
+	t=1791538874; cv=none; b=OvYWNhx5dpyOIttAcioAKWpcS7uF3N4For6FB1TJi2pgjtg3ALQXUdDnQAvxmtpV/ZNI0umWH5/IakAmDDmGruBlI7yzK7uuJfh6QsG2wiRPr+2h+f6BK+GclrbOrr+nhjnfSqLlPP55rYw7UpK0EYAngZ4Ey/RCADYuy+SH7P8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791538604; c=relaxed/simple;
-	bh=gaYw7HD64UCVgK2Uf8zpRsyaO2b6rlyzLYLoAr0mBBI=;
+	s=arc-20240116; t=1791538874; c=relaxed/simple;
+	bh=1u2fMIn/UHyiX68ZoyrdpZyu0QIjx2gp4HJSCEXEsKU=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=rCm9VOBW2eWtlsDNU5NAHiUoEZkWHuSd4S0w641Xm77J7j9MAt5GDWSfX2FpNz8gsuIW1wuhQ1Nu3RmdHNWdR/NAFuMpjRAC2aXj+oNn3i15OZU+KQIkWJ3lbaz3m9V0W2OGpNIA/5whYWs7EVhgI0vKSJcJZPMgxY982vSOZvk=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=H9rX8kmw; arc=none smtp.client-ip=115.124.30.97
+	 In-Reply-To:Content-Type; b=QJs0yvHhfooZQEaiXTh8t/5uMGXCzgIJTjnZfvf8f7sXufHkvmKMzRlPFRHl4MBKTtGlkGDBrHoGLgSSxkju/2zGHqMIxutH47kPFw2+MsJoJ9WbfJ0qhfL56VLjYmJEBGb2Pt2CGn9tRpUmbIVGGR0Uzv+22+UHn/6LvyWjcCk=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=U7kr/jir; arc=none smtp.client-ip=115.124.30.110
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="H9rX8kmw"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="U7kr/jir"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1791538582; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=kJu+lMYfoxcAxZS5wytHdkJUvnFLwOSD6ZOJqDIxfSU=;
-	b=H9rX8kmw8s7104StlAvXGgYTFmi4fvePAHKHoPatchG3pZyV4Sng78jaAWVCt1M+LazTnKMHU1opNrY5wYnghejaYwQaPS/J/BtJA0Yj5/As4F6/p7Ufm9GHi21vx17mBepMe/voj9HHn8xPJaPnnkbt7jfoAOy6CUeFIeOuonU=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XCSxcQl_1791538580;
-Received: from 30.221.148.47(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCSxcQl_1791538580 cluster:ay36)
+	t=1791538862; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=e4WsnXhUWvFP/4QqW0Le65evTE6jEKbwUwOkVL7zD1g=;
+	b=U7kr/jirBFn1UAtbzSc8nCWWKGdQIeh87h+x7uBVO9QW0j9xnZnNjsXozxUGZHbpPP4OALQaiWxMlBCDAmBPDNiowl7rlR9/3hj6F3AXSf4hibXKlBuMuV8AdzhTF4XM9fYHtx6a5mHt6GFmJW0aM4YR32CDEAv//oEKEZLZ1DI=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R711e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XCSy-vG_1791538861;
+Received: from 30.221.148.47(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCSy-vG_1791538861 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 09 Oct 2026 17:36:21 +0800
-Message-ID: <eb07fec3-58d5-4822-91c1-50675a8fabfa@linux.alibaba.com>
-Date: Fri, 9 Oct 2026 17:36:20 +0800
+          Fri, 09 Oct 2026 17:41:01 +0800
+Message-ID: <8455728c-272c-4128-91a8-2d512516936b@linux.alibaba.com>
+Date: Fri, 9 Oct 2026 17:41:00 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,109 +34,136 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 2/3] ocfs2: use the stored hash when checking xattr
- bucket collision
+Subject: Re: [PATCH v2 3/3] ocfs2: deal with legacy signed xattr name hash
+ values
 To: sashiko-reviews@lists.linux.dev, Andrew Morton
  <akpm@linux-foundation.org>, Heming Zhao <heming.zhao@suse.com>
 Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
  "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
  "linux-kernel@vger.kernel.org" <linux-kernel@vger.kernel.org>
 References: <20261009083002.2621201-1-joseph.qi@linux.alibaba.com>
- <20261009083002.2621201-3-joseph.qi@linux.alibaba.com>
- <sashiko-outbox-165102@kernel.org>
+ <20261009083002.2621201-4-joseph.qi@linux.alibaba.com>
+ <sashiko-outbox-165103@kernel.org>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <sashiko-outbox-165102@kernel.org>
+In-Reply-To: <sashiko-outbox-165103@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 10/9/26 4:44 PM, sashiko-bot@kernel.org wrote:
+On 10/9/26 4:45 PM, sashiko-bot@kernel.org wrote:
 > Thank you for your contribution! Sashiko AI review found 1 potential issue(s) to consider:
-> - [High] fs/ocfs2: xattr data corruption due to stale loc.xl_entry after bucket defrag
+> - [High] fs/ocfs2: NULL pointer dereference in ocfs2_xattr_set_entry_bucket() on corrupted index
 > --
 > 
-> commit 6247b6061c7a43f1fbd44574fe532663a6b670bc
+> commit d720400774af2e4eeb97fd62736805be315e728c
 > Author: Joseph Qi <joseph.qi@linux.alibaba.com>
 > 
->     ocfs2: use the stored hash when checking xattr bucket collision
+> ocfs2: deal with legacy signed xattr name hash values
 > 
-> This patch changes ocfs2_check_xattr_bucket_collision() to use the stored hash
-> for existing entries when checking for bucket collisions during splits. It
-> fixes an issue where unsigned hashes compared against legacy buckets reported
-> no collision, leading to duplicate entries.
+> This commit introduces retry logic to xattr tree searches to fall back to a
+> legacy signed hash if an entry is missed using the unsigned hash. This fixes
+> a regression where names containing bytes >= 0x80 became unreachable when
+> char signedness was changed in kbuild.
 > 
 >> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
->> index a428fe908116e..c5a39a7d43d07 100644
+>> index c5a39a7d43d07..e92bcf401490d 100644
 >> --- a/fs/ocfs2/xattr.c
 >> +++ b/fs/ocfs2/xattr.c
 > 
 > [ ... ]
 > 
->> @@ -5993,10 +5992,18 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
->>  	 * the maximum number of collisions we will allow for then is
->>  	 * one bucket's worth, so check it here whether we need to
->>  	 * add a new bucket for the insert.
->> +	 *
->> +	 * An existing entry keeps the hash it was stored under, and that is
->> +	 * the hash a split has to work with.  A new entry is stored under the
->> +	 * unsigned one, which is what ocfs2_xa_add_entry() will write.
->>  	 */
->> -	ret = ocfs2_check_xattr_bucket_collision(inode,
->> -						 xs->bucket,
->> -						 xi->xi_name);
->> +	if (xs->not_found)
->> +		name_hash = ocfs2_xattr_name_hash(inode, xi->xi_name,
->> +						  xi->xi_name_len);
->> +	else
->> +		name_hash = le32_to_cpu(xs->here->xe_name_hash);
->                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>> @@ -4304,11 +4322,12 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+>>  	return ret;
+>>  }
+>>  
+>> -static int ocfs2_xattr_index_block_find(struct inode *inode,
+>> -					struct buffer_head *root_bh,
+>> -					int name_index,
+>> -					const char *name,
+>> -					struct ocfs2_xattr_search *xs)
+>> +static int __ocfs2_xattr_index_block_find(struct inode *inode,
+>> +					  struct buffer_head *root_bh,
+>> +					  int name_index,
+>> +					  const char *name,
+>> +					  u32 name_hash,
+>> +					  struct ocfs2_xattr_search *xs)
+>>  {
+>>  	int ret;
+>>  	struct ocfs2_xattr_block *xb =
+>> @@ -4317,7 +4336,6 @@ static int ocfs2_xattr_index_block_find(struct inode *inode,
+>>  	struct ocfs2_extent_list *el = &xb_root->xt_list;
+>>  	u64 p_blkno = 0;
+>>  	u32 first_hash, num_clusters = 0;
+>> -	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
+>>  
+>>  	if (le16_to_cpu(el->l_next_free_rec) == 0)
+>>  		return -ENODATA;
+> 
+> [ ... ]
+> 
+>> @@ -4348,6 +4366,59 @@ static int ocfs2_xattr_index_block_find(struct inode *inode,
+>>  	return ret;
+>>  }
+>>  
+>> +static int ocfs2_xattr_index_block_find(struct inode *inode,
+>> +					struct buffer_head *root_bh,
+>> +					int name_index,
+>> +					const char *name,
+>> +					struct ocfs2_xattr_search *xs)
+>> +{
+>> +	u32 name_hash, legacy_hash;
+>> +	int name_len = strlen(name);
+>> +	int ret;
+>> +
+>> +	name_hash = ocfs2_xattr_name_hash(inode, name, name_len);
+>> +
+>> +	ret = __ocfs2_xattr_index_block_find(inode, root_bh, name_index, name,
+>> +					     name_hash, xs);
+>> +	if (ret != -ENODATA)
+>> +		return ret;
+>> +
+>> +	/*
+>> +	 * Nothing under the current hash.  The entry may have been stored by
+>> +	 * an older kernel, which sign-extended the name bytes when hashing.
+>> +	 * Skip the retry when the two hashes are equal, so that a name made
+>> +	 * only of ASCII does not have to walk the tree twice.
+>> +	 */
+>> +	legacy_hash = ocfs2_xattr_name_hash_signed(inode, name, name_len);
+>> +	if (legacy_hash == name_hash)
+>> +		return ret;
+>> +
+>> +	/*
+>> +	 * A miss still leaves xs->bucket holding the bucket a new entry would
+>> +	 * be inserted into, so drop it before searching again.
+>> +	 */
+>> +	ocfs2_xattr_bucket_relse(xs->bucket);
+>         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 > 
 > [Severity: High]
-> If ocfs2_xattr_set_entry_bucket() fails with -ENOSPC after defragmentation,
-> can this access a stale xs->here pointer?
+> Does this new retry logic need to validate that xs->bucket was actually
+> populated before relying on it?
 > 
-> In ocfs2_xattr_set_entry_bucket(), loc.xl_entry is initialized to point
-> directly to the target array element (xs->here):
+> The patch builds its retry logic under the explicit assumption that a miss
+> invariably leaves xs->bucket populated. However, if the filesystem is
+> corrupted such that the external xattr block is indexed but its extent list
+> is empty (el->l_next_free_rec == 0), __ocfs2_xattr_index_block_find()
+> returns -ENODATA immediately without calling ocfs2_xattr_bucket_find().
 > 
-> 	ocfs2_init_xattr_bucket_xa_loc(&loc, xs->bucket,
-> 				       xs->not_found ? NULL : xs->here);
+> This early return leaves xs->bucket->bu_bhs unpopulated.
 > 
-> If ocfs2_xa_set() fails with -ENOSPC, it calls ocfs2_defrag_xattr_bucket(),
-> which sorts the entries array by xe_name_hash:
+> Later, during a setxattr() operation, ocfs2_xattr_block_set() delegates
+> to ocfs2_xattr_set_entry_index_block() and then
+> ocfs2_xattr_set_entry_bucket(). The call to ocfs2_init_xattr_bucket_xa_loc()
+> expands the bucket_xh() macro, which accesses bucket->bu_bhs[0]->b_data.
+> Since bu_bhs[0] is unpopulated, this triggers a NULL pointer dereference.
 > 
-> 	/* sort the entries by their name_hash. */
-> 	sort(entries, le16_to_cpu(xh->xh_count),
-> 	     sizeof(struct ocfs2_xattr_entry),
-> 	     cmp_xe, NULL);
-> 
-> Since sort() is unstable and hashes only cover the name suffix, identical-hash
-> entries can be swapped. If they are swapped, loc.xl_entry and xs->here now
-> point to the wrong xattr entry.
-> 
-> The second ocfs2_xa_set() call then reuses the stale loc.xl_entry pointer
-> without re-evaluating its position in the sorted array:
-> 
-> 	ret = ocfs2_xa_set(&loc, xi, ctxt);
-> 
-> Can this overwrite the wrong xattr's data on disk, causing data corruption?
-> 
-> If the second ocfs2_xa_set() also fails with -ENOSPC, it returns to
-> ocfs2_xattr_set_entry_index_block() where the patch now relies on the stale
-> xs->here pointer to read the name_hash.
+> Can we add validation to handle cases where __ocfs2_xattr_index_block_find()
+> returns -ENODATA but doesn't actually populate the bucket?
 > 
 
-It seems unrelated to my patch.
-
-Since the array is already sorted on xe_name_hash when defrag runs,
-re-sorting on the same key can only permute within a run of equal
-hashes. The pointer may denote a different entry, but not a different
-hash.
-
-The underlying bug is real and independent of my series: after defrag
-permutes an equal-hash run, that second ocfs2_xa_set(&loc, ...) operates
-on a different entry. I'd like this to be addressed in a separate
-thread.
+It's a pre-exsiting issue.
+It seems we have to enhance the validation in ocfs2_validate_xattr_block().
 
 Thanks,
 Joseph
