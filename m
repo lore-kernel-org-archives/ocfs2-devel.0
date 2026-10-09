@@ -1,232 +1,175 @@
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4F70B3DB324
-	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 08:30:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.130
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7D3373C4B81
+	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 09:15:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.124
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791534615; cv=none; b=swMSYfcjA9sUjAIbNigN3xQaL51ojJfnmHCVhm7bBueNjYwAeXtojHgk8LSIpD7aJoWXb6WTd1uMIuCdnuKLKH/uAURGshIcbGCn+UyjIcLL743vAIPvTK7CjqiieQPSy3g0U1ys+d0dN8bk9K1hwESlLi1UWJ6cEtJRxzV7rAg=
+	t=1791537339; cv=none; b=qMADLb3xiwfIVNe/sHOXAqqu+TTJQDtdEhbJW22X1pppIS3cHY393WrI5QG4+Kubg6Xg673fUWlnqAYVYmfTNeKZ7Em7uYuY3Rs9TbNch2IpH/5u93MCkVDopbkz3SsvXXfAloRbYsi63IK0QuUM8xWr4yB9pejrb0z1QsvB0Uo=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791534615; c=relaxed/simple;
-	bh=Roq5OjsrhAOr2X2YdP4L+KZ9JDIx92+OahIYh8znlMk=;
-	h=From:To:Cc:Subject:Date:Message-Id:In-Reply-To:References:
-	 MIME-Version; b=pHIlp54FMj1FhEb9mEgLrQi+2AzecpP6riKSafN8EAFQJ6AFWgBUoGgLhoatihF2e+7b7k9wTyLnGie8XBMHfQNXpLzFLbdRqJ4JcQ0y7aaz6Ie6gzNRbZbFZBoKfGKYXjNg8TjOPfPMH3AV5Um2hEYYjE41XNoZpPFkasVav+k=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=oFeRW/eA; arc=none smtp.client-ip=115.124.30.130
+	s=arc-20240116; t=1791537339; c=relaxed/simple;
+	bh=6jy06vBwY/SUVGgvnO6yssV3juVib5+IYyAAHVzm2pA=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=Y6G72kPYoPJmwedfzknaMNpbOjJu3GMH7EIOkbMw64l6jwnZMQMBEOGpzmL5s1UMQTdQUFNDTLxTIWEG1LENzIjCog1FZQUHT+y+sh0RclgSa81K3Zf1TW6VOrtGflytUa1Ho+QKoLAeXnrvGBGHlj/CrHZpxGccBEedsHeOX1Y=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=ny7Jj7A7; arc=none smtp.client-ip=115.124.30.124
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="oFeRW/eA"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="ny7Jj7A7"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1791534606; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=ytqFLFUeFiEek8MRBP5i5/HqSfFch5xnomDhnh4oqCw=;
-	b=oFeRW/eAHiVKALfJr8ZdeMoAQHzpyHm5foK5IiBcLLrCdYwvyTI/xA/8zBCn2e3uHw1JKqePG97OZi3ShPEk1UyHMBDOh8cYiXwEp/3UJ7nYprKE/5USF01Dvr09m1fgwmqsck+8a74fswDxId6UHPUmtmiWGVyONGsZivGkNko=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R441e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XCSo.UY_1791534605;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCSo.UY_1791534605 cluster:ay36)
+	t=1791537332; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=GpVp6KFbLfTY1qHfx9ShcR45B4/eI143ESKm+3UNOkU=;
+	b=ny7Jj7A7DgtNc6LzzhfDTWnLQpcJymDHpUAJuunTc+90V31ZVM6Deb2tpVbTwo8Lu3AUAF92n5FLvdDVcMIH7HCPNAUSNxPZCDWweAubIHPRVZprbaUzDTCmGulSnKrMoR0L+z1K/G9liBZJWiXOf+vsq88pWkk+N4d60LKJxUk=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XCT-3T7_1791537331;
+Received: from 30.221.148.47(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCT-3T7_1791537331 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 09 Oct 2026 16:30:06 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>,
-	Anderson Ferneda <anderson.ferneda@braza.com.br>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH v2 3/3] ocfs2: deal with legacy signed xattr name hash values
-Date: Fri,  9 Oct 2026 16:30:02 +0800
-Message-Id: <20261009083002.2621201-4-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
-In-Reply-To: <20261009083002.2621201-1-joseph.qi@linux.alibaba.com>
-References: <20261009083002.2621201-1-joseph.qi@linux.alibaba.com>
+          Fri, 09 Oct 2026 17:15:31 +0800
+Message-ID: <df6242cb-9bf4-4387-8558-bc5c6a6e042e@linux.alibaba.com>
+Date: Fri, 9 Oct 2026 17:15:29 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2/heartbeat: Unlink live slots when their node is
+ missing
+To: Cen Zhang <zzzccc427@gmail.com>, akpm@linux-foundation.org
+Cc: mark@fasheh.com, jlbec@evilplan.org, ericterminal@gmail.com,
+ kees@kernel.org, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0058-v2-9446113c2b16c817c538@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0058-v2-9446113c2b16c817c538@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-Commit 3bc753c06dd0 ("kbuild: treat char as always unsigned") set
--funsigned-char globally, which changed the result of the naked 'char'
-load in ocfs2_xattr_name_hash():
 
-	hash = (hash << OCFS2_HASH_SHIFT) ^
-	       (hash >> (8*sizeof(hash) - OCFS2_HASH_SHIFT)) ^
-	       *name++;
 
-A name byte >= 0x80 used to sign-extend and now zero-extends, so the
-hash no longer matches the xe_name_hash an older kernel stored.  An
-indexed xattr tree is searched by that hash alone, and both the bucket
-binary search and the entry scan within it stop as soon as the wanted
-hash falls below an entry's, so the entry is never reached: getxattr,
-setxattr and removexattr return -ENODATA for a name that listxattr
-still lists.
+On 10/9/26 1:21 PM, Cen Zhang wrote:
+> o2hb_shutdown_slot() returns immediately when its node is no longer
+> in the configfs registry. A slot can still be linked in o2hb_live_slots
+> when that lookup fails. Region teardown or startup-error cleanup then
+> frees the slot array without removing its embedded list member.
+> 
+> With the same peer live in another region, the next list update can
+> follow a predecessor into the freed array. Reusing the node number can
+> also make a later insertion encounter that stale member.
+> 
+> Always remove the slot under o2hb_live_lock, even when node lookup
+> fails. Preserve aggregate membership accounting and the last-region
+> DOWN callback: the existing callback interface explicitly permits a
+> NULL node for DOWN events. Only drop the node reference when lookup
+> returned one. This closes both normal release and startup-abort paths
+> without changing the publication or callback locking protocol.
+> 
+> Also require a configured node before admitting a new live slot in
+> o2hb_check_slot(). The early live-bitmap check is not held through
+> admission: the last live slot in another region can be removed in
+> between. Without a node, admission can then queue an UP event with
+> a NULL argument and hit the event helper's BUG_ON. Existing live
+> slots can still leave and generate NULL-node DOWN events.
+> 
+> A controlled probe-instrumented test reproduced this while stopping
+> one of two regions after removing the peer from configfs. Its KASAN
+> report includes:
+> 
+>   BUG: KASAN: slab-use-after-free in __list_del_entry_valid_or_report+0x1e0/0x210
+>   Read of size 8 at addr ffff888106a4ac60 by task o2hb-pmbd0058_b/497
+>   Call Trace:
+>    <TASK>
+>    dump_stack_lvl+0x93/0xd0
+>    print_report+0xce/0x630
+>    kasan_report+0xe0/0x110
+>    __list_del_entry_valid_or_report+0x1e0/0x210
+>    o2hb_do_disk_heartbeat+0x1591/0x2c50
+>    o2hb_thread+0x1ed/0xe70
+>    kthread+0x351/0x460
+>    ret_from_fork+0x659/0x940
+>    ret_from_fork_asm+0x1a/0x30
+>    </TASK>
+>   Allocated by task 491:
+>    kasan_save_stack+0x33/0x60
+>    kasan_save_track+0x14/0x30
+>    __kasan_kmalloc+0xaa/0xb0
+>    __kmalloc_noprof+0x2de/0x780
+>    o2hb_region_dev_store+0x7c2/0x1b60
+>    configfs_write_iter+0x2f9/0x4f0
+>    vfs_write+0x639/0x1010
+>    ksys_write+0x111/0x200
+>    do_syscall_64+0x114/0x620
+>    entry_SYSCALL_64_after_hwframe+0x77/0x7f
+>   Freed by task 491:
+>    kasan_save_stack+0x33/0x60
+>    kasan_save_track+0x14/0x30
+>    kasan_save_free_info+0x3b/0x60
+>    __kasan_slab_free+0x5f/0x80
+>    kfree+0x308/0x580
+>    o2hb_unmap_slot_data+0x1db/0x330
+>    o2hb_region_release+0x14b/0x4f0
+>    config_item_cleanup+0x14b/0x230
+>    config_item_put+0x79/0x90
+>    configfs_rmdir+0x58a/0x910
+>    vfs_rmdir+0x2e8/0x820
+>    filename_rmdir+0x3b1/0x520
+>    __x64_sys_rmdir+0x4b/0x70
+>    do_syscall_64+0x114/0x620
+>    entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> 
+> Fixes: a7f6a5fb4bde ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+> Assisted-by: LLM
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 
-Search with the current unsigned hash and, on a miss, retry with the
-legacy signed one, as ext4 does in commit f3bbac32475b2 ("ext4: deal
-with legacy signed xattr name hash values").  New entries are always
-stored under the unsigned hash.  Skip the retry when the two hashes are
-equal, so that a miss on an ASCII name does not walk the tree twice.
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-A miss is not empty handed: ocfs2_xattr_bucket_find() leaves xs->bucket
-holding the bucket a new entry would go into.  So after a double miss
-drop it and search once more with the unsigned hash, otherwise a new
-entry would be placed by its legacy hash and stored under its unsigned
-one, breaking the ordering the search relies on.
-
-Only indexed trees are affected; inline xattrs and non-indexed xattr
-blocks compare names with memcmp and never look at the hash.
-
-Also spell out the signedness instead of leaving the current hash to
--funsigned-char, as commit 854f0912f813 ("ext4: make xattr char
-unsignedness in hash explicit") did, so that both variants stay correct
-if this is backported to a kernel without the flag.
-
-Exposed-by: 3bc753c06dd0 ("kbuild: treat char as always unsigned")
-Cc: <stable@vger.kernel.org> # 6.2+
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/xattr.c | 93 ++++++++++++++++++++++++++++++++++++++++++------
- 1 file changed, 82 insertions(+), 11 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index c5a39a7d43d0..e92bcf401490 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -601,9 +601,10 @@ static inline const char *ocfs2_xattr_prefix(int name_index)
- 	return handler ? xattr_prefix(handler) : NULL;
- }
- 
--static u32 ocfs2_xattr_name_hash(struct inode *inode,
--				 const char *name,
--				 int name_len)
-+static u32 __ocfs2_xattr_name_hash(struct inode *inode,
-+				   const char *name,
-+				   int name_len,
-+				   bool legacy_signed)
- {
- 	/* Get hash value of uuid from super block */
- 	u32 hash = OCFS2_SB(inode->i_sb)->uuid_hash;
-@@ -612,13 +613,30 @@ static u32 ocfs2_xattr_name_hash(struct inode *inode,
- 	/* hash extended attribute name */
- 	for (i = 0; i < name_len; i++) {
- 		hash = (hash << OCFS2_HASH_SHIFT) ^
--		       (hash >> (8*sizeof(hash) - OCFS2_HASH_SHIFT)) ^
--		       *name++;
-+		       (hash >> (8*sizeof(hash) - OCFS2_HASH_SHIFT));
-+		if (legacy_signed)
-+			hash ^= (signed char)name[i];
-+		else
-+			hash ^= (unsigned char)name[i];
- 	}
- 
- 	return hash;
- }
- 
-+static u32 ocfs2_xattr_name_hash(struct inode *inode,
-+				 const char *name,
-+				 int name_len)
-+{
-+	return __ocfs2_xattr_name_hash(inode, name, name_len, false);
-+}
-+
-+static u32 ocfs2_xattr_name_hash_signed(struct inode *inode,
-+					const char *name,
-+					int name_len)
-+{
-+	return __ocfs2_xattr_name_hash(inode, name, name_len, true);
-+}
-+
- static int ocfs2_xattr_entry_real_size(int name_len, size_t value_len)
- {
- 	return namevalue_size(name_len, value_len) +
-@@ -4304,11 +4322,12 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
- 	return ret;
- }
- 
--static int ocfs2_xattr_index_block_find(struct inode *inode,
--					struct buffer_head *root_bh,
--					int name_index,
--					const char *name,
--					struct ocfs2_xattr_search *xs)
-+static int __ocfs2_xattr_index_block_find(struct inode *inode,
-+					  struct buffer_head *root_bh,
-+					  int name_index,
-+					  const char *name,
-+					  u32 name_hash,
-+					  struct ocfs2_xattr_search *xs)
- {
- 	int ret;
- 	struct ocfs2_xattr_block *xb =
-@@ -4317,7 +4336,6 @@ static int ocfs2_xattr_index_block_find(struct inode *inode,
- 	struct ocfs2_extent_list *el = &xb_root->xt_list;
- 	u64 p_blkno = 0;
- 	u32 first_hash, num_clusters = 0;
--	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
- 
- 	if (le16_to_cpu(el->l_next_free_rec) == 0)
- 		return -ENODATA;
-@@ -4348,6 +4366,59 @@ static int ocfs2_xattr_index_block_find(struct inode *inode,
- 	return ret;
- }
- 
-+static int ocfs2_xattr_index_block_find(struct inode *inode,
-+					struct buffer_head *root_bh,
-+					int name_index,
-+					const char *name,
-+					struct ocfs2_xattr_search *xs)
-+{
-+	u32 name_hash, legacy_hash;
-+	int name_len = strlen(name);
-+	int ret;
-+
-+	name_hash = ocfs2_xattr_name_hash(inode, name, name_len);
-+
-+	ret = __ocfs2_xattr_index_block_find(inode, root_bh, name_index, name,
-+					     name_hash, xs);
-+	if (ret != -ENODATA)
-+		return ret;
-+
-+	/*
-+	 * Nothing under the current hash.  The entry may have been stored by
-+	 * an older kernel, which sign-extended the name bytes when hashing.
-+	 * Skip the retry when the two hashes are equal, so that a name made
-+	 * only of ASCII does not have to walk the tree twice.
-+	 */
-+	legacy_hash = ocfs2_xattr_name_hash_signed(inode, name, name_len);
-+	if (legacy_hash == name_hash)
-+		return ret;
-+
-+	/*
-+	 * A miss still leaves xs->bucket holding the bucket a new entry would
-+	 * be inserted into, so drop it before searching again.
-+	 */
-+	ocfs2_xattr_bucket_relse(xs->bucket);
-+
-+	ret = __ocfs2_xattr_index_block_find(inode, root_bh, name_index, name,
-+					     legacy_hash, xs);
-+	if (!ret) {
-+		pr_warn_once("ocfs2: xattr tree with signed name hash\n");
-+		return ret;
-+	}
-+	if (ret != -ENODATA)
-+		return ret;
-+
-+	/*
-+	 * Not under either hash.  Restore the unsigned placement, since that
-+	 * is where a new entry is stored: leaving the bucket where the legacy
-+	 * hash put it would break the ordering the search relies on.
-+	 */
-+	ocfs2_xattr_bucket_relse(xs->bucket);
-+
-+	return __ocfs2_xattr_index_block_find(inode, root_bh, name_index, name,
-+					      name_hash, xs);
-+}
-+
- static int ocfs2_iterate_xattr_buckets(struct inode *inode,
- 				       u64 blkno,
- 				       u32 clusters,
--- 
-2.39.3
+> ---
+> Changes in v2:
+> - Require a configured node before admitting a live slot in
+>   o2hb_check_slot().
+> 
+> Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0058-v1-177573785904d0ea43c7@gmail.com
+> 
+>  fs/ocfs2/cluster/heartbeat.c | 12 ++++++++----
+>  1 file changed, 8 insertions(+), 4 deletions(-)
+> 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index 1c3def99bb0765deb828ad6415fde31ed9316002..3f3f6fc6b1316e7c996681fc50fde84d183d117d 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -880,8 +880,11 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
+>  	int queued = 0;
+>  
+>  	node = o2nm_get_node_by_num(slot->ds_node_num);
+> -	if (!node)
+> -		return;
+> +	/*
+> +	 * The node may have been removed from the node table while this
+> +	 * region's slot is still linked.  The list member must still be
+> +	 * removed before the region releases its slot array.
+> +	 */
+>  
+>  	spin_lock(&o2hb_live_lock);
+>  	if (!list_empty(&slot->ds_live_item)) {
+> @@ -903,7 +906,8 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
+>  	if (queued)
+>  		o2hb_run_event_list(&event);
+>  
+> -	o2nm_node_put(node);
+> +	if (node)
+> +		o2nm_node_put(node);
+>  }
+>  
+>  static void o2hb_set_quorum_device(struct o2hb_region *reg)
+> @@ -1038,7 +1042,7 @@ static int o2hb_check_slot(struct o2hb_region *reg,
+>  fire_callbacks:
+>  	/* dead nodes only come to life after some number of
+>  	 * changes at any time during their dead time */
+> -	if (list_empty(&slot->ds_live_item) &&
+> +	if (node && list_empty(&slot->ds_live_item) &&
+>  	    slot->ds_changed_samples >= O2HB_LIVE_THRESHOLD) {
+>  		mlog(ML_HEARTBEAT, "Node %d (id 0x%llx) joined my region\n",
+>  		     slot->ds_node_num, (long long)slot->ds_last_generation);
 
