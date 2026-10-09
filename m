@@ -1,231 +1,179 @@
-Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-pf1-f179.google.com (mail-pf1-f179.google.com [209.85.210.179])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 416DF38F65C;
-	Thu,  8 Oct 2026 17:08:13 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E89C431F9BD
+	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 01:41:06 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.179
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791479295; cv=none; b=mxvv8DFLFPgTS9Paom/fMZmWgRX55Eo12TZ/arOx3l1ICAzdcR6Bx1qIPXwz9/Dcslx0cBY4Slgo+Fm5Vit7lUORQQDZSb5lemems9SWnZT3umZ+u44K8Yey8j5RHxKQXDlgNSZpb+t+UPDGt7vDvnbPwqw1pmiFgUz+fV8bCps=
+	t=1791510069; cv=none; b=Nhomr8qJGUDWGLwBzAU/6vqIFnmY5OUJKLZjd7Z0dWKPsHxO6A3/UV/FViLX/SqzHnkz0cCD/XdKZ0sxAsM47rk4/IM3s7sCj7axbTc7ljx5u3VWDF27ETLnJha5ZUaUsztvHpZk/kdHBFJB2SH22OPZCsl2LLUwKfbgCFg+wyA=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791479295; c=relaxed/simple;
-	bh=0eBtMTu0/gfhzOhtCIIjYp5dd3J2nx+mqrVP8/rXKb4=;
-	h=Date:From:To:Cc:Subject:Message-Id:In-Reply-To:References:
-	 Mime-Version:Content-Type; b=dmfGvSX2JhHgujMuEkYAU2zJpKM7y3Fpek9DYt2q8Y/9iwafV2sVi5bSTf63kYVrkPOEQ+zvDGmzhMiEwH8hfpUccHVcRsxP2Tz71IwhEKGMWzLhqDtx1DDgus1w9EO+yGzbF277gRcjB7oS4DQf3UizoX3ne191fYP3SqlzkNs=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b=csdqprA4; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1791510069; c=relaxed/simple;
+	bh=5Jv8j7APlwwaU6ZUf8y9K5scT0ha0/L1LucPaGnbmfY=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=hhtk5GhttWUt4vR1VSKGhtdrPZODAuQYPS2V1cCVdidUsoNnNwMupsC380MCQ3FIlC1vQtANZeAnZH6R3MJhjpaxFsQV6TnpsHyGGKnGA+DWZ89hyL1oLGDTJhJG+bpglundG8BCyzy+Kp9JVDgLu94+R/gOh3a9osZiI3kLdyU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=oJBO1kzq; arc=none smtp.client-ip=209.85.210.179
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux-foundation.org header.i=@linux-foundation.org header.b="csdqprA4"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7C96D1F000FF;
-	Thu,  8 Oct 2026 17:08:13 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="oJBO1kzq"
+Received: by mail-pf1-f179.google.com with SMTP id d2e1a72fcca58-88bf90b7f07so1230926b3a.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 08 Oct 2026 18:41:06 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux-foundation.org; s=korg; t=1791479293;
-	bh=40UmGtsWvKZUKUpHoZBUqaWRitaTWsYb5pdsjbLrFbc=;
-	h=Date:From:To:Cc:Subject:In-Reply-To:References;
-	b=csdqprA4ZZqt4Jvt9d+z8dNJvB443wlcluTVQvjFtrKp8TUZICyWcXqBapadTNldC
-	 QdYL+b8STFSRrWvvQ00GgMU8AixHHUkCp4+nWQmHNPkadSFl++BN356EwDBUdtaOTT
-	 HrH6+T3//qPRmIo+OQJijugBSP4K/KPyye8l/1aY=
-Date: Thu, 8 Oct 2026 10:08:12 -0700
-From: Andrew Morton <akpm@linux-foundation.org>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Heming Zhao <heming.zhao@suse.com>, Anderson Ferneda
- <anderson.ferneda@braza.com.br>, Mark Fasheh <mark@fasheh.com>, Joel Becker
- <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org
-Subject: Re: [PATCH 1/2] ocfs2: deal with legacy signed dir index name hash
- values
-Message-Id: <20261008100812.0969af222022821d4ed72fad@linux-foundation.org>
-In-Reply-To: <20261008122743.616779-1-joseph.qi@linux.alibaba.com>
-References: <20261008122743.616779-1-joseph.qi@linux.alibaba.com>
-X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
+        d=gmail.com; s=20251104; t=1791510066; x=1792114866; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=oc3v/RNKFMSSXOD1ONlfWh+mZ5uFjK1VgKM2BwVJqMA=;
+        b=oJBO1kzq6G/ZCUb15u7t/v1YWoBAUTBcNPU1s3dZMKEXyh92WxFdluvQdXgM2vLqCR
+         Y6+W3Rh9BATELSed9ANq5ciXASYOQVWV+v4ylayzpfNZbYkITVRyOgotNyrZkAS3Ng96
+         IG3gRqljKlcX7qTGXsf57/SA9n7o9zID6kJ8HAC+B2HlXIMLnZ3ZLqlx7+FauqxeQTg7
+         GsRdAocNdXIVCSJWTeGwgk9wm5mSGk31Xma5WE6oKNisZ2ZKoz4OBxJ72+AdYhwCKbsV
+         7GlSfEhozhZa109O99oeXidR0JLfuh/WvwE2tsAOhW66Jqfkge6PS7tQtzTCY+qulRd3
+         187A==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1791510066; x=1792114866;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=oc3v/RNKFMSSXOD1ONlfWh+mZ5uFjK1VgKM2BwVJqMA=;
+        b=l5IR8lqOEMPFPaH0maaDmADXTH7tDDZYXAa6jTAXRzt+fpLaOaF/C/DlertXGw+E7e
+         x9j0nTdAkGQy0euaQ+Q4bfsgKj2QD1080j4kah9Nm4Dsl2GWW/e9aClb0Xrtv4GMACTL
+         n0VJAwcS8am8/b1qrTV+6BhByxWSD0087Rvyw8+QTJex7zn+hXZ9t3P98j46R7OLdgCD
+         S6Oj91zQaPpmsDaWvZab597n3p2HNJIGOpgUXL3Ww5OrmAAuS/YSI0VRjK/T15v95DCU
+         4OzyFM63/qxiCc8LO8J3Ei1oIdYLsWuvyttihmMVNsJxXmMfWBZTNNCb4QSVDykw38bD
+         M7Zw==
+X-Gm-Message-State: AFuF++ngmEtfObAOTNzMt+mLAn5M7b/3J0cE+nn1DZ/kOQaLTSthsjTP
+	LmQeITCjmWbEuY/o4Z8/KMNosTO9Guo2AC8q9uPlPT9hLdrJULgrlrRij0updQ==
+X-Gm-Gg: AYBFou37NzIlL1FQmJqHaTLVeBT4yUFtyVNEBlsYp0/vkX2zWXn84Z2F9Wkv93lqIWW
+	trhupnzPXgPreUrUxl246aS9Ilglxs6pVlCYfBI7irUQd72nDH83Ghv7A3BuYXdDYmYEtEg5mrB
+	+3vDPwRAcTCNeFdy+di27QncM28TFlQEuWVF6yIc6duN/bGe5lSS9Ld+DKA4I3iC/xXZBMe4Rgn
+	7jhZwbhDfo8VHW7ikxBoXnqJnjAnfElBoybyh6LeIjsYqA12Zs4+Gb7BYpbHW7m00CZGziPQCE1
+	W2+0TWuzRF9h6OsPBkDEQYeHR1rA5XnHIyG7VgQNRRY2gJ/BYywUBsCDUUMKg1PDLIIlIRjsJdy
+	rwrm9U8TAC7cysNA4AcI8l7RKI6zllcZ+QeCRGs74B/wOPRSMaXfEUG4UgnWZPJAzIZ7lm5CwV6
+	rXUI1VeeTytHSvv99KbLXIOsgv0T8cltXvngTzYMV/bM+DYwMyENq0bCvaNu0vP2I9aw==
+X-Received: by 2002:a05:6a00:4f92:b0:881:6fb7:bf14 with SMTP id d2e1a72fcca58-897c75e7fe1mr295921b3a.38.1791510066165;
+        Thu, 08 Oct 2026 18:41:06 -0700 (PDT)
+Received: from localhost ([111.228.63.84])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-896c43aab7csm256100b3a.46.2026.10.08.18.41.02
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Thu, 08 Oct 2026 18:41:05 -0700 (PDT)
+From: Cen Zhang <zzzccc427@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com,
+	akpm@linux-foundation.org,
+	zzzccc427@gmail.com,
+	ericterminal@gmail.com,
+	kees@kernel.org,
+	kurt.hackel@oracle.com
+Cc: ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	jjzuming@gmail.com
+Subject: [PATCH] ocfs2/heartbeat: Unlink live slots when their node is missing
+Date: Fri,  9 Oct 2026 09:40:59 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0058-v1-177573785904d0ea43c7@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
-Mime-Version: 1.0
-Content-Type: text/plain; charset=US-ASCII
-Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+Content-Transfer-Encoding: 8bit
 
-On Thu,  8 Oct 2026 20:27:42 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
+o2hb_shutdown_slot() returns immediately when its node is no longer
+in the configfs registry. A slot can still be linked in o2hb_live_slots
+when that lookup fails. Region teardown or startup-error cleanup then
+frees the slot array without removing its embedded list member.
 
-> Commit 3bc753c06dd0 ("kbuild: treat char as always unsigned") set
-> -funsigned-char globally, which changed the result of the naked 'char'
-> load in str2hashbuf():
-> 
-> 	val = msg[i] + (val << 8);
-> 
-> A name byte >= 0x80 used to sign-extend and now zero-extends, so
-> ocfs2_dx_dir_name_hash() computes a different hash pair for every name
-> containing one.  The pair is written into the dx leaf when the entry is
-> created, so an index built by an older kernel no longer matches and
-> ocfs2_dx_dir_search() returns -ENOENT for a name that readdir still
-> lists.
-> 
-> Search with the current unsigned hash and, on a miss, retry with the
-> legacy signed one, as ext4 does in commit f3bbac32475b2 ("ext4: deal
-> with legacy signed xattr name hash values").  New entries are always
-> indexed under the unsigned hash.  Skip the retry when the two hashes
-> are equal, so that a miss on an ASCII name does not walk the index
-> twice.
-> 
-> The retry costs a second walk of the dx tree, so a negative lookup of a
-> name containing a byte >= 0x80 does twice the work.  That is bounded and
-> worth it, and directories whose dx root is still inline pay nothing
-> extra, since there the retry only rescans the root block that is already
-> loaded.  Nothing retires it at runtime: a legacy entry keeps its legacy
-> hash, because neither deleting nor updating an entry rewrites the dx
-> hash, and the only code that rehashes existing dirents is
-> ocfs2_expand_inline_dir() on the inline to extent conversion.
-> Rebuilding the index offline is what removes the cost for good.
-> 
-> Also spell out the signedness in str2hashbuf() instead of leaving the
-> current hash to -funsigned-char, as commit 854f0912f813 ("ext4: make
-> xattr char unsignedness in hash explicit") did, so that both variants
-> stay correct if this is backported to a kernel without the flag.
-> 
-> Reported-by: Anderson Ferneda <anderson.ferneda@braza.com.br>
-> Link: https://lore.kernel.org/ocfs2-devel/CP5P284MB2780AC2C3C2AB2CF2B6CB7AFBE942@CP5P284MB2780.BRAP284.PROD.OUTLOOK.COM/
-> Exposed-by: 3bc753c06dd0 ("kbuild: treat char as always unsigned")
-> Cc: stable@vger.kernel.org # 6.2+
-> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/dir.c | 76 ++++++++++++++++++++++++++++++++++++++++++--------
->  1 file changed, 65 insertions(+), 11 deletions(-)
-> 
-> diff --git a/fs/ocfs2/dir.c b/fs/ocfs2/dir.c
-> index 55c4a305a282..3f159a20a248 100644
-> --- a/fs/ocfs2/dir.c
-> +++ b/fs/ocfs2/dir.c
-> @@ -221,7 +221,8 @@ static void TEA_transform(__u32 buf[4], __u32 const in[])
->  	buf[1] += b1;
->  }
->  
-> -static void str2hashbuf(const char *msg, int len, __u32 *buf, int num)
-> +static void str2hashbuf(const char *msg, int len, __u32 *buf, int num,
-> +			bool legacy_signed)
->  {
->  	__u32	pad, val;
->  	int	i;
-> @@ -235,7 +236,10 @@ static void str2hashbuf(const char *msg, int len, __u32 *buf, int num)
->  	for (i = 0; i < len; i++) {
->  		if ((i % 4) == 0)
->  			val = pad;
-> -		val = msg[i] + (val << 8);
-> +		if (legacy_signed)
-> +			val = (signed char)msg[i] + (val << 8);
-> +		else
-> +			val = (unsigned char)msg[i] + (val << 8);
->  		if ((i % 4) == 3) {
->  			*buf++ = val;
->  			val = pad;
-> @@ -248,8 +252,9 @@ static void str2hashbuf(const char *msg, int len, __u32 *buf, int num)
->  		*buf++ = pad;
->  }
->  
-> -static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
-> -				   struct ocfs2_dx_hinfo *hinfo)
-> +static void __ocfs2_dx_dir_name_hash(struct inode *dir, const char *name,
-> +				     int len, struct ocfs2_dx_hinfo *hinfo,
-> +				     bool legacy_signed)
->  {
->  	struct ocfs2_super *osb = OCFS2_SB(dir->i_sb);
->  	const char	*p;
-> @@ -279,7 +284,7 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
->  
->  	p = name;
->  	while (len > 0) {
-> -		str2hashbuf(p, len, in, 4);
-> +		str2hashbuf(p, len, in, 4, legacy_signed);
->  		TEA_transform(buf, in);
->  		len -= 16;
->  		p += 16;
-> @@ -290,6 +295,19 @@ static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
->  	hinfo->minor_hash = buf[1];
->  }
->  
-> +static void ocfs2_dx_dir_name_hash(struct inode *dir, const char *name, int len,
-> +				   struct ocfs2_dx_hinfo *hinfo)
-> +{
-> +	__ocfs2_dx_dir_name_hash(dir, name, len, hinfo, false);
-> +}
-> +
-> +static void ocfs2_dx_dir_name_hash_signed(struct inode *dir, const char *name,
-> +					  int len,
-> +					  struct ocfs2_dx_hinfo *hinfo)
-> +{
-> +	__ocfs2_dx_dir_name_hash(dir, name, len, hinfo, true);
-> +}
-> +
->  /*
->   * bh passed here can be an inode block or a dir data block, depending
->   * on the inode inline data flag.
-> @@ -1021,10 +1039,10 @@ static int ocfs2_dx_dir_lookup(struct inode *inode,
->  	return ret;
->  }
->  
-> -static int ocfs2_dx_dir_search(const char *name, int namelen,
-> -			       struct inode *dir,
-> -			       struct ocfs2_dx_root_block *dx_root,
-> -			       struct ocfs2_dir_lookup_result *res)
-> +static int __ocfs2_dx_dir_search(const char *name, int namelen,
-> +				 struct inode *dir,
-> +				 struct ocfs2_dx_root_block *dx_root,
-> +				 struct ocfs2_dir_lookup_result *res)
->  {
->  	int ret, i, found;
->  	u64 phys;
-> @@ -1037,8 +1055,6 @@ static int ocfs2_dx_dir_search(const char *name, int namelen,
->  	struct ocfs2_extent_list *dr_el;
->  	struct ocfs2_dx_entry_list *entry_list;
->  
-> -	ocfs2_dx_dir_name_hash(dir, name, namelen, &res->dl_hinfo);
-> -
->  	if (ocfs2_dx_root_inline(dx_root)) {
->  		entry_list = &dx_root->dr_entries;
->  		goto search;
-> @@ -1135,6 +1151,44 @@ static int ocfs2_dx_dir_search(const char *name, int namelen,
->  	return ret;
->  }
->  
-> +static int ocfs2_dx_dir_search(const char *name, int namelen,
-> +			       struct inode *dir,
-> +			       struct ocfs2_dx_root_block *dx_root,
-> +			       struct ocfs2_dir_lookup_result *res)
-> +{
-> +	struct ocfs2_dx_hinfo legacy;
-> +	int ret;
-> +
-> +	ocfs2_dx_dir_name_hash(dir, name, namelen, &res->dl_hinfo);
-> +
-> +	ret = __ocfs2_dx_dir_search(name, namelen, dir, dx_root, res);
-> +	if (ret != -ENOENT)
-> +		return ret;
-> +
-> +	/*
-> +	 * Nothing under the current hash.  The entry may have been indexed by
-> +	 * an older kernel, which sign-extended the name bytes when hashing.
-> +	 * New entries are always indexed under the unsigned hash, so only fall
-> +	 * back to the legacy signed one when it can actually differ: an ASCII
-> +	 * name hashes the same either way, and a genuine miss on one should
-> +	 * not have to walk the index twice.
-> +	 */
-> +	ocfs2_dx_dir_name_hash_signed(dir, name, namelen, &legacy);
-> +	if (legacy.major_hash == res->dl_hinfo.major_hash &&
-> +	    legacy.minor_hash == res->dl_hinfo.minor_hash)
-> +		return ret;
-> +
-> +	res->dl_hinfo = legacy;
-> +
-> +	ret = __ocfs2_dx_dir_search(name, namelen, dir, dx_root, res);
-> +	if (ret)
-> +		return ret;
-> +
-> +	pr_warn_once("ocfs2: directory index with signed name hash\n");
-> +
-> +	return 0;
-> +}
-> +
->  static int ocfs2_find_entry_dx(const char *name, int namelen,
->  			       struct inode *dir,
->  			       struct ocfs2_dir_lookup_result *lookup)
-> -- 
-> 2.39.3
+With the same peer live in another region, the next list update can
+follow a predecessor into the freed array. Reusing the node number can
+also make a later insertion encounter that stale member.
+
+Always remove the slot under o2hb_live_lock, even when node lookup
+fails. Preserve aggregate membership accounting and the last-region
+DOWN callback: the existing callback interface explicitly permits a
+NULL node for DOWN events. Only drop the node reference when lookup
+returned one. This closes both normal release and startup-abort paths
+without changing the publication or callback locking protocol.
+
+A controlled probe-instrumented test reproduced this while stopping
+one of two regions after removing the peer from configfs. Its KASAN
+report includes:
+
+  BUG: KASAN: slab-use-after-free in __list_del_entry_valid_or_report+0x1e0/0x210
+  Read of size 8 at addr ffff888106a4ac60 by task o2hb-pmbd0058_b/497
+  Call Trace:
+   <TASK>
+   dump_stack_lvl+0x93/0xd0
+   print_report+0xce/0x630
+   kasan_report+0xe0/0x110
+   __list_del_entry_valid_or_report+0x1e0/0x210
+   o2hb_do_disk_heartbeat+0x1591/0x2c50
+   o2hb_thread+0x1ed/0xe70
+   kthread+0x351/0x460
+   ret_from_fork+0x659/0x940
+   ret_from_fork_asm+0x1a/0x30
+   </TASK>
+  Allocated by task 491:
+   kasan_save_stack+0x33/0x60
+   kasan_save_track+0x14/0x30
+   __kasan_kmalloc+0xaa/0xb0
+   __kmalloc_noprof+0x2de/0x780
+   o2hb_region_dev_store+0x7c2/0x1b60
+   configfs_write_iter+0x2f9/0x4f0
+   vfs_write+0x639/0x1010
+   ksys_write+0x111/0x200
+   do_syscall_64+0x114/0x620
+   entry_SYSCALL_64_after_hwframe+0x77/0x7f
+  Freed by task 491:
+   kasan_save_stack+0x33/0x60
+   kasan_save_track+0x14/0x30
+   kasan_save_free_info+0x3b/0x60
+   __kasan_slab_free+0x5f/0x80
+   kfree+0x308/0x580
+   o2hb_unmap_slot_data+0x1db/0x330
+   o2hb_region_release+0x14b/0x4f0
+   config_item_cleanup+0x14b/0x230
+   config_item_put+0x79/0x90
+   configfs_rmdir+0x58a/0x910
+   vfs_rmdir+0x2e8/0x820
+   filename_rmdir+0x3b1/0x520
+   __x64_sys_rmdir+0x4b/0x70
+   do_syscall_64+0x114/0x620
+   entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+Fixes: a7f6a5fb4bde ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+Assisted-by: LLM
+Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+---
+ fs/ocfs2/cluster/heartbeat.c | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 1c3def99bb0765deb828ad6415fde31ed9316002..95b9061fce854ac8f32acf3c29f71336fb37a372 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -880,8 +880,11 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
+ 	int queued = 0;
+ 
+ 	node = o2nm_get_node_by_num(slot->ds_node_num);
+-	if (!node)
+-		return;
++	/*
++	 * The node may have been removed from the node table while this
++	 * region's slot is still linked.  The list member must still be
++	 * removed before the region releases its slot array.
++	 */
+ 
+ 	spin_lock(&o2hb_live_lock);
+ 	if (!list_empty(&slot->ds_live_item)) {
+@@ -903,7 +906,8 @@ static void o2hb_shutdown_slot(struct o2hb_disk_slot *slot)
+ 	if (queued)
+ 		o2hb_run_event_list(&event);
+ 
+-	o2nm_node_put(node);
++	if (node)
++		o2nm_node_put(node);
+ }
+ 
+ static void o2hb_set_quorum_device(struct o2hb_region *reg)
