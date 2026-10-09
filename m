@@ -1,137 +1,196 @@
-Received: from mail-pl1-f173.google.com (mail-pl1-f173.google.com [209.85.214.173])
+Received: from mail-wm1-f42.google.com (mail-wm1-f42.google.com [209.85.128.42])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 258674A8406
-	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 10:04:56 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.173
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B22484E36F9
+	for <ocfs2-devel@lists.linux.dev>; Fri,  9 Oct 2026 15:08:02 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.42
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791540305; cv=none; b=Rs2lA7HALRAoyhddbrFRhhR+c8Pm99q/B7ub8rVYyg+zZsDYAJWora2HAMw+0O/Q1TDiDdC+IgprNxiZ+6rox5zR0AY6j2n6KPXPfXaOfEF19eJHwQ2mtVG4oGfCDasbArnk6LnjJE/1hGJZcYGdZajOLTxGy+WeEEkf8Y66ulU=
+	t=1791558484; cv=none; b=CAxLKqAwp8LI/CilzSLdE/Vs8IrHCH6l47YRvE1WtPT/4hg9rJTnPe9eCWVxc9OeChClJa4OGKjjGLsuUymuh7SSX7XE0tM0+opO486R98cJMdSuBGwlieqlgt4erGNDqeMNUr2BcayNKvGzC6BiHn7x+HM+K3NSxpILFL8nmdM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791540305; c=relaxed/simple;
-	bh=zeWR0WfokKp9ZtwxmTpL1MQF6hizvBIjf5JyD3r1Rd8=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=s0l8wWFQkJp7z73wQU/lrofuF4f7yRDkH19Un8gZH+Ed9FmFfEPZbggKLcQrhzFinoNUnbajolCz1faXfUZbqq8AuTNgPFBNbdMFie4ObGIJ3d7lKX8EkzGUPnsCUYb7agcEmR4ix+1x+TJ0nFl5KQU5L7RO4IsNI0/yTwTbKCQ=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Sh8DzW1u; arc=none smtp.client-ip=209.85.214.173
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1791558484; c=relaxed/simple;
+	bh=5622vFjjrUQ8N4J/FirkFRj5hIIji0qwNLtjg3ohHK8=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=uJc1zUjFGt8ZZQC3YOCWYfubLqhretOiqNs39Eb15lgwLcp6Vohl8s/ewZxzgNu7mxh2pppHtMe8yhAefHi9bhp7MqOTpCQGNg30x3N90NRhr9F95TjCIQpnFj798Xm/5DoLgXIZJdtZ5l4aUo7VlTr8li1CqNdnEVLVH79271I=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=JT9vV5vo; arc=none smtp.client-ip=209.85.128.42
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Sh8DzW1u"
-Received: by mail-pl1-f173.google.com with SMTP id d9443c01a7336-2e81738d24eso12202965ad.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Oct 2026 03:04:56 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="JT9vV5vo"
+Received: by mail-wm1-f42.google.com with SMTP id 5b1f17b1804b1-49e71fc84bbso2139205e9.3
+        for <ocfs2-devel@lists.linux.dev>; Fri, 09 Oct 2026 08:08:02 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791540296; x=1792145096; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=ogu/BtajEQWyJ3zFLux+gZr1Wq4ynKnt7QP0d0lnwTs=;
-        b=Sh8DzW1u72/lcsiNayb/dd5sIaR1ws4N2Ce0wkM81WZZxzbfL0TVEQSmElTYyBpddm
-         Of6YpjfAr2rr7OJElhd82g/JjnxwLfUtI0nRct0Xz1hqYqgy7S8bSWr2v+llhRpBAGWe
-         FB743wC2mpwnAFmqF47hkiYjaWorHGTSrgcU1GWNx8F91BsSaR95a2JysYmjAnPEFuoE
-         cUU278gbY/5v5KCL1mRnSIQDChegzF3w1Im5SBKnW1Vpl8S9V+MGEURyULuBYT++qdxP
-         23cGz7GZeiK+8CRjluQJ9O9/hSasrauxHDg26cjhGrnjlaycNdgsC03ucvbrzjVJBYwg
-         2DrA==
+        d=suse.com; s=google; t=1791558481; x=1792163281; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=l7FAggyg1PuXiF2goI0uppUUtryZ3eugWEM0zzhFv98=;
+        b=JT9vV5voDR6ZImgYlMFcmCrzsLlpKyk75grduvDpNI1ec5l1iH6q5cp9CHxu5lZrNZ
+         Waks+CicHl0CcYQE6gpsPVFvWOzs3qAEZDhHgQzysl7XBE+INHr+M1ClszXbNvry1GB1
+         B24ADoH0Ra1rbXssDsaqNZjap4/rc3Wt/12icWy6+9SnKhBOR0f5oBb815SW7SidHHTV
+         ECoWQHTChZM9j3j+hkQPcyr2IBe9A27+fHkvoYfZYifPhPDB/JwDZ/R50onAXQDQgzbs
+         J4eYj9PNegVX0cURWx4LehjU92sP8WnGVlJeGQjNuCjtkRudJ2R7LS4OZJPmX2b7R3UP
+         Dblw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791540296; x=1792145096;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=ogu/BtajEQWyJ3zFLux+gZr1Wq4ynKnt7QP0d0lnwTs=;
-        b=Urd6X/mFNU7O559hsbzmPR8orlxAK5m0ZZaIEq3UtnPWF++ZWUZ3uwFqojTb1inL4t
-         r76o/0b+hmKi0SD4nd88/YIQTT8FLmako9nMaTKC7cHk3JHDDuhyUK65OZF0kbdT9Mc0
-         48/a01fwHtXBON9Yvdac9nLkt/eqhbLOid0IKKclqOJ1Cr8G9jcSNj4wVK6ThMxSG4nq
-         tnzF6srqf6SnMkN8+bFhkFoiZq0xSnt3cUjFoNb7u8Eq7ntbWUF66IAuZQAggpnyJXaJ
-         3DV+37Q/p/aM0UbD1+fbQJiGb0XddKd0YBUIp+fyCl1RQYQhNTOpufIgBRWuJ6DPIXQU
-         t8EA==
-X-Gm-Message-State: AFq9FYIVG8xLkxsQSeOTVnzfb1lllM8341j8LLQTeB6KOSrx1PTcGWig
-	v5jAKq+OEn5U5kxCYDty9gIrPgIZaCSKyvkUPfTm9xyiqYVWp4XPVcEG
-X-Gm-Gg: AYBFou1QRSYgzVFVeYZ6GDM0lh5AXdncVZQ/euGhv6/LaWNzapOf9svzoTyI6Dp35zv
-	vxxtfulaHK568xaqHmrc9NqNy6ZHDUTsMMZdLQPvqdfFmer+3thr1FHKEyno0m6McxPEsE8LsqN
-	g2877a4ZBPoGg5ZxrjhB35yEZ7XeZKrxAbNaDtdHzbgO46dsqbGD5as22qOiQqttmhOjM9zcAvQ
-	gAB2JxEXz1QklUXLjsH258ElPpbKPrKUWp41ELCdO8Nj5ezXbWIhr5EE5c1kA7y4/s2HfOwjGyT
-	HYPYqaa2CgFvEpLPtg7H5BZHi6QY2x9sWOBLXzxygkSImFKoo6IRuBeo2zLJjYcuCiFmbNiGHvL
-	dpx/TE/lhbsIDiObI0pbOHvypd/h6wt4CR3s0mZhh1wdPMeIMwmtB4fkrME1cD4SzpulJCnvMF8
-	Ci3HAsAC4YwESqMGJOik+RKQrr/SeBzngUVYo/bOHqJOim3wfyu0aU8BdKjfj4BHHfHg==
-X-Received: by 2002:a17:903:17cc:b0:2df:a972:e48c with SMTP id d9443c01a7336-2e842f37fe2mr11158855ad.55.1791540296059;
-        Fri, 09 Oct 2026 03:04:56 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e8422e1643sm6131975ad.70.2026.10.09.03.04.52
+        d=1e100.net; s=20260707; t=1791558481; x=1792163281;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=l7FAggyg1PuXiF2goI0uppUUtryZ3eugWEM0zzhFv98=;
+        b=2N0raQi4jLlQuOrPq72xaO8rM6VYVOPolVv2E9LG/3iRd09XsH20KqDju1+0okK5t7
+         ZKru6DOwYPiybanrK9wHTvzROofeAEKP/FO+xdox2PP96I/RWRoOUmy/H9U0CvicXGCF
+         vpfIJyK2hbdATdHr9NgghTV8CZZDZNaQ7ZGyfhOWgqu3fZ0ABG0DS+esJBA+GaY9RE3k
+         VxMuVrCPtKI/2GxHUixSUl4AyQmFUEBNYDSJ3eQeyq9WWieieGiwUJbI4Vj82XFp1vZf
+         ZjabOn1WEHFMFk1F/Gm7iW6tJuU3IDof//iYNQ1oeTTkN7WZsG5ivv1TfC4A7i6UEhrZ
+         BwEA==
+X-Forwarded-Encrypted: i=1; AKwUvByusSg0bXkZqh/XN3A0qe8jyibVl0uyxTjbgCt3lK1bms46JREdm6aoi9LBTSnd/tB75599bdzyp+xT+g==@lists.linux.dev
+X-Gm-Message-State: AFuF++nlGmbQduAeyUrOAFDS2HS1Qf0gTVaXE0tsxGIBr6ZqUyI19imh
+	XZgcO9pgZCYp3f6EGii+JlDlVJT/lLQwYVcm66GDpXtMkaNbaxsYSV8kbsIUPYgBbr46lyFgCoZ
+	eNKXiqaw=
+X-Gm-Gg: AYBFou2ox7OY6WLB8u4db5kMpgaaIOLsCX57RkL0XjKupsKTUGzMldQKKIla3bBTuvb
+	s40M1xHDrr1m+wBh6X2R1T6Isuxx+KFLX4u/zXGZzn13FcjbHEgWbI5JYXhT/gt4f21451xEQQq
+	L9NLavkKkLDUWLyFZO2tB9P1sfQDKftNzGvB6WQv8o07FaKYC8fIE6IQ4vnlim3ZbpdCuEObvf+
+	4W3kGHMCxNdgl1VVgk/q9fqVvbR4ninZMRBS2hkiecNgFKGDnPDuzodGMS00KiKiyBZyO4Yv3Hy
+	6nAgLigWEXW+8U/G88tM8d34V8StL3og2i0q+LVScbdqfnXkXmtjrgMSeE/KdXaBfw+LLfyqBpa
+	Wo1LCz4OEBi43Xw+RjGzQlaUcwDbd4p07K+FPfF8VeU/9Jh7ALAW9uAg2iVhLvTmQJDtWZ06YI0
+	HGqNxJkbVCHwGX3I9ihTUXlcAYI0NuDlz3YEH/WaqYWQFMAo2ffwEO7Ew8tNUBnCYj8zlp
+X-Received: by 2002:a05:600c:1912:b0:4a0:1e9f:64f6 with SMTP id 5b1f17b1804b1-4a18e3ef211mr38754775e9.0.1791558480773;
+        Fri, 09 Oct 2026 08:08:00 -0700 (PDT)
+Received: from localhost ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab36ed0daesm3998972a91.5.2026.10.09.08.07.59
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 09 Oct 2026 03:04:55 -0700 (PDT)
-From: Cen Zhang <zzzccc427@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	akpm@linux-foundation.org,
-	ghe@suse.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com,
-	zzzccc427@gmail.com
-Subject: [PATCH] ocfs2: Publish the filecheck owner before adding sysfs attributes
-Date: Fri,  9 Oct 2026 18:04:49 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0086-v2-646731c4254a02823b4d@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        Fri, 09 Oct 2026 08:07:59 -0700 (PDT)
+Date: Fri, 9 Oct 2026 23:05:51 +0800
+From: Heming Zhao <heming.zhao@suse.com>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Andrew Morton <akpm@linux-foundation.org>, 
+	Anderson Ferneda <anderson.ferneda@braza.com.br>, Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, 
+	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+Subject: Re: [PATCH v2 2/3] ocfs2: use the stored hash when checking xattr
+ bucket collision
+Message-ID: <askCqE-GKFv8tK1q@p15>
+References: <20261009083002.2621201-1-joseph.qi@linux.alibaba.com>
+ <20261009083002.2621201-3-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261009083002.2621201-3-joseph.qi@linux.alibaba.com>
 
-ocfs2_filecheck_create_sysfs() initializes the filecheck allocation
-before calling kobject_init_and_add(), but assigns entry->fs_fcheck
-only after that call returns. The default attribute group can already
-be visible while registration is in progress. A concurrent read can
-therefore enter ocfs2_filecheck_attr_show() with a NULL fs_fcheck and
-try to lock its fc_lock.
+On Fri, Oct 09, 2026 at 04:30:01PM +0800, Joseph Qi wrote:
+> ocfs2_check_xattr_bucket_collision() decides whether splitting a full
+> bucket can make room for the entry being set by recomputing the hash of
+> the name:
+> 
+> 	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
+> 
+> 	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
+> 		return 0;
+> 
+> For a new entry that is the hash it will be stored under, so comparing it
+> is correct.  An existing entry keeps the hash it already has: an update
+> never rewrites xe_name_hash, since ocfs2_xa_add_entry() is the only
+> writer of that field for a real entry and ocfs2_xa_prepare_entry() calls
+> it only when loc->xl_entry is NULL.
+> 
+> An entry stored by a kernel that sign-extended the name bytes when
+> hashing can still be updated, because ocfs2_xattr_find_entry() searches
+> a non-indexed xattr block by memcmp on the name and never looks at
+> xe_name_hash.  Growing it past the space left in the block converts the
+> block into a tree, ocfs2_cp_xattr_block_to_bucket() fills the bucket in
+> stored hash order, and the update runs out of room in the bucket too.
+> The collision check then compares the unsigned hash against the legacy
+> hashes in the bucket and reports no collision.
+> 
+> ocfs2_xattr_set_entry_index_block() goes on to allocate a bucket that
+> ocfs2_divide_xattr_bucket() cannot fill: a bucket whose entries all share
+> one hash has no divide position, so all it does is append an empty bucket
+> with a sentinel hash one above the last entry's.
+> 
+> The re-search that follows depends on where the unsigned hash sorts.
+> Below the legacy ones, it comes back to the full bucket and the set fails
+> with -ENOSPC, having grown the tree for nothing.  Above them, it lands on
+> the new empty bucket, which ocfs2_xattr_bucket_find() handles explicitly
+> and ocfs2_find_xe_in_bucket() scans zero times, so the set stores a second
+> copy of the entry under the unsigned hash and returns success.  The
+> original stays in the full bucket, listxattr reports the name twice and
+> getxattr returns the new copy.
+> 
+> Pass the hash the entry is stored under instead: the stored one for an
+> existing entry, the unsigned one for a new entry.  A tree whose entries
+> are all stored under the unsigned hash sees no change, since there the
+> two are the same value.
+> 
+> Exposed-by: 3bc753c06dd0 ("kbuild: treat char as always unsigned")
+> Cc: <stable@vger.kernel.org> # 6.2+
+> Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Assign the initialized owner before adding the kobject, so every
-activated attribute has valid state. Clear the pointer when addition
-fails, preserving the existing teardown guard and error cleanup.
-
-A controlled probe-instrumented test kernel with the original OCFS2
-registration ordering produced this Oops during a concurrent sysfs read:
-
-  KASAN: null-ptr-deref in range [0x0000000000000028-0x000000000000002f]
-  RIP: 0010:kasan_byte_accessible+0x15/0x30
-  Call Trace:
-   <TASK>
-   __kasan_check_byte+0x13/0x50
-   lock_acquire+0x113/0x300
-   _raw_spin_lock+0x31/0x40
-   ocfs2_filecheck_attr_show+0x138/0x5f0
-   ocfs2_filecheck_show+0x5d/0x90
-   sysfs_kf_seq_show+0x1d3/0x360
-   seq_read_iter+0x480/0x1110
-   kernfs_fop_read_iter+0x419/0x5a0
-   vfs_read+0x7d2/0xc20
-   ksys_read+0x111/0x200
-   do_syscall_64+0x114/0x620
-   entry_SYSCALL_64_after_hwframe+0x77/0x7f
-   </TASK>
-  Modules linked in:
-
-Fixes: a860f6eb4c6a ("ocfs2: sysfile interfaces for online file check")
-Assisted-by: LLM
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
----
- fs/ocfs2/filecheck.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
-index be713d7d24a76b9aa8fcded3d83b3d91d124eb6e..862c1ee7099c943b2e3e57e31f887380c6dc8a88 100644
---- a/fs/ocfs2/filecheck.c
-+++ b/fs/ocfs2/filecheck.c
-@@ -181,2 +181,4 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
- 
-+	/* Publish the initialized owner before activating its sysfs callbacks. */
-+	entry->fs_fcheck = fcheck;
- 	entry->fs_kobj.kset = osb->osb_dev_kset;
-@@ -186,2 +188,3 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
- 	if (ret) {
-+		entry->fs_fcheck = NULL;
- 		kobject_put(&entry->fs_kobj);
-@@ -191,3 +194,2 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
- 
--	entry->fs_fcheck = fcheck;
- 	return 0;
+LGTM.
+Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+> ---
+>  fs/ocfs2/xattr.c | 27 +++++++++++++++++----------
+>  1 file changed, 17 insertions(+), 10 deletions(-)
+> 
+> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
+> index a428fe908116..c5a39a7d43d0 100644
+> --- a/fs/ocfs2/xattr.c
+> +++ b/fs/ocfs2/xattr.c
+> @@ -5896,16 +5896,14 @@ static int ocfs2_rm_xattr_cluster(struct inode *inode,
+>  
+>  /*
+>   * check whether the xattr bucket is filled up with the same hash value.
+> - * If we want to insert the xattr with the same hash, return -ENOSPC.
+> - * If we want to insert a xattr with different hash value, go ahead
+> - * and ocfs2_divide_xattr_bucket will handle this.
+> + * If the entry being set carries that same hash, return -ENOSPC, since
+> + * ocfs2_divide_xattr_bucket() has no divide position to work with.
+> + * Otherwise go ahead and ocfs2_divide_xattr_bucket() will handle this.
+>   */
+> -static int ocfs2_check_xattr_bucket_collision(struct inode *inode,
+> -					      struct ocfs2_xattr_bucket *bucket,
+> -					      const char *name)
+> +static int ocfs2_check_xattr_bucket_collision(struct ocfs2_xattr_bucket *bucket,
+> +					      u32 name_hash)
+>  {
+>  	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
+> -	u32 name_hash = ocfs2_xattr_name_hash(inode, name, strlen(name));
+>  
+>  	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
+>  		return 0;
+> @@ -5974,6 +5972,7 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
+>  					     struct ocfs2_xattr_search *xs,
+>  					     struct ocfs2_xattr_set_ctxt *ctxt)
+>  {
+> +	u32 name_hash;
+>  	int ret;
+>  
+>  	trace_ocfs2_xattr_set_entry_index_block(xi->xi_name);
+> @@ -5993,10 +5992,18 @@ static int ocfs2_xattr_set_entry_index_block(struct inode *inode,
+>  	 * the maximum number of collisions we will allow for then is
+>  	 * one bucket's worth, so check it here whether we need to
+>  	 * add a new bucket for the insert.
+> +	 *
+> +	 * An existing entry keeps the hash it was stored under, and that is
+> +	 * the hash a split has to work with.  A new entry is stored under the
+> +	 * unsigned one, which is what ocfs2_xa_add_entry() will write.
+>  	 */
+> -	ret = ocfs2_check_xattr_bucket_collision(inode,
+> -						 xs->bucket,
+> -						 xi->xi_name);
+> +	if (xs->not_found)
+> +		name_hash = ocfs2_xattr_name_hash(inode, xi->xi_name,
+> +						  xi->xi_name_len);
+> +	else
+> +		name_hash = le32_to_cpu(xs->here->xe_name_hash);
+> +
+> +	ret = ocfs2_check_xattr_bucket_collision(xs->bucket, name_hash);
+>  	if (ret) {
+>  		mlog_errno(ret);
+>  		goto out;
+> -- 
+> 2.39.3
+> 
