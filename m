@@ -1,78 +1,80 @@
-Received: from mail-pj1-f42.google.com (mail-pj1-f42.google.com [209.85.216.42])
+Received: from mail-pj1-f54.google.com (mail-pj1-f54.google.com [209.85.216.54])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C514A6FC5
-	for <ocfs2-devel@lists.linux.dev>; Mon, 12 Oct 2026 01:30:59 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.42
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81AAB6FC5
+	for <ocfs2-devel@lists.linux.dev>; Mon, 12 Oct 2026 01:31:46 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.54
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791768660; cv=none; b=pTv8t1djvPeO9F5A7PAXTCAQ0wWcP96BxxDofa5RKuouUAhMQKGpuCKSrzMw4k8/L5tioe5NvYTjoo8C7HD4YEuWfpvoW06snSDyA0joNHYujDc/ZAeonBnwGDJ0c7HVDdW/VeA99fpgjntzFqfwxjk1lZuNCwUvHYen61ijwfM=
+	t=1791768707; cv=none; b=jnxTj2D6j0iN77jA5Z5NhI2fNZsPB1elRwY39CioECC+GQcSD7FHeot9XIOrZcAiBVqDjE4h6jueDOcPn5Vl+Hd2Xc0D6YvVIGQzKRfxenriGacs+Qsi5rL3zCST15nmTA63qPZyVNcsuXsMykUHCH6x17aH4sHST0nmMfI6XXg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791768660; c=relaxed/simple;
-	bh=ArR97m8D16AXE//u0j5nywcxS6/CuXhTCrTp7w6X+Ro=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=gfzZokLj18jODvepEwB5/Qg0tDMEYjeqCLK5uBCpem6xV1m6enjCN8HeAAHDkxnkO0Uqc7PEF6bwRk2rkgSGRjtdRCqTGcU9ucE6ASjbk1agSmLLlVSM10dZeOYIgc6VKxaEQMndV5fRBRl8dpERSSRpluYnkjsKMgP1CuiaRKc=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=DZWqnc1p; arc=none smtp.client-ip=209.85.216.42
+	s=arc-20240116; t=1791768707; c=relaxed/simple;
+	bh=pqCW64MWKKqJ+b5EZyD/nzo8SaOHA3QqAsTpgswNy84=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=dmAV2aiAuKQWZleiSEpaJZxu1/12+hKLZXBuQ+fcwi3Zlksl1xRXvFBB8hKkgbQUGsedSk7YVj5/VudV8u/FZXzX21EOHAf6qp/AJZb6wzzm50sa2Yck7niALK/M9vWxP7LanImdAJp+7Dr3X+VF4i4kypYdFr/utcY5FIKlUN0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=g+GaXSMc; arc=none smtp.client-ip=209.85.216.54
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="DZWqnc1p"
-Received: by mail-pj1-f42.google.com with SMTP id 98e67ed59e1d1-398b3c37877so600521a91.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 11 Oct 2026 18:30:59 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="g+GaXSMc"
+Received: by mail-pj1-f54.google.com with SMTP id 98e67ed59e1d1-3ab752f6244so1162562a91.2
+        for <ocfs2-devel@lists.linux.dev>; Sun, 11 Oct 2026 18:31:46 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791768659; x=1792373459; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:mime-version:message-id:date
-         :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=B43i57rnmc2Wd8OU+i3F2zcXd+ji9FE6Nhhq13anv/A=;
-        b=DZWqnc1pmI6pWdWg66IXV8l9JVunGKQmygjEFQ1M8giJLBmc2v6qqhrXDBtLGRKixp
-         0XoV1i096qXKl4v91rLiPBGImNinWbPyzaWHruCmSpxQxldJgZAQsXmNGvdBFzok1La2
-         gg8ruQwp+cJ6ZsRucl5Y0FgC8TKBGjQKCvCSHTGsLMdoQCAxINb1z9mKsCapQbuykmIf
-         XE3QCqx/Wkc5QxZV1uZKIDnyYTbKnk6mIV1Mqii1YwcYdO7MbiGza6wGnRFZs41R3Da4
-         1Itr5N8mplNJ8JIOxTwuF9tHR/DSVOk9s9jRRG4HaYCEXzSYjK/yx1hd2jcX1TMYXf0Y
-         rsPQ==
+        d=gmail.com; s=20251104; t=1791768706; x=1792373506; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=s9fm9fZTpu/z3C1fJkYEh93qh6MI7pDV/XkQ0dbiT30=;
+        b=g+GaXSMcMmkAsV+CjyAmX+tbCiguQU38jy9ebQnojiHqn/k5+11WqQirp2SVUl0GSI
+         iAl0Nba2oICUig2kwR5cLLYx2HiMeJBmOHbgCvzEcQTom4mWwDW7NQj2D8bzjPfwQEa/
+         d2xYMHIvfU+WiLs7NdXija3nQzusxQmN7KOhPz7Id6FKV3dvFDLdbd8GlkTRxottyDPi
+         9W7yLwYF3NX7W/8wT1qvximwONsIksowxRCl6VIFmrEeezegbDGvXj23T7XImtBseady
+         FLg2TBt6B7NBNAm0zI9kaXphZhUt5LiAH+fZjoPpEHIALvFPGfZ+FnItk0DXvI32W3xa
+         cqzw==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791768659; x=1792373459;
-        h=content-transfer-encoding:content-type:mime-version:message-id:date
-         :subject:cc:to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=B43i57rnmc2Wd8OU+i3F2zcXd+ji9FE6Nhhq13anv/A=;
-        b=oaS93gFi6wp0a1uc8Ejz7rho9fbshAhCmLqxvSokUvcR5y+i+16+jO6nNW9ss8yYwo
-         8g5qTpOD1p3HLw+re3jWC4R3Gmmne0FsDLMQYCaSZKkUjSNqxN/ThVbktjCyysci/G/t
-         xzy+wJv07TkEdkTI1zEX5NMStAetdzheU5s+kWh4+YsA4YN4YyKOJoFI75Ql31rKiSkm
-         SAJi91i3acLkPEkESzyUv6Ba5weKWZLoFMkgj+eMVddjLCvbMJDFGKb5rfK+5PgnK49+
-         CacpsJsuvr6GP2+mWoYVTXsGgdy/5/3tQYy4sz2dddDt4yaHDXiFrbg+qA9mlMAgXxy7
-         Pwjg==
-X-Gm-Message-State: AFq9FYImIDBnyBY0ZqXfL+ZtPSkZC9gAvrv6/OqPB6b3HahI3cP16ql3
-	kBDDfjuAq/aibp37MDPmqZQI8QtVk6rem6MxJrl3JCJXh+7TMGZwpIFp
-X-Gm-Gg: AYBFou0NzlwXq6UUpjJb7uJy6eu3kU7H7kDxDRMP6e8vax7h+3HXfxgE47SNmrwXUlA
-	MXWk5Uf8PQKTsMmYAFrCm/vfTiR2E6ohblDptAV5iUZOu+051P8VLRrx1LjsdYhEYq7+gzyA40i
-	EvRVNIAlewt/Ri8+TZS+fimB4nM7h93UKK20FFoz2H3nSeOmWEw1B3tzOYxqUu8Y9C6cC+Fa1Nr
-	v4hxaXkRnHGJINQl1xpmzIrDThKy/EwCxe3IO/Muz2M93i5cCi4q60Tkd0dNHw9+/ZUiB75ezeC
-	P66GntuaLDP5UvuHztk95h7clDeTACStAhyvZ/TO8thf6XhI3p/miT24pno4KbvdmXFfRQVgjhe
-	mc2v6uAgFld7a7x+HsUL+djWJN/OaNsH7RN7yVmkO4Oq41CwvyZmfkvv9Ht6CovCczDGRs6vf58
-	OqJ106+X0OemWza5AtWzUWFCdlxS3XJqd4XyyDR+LmhX8lLj0Xbj2+htjaemM6swGP/A==
-X-Received: by 2002:a17:90b:2d06:b0:3a4:b8dd:1447 with SMTP id 98e67ed59e1d1-3ab3ac9fb08mr6003665a91.34.1791768659000;
-        Sun, 11 Oct 2026 18:30:59 -0700 (PDT)
+        d=1e100.net; s=20260707; t=1791768706; x=1792373506;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=s9fm9fZTpu/z3C1fJkYEh93qh6MI7pDV/XkQ0dbiT30=;
+        b=2V0vAAAIw5pFVHre3Ed90brKNWb7Oi7Cgc8ZpiNJWQ+ivm4R/UsxqhD+rKmz+ufWoR
+         YzfjxlBHn9aETNBICU5Bf1jjeFC6Y20bgx+hAvGTs6DBvaSx1aidN1i6OJVEjtF1MJR7
+         4y9EilKkSqGordUqBcUP5yZX0eYCjTzn9rDTWhBqz8FcS3nM1IhFt0RlEg1WXu4Grepq
+         YPG7eOoMTTFomCZs7fOD95F0kJlVFrQ3WsV12u50r1/UBDhRkFn8Qj9uY50uS0p1nwCs
+         n3f10fpPMP8FjI+boyyH0/mmuNIEa6PjW71yvTaVe8kmElDtPdZ2qNtRjj2iRXRM2AwA
+         d6gg==
+X-Gm-Message-State: AFq9FYKzoJHTtpx8/WtkpuhRh4ShLyODJR2B/piSPD4MF2TdpCBJ90qm
+	JnHhR/bHgrAlmSl3DCc4WAS05UJzMFvHOk1+5oViuLQoISPPl4703BOX
+X-Gm-Gg: AYBFou0h4R8BNy2LRBB4GMAfVYllOA+ZFvMPaIATTHH8IflWJBByBzWMudtFNLze0dO
+	4pIoLm9/sQeBzhyDyuuASZfrySYPKK1BkjmhXbrvY88NF/Mp3tIRpuvCxIRK9OLUsTA++NVRn8/
+	mPZ/rBi7KDBdyzy4RVQdKqtZ+6DcJGembj98TAeFDiU6FEVI1hH+s+kzAmrthLpDq9CbQLcjpzF
+	4E5dAUjkvOcoUSbcr58gcRSLUIp/cdpu6z7jpa599cEV6xfXSv8aUhZm3O8kJIeV0R36i1BJhQ5
+	5MeAbZ+obbqZGY5dY5W5aTMRPNIl9pp1taKBp1KRKOOMYo9NeQwN5wa+zBHd3G8sZkUXbote9LL
+	mfwGuxU/7IUfQWSFNQ0IeRaidk+f3zsk9V3U6+bBOHX0hWlNiyadQT3Fpx8a960OVoh+uMV+MXf
+	4R/acVrpg8s7r4eP7wypmXvpSipexNTSsYCIxRS0kfYO5UjN8v6U3vsSAvOCQmT6hI7EtIBJNJf
+	tem
+X-Received: by 2002:a17:90b:3d92:b0:3ab:36c4:b50d with SMTP id 98e67ed59e1d1-3ab3a3a0bc0mr7646379a91.9.1791768705777;
+        Sun, 11 Oct 2026 18:31:45 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab36fdc75esm14391326a91.12.2026.10.11.18.30.55
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab39238608sm14651247a91.17.2026.10.11.18.31.40
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 11 Oct 2026 18:30:58 -0700 (PDT)
+        Sun, 11 Oct 2026 18:31:44 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
 	heming.zhao@suse.com,
-	kees@kernel.org,
-	kuba@kernel.org,
-	zzzccc427@gmail.com,
 	akpm@linux-foundation.org,
-	sunil.mushran@oracle.com
+	zzzccc427@gmail.com,
+	kmehltretter@gmail.com,
+	ericterminal@gmail.com,
+	kees@kernel.org,
+	sunil.mushran@oracle.com,
+	christophe.jaillet@wanadoo.fr
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com
-Subject: [PATCH] ocfs2: unlink socket containers before releasing their nodes
-Date: Mon, 12 Oct 2026 09:30:53 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0065-v4-f45e5cef38dd587b2cfd@gmail.com>
+Subject: [PATCH] ocfs2: Pin the node manager module for open debugfs files
+Date: Mon, 12 Oct 2026 09:31:38 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0089-v2-4c67f48d4e2d0fc85990@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -80,127 +82,90 @@ List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-A socket container's node must remain alive while the container is on
-sock_containers. The debugfs formatter reads sc_node under
-o2net_debug_lock without taking a node reference, but sc_kref_release()
-drops the node reference and clears sc_node before taking that lock to
-unlink the container.
+The node manager debugfs file operation tables do not set owner.
+The debugfs full proxy obtains real_fops with fops_get() at open and
+keeps it until final release. Without an owner, this does not acquire
+a module reference. Normal unload can free the ocfs2_nodemanager
+module image while an open file still holds its operation table.
 
-With CONFIG_DEBUG_FS enabled, removing a disconnected remote node while
-a synchronous sender releases its last socket-container reference can
-expose the freed node to a debugfs reader. The following order is possible:
+Closing connected_nodes then makes full_proxy_release() read
+real_fops->release from freed module memory. Removing the debugfs
+entries during module exit does not drain retained open files.
 
-1. o2net_send_message_vec() holds a reference acquired under nn_lock.
-   o2net_disconnect_node() detaches the connection and flushes o2net_wq,
-   draining the socket callbacks and workers. The synchronous sender's
-   reference survives because its caller runs outside that workqueue.
-2. The sender's final sc_put() enters sc_kref_release() and calls
-   o2nm_undepend_item(). Configfs rmdir can now pass the dependency check,
-   call o2nm_node_group_drop_item(), and drop its node item references.
-   Its disconnect flush does not wait for the sender's release.
-3. The sender calls o2nm_node_put(), freeing the node while the container
-   is still listed and sc_node has not yet been cleared.
-4. Before the sender clears sc_node or unlinks the container, a debugfs
-   reader selects it in sc_seq_show() under o2net_debug_lock and formats
-   sc_node->nd_name, reading the freed allocation.
+Set owner to THIS_MODULE in the o2net and heartbeat debugfs operation
+tables. The existing debugfs get/put pair then keeps the module and
+its callbacks alive until the last open file is released.
 
-Move o2net_debug_del_sc() before o2nm_node_put(). Unlinking under the
-existing debug lock waits for an active formatter to finish and prevents
-later readers from selecting the container. The retained node reference
-therefore covers every debugfs node access, including the node number
-read by the stats formatter. The lock is released before the node put.
+A controlled test used an unloadable OCFS2 module and case-local probe
+filters without changing the candidate open, unload or release logic.
+Closing a retained connected_nodes file after normal unload produced:
 
-KASAN report as below:
-
-    BUG: KASAN: slab-use-after-free in string+0x42b/0x470
-    Read of size 1 at addr ffff88810f56fc90 by task python3/506
-
-    CPU: 0 UID: 0 PID: 506 Comm: python3 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
-    Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-    Call Trace:
-     <TASK>
-     dump_stack_lvl+0x93/0xd0
-     print_report+0xce/0x630
-     kasan_report+0xe0/0x110
-     string+0x42b/0x470
-     vsnprintf+0x330/0x1110
-     seq_printf+0x1a8/0x260
-     sc_seq_show+0x604/0x9f0
-     seq_read_iter+0x480/0x1110
-     seq_read+0x362/0x5a0
-     full_proxy_read+0x11f/0x180
-     vfs_read+0x1a0/0xc20
-     ksys_read+0x111/0x200
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-(User register dump omitted.)
-
-     </TASK>
-
-    Allocated by task 497:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     __kasan_kmalloc+0xaa/0xb0
-     __kmalloc_cache_noprof+0x28d/0x610
-     o2nm_node_group_make_item+0xea/0x1a0
-     configfs_mkdir+0x762/0xca0
-     vfs_mkdir+0x399/0x7e0
-     filename_mkdirat+0x129/0x450
-     __x64_sys_mkdir+0x70/0xa0
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-    Freed by task 505:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     kasan_save_free_info+0x3b/0x60
-     __kasan_slab_free+0x5f/0x80
-     kfree+0x308/0x580
-     config_item_cleanup+0x14b/0x230
-     config_item_put+0x79/0x90
-     sc_put+0x454/0x6e0
-     o2net_send_message_vec+0x63d/0x1560
-     o2net_send_message+0xa6/0xe0
-     validation_send_write+0x17f/0x1d0
-     full_proxy_write+0x11f/0x180
-     vfs_write+0x25a/0x1010
-     ksys_write+0x111/0x200
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-    The buggy address belongs to the object at ffff88810f56fc00
-     which belongs to the cache kmalloc-512 of size 512
-    The buggy address is located 144 bytes inside of
-     freed 512-byte region [ffff88810f56fc00, ffff88810f56fe00)
-
-(Page and shadow-memory dumps omitted.)
+  BUG: unable to handle page fault for address: fffffbfff804cfef
+  Oops: Oops: 0000 [#1] SMP KASAN NOPTI
+  RIP: 0010:full_proxy_release+0xbf/0x190
+  Call Trace:
+   <TASK>
+   __fput+0x39a/0xa60
+   fput_close_sync+0xff/0x200
+   __x64_sys_close+0x8c/0xf0
+   do_syscall_64+0x114/0x620
+   entry_SYSCALL_64_after_hwframe+0x77/0x7f
+   </TASK>
+  Modules linked in: [last unloaded: ocfs2_nodemanager]
 
 Fixes: 2309e9e040fe ("ocfs2/net: Add debug interface to o2net")
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+Fixes: 87d3d3f3931f ("ocfs2/hb: Expose the list of heartbeating nodes via debugfs")
+Fixes: 3ba169ccec1c ("ocfs2/cluster: Add new function o2net_fill_node_map()")
 Assisted-by: LLM
-
+Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 ---
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 8b3830b601ba..213ee7392712 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -399,11 +399,13 @@ static void sc_kref_release(struct kref *kref)
- 	}
+diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+index 8e6ead433228..1d4f71190d27 100644
+--- a/fs/ocfs2/cluster/heartbeat.c
++++ b/fs/ocfs2/cluster/heartbeat.c
+@@ -1447,6 +1447,7 @@ static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
+ #endif  /* CONFIG_DEBUG_FS */
  
- 	o2nm_undepend_item(&sc->sc_node->nd_item);
--	o2nm_node_put(sc->sc_node);
--	sc->sc_node = NULL;
+ static const struct file_operations o2hb_debug_fops = {
++	.owner = THIS_MODULE,
+ 	.open =		o2hb_debug_open,
+ 	.release =	o2hb_debug_release,
+ 	.read =		o2hb_debug_read,
+diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
+index f7ab66e70799..5d373002297d 100644
+--- a/fs/ocfs2/cluster/netdebug.c
++++ b/fs/ocfs2/cluster/netdebug.c
+@@ -183,6 +183,7 @@ static int nst_fop_release(struct inode *inode, struct file *file)
+ }
  
-+	/* Keep the node alive until debugfs readers finish. */
- 	o2net_debug_del_sc(sc);
+ static const struct file_operations nst_seq_fops = {
++	.owner = THIS_MODULE,
+ 	.open = nst_fop_open,
+ 	.read = seq_read,
+ 	.llseek = seq_lseek,
+@@ -415,6 +416,7 @@ static int stats_fop_open(struct inode *inode, struct file *file)
+ }
  
-+	o2nm_node_put(sc->sc_node);
-+	sc->sc_node = NULL;
-+
- 	if (sc->sc_page)
- 		__free_page(sc->sc_page);
- 	kfree(sc);
+ static const struct file_operations stats_seq_fops = {
++	.owner = THIS_MODULE,
+ 	.open = stats_fop_open,
+ 	.read = seq_read,
+ 	.llseek = seq_lseek,
+@@ -427,6 +429,7 @@ static int sc_fop_open(struct inode *inode, struct file *file)
+ }
+ 
+ static const struct file_operations sc_seq_fops = {
++	.owner = THIS_MODULE,
+ 	.open = sc_fop_open,
+ 	.read = seq_read,
+ 	.llseek = seq_lseek,
+@@ -476,6 +479,7 @@ static ssize_t o2net_debug_read(struct file *file, char __user *buf,
+ }
+ 
+ static const struct file_operations nodes_fops = {
++	.owner		= THIS_MODULE,
+ 	.open		= nodes_fop_open,
+ 	.release	= o2net_debug_release,
+ 	.read		= o2net_debug_read,
