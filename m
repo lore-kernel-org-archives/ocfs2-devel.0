@@ -1,55 +1,35 @@
 Received: from smtp.kernel.org (aws-us-west-2-korg-mail-alma10-1.taild15c8.ts.net [100.103.45.18])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9619E45D93E;
-	Mon, 12 Oct 2026 08:32:25 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2EC033F4DCA;
+	Mon, 12 Oct 2026 10:21:18 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=100.103.45.18
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791793946; cv=none; b=QpzpO6/eYHDr5jDiSEhGoCSgISybDFSBJEMBGuQX9xjWWw7Hezmj4830UA/LO9fhfFJbbSFHLO4noAiCkzqhNx/R9vHoYqBeoubk4y0SSPwOWoai3dYz5vTFC0YCYVGKIaPcwtLWd3HaBcthB9/3lRJXU4qPzmulJqQzzFxB53c=
+	t=1791800490; cv=none; b=f7KkYBjx8q0DcXkqWMk4PFaTL0MjKlxN9xlLaG6QyJ6KXIkZlb2Hm//ELJYFLX+qNrtx6FrrhvWcMDGqdYcLGfggzPnsCTZkjYUqp3o/L7nU64oRTE2AyLddJd3SivGUkE8N5a/GIcxxDO9p4WhEt8qsIp7UrJ8qzwQqpQQoT5k=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791793946; c=relaxed/simple;
-	bh=o6YHAXisXGPkGT53HiacCGlu6MfUwDesnH3olIPjqw0=;
-	h=From:To:Cc:Subject:Date:Message-ID:In-Reply-To:References:
-	 MIME-Version:Content-Type; b=uSMLU4L+trzk0ovb70xL0Zcob0iyQxuD0WR9rPZjenscO+gjGtlGyCcAkXLTCGDME/z5r5EcgygIH7qAYvVg5v0JPga7WkSnHaJx7Nu59tUPfHqTWQjd1VW3SdXK9mC5EN16Hnjs/R0+v4xqPlwvt24KPwhC3a8Y/WAPrFLTtuY=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=otHfrfC7; arc=none smtp.client-ip=100.103.45.18
+	s=arc-20240116; t=1791800490; c=relaxed/simple;
+	bh=FHwfq/OCDsnntrfJYkKn8tLOjs4Tv7YHZV8JitYQDQ0=;
+	h=From:Date:Subject:MIME-Version:Content-Type:Message-Id:References:
+	 In-Reply-To:To:Cc; b=llHmXC+YlFhxReQ+rBpOwfXrUggAXxiutyzHwER/gdhdOZULL9JInaAX+tBU0WNtkK+y/kuXR4AKWIl8bwRcC8mqj8RmXRJen71R5nn89q49m2v1txB5bxEBlCdTCE7mEC0G7dOGAeoRpIHHbRcWfn/e0xGpvYmQyx/l2oIl9Bo=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b=daD9kmOa; arc=none smtp.client-ip=100.103.45.18
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="otHfrfC7"
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 307601F0089B;
-	Mon, 12 Oct 2026 08:32:20 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.b="daD9kmOa"
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 07DB31F0089C;
+	Mon, 12 Oct 2026 10:21:14 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1791793945;
-	bh=Y8nI+QkYa0pCoJRDR/dlPZUfNU87uUaFMumLFtNaSNc=;
-	h=From:To:Cc:Subject:Date:In-Reply-To:References;
-	b=otHfrfC7yAVpNDJMJnRACWzZ1OEU/6MrC2aLl0vm4X1UTmZS28WBNZoVYmP7ZFQTS
-	 /3yj6td+nkay/ZTUNxgprz9adLe2ZXOiSsR0TX7PhEbPqDnRlmShL/fR819ooaWKIl
-	 GdSWuqBqpYUvZgnkbveSrIhMBQIZxul+a+G8uYHoFTO3PsMDi176kPmYkuafJ/mVU3
-	 Xj/GQbhNga5cX93nbt4ah7pIWBHm36aLvBPPkEtWOudkk0XS5CCobzAcm6cRcshXhT
-	 k+Vr0McOUs/6au3O17tr1Yx2cI0hKersu+0HayzxQMAh/DGvCF0z0WY7S+X0ZRSfZa
-	 +f7J0aZTYNNHA==
+	s=k20260515; t=1791800478;
+	bh=jSaTeXy5zEI39kgqqTi6yfSkP3Kgm5wm6RfoGXruvqg=;
+	h=From:Date:Subject:References:In-Reply-To:To:Cc;
+	b=daD9kmOaoDrecEZ+GKWXxyW9H20UJr48DcxIiw0e65dcl8QTST3JZXcj61YvqNTyb
+	 c5d34ADQW1FTC40OtFvDZ/r1oWnvdCTDB2nBPiUWZpsdvr64rU3yyTUZCbQmtT/WHN
+	 M4L3IE8ZFu/uZjDyHAoHWVVDuNF/pppyPWohHYEa4Yvx8fprF5PUJYsVDI169f9kxo
+	 jBe+V1vSuEX9xF71FfYPmOVHGKSg4cEB3pIABRCDPA7K95hBDggmzUqYSJbpYomakn
+	 PXM0tJDgLdWEhvw5L8NTowb8aNFn6hJrwa/MlDBOPgqwCRarNEsyBQ1YwBmx0RfVjr
+	 WbnHd24KBBfVA==
 From: Christian Brauner <brauner@kernel.org>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	heming.zhao@suse.com,
-	rollkingzzc@gmail.com,
-	jack@suse.cz,
-	rppt@kernel.org,
-	kees@kernel.org,
-	akpm@linux-foundation.org,
-	hexlabsecurity@proton.me,
-	sunil.mushran@oracle.com,
-	Cen Zhang <zzzccc427@gmail.com>
-Cc: Christian Brauner <brauner@kernel.org>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com
-Subject: Re: [PATCH v2] ocfs2/dlm: Protect the recovery list during debugfs reads
-Date: Mon, 12 Oct 2026 10:32:17 +0200
-Message-ID: <20261012-kassieren-hausordnung-flaute-81acfa151ac2@brauner>
-X-Mailer: git-send-email 2.53.0
-In-Reply-To: <pm-ocfs2-objects-candidate-0049-v3-184e46c47f5283f06191@gmail.com>
-References: <pm-ocfs2-objects-candidate-0049-v3-184e46c47f5283f06191@gmail.com>
+Date: Mon, 12 Oct 2026 12:20:46 +0200
+Subject: [PATCH RFC 01/28] ecryptfs: don't leak the inode when a lookup
+ can't open the lower file
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -57,34 +37,78 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
-X-Developer-Signature: v=1; a=openpgp-sha256; l=1280; i=brauner@kernel.org; h=from:subject:message-id; bh=o6YHAXisXGPkGT53HiacCGlu6MfUwDesnH3olIPjqw0=; b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWSdmS20P/djbQtL1NMjgmf6fzZNtdaKl1q42rHnzLUlW euY1u843lHKwiDGxSArpsji0G4SLrecp2KzUaYGzBxWJpAhDFycAjCRCzsY/qlcvae6w0rbhSl+ b6zch0ubJu1tPaE6faHIs15rX8b5xW0M/z3XXwhhka4pdO+c+a7ctq3R9cm33NT5rknK5m5p4Qo m3AA=
-X-Developer-Key: i=brauner@kernel.org; a=openpgp; fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: 7bit
+Message-Id: <20261012-work-fs-sb_rdonly-v1-1-60743a3dc326@kernel.org>
+References: <20261012-work-fs-sb_rdonly-v1-0-60743a3dc326@kernel.org>
+In-Reply-To: <20261012-work-fs-sb_rdonly-v1-0-60743a3dc326@kernel.org>
+To: Jan Kara <jack@suse.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, 
+ linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
+ linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, 
+ linux-fsdevel@vger.kernel.org, ntfs@lists.linux.dev, 
+ ocfs2-devel@lists.linux.dev, linux-btrfs@vger.kernel.org, 
+ gfs2@lists.linux.dev, linux-efi@vger.kernel.org, 
+ linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org, 
+ "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org
+X-Mailer: b4 0.17-dev-3d1b8
+X-Developer-Signature: v=1; a=openpgp-sha256; l=1919; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=FHwfq/OCDsnntrfJYkKn8tLOjs4Tv7YHZV8JitYQDQ0=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWSd2TJJmlVX9PaCsIn+FsHZwuxHGEpPFCj+mriqsDrpf
+ qGIfFJFRykLgxgXg6yYIotDu0m43HKeis1GmRowc1iZQIYwcHEKwETcDjD8sz1q8vHQt6fh7p09
+ uT08PmKLO9tkzFMehF2fYnDC/qOTC8P/xLgFX20+PbiQ+CC39cSDhwe1Dlq6qHKtT7/euMmvwfE
+ UHwA=
+X-Developer-Key: i=brauner@kernel.org; a=openpgp;
+ fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-On Sun, 11 Oct 2026 23:35:06 +0800, Cen Zhang wrote:
-> Recovery participant records must remain alive while debug_state_print()
-> walks reco.node_data and formats their fields. The formatter holds
-> dlm->spinlock, but the recovery participant list is protected by
-> dlm_reco_state_lock. In particular, dlm_destroy_recovery_area() detaches
-> the list under dlm_reco_state_lock and frees the detached records after
-> releasing it. A concurrent debugfs open can therefore read freed memory.
-> 
-> [...]
+ecryptfs_lookup_interpose() opens the lower file of a regular file to
+read the size from the header. If that fails it calls make_bad_inode()
+and returns the error. A new inode is still I_NEW at that point and
+nothing ever unlocks or puts it, so it leaks together with the reference
+it holds on the lower inode. And an inode that was already in the cache
+gets marked bad for all its other users instead of just losing the
+reference this lookup took.
 
-Applied to the vfs.fixes branch of the vfs/vfs.git tree.
-Patches in the vfs.fixes branch should appear in linux-next soon.
+umount then complains:
 
-Please report any outstanding bugs that were missed during review in a
-new review to the original patch series allowing us to drop it.
+  VFS: Busy inodes after unmount of ecryptfs (ecryptfs)
 
-It's encouraged to provide Acked-bys and Reviewed-bys even though the
-patch has now been applied. If possible patch trailers will be updated.
+That's a WARN, or a BUG with CONFIG_BUG_ON_DATA_CORRUPTION. The lower
+filesystem reports the same when it is unmounted. Use iget_failed() for
+a new inode and iput() for one from the cache.
 
-Note that commit hashes shown below are subject to change due to rebase,
-trailer updates or similar. If in doubt, please check the listed branch.
+Reproducer, opening the lower file read-write fails on a read-only bind
+mount:
 
-tree:   https://git.kernel.org/pub/scm/linux/kernel/git/vfs/vfs.git
-branch: vfs.fixes
+  sig=$(printf x | ecryptfs-add-passphrase - | sed -n 's/.*\[\(.*\)\].*/\1/p')
+  mount --bind -o ro /lower /lower
+  mount -i -t ecryptfs -o ecryptfs_sig=$sig,ecryptfs_cipher=aes,ecryptfs_key_bytes=16,ecryptfs_passthrough /lower /upper
+  cat /upper/f      # EROFS
+  umount /upper     # VFS: Busy inodes after unmount of ecryptfs
 
-[1/1] ocfs2/dlm: Protect the recovery list during debugfs reads
-      https://git.kernel.org/vfs/vfs/c/6fe32eb34572
+Fixes: 3b06b3ebf441 ("eCryptfs: Fix new inode race condition")
+Cc: stable@vger.kernel.org
+Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
+---
+ fs/ecryptfs/inode.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/fs/ecryptfs/inode.c b/fs/ecryptfs/inode.c
+index 525297c7ebd8..0d8452558a98 100644
+--- a/fs/ecryptfs/inode.c
++++ b/fs/ecryptfs/inode.c
+@@ -362,7 +362,10 @@ static struct dentry *ecryptfs_lookup_interpose(struct dentry *dentry,
+ 	if (S_ISREG(inode->i_mode)) {
+ 		rc = ecryptfs_i_size_read(dentry, inode);
+ 		if (rc) {
+-			make_bad_inode(inode);
++			if (inode_state_read_once(inode) & I_NEW)
++				iget_failed(inode);
++			else
++				iput(inode);
+ 			return ERR_PTR(rc);
+ 		}
+ 	}
+
+-- 
+2.53.0
+
