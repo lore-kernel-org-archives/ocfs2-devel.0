@@ -1,171 +1,124 @@
-Received: from mail-pj1-f54.google.com (mail-pj1-f54.google.com [209.85.216.54])
+Received: from mail-wm1-f43.google.com (mail-wm1-f43.google.com [209.85.128.43])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81AAB6FC5
-	for <ocfs2-devel@lists.linux.dev>; Mon, 12 Oct 2026 01:31:46 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.54
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 42ECE2DC789
+	for <ocfs2-devel@lists.linux.dev>; Mon, 12 Oct 2026 05:10:42 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.43
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791768707; cv=none; b=jnxTj2D6j0iN77jA5Z5NhI2fNZsPB1elRwY39CioECC+GQcSD7FHeot9XIOrZcAiBVqDjE4h6jueDOcPn5Vl+Hd2Xc0D6YvVIGQzKRfxenriGacs+Qsi5rL3zCST15nmTA63qPZyVNcsuXsMykUHCH6x17aH4sHST0nmMfI6XXg=
+	t=1791781844; cv=none; b=pnvm154FAZhfE9Ly+YugXBVFPeFZzOqMX3OqMx0kxOye7LZ/YFgcAU+y5QA7zrYZepiIStYmqEVy+y47+P3p+DP1BVFfSUsNq/ntmpHGVTI5GoOIK5fUcPjcpOMQGhS/hNoWDnPZJGdCtZYKZAiaNqgjPs9aKBTkGNEN4ESrwHg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791768707; c=relaxed/simple;
-	bh=pqCW64MWKKqJ+b5EZyD/nzo8SaOHA3QqAsTpgswNy84=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=dmAV2aiAuKQWZleiSEpaJZxu1/12+hKLZXBuQ+fcwi3Zlksl1xRXvFBB8hKkgbQUGsedSk7YVj5/VudV8u/FZXzX21EOHAf6qp/AJZb6wzzm50sa2Yck7niALK/M9vWxP7LanImdAJp+7Dr3X+VF4i4kypYdFr/utcY5FIKlUN0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=g+GaXSMc; arc=none smtp.client-ip=209.85.216.54
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1791781844; c=relaxed/simple;
+	bh=IFPb0ic/DyH6R9oVq533iIXYk6oVXp9P9CoDqHkInqc=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=SHWi6tEJandhoHWZLB2XR0t6F+/uMwHov1A89r1eGUd4PKj+PkxFoQLYQjvIIxtMRG7Pl4k0701IIPxkJcq3lrtfu3SFXHvgii0jOKpwUzVfykC6l9jovlbdUUFMec0GQhmJbr+XzCEBm0Ln0Ru3ipYKTlkcAzdduQJ0fhZg8tE=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=Vpt+Xprw; arc=none smtp.client-ip=209.85.128.43
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="g+GaXSMc"
-Received: by mail-pj1-f54.google.com with SMTP id 98e67ed59e1d1-3ab752f6244so1162562a91.2
-        for <ocfs2-devel@lists.linux.dev>; Sun, 11 Oct 2026 18:31:46 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="Vpt+Xprw"
+Received: by mail-wm1-f43.google.com with SMTP id 5b1f17b1804b1-49e6b771d06so4082425e9.2
+        for <ocfs2-devel@lists.linux.dev>; Sun, 11 Oct 2026 22:10:42 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791768706; x=1792373506; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=s9fm9fZTpu/z3C1fJkYEh93qh6MI7pDV/XkQ0dbiT30=;
-        b=g+GaXSMcMmkAsV+CjyAmX+tbCiguQU38jy9ebQnojiHqn/k5+11WqQirp2SVUl0GSI
-         iAl0Nba2oICUig2kwR5cLLYx2HiMeJBmOHbgCvzEcQTom4mWwDW7NQj2D8bzjPfwQEa/
-         d2xYMHIvfU+WiLs7NdXija3nQzusxQmN7KOhPz7Id6FKV3dvFDLdbd8GlkTRxottyDPi
-         9W7yLwYF3NX7W/8wT1qvximwONsIksowxRCl6VIFmrEeezegbDGvXj23T7XImtBseady
-         FLg2TBt6B7NBNAm0zI9kaXphZhUt5LiAH+fZjoPpEHIALvFPGfZ+FnItk0DXvI32W3xa
-         cqzw==
+        d=suse.com; s=google; t=1791781841; x=1792386641; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:in-reply-to:content-language
+         :from:references:cc:to:subject:user-agent:mime-version:date
+         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=0Ek6Y6WHWyZvWPK4rY8L2n9MgGRmcFjVIrlMTJWJp3A=;
+        b=Vpt+Xprwg/2DqxmoaTUbX/tWCBtUxC6rt6PR+KAbRD3Ar0WVA4zjxqxnu3H8ygNxoS
+         feeQuyw9rnW8pMDZKhUiqkxa7nFkQLeV+fPfMhJqk3owBoAZsqyCNlLBUEp5Y7YsJYdw
+         +ImdB3IWE9CRRQoEznZMnKprAAdxK9KM8DTk7wy8pkF7SRmA3JrXyQqIct6CE4ipWpkn
+         8TxPqgAMPwoJB8PYkv3TF0cKUSsAsZnK6hMsOqXhu8s1gEwSpJT9aSfYBuIvFAdbumgA
+         za4nJTGvhERFWHWHvI+wf1gTMMfegFObzk/Avdux8TjJn1n+vtwasc7bRdCjnqziLru3
+         J/qg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791768706; x=1792373506;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+        d=1e100.net; s=20260707; t=1791781841; x=1792386641;
+        h=content-transfer-encoding:content-type:in-reply-to:content-language
+         :from:references:cc:to:subject:user-agent:mime-version:date
+         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=s9fm9fZTpu/z3C1fJkYEh93qh6MI7pDV/XkQ0dbiT30=;
-        b=2V0vAAAIw5pFVHre3Ed90brKNWb7Oi7Cgc8ZpiNJWQ+ivm4R/UsxqhD+rKmz+ufWoR
-         YzfjxlBHn9aETNBICU5Bf1jjeFC6Y20bgx+hAvGTs6DBvaSx1aidN1i6OJVEjtF1MJR7
-         4y9EilKkSqGordUqBcUP5yZX0eYCjTzn9rDTWhBqz8FcS3nM1IhFt0RlEg1WXu4Grepq
-         YPG7eOoMTTFomCZs7fOD95F0kJlVFrQ3WsV12u50r1/UBDhRkFn8Qj9uY50uS0p1nwCs
-         n3f10fpPMP8FjI+boyyH0/mmuNIEa6PjW71yvTaVe8kmElDtPdZ2qNtRjj2iRXRM2AwA
-         d6gg==
-X-Gm-Message-State: AFq9FYKzoJHTtpx8/WtkpuhRh4ShLyODJR2B/piSPD4MF2TdpCBJ90qm
-	JnHhR/bHgrAlmSl3DCc4WAS05UJzMFvHOk1+5oViuLQoISPPl4703BOX
-X-Gm-Gg: AYBFou0h4R8BNy2LRBB4GMAfVYllOA+ZFvMPaIATTHH8IflWJBByBzWMudtFNLze0dO
-	4pIoLm9/sQeBzhyDyuuASZfrySYPKK1BkjmhXbrvY88NF/Mp3tIRpuvCxIRK9OLUsTA++NVRn8/
-	mPZ/rBi7KDBdyzy4RVQdKqtZ+6DcJGembj98TAeFDiU6FEVI1hH+s+kzAmrthLpDq9CbQLcjpzF
-	4E5dAUjkvOcoUSbcr58gcRSLUIp/cdpu6z7jpa599cEV6xfXSv8aUhZm3O8kJIeV0R36i1BJhQ5
-	5MeAbZ+obbqZGY5dY5W5aTMRPNIl9pp1taKBp1KRKOOMYo9NeQwN5wa+zBHd3G8sZkUXbote9LL
-	mfwGuxU/7IUfQWSFNQ0IeRaidk+f3zsk9V3U6+bBOHX0hWlNiyadQT3Fpx8a960OVoh+uMV+MXf
-	4R/acVrpg8s7r4eP7wypmXvpSipexNTSsYCIxRS0kfYO5UjN8v6U3vsSAvOCQmT6hI7EtIBJNJf
-	tem
-X-Received: by 2002:a17:90b:3d92:b0:3ab:36c4:b50d with SMTP id 98e67ed59e1d1-3ab3a3a0bc0mr7646379a91.9.1791768705777;
-        Sun, 11 Oct 2026 18:31:45 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab39238608sm14651247a91.17.2026.10.11.18.31.40
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 11 Oct 2026 18:31:44 -0700 (PDT)
-From: Cen Zhang <zzzccc427@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	heming.zhao@suse.com,
-	akpm@linux-foundation.org,
-	zzzccc427@gmail.com,
-	kmehltretter@gmail.com,
-	ericterminal@gmail.com,
-	kees@kernel.org,
-	sunil.mushran@oracle.com,
-	christophe.jaillet@wanadoo.fr
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com
-Subject: [PATCH] ocfs2: Pin the node manager module for open debugfs files
-Date: Mon, 12 Oct 2026 09:31:38 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0089-v2-4c67f48d4e2d0fc85990@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        bh=0Ek6Y6WHWyZvWPK4rY8L2n9MgGRmcFjVIrlMTJWJp3A=;
+        b=muamiMvvGhsbl8b/h18nwTrVjruERV3cqUN64cTkcBtjNgQo3dq+X77H4LPZY1jHBj
+         iELNPdkoxt3dEOnP7irHcPHAseTxDvQkznlawu/gO2TeDye9qdcm5qzFxoq/JsTcpoOp
+         lJETS5bvOAf2tQp/xVW1tRdfj/VoQng887JA5FgBrOfvPqt+X1PSJo826bI+NjQXQZwH
+         43jTM+3lRHRJBK+enTghsrq5OQERoQ/ex1leAN2hWnNue+sfaNn9ntYGsTvLbcn57h21
+         2ayELJx07ltYx8B3IiQLUNtcmp3J11nkxSBHP8ay2DB5Klfj9JzadUP+uyFEtIqYkQF8
+         3kKw==
+X-Forwarded-Encrypted: i=1; AKwUvBxJr7VUQDVjiMHLHwt+Wvp5gH9MFgc5t7ccuSIg8tZ3O3TEz7SXCaknHmHn7X4k4FQk+/D02kENTf4S9Q==@lists.linux.dev
+X-Gm-Message-State: AFq9FYKQP0oHqSm/cvjFoO1a9sdeD5hrml0XrN3oLiUcORbY3sPRn16P
+	aHgqKzXDDeYPsywsAx6DGJB3yg8lHNic6E1fTi5wSQlOnyklKXh82q+3R6romTSPwds=
+X-Gm-Gg: AYBFou1UuM/y+rv2SMxAKAD4PyNq5u9dya7y8JpcKkIKqoqe29oAEONm+BWjgy02ddK
+	B46nWWnSnPq4LLnyAYe1wGjBJSvrGIMA5lDfCIftfBFW6b1CigD8tV+bdba8r5iZBOdUucc6/14
+	GD9AI8+9pjw9w/z8G7ewzBwOoDUN8dFtsn19J1qi8AKKncFrWbCkw+aUfvYOsn2ki51NER+I3YQ
+	lMtJhHAfVjMwGTUAHwKh8T42M8dQiM0V+7X3TThxymgzzPvAM83FmEiV7iCsuJXYjWNTAFUkxld
+	EEqYH5hoMRfetTc5g2PTivpiLZv3o4g8O9OGIyJyxGvgmVCpgbH+sMuyHZ1HcTuwtEqt++O6Inn
+	x3Hg5TDbygznkSayY0xAwhFkI/Tpe9nLSburLoZBSAlD6TbvdzfXkcZiFah9jDYvLRcHvjsx5Cd
+	gw76Etd+5yZQsA8zBzchl7NntgacL9OmPRPwhCx5kPHOhx74FHp3JFdEdDKJF8nIc2xSAMwdoXc
+	F2q
+X-Received: by 2002:a05:6000:29c6:b0:488:85c9:120b with SMTP id ffacd0b85a97d-48dbaae251fmr9042329f8f.3.1791781841105;
+        Sun, 11 Oct 2026 22:10:41 -0700 (PDT)
+Received: from [10.202.112.30] ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ab393efd88sm8990476a91.3.2026.10.11.22.10.37
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 11 Oct 2026 22:10:40 -0700 (PDT)
+Message-ID: <af295d6f-ed18-406d-adeb-f179ae3d0e74@suse.com>
+Date: Mon, 12 Oct 2026 13:10:34 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: Publish the filecheck owner before adding sysfs
+ attributes
+To: Cen Zhang <zzzccc427@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com,
+ akpm@linux-foundation.org, ghe@suse.com, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0086-v2-646731c4254a02823b4d@gmail.com>
+ <asnqJTe50D-EuhTb@p15>
+ <CAFRLqsVqawLcZK60Wt2GKszXCeeJj6WNEO09zwybxO+mkOUBaw@mail.gmail.com>
+From: Heming Zhao <heming.zhao@suse.com>
+Content-Language: en-US
+In-Reply-To: <CAFRLqsVqawLcZK60Wt2GKszXCeeJj6WNEO09zwybxO+mkOUBaw@mail.gmail.com>
+Content-Type: text/plain; charset=UTF-8; format=flowed
 Content-Transfer-Encoding: 8bit
 
-The node manager debugfs file operation tables do not set owner.
-The debugfs full proxy obtains real_fops with fops_get() at open and
-keeps it until final release. Without an owner, this does not acquire
-a module reference. Normal unload can free the ocfs2_nodemanager
-module image while an open file still holds its operation table.
+On 10/11/26 23:40, Cen Zhang wrote:
+> Hi Heming,
+> 
+> Heming Zhao <heming.zhao@suse.com> 于2026年10月10日周六 15:38写道：
+>>
+>> setting to NULL is unnecessary, it becomes a harmless dangling pointer here.
+>> Other code looks good to me.
+>>
+>> Thanks,
+>> Heming
+> 
+> Thanks for reviewing this.
+> 
+> I checked the failure path again with the help of LLM, and I think clearing
+> fs_fcheck is still needed on this baseline. If kobject_init_and_add()
+> fails, the
+> function puts the kobject and frees fcheck. Its caller in
+> ocfs2_fill_super() then
+> jumps to out_dismount, which calls ocfs2_dismount_volume() and, in turn,
+> ocfs2_filecheck_remove_sysfs().
+> 
+> That last function returns early only when fs_fcheck is NULL. Leaving
+> the dangling pointer would make it operate on the already-put kobject
+> and access the freed fcheck in ocfs2_filecheck_sysfs_free().
+> 
+> I may still be missing something, but based on this path it seems the NULL
+> assignment is still needed. Would you agree, or did I overlook a case where
+> it is safe to leave it?
+> 
+> Thanks again for taking a look.
+> 
+> Best regards,
+> Cen Zhang
 
-Closing connected_nodes then makes full_proxy_release() read
-real_fops->release from freed module memory. Removing the debugfs
-entries during module exit does not drain retained open files.
 
-Set owner to THIS_MODULE in the o2net and heartbeat debugfs operation
-tables. The existing debugfs get/put pair then keeps the module and
-its callbacks alive until the last open file is released.
+Thanks for the info, I will add my reviewed-by tag.
 
-A controlled test used an unloadable OCFS2 module and case-local probe
-filters without changing the candidate open, unload or release logic.
-Closing a retained connected_nodes file after normal unload produced:
-
-  BUG: unable to handle page fault for address: fffffbfff804cfef
-  Oops: Oops: 0000 [#1] SMP KASAN NOPTI
-  RIP: 0010:full_proxy_release+0xbf/0x190
-  Call Trace:
-   <TASK>
-   __fput+0x39a/0xa60
-   fput_close_sync+0xff/0x200
-   __x64_sys_close+0x8c/0xf0
-   do_syscall_64+0x114/0x620
-   entry_SYSCALL_64_after_hwframe+0x77/0x7f
-   </TASK>
-  Modules linked in: [last unloaded: ocfs2_nodemanager]
-
-Fixes: 2309e9e040fe ("ocfs2/net: Add debug interface to o2net")
-Fixes: 87d3d3f3931f ("ocfs2/hb: Expose the list of heartbeating nodes via debugfs")
-Fixes: 3ba169ccec1c ("ocfs2/cluster: Add new function o2net_fill_node_map()")
-Assisted-by: LLM
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
----
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 8e6ead433228..1d4f71190d27 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1447,6 +1447,7 @@ static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
- #endif  /* CONFIG_DEBUG_FS */
- 
- static const struct file_operations o2hb_debug_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		o2hb_debug_open,
- 	.release =	o2hb_debug_release,
- 	.read =		o2hb_debug_read,
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index f7ab66e70799..5d373002297d 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -183,6 +183,7 @@ static int nst_fop_release(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations nst_seq_fops = {
-+	.owner = THIS_MODULE,
- 	.open = nst_fop_open,
- 	.read = seq_read,
- 	.llseek = seq_lseek,
-@@ -415,6 +416,7 @@ static int stats_fop_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations stats_seq_fops = {
-+	.owner = THIS_MODULE,
- 	.open = stats_fop_open,
- 	.read = seq_read,
- 	.llseek = seq_lseek,
-@@ -427,6 +429,7 @@ static int sc_fop_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations sc_seq_fops = {
-+	.owner = THIS_MODULE,
- 	.open = sc_fop_open,
- 	.read = seq_read,
- 	.llseek = seq_lseek,
-@@ -476,6 +479,7 @@ static ssize_t o2net_debug_read(struct file *file, char __user *buf,
- }
- 
- static const struct file_operations nodes_fops = {
-+	.owner		= THIS_MODULE,
- 	.open		= nodes_fop_open,
- 	.release	= o2net_debug_release,
- 	.read		= o2net_debug_read,
+- Heming
