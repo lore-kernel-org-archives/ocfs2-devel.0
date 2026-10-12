@@ -1,32 +1,32 @@
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A30F52BD0B
-	for <ocfs2-devel@lists.linux.dev>; Mon, 12 Oct 2026 06:18:48 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.132
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 58C463385B9
+	for <ocfs2-devel@lists.linux.dev>; Mon, 12 Oct 2026 06:20:45 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791785931; cv=none; b=Rfkjl2eNDss12DjcpKxoikHyxweXVwL2YAgYKwHhI4lWBChq85e25iWhR3D8SkBd3Ipruoy4IgD0H7THA06xDOo5DnNALd4pggach2eUPZ4NXN/K3QZP4cCgat66yyR40HABm9tlnc2f6sZqofwwyHJlZoFZwAl0gFDGN7gMXdM=
+	t=1791786048; cv=none; b=LgmkDaVbsky7+xa8WDPJmAypmY8uI3MPg+Z7Rp8kZfYbqj8G1P7Vg/e5PjcTZKkK3eTrQ+k+uKGxVhyWN/7AhoLGVr2Ta1B2nyP6uHDn7b1IQccI9q9o27gzp/OP3w1QbTMNgQY6NVUu4Gr4FGa9tcz2dl2rebtZ2bekEnGL6Ew=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791785931; c=relaxed/simple;
-	bh=ajcf+C7EzYhUa7Facl4cM+ChcL26UOOO6Zih/WqVUtQ=;
+	s=arc-20240116; t=1791786048; c=relaxed/simple;
+	bh=GKMqNLJR/8xtoMMLWGOSPFKNNCvW2uPkW9AmRIEBzao=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=b5zxzdTQOT7lw9ZBe8oQS/dN+jFkXJp3oUKJcZLOerBjbnuvODvYFj6AUnkbTOBe4fO6W1riN87lMEbXMp/eulNOyuL7dRYGbHVjPQrZveSvvwPl2AkuPenLZDcT0FJLEKbmBv0RQdICwoUv66qt/uJAaCQsqKG4i/oZV7h9lWM=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=L6/532jn; arc=none smtp.client-ip=115.124.30.132
+	 In-Reply-To:Content-Type; b=a9rulCKMAyjqbv5Xpw1No9fj+VZBfPIwJf299Vc9HL9k5LP5OvMnwsfxmEFHTmxoI6xmMVgjJgzn1UTu9Fo41N4mGCvBCJgxS+pToCAWe+mcatpSer0u3qYBlqXNmAm4Pppcr0WZb+Oh5+56Vjmg66mneug5QJAh1KiipWmEN5E=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=eXhJcuFZ; arc=none smtp.client-ip=115.124.30.100
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="L6/532jn"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="eXhJcuFZ"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1791785923; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=cTJvQnt5f08iJf6+hSRkkNjD2SJEXzZtSNnxZDI6k+I=;
-	b=L6/532jnQosF8fSY2wtLgmC3FvrCynnZSY2/3DzbcBc1NC+JT9ekBwwtWlUlR3j6rq5W71xvTw6CpbgPQ1fEBlVf1aSrhP7teCeD7ISCkNyT539Rd8gRVenJJeu61VJ+CwmXGR7WWoEBWPNs9NNoSZE+ewWoQeS829+Tkh07WLQ=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0XCb4ok1_1791785922;
-Received: from 30.221.146.44(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCb4ok1_1791785922 cluster:ay36)
+	t=1791786036; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=iLpJKdmpDT4DXhDsHwu9FG8PDA6jGo0dR9QUXu50XhE=;
+	b=eXhJcuFZjmovOSpfxKthqjFLzT3J+JZRLbwpX2WGfO11VYgubGeql+6az8xiYXjhHOLe7/l2yzCKfyaOI1JWN9kMTt/XDXZjmTiHGMoaRU15MYbcxsrD2yyZ3qYLCyylfqOfeUVkJ5N6PZZrDuccl6+XWI6mrOktkG2KqmQ0ph8=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R821e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=16;SR=0;TI=SMTPD_---0XCb4pPR_1791786034;
+Received: from 30.221.146.44(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCb4pPR_1791786034 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 12 Oct 2026 14:18:42 +0800
-Message-ID: <246803f3-d63a-4dd9-bd4a-4ff0c4066d17@linux.alibaba.com>
-Date: Mon, 12 Oct 2026 14:18:41 +0800
+          Mon, 12 Oct 2026 14:20:35 +0800
+Message-ID: <bed4a096-31a1-4e2a-bd18-330d7ecbb866@linux.alibaba.com>
+Date: Mon, 12 Oct 2026 14:20:34 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,85 +34,186 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: Publish the filecheck owner before adding sysfs
- attributes
-To: Cen Zhang <zzzccc427@gmail.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, akpm@linux-foundation.org,
- ghe@suse.com, ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+Subject: Re: [PATCH v2] ocfs2/dlm: Protect the recovery list during debugfs
+ reads
+To: Cen Zhang <zzzccc427@gmail.com>, akpm@linux-foundation.org
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+ rollkingzzc@gmail.com, brauner@kernel.org, jack@suse.cz, rppt@kernel.org,
+ kees@kernel.org, hexlabsecurity@proton.me, sunil.mushran@oracle.com,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
  baijiaju1990@gmail.com, jjzuming@gmail.com
-References: <pm-ocfs2-objects-candidate-0086-v2-646731c4254a02823b4d@gmail.com>
+References: <pm-ocfs2-objects-candidate-0049-v3-184e46c47f5283f06191@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <pm-ocfs2-objects-candidate-0086-v2-646731c4254a02823b4d@gmail.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0049-v3-184e46c47f5283f06191@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 10/9/26 6:04 PM, Cen Zhang wrote:
-> ocfs2_filecheck_create_sysfs() initializes the filecheck allocation
-> before calling kobject_init_and_add(), but assigns entry->fs_fcheck
-> only after that call returns. The default attribute group can already
-> be visible while registration is in progress. A concurrent read can
-> therefore enter ocfs2_filecheck_attr_show() with a NULL fs_fcheck and
-> try to lock its fc_lock.
+On 10/11/26 11:35 PM, Cen Zhang wrote:
+> Recovery participant records must remain alive while debug_state_print()
+> walks reco.node_data and formats their fields. The formatter holds
+> dlm->spinlock, but the recovery participant list is protected by
+> dlm_reco_state_lock. In particular, dlm_destroy_recovery_area() detaches
+> the list under dlm_reco_state_lock and frees the detached records after
+> releasing it. A concurrent debugfs open can therefore read freed memory.
 > 
-> Assign the initialized owner before adding the kobject, so every
-> activated attribute has valid state. Clear the pointer when addition
-> fails, preserving the existing teardown guard and error cleanup.
+> Protect the participant traversal and field reads in debug_state_print()
+> with dlm_reco_state_lock, matching the existing list writers. This also
+> serializes the traversal against list_add_tail() during recovery-area
+> initialization. Make the existing lock available to the debug code
+> through dlmcommon.h; the lock remains internal to the OCFS2 DLM module.
 > 
-> A controlled probe-instrumented test kernel with the original OCFS2
-> registration ordering produced this Oops during a concurrent sysfs read:
+> Release dlm->spinlock after formatting the other domain state and before
+> acquiring dlm_reco_state_lock, so the debug reader does not nest the two
+> locks. Leave recovery list insertion, detachment and freeing unchanged.
 > 
->   KASAN: null-ptr-deref in range [0x0000000000000028-0x000000000000002f]
->   RIP: 0010:kasan_byte_accessible+0x15/0x30
->   Call Trace:
->    <TASK>
->    __kasan_check_byte+0x13/0x50
->    lock_acquire+0x113/0x300
->    _raw_spin_lock+0x31/0x40
->    ocfs2_filecheck_attr_show+0x138/0x5f0
->    ocfs2_filecheck_show+0x5d/0x90
->    sysfs_kf_seq_show+0x1d3/0x360
->    seq_read_iter+0x480/0x1110
->    kernfs_fop_read_iter+0x419/0x5a0
->    vfs_read+0x7d2/0xc20
->    ksys_read+0x111/0x200
->    do_syscall_64+0x114/0x620
->    entry_SYSCALL_64_after_hwframe+0x77/0x7f
->    </TASK>
->   Modules linked in:
+> KASAN report as below:
 > 
-> Fixes: a860f6eb4c6a ("ocfs2: sysfile interfaces for online file check")
-
-It seems the right Fixes tag is:
-5f483c4abb50 ("ocfs2: add kobject for online file check")
-
-Also Cc: <stable@vger.kernel.org> tag is wanted here as well.
-
-The code change looks fine to me. So with the above addressed,
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
+>     BUG: KASAN: slab-use-after-free in debug_state_open+0x1169/0x12d0
+>     Read of size 4 at addr ffff88810662ef80 by task dlm-state-stres/896
+> 
+>     CPU: 1 UID: 0 PID: 896 Comm: dlm-state-stres Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+>     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+>     Call Trace:
+>      <TASK>
+>      dump_stack_lvl+0x93/0xd0
+>      print_report+0xce/0x630
+>      ? debug_state_open+0x1169/0x12d0
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __virt_addr_valid+0x20e/0x420
+>      ? debug_state_open+0x1169/0x12d0
+>      kasan_report+0xe0/0x110
+>      ? debug_state_open+0x1169/0x12d0
+>      debug_state_open+0x1169/0x12d0
+>      ? __pfx_debug_state_open+0x10/0x10
+>      full_proxy_open_regular+0x193/0x310
+>      do_dentry_open+0x595/0x12d0
+>      ? __pfx_full_proxy_open_regular+0x10/0x10
+>      vfs_open_consume+0xd1/0x400
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      path_openat+0x18d0/0x2020
+>      ? __pfx_path_openat+0x10/0x10
+>      do_file_open+0x21e/0x470
+>      ? __pfx_do_file_open+0x10/0x10
+>      ? _raw_spin_unlock+0x23/0x40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? alloc_fd+0x3a6/0x6b0
+>      do_sys_openat2+0xf4/0x1b0
+>      ? __pfx_do_sys_openat2+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __fput+0x5b5/0xa60
+>      __x64_sys_openat+0x136/0x1e0
+>      ? __pfx___x64_sys_openat+0x10/0x10
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
+>     [Register dump omitted.]
+>      </TASK>
+> 
+>     Allocated by task 880:
+>      kasan_save_stack+0x33/0x60
+>      kasan_save_track+0x14/0x30
+>      __kasan_kmalloc+0xaa/0xb0
+>      __kmalloc_cache_noprof+0x28d/0x610
+>      dlm_remaster_locks+0x147/0x1d90
+>      dlm_do_recovery+0xde1/0x1580
+>      dlm_recovery_thread+0x109/0x300
+>      kthread+0x351/0x460
+>      ret_from_fork+0x659/0x940
+>      ret_from_fork_asm+0x1a/0x30
+> 
+>     Freed by task 880:
+>      kasan_save_stack+0x33/0x60
+>      kasan_save_track+0x14/0x30
+>      kasan_save_free_info+0x3b/0x60
+>      __kasan_slab_free+0x5f/0x80
+>      kfree+0x308/0x580
+>      dlm_destroy_recovery_area+0x285/0x460
+>      dlm_remaster_locks+0x17c4/0x1d90
+>      dlm_do_recovery+0xde1/0x1580
+>      dlm_recovery_thread+0x109/0x300
+>      kthread+0x351/0x460
+>      ret_from_fork+0x659/0x940
+>      ret_from_fork_asm+0x1a/0x30
+> 
+>     The buggy address belongs to the object at ffff88810662ef80
+>      which belongs to the cache kmalloc-32 of size 32
+>     The buggy address is located 0 bytes inside of
+>      freed 32-byte region [ffff88810662ef80, ffff88810662efa0)
+> 
+>     [Page and memory-state dumps omitted.]
+> 
+> Fixes: 007dce53a29c ("ocfs2/dlm: Dump the dlm state in a debugfs file")
 > Assisted-by: LLM
 > Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+
+Cc: <stable@vger.kernel.org>
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
 > ---
->  fs/ocfs2/filecheck.c | 4 +++-
->  1 file changed, 3 insertions(+), 1 deletion(-)
+> Changes in v2:
+> - Use dlm_reco_state_lock in debug_state_print() to protect recovery
+>   participant traversal and field reads.
+> - Serialize the read with recovery participant insertion, and leave list
+>   teardown unchanged.
+> - Release dlm->spinlock before acquiring the recovery list lock.
 > 
-> diff --git a/fs/ocfs2/filecheck.c b/fs/ocfs2/filecheck.c
-> index be713d7d24a76b9aa8fcded3d83b3d91d124eb6e..862c1ee7099c943b2e3e57e31f887380c6dc8a88 100644
-> --- a/fs/ocfs2/filecheck.c
-> +++ b/fs/ocfs2/filecheck.c
-> @@ -181,2 +181,4 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
+> Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0049-v2-a5d5091b8900dc3f9849@gmail.com
+> 
+>  fs/ocfs2/dlm/dlmcommon.h   | 2 ++
+>  fs/ocfs2/dlm/dlmdebug.c    | 5 ++++-
+>  fs/ocfs2/dlm/dlmrecovery.c | 2 +-
+>  3 files changed, 7 insertions(+), 2 deletions(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmcommon.h b/fs/ocfs2/dlm/dlmcommon.h
+> index 20f790a47484a72cba1cd71b3d505f36c1b2d5a4..58b28dfa8d34ef237df7b1eb789f0b461187174e 100644
+> --- a/fs/ocfs2/dlm/dlmcommon.h
+> +++ b/fs/ocfs2/dlm/dlmcommon.h
+> @@ -435,6 +435,8 @@ enum {
+>  	DLM_DEREF_LOCKRES_DONE		= 522,
+>  };
 >  
-> +	/* Publish the initialized owner before activating its sysfs callbacks. */
-> +	entry->fs_fcheck = fcheck;
->  	entry->fs_kobj.kset = osb->osb_dev_kset;
-> @@ -186,2 +188,3 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
->  	if (ret) {
-> +		entry->fs_fcheck = NULL;
->  		kobject_put(&entry->fs_kobj);
-> @@ -191,3 +194,2 @@ int ocfs2_filecheck_create_sysfs(struct ocfs2_super *osb)
+> +extern spinlock_t dlm_reco_state_lock;
+> +
+>  struct dlm_reco_node_data
+>  {
+>  	int state;
+> diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
+> index ce6d301cb9420385211d20d59637069154a89993..a91f167ed683931da0e44638875b36debe4eb702 100644
+> --- a/fs/ocfs2/dlm/dlmdebug.c
+> +++ b/fs/ocfs2/dlm/dlmdebug.c
+> @@ -736,8 +736,11 @@ static int debug_state_print(struct dlm_ctxt *dlm, char *buf, int len)
+>  				 buf + out, len - out);
+>  	out += scnprintf(buf + out, len - out, "\n");
 >  
-> -	entry->fs_fcheck = fcheck;
->  	return 0;
+> +	spin_unlock(&dlm->spinlock);
+> +
+>  	/* Recovery Node State: */
+>  	out += scnprintf(buf + out, len - out, "Recovery Node State:\n");
+> +	spin_lock(&dlm_reco_state_lock);
+>  	list_for_each_entry(node, &dlm->reco.node_data, list) {
+>  		switch (node->state) {
+>  		case DLM_RECO_NODE_DATA_INIT:
+> @@ -769,7 +772,7 @@ static int debug_state_print(struct dlm_ctxt *dlm, char *buf, int len)
+>  				node->node_num, state);
+>  	}
+>  
+> -	spin_unlock(&dlm->spinlock);
+> +	spin_unlock(&dlm_reco_state_lock);
+>  
+>  	return out;
+>  }
+> diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+> index 9d4a2695b9594d1ad8bd60de9cec8ee701355f09..7d519e31fcf17e96116315ac33ab3f5baace354f 100644
+> --- a/fs/ocfs2/dlm/dlmrecovery.c
+> +++ b/fs/ocfs2/dlm/dlmrecovery.c
+> @@ -80,7 +80,7 @@ static int dlm_lockres_master_requery(struct dlm_ctxt *dlm,
+>  
+>  static u64 dlm_get_next_mig_cookie(void);
+>  
+> -static DEFINE_SPINLOCK(dlm_reco_state_lock);
+> +DEFINE_SPINLOCK(dlm_reco_state_lock);
+>  static DEFINE_SPINLOCK(dlm_mig_cookie_lock);
+>  static u64 dlm_mig_cookie = 1;
+>  
 
