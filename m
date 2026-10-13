@@ -1,32 +1,32 @@
-Received: from out30-119.freemail.mail.aliyun.com (out30-119.freemail.mail.aliyun.com [115.124.30.119])
+Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E71137E5EE
-	for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 07:56:05 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.119
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 27A734F7CDC
+	for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 12:10:01 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.98
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791878170; cv=none; b=frQ3f9bFKaf9pw4KACowSIpeU2eyw/NCP8B8WCnNmTclQWDzHkpSMlFeWwkyvpVaW/lZEtgV4j88M81zu/1qxc9LiWC5JFe90e5i6f6pIiOs3/QYl24U+eKP7+o85CY89AoKvOSpYq+kklU/QtTIw9Z5cKgBSxhsMO5KzXn29gw=
+	t=1791893404; cv=none; b=Y9eAqWv4SZT3aqJKNLxR873dIPizrLv4z6BHVtQnIX38d7MZX9t1PFGG2wspLdr0r/DyGhDa03I8IYHlctq+CAyLrHy9MhtjlWmsHNMMdySYnijXTeWupgjodThMFYuGavgCWNPPgPrfoK1h7iya8Ij+oaNV/boKR8cm+W+Mbs4=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791878170; c=relaxed/simple;
-	bh=0GWeFJb/qiTJI+X0vmX2m+bo5SlNjkXaEACmBJZEZnU=;
+	s=arc-20240116; t=1791893404; c=relaxed/simple;
+	bh=2jQ3Lk03uLc8efN+1fTLINlpRYG6OcgG03EJwmsiuKM=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=fbLv9UoFYDP/Xlqz7cgps8gQKyqrptIMwr2exlRAyf5WtLhTaRRrLqnQdlaWX889wqkAgHhIk1OJ50EmxxcH6iz1HHRLyndXfbMXRS0aWFBvZd3RWpvGZPWd2r+XxIDqu29v9VQjHrviwICmQsuWdLlWQH8RYiEIPJL6cKYJ+FI=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=bHGkC3Uq; arc=none smtp.client-ip=115.124.30.119
+	 In-Reply-To:Content-Type; b=FTqoy8RsHORu6TIiw8mjvEHqKy+4R+98D6ezjdaBegDJXVfqQh/4PkCvX8mYil6Mw7hdV/LtO+yxC70EYfSSDHwxsbTkV9cWzuf0rkbwr3aK9to4MB9S961QD+VvUZ8R3i3hiMdFA5Dyfq64ws4GiqVIDnH2lBKCGKFNzm2YeLg=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=eK34HCuj; arc=none smtp.client-ip=115.124.30.98
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="bHGkC3Uq"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="eK34HCuj"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1791878162; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=emqpj+xGrdk/1pyDpuwsFKgkPlVWJSnSuEc15c8FnIc=;
-	b=bHGkC3UqHIi73zqfec3Wew9H2HsNKB6aaVjZVSaqj7faSjD1w0P2VuBadEsq6rNkcHO/zWaPCeh6RKuhmJ5pn4rs2GzQOZW7wwl++G4Q/1RUAZg8INjWco3OU7RDzOzamYwkP+64Th/izcSG2plMMfuQAD3RjwOc6jtqbjU49CI=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XCl0LN2_1791878160;
-Received: from 30.221.145.80(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCl0LN2_1791878160 cluster:ay36)
+	t=1791893398; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=9fJyPw2Ywx4KQqkE4/ifeeXTrWoCYe99XbknPriAskE=;
+	b=eK34HCujVpPqLfhmBB91Bn77sHo7Maaaxo+G2pLzTXAaM+8YSrAJibJ/z/wHamDHTr054PVDmhqFwxYZ1VHKIvbD95SGOIk/21dJb4WwVxXwqHpRSK1gsjXFb/GZlZfdSXgFsXeIJ4uG/AsUfU47oyo6OMiC4b69o6CQQB2tIl8=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R651e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=12;SR=0;TI=SMTPD_---0XClj6au_1791893396;
+Received: from 30.221.145.80(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XClj6au_1791893396 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 13 Oct 2026 15:56:01 +0800
-Message-ID: <d5522bb5-17f1-4315-b50d-390f1cbde9f4@linux.alibaba.com>
-Date: Tue, 13 Oct 2026 15:56:00 +0800
+          Tue, 13 Oct 2026 20:09:57 +0800
+Message-ID: <f8f5ef83-6f71-43c7-8adf-c1d3adb15e8e@linux.alibaba.com>
+Date: Tue, 13 Oct 2026 20:09:56 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,205 +34,175 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: hold a lock reference across grant AST enqueue
+Subject: Re: [PATCH] ocfs2: unlink socket containers before releasing their
+ nodes
 To: Cen Zhang <zzzccc427@gmail.com>
 Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
- kees@kernel.org, sunil.mushran@oracle.com, ocfs2-devel@lists.linux.dev,
+ kees@kernel.org, kuba@kernel.org, akpm@linux-foundation.org,
+ sunil.mushran@oracle.com, ocfs2-devel@lists.linux.dev,
  linux-kernel@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
-References: <pm-ocfs2-objects-candidate-0043-v4-24e62761a79be6b84b55@gmail.com>
+References: <pm-ocfs2-objects-candidate-0065-v4-f45e5cef38dd587b2cfd@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <pm-ocfs2-objects-candidate-0043-v4-24e62761a79be6b84b55@gmail.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0065-v4-f45e5cef38dd587b2cfd@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
 On 10/12/26 9:30 AM, Cen Zhang wrote:
-> A newly granted remote lock must remain alive until its grant AST is
-> queued. dlmlock_master() publishes the lock on res->granted with its
-> base and queue references, then drops res->spinlock before calling
-> dlm_queue_ast(). The resource's reserved AST count does not retain the
-> lock itself.
+> A socket container's node must remain alive while the container is on
+> sock_containers. The debugfs formatter reads sc_node under
+> o2net_debug_lock without taking a node reference, but sc_kref_release()
+> drops the node reference and clears sc_node before taking that lock to
+> unlink the container.
 > 
-> This can fail when a peer dies with an immediately grantable CREATE
-> buffered on its socket. O2NET's node-down callback flushes receive work
-> before DLM cleanup, but the flush only waits for work queued on entry.
-> A data-ready callback that already selected the socket container can
-> queue new receive work after the flush advances its work color. Socket
-> shutdown does not discard bytes already queued for TCP receive.
+> With CONFIG_DEBUG_FS enabled, removing a disconnected remote node while
+> a synchronous sender releases its last socket-container reference can
+> expose the freed node to a debugfs reader. The following order is possible:
 > 
-> The following ordering leaves the CREATE handler using a freed lock:
-> 
-> 1. o2net_data_ready() selects the socket container while holding the
->    socket callback read lock.
-> 2. o2net_disconnect_node() queues shutdown and starts its flush. The
->    callback queues sc_rx_work after the color change, then unlocks,
->    allowing shutdown to unregister callbacks and shut down the socket.
-> 3. The flush completes without waiting for the new receive work. That
->    work consumes the buffered CREATE and dlmlock_master() grants the
->    lock before DLM cleanup reaches the resource, then drops
->    res->spinlock.
-> 4. dlm_hb_node_down_cb() reaches dlm_free_dead_locks(), which takes
->    res->spinlock, unlinks the lock and drops both references to free it.
-> 5. The CREATE handler calls dlm_queue_ast(). __dlm_queue_ast() reads
->    lock->lockres before acquiring its AST-list reference, causing UAF.
+> 1. o2net_send_message_vec() holds a reference acquired under nn_lock.
+>    o2net_disconnect_node() detaches the connection and flushes o2net_wq,
+>    draining the socket callbacks and workers. The synchronous sender's
+>    reference survives because its caller runs outside that workqueue.
+> 2. The sender's final sc_put() enters sc_kref_release() and calls
+>    o2nm_undepend_item(). Configfs rmdir can now pass the dependency check,
+>    call o2nm_node_group_drop_item(), and drop its node item references.
+>    Its disconnect flush does not wait for the sender's release.
+> 3. The sender calls o2nm_node_put(), freeing the node while the container
+>    is still listed and sc_node has not yet been cleared.
+> 4. Before the sender clears sc_node or unlinks the container, a debugfs
+>    reader selects it in sc_seq_show() under o2net_debug_lock and formats
+>    sc_node->nd_name, reading the freed allocation.
 > 
 
-It is better to illustrate the race case with a sequence diagram.
+Better to change the patch title to "ocfs2/cluster: xxx"
 
-Also please change the patch title to "ocfs2/dlm: xxx".
+Please describe the race in a sequence diagram.
 
-> Take a temporary lock reference under res->spinlock when a grant AST
-> will be queued, and drop it after dlm_queue_ast(). This keeps the lock
-> alive across cleanup until the AST path has taken its own reference,
-> without reversing the existing AST/resource lock order.
+> Move o2net_debug_del_sc() before o2nm_node_put(). Unlinking under the
+> existing debug lock waits for an active formatter to finish and prevents
+> later readers from selecting the container. The retained node reference
+> therefore covers every debugfs node access, including the node number
+> read by the stats formatter. The lock is released before the node put.
 > 
 > KASAN report as below:
 > 
->     BUG: KASAN: slab-use-after-free in __dlm_queue_ast+0x8a4/0xc00
->     Read of size 8 at addr ffff88810ead5940 by task kworker/u16:3/52
+>     BUG: KASAN: slab-use-after-free in string+0x42b/0x470
+>     Read of size 1 at addr ffff88810f56fc90 by task python3/506
 > 
->     CPU: 3 UID: 0 PID: 52 Comm: kworker/u16:3 Not tainted 7.3.0-rc4-next-20260921-pmb-bt-functional-v1+ #1 PREEMPT(lazy)
+>     CPU: 0 UID: 0 PID: 506 Comm: python3 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
 >     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
->     Workqueue: o2net o2net_rx_until_empty
 >     Call Trace:
 >      <TASK>
 >      dump_stack_lvl+0x93/0xd0
 >      print_report+0xce/0x630
->      ? __dlm_queue_ast+0x8a4/0xc00
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __virt_addr_valid+0x20e/0x420
->      ? __dlm_queue_ast+0x8a4/0xc00
 >      kasan_report+0xe0/0x110
->      ? __dlm_queue_ast+0x8a4/0xc00
->      __dlm_queue_ast+0x8a4/0xc00
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? do_raw_spin_lock+0x130/0x270
->      ? __pfx___dlm_queue_ast+0x10/0x10
->      ? __pfx_do_raw_spin_lock+0x10/0x10
->      ? _raw_spin_unlock_irqrestore+0x45/0x60
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? lockdep_hardirqs_on_prepare+0xeb/0x1a0
->      dlm_queue_ast+0x46/0x70
->      dlmlock_master+0x51f/0xf50
->      ? __pfx_dlmlock_master+0x10/0x10
->      ? dlm_create_lock_handler+0x2b2/0x870
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? lock_release+0xc8/0x290
->      dlm_create_lock_handler+0x35b/0x870
->      ? __pfx_dlm_create_lock_handler+0x10/0x10
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? trace_hardirqs_on+0x18/0x160
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? kvm_clock_get_cycles+0x31/0x60
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_dlm_create_lock_handler+0x10/0x10
->      o2net_rx_until_empty+0x1dae/0x32c0
->      ? reacquire_held_locks+0xdd/0x200
->      ? __pfx_o2net_rx_until_empty+0x10/0x10
->      ? lock_acquire+0x190/0x300
->      ? process_one_work+0x935/0x1b40
->      ? process_one_work+0x834/0x1b40
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? lock_release+0xc8/0x290
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      process_one_work+0x9a8/0x1b40
->      ? __pfx_process_one_work+0x10/0x10
->      ? lock_acquire+0x190/0x300
->      ? lock_is_held_type+0x8f/0x100
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      worker_thread+0x65c/0xe40
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __kthread_parkme+0x177/0x220
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_worker_thread+0x10/0x10
->      kthread+0x351/0x460
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_kthread+0x10/0x10
->      ret_from_fork+0x659/0x940
->      ? __pfx_ret_from_fork+0x10/0x10
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __switch_to+0x74f/0xf70
->      ? __pfx_kthread+0x10/0x10
->      ret_from_fork_asm+0x1a/0x30
+>      string+0x42b/0x470
+>      vsnprintf+0x330/0x1110
+>      seq_printf+0x1a8/0x260
+>      sc_seq_show+0x604/0x9f0
+>      seq_read_iter+0x480/0x1110
+>      seq_read+0x362/0x5a0
+>      full_proxy_read+0x11f/0x180
+>      vfs_read+0x1a0/0xc20
+>      ksys_read+0x111/0x200
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> 
+> (User register dump omitted.)
+> 
 >      </TASK>
 > 
->     Allocated by task 52:
+>     Allocated by task 497:
 >      kasan_save_stack+0x33/0x60
 >      kasan_save_track+0x14/0x30
->      __kasan_slab_alloc+0x89/0x90
->      kmem_cache_alloc_noprof+0x20b/0x5c0
->      dlm_new_lock+0x39/0x5f0
->      dlm_create_lock_handler+0x16e/0x870
->      o2net_rx_until_empty+0x1dae/0x32c0
->      process_one_work+0x9a8/0x1b40
->      worker_thread+0x65c/0xe40
->      kthread+0x351/0x460
->      ret_from_fork+0x659/0x940
->      ret_from_fork_asm+0x1a/0x30
+>      __kasan_kmalloc+0xaa/0xb0
+>      __kmalloc_cache_noprof+0x28d/0x610
+>      o2nm_node_group_make_item+0xea/0x1a0
+>      configfs_mkdir+0x762/0xca0
+>      vfs_mkdir+0x399/0x7e0
+>      filename_mkdirat+0x129/0x450
+>      __x64_sys_mkdir+0x70/0xa0
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 > 
->     Freed by task 603:
+>     Freed by task 505:
 >      kasan_save_stack+0x33/0x60
 >      kasan_save_track+0x14/0x30
 >      kasan_save_free_info+0x3b/0x60
 >      __kasan_slab_free+0x5f/0x80
->      kmem_cache_free+0x242/0x580
->      dlm_lock_release+0x1df/0x2f0
->      dlm_lock_put+0x51/0x80
->      __dlm_hb_node_down+0x15be/0x2710
->      dlm_hb_node_down_cb+0x6c/0xa0
->      o2hb_run_event_list+0x34a/0x500
->      o2hb_do_disk_heartbeat+0x1a07/0x2950
->      o2hb_thread+0x1ed/0xdc0
->      kthread+0x351/0x460
->      ret_from_fork+0x659/0x940
->      ret_from_fork_asm+0x1a/0x30
+>      kfree+0x308/0x580
+>      config_item_cleanup+0x14b/0x230
+>      config_item_put+0x79/0x90
+>      sc_put+0x454/0x6e0
+>      o2net_send_message_vec+0x63d/0x1560
+>      o2net_send_message+0xa6/0xe0
+>      validation_send_write+0x17f/0x1d0
+>      full_proxy_write+0x11f/0x180
+>      vfs_write+0x25a/0x1010
+>      ksys_write+0x111/0x200
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 > 
->     The buggy address belongs to the object at ffff88810ead5900
->      which belongs to the cache o2dlm_lock of size 184
->     The buggy address is located 64 bytes inside of
->      freed 184-byte region [ffff88810ead5900, ffff88810ead59b8)
+>     The buggy address belongs to the object at ffff88810f56fc00
+>      which belongs to the cache kmalloc-512 of size 512
+>     The buggy address is located 144 bytes inside of
+>      freed 512-byte region [ffff88810f56fc00, ffff88810f56fe00)
 > 
->     [Page and shadow memory dumps omitted.]
+> (Page and shadow-memory dumps omitted.)
 > 
-> Fixes: 2c5c54aca9d0 ("ocfs2/dlm: Add missing dlm_lock_put()s")
+> Fixes: 2309e9e040fe ("ocfs2/net: Add debug interface to o2net")
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 > Assisted-by: LLM
+> 
+> ---
+> diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+> index 8b3830b601ba..213ee7392712 100644
+> --- a/fs/ocfs2/cluster/tcp.c
+> +++ b/fs/ocfs2/cluster/tcp.c
+> @@ -399,11 +399,13 @@ static void sc_kref_release(struct kref *kref)
+>  	}
+>  
+>  	o2nm_undepend_item(&sc->sc_node->nd_item);
+> -	o2nm_node_put(sc->sc_node);
+> -	sc->sc_node = NULL;
+>  
+> +	/* Keep the node alive until debugfs readers finish. */
+>  	o2net_debug_del_sc(sc);
+>  
+> +	o2nm_node_put(sc->sc_node);
+> +	sc->sc_node = NULL;
+> +
+>  	if (sc->sc_page)
+>  		__free_page(sc->sc_page);
+>  	kfree(sc);
 
-Cc: <stable@vger.kernel.org> is missing here.
+It seems 'sc->sc_sock' also has the same risk.
+So a smaller fix may be:
+
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 8b3830b601ba..0eaf2c4a6989 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -393,6 +393,9 @@ static void sc_kref_release(struct kref *kref)
+ 
+ 	sclog(sc, "releasing\n");
+ 
++	/* Unlink before freeing anything the debugfs readers dereference. */
++	o2net_debug_del_sc(sc);
++
+ 	if (sc->sc_sock) {
+ 		sock_release(sc->sc_sock);
+ 		sc->sc_sock = NULL;
+@@ -402,8 +405,6 @@ static void sc_kref_release(struct kref *kref)
+ 	o2nm_node_put(sc->sc_node);
+ 	sc->sc_node = NULL;
+ 
+-	o2net_debug_del_sc(sc);
+-
+ 	if (sc->sc_page)
+ 		__free_page(sc->sc_page);
+ 	kfree(sc);
 
 Thanks,
 Joseph
-
-> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
-> ---
-> diff --git a/fs/ocfs2/dlm/dlmlock.c b/fs/ocfs2/dlm/dlmlock.c
-> index 46120eb75d90..660237c0d7cd 100644
-> --- a/fs/ocfs2/dlm/dlmlock.c
-> +++ b/fs/ocfs2/dlm/dlmlock.c
-> @@ -138,6 +138,8 @@ static enum dlm_status dlmlock_master(struct dlm_ctxt *dlm,
->  					  res->lockname.len)) {
->  			kick_thread = 1;
->  			call_ast = 1;
-> +			/* Keep the lock alive through AST enqueue. */
-> +			dlm_lock_get(lock);
->  		} else {
->  			mlog(0, "%s: returning DLM_NORMAL to "
->  			     "node %u for reco lock\n", dlm->name,
-> @@ -166,10 +168,12 @@ static enum dlm_status dlmlock_master(struct dlm_ctxt *dlm,
->  	wake_up(&res->wq);
->  
->  	/* either queue the ast or release it */
-> -	if (call_ast)
-> +	if (call_ast) {
->  		dlm_queue_ast(dlm, lock);
-> -	else
-> +		dlm_lock_put(lock);
-> +	} else {
->  		dlm_lockres_release_ast(dlm, res);
-> +	}
->  
->  	dlm_lockres_calc_usage(dlm, res);
->  	if (kick_thread)
-
