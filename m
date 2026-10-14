@@ -1,77 +1,75 @@
-Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
+Received: from mail-pj1-f52.google.com (mail-pj1-f52.google.com [209.85.216.52])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 48D983EC6B3
-	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 03:43:47 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BE72040B364
+	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 03:46:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.52
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791949430; cv=none; b=Z21+p03bcmgJu2JrweXr52e7PVnswD27Fzis8GP3G6+Oe8xB86AtRuQxgKPGfhcxQ8F4hc8oXk5XbtEMYY/GFr8bZ/jniopPj/iZ6vKQE8+A/jqxXcJUMJKFaguHo7Ek9qkeDJIzvBDAAOwFsuI+nkXIz7K9ks/1rgSxdTneOqI=
+	t=1791949597; cv=none; b=deZshGPMfkuGp0yX4dTTbMv8IpGVh72ttamrgvBMJT0kKB7+fK5Q6lnGDinJTTlMaCvjGDflQeOjV+ShQnkppxzZihifgj4yvlWmQKJkGZhQfxadq0tnQ2II9z6lxMx9JlE2X/TJyvNZ7QFCJuPwYlITs/PNpKKQ5bS6hd3U7yg=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791949430; c=relaxed/simple;
-	bh=uAIPZvQ99EKhl4bzVyWX50RMipQcVv95QeJ6Gk6Fjr0=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=MznHRwCv1YpWmdl6ngd91+kDO5x6RhF9Hie0SHbtusciWglaT1uAL+/jQYzIWkCaIdeh6pYpaNgEtXioykW44itAB2tpD+orW8kqJfAFtklIPOtTZlUKtGGq68bJMw5kZ9NqajEhWliPu4XOBtF+8mji3j/vf8FWCFDbtPzR4a0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Ebpmbg+9; arc=none smtp.client-ip=209.85.214.178
+	s=arc-20240116; t=1791949597; c=relaxed/simple;
+	bh=2nQGm0SV0Z6NzDcRAYWzHyPW7ZSNwX8KBK/mssNbLlw=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=DY0PWdpB9sIIRJtJfrrOr3oNjhiOG6IVrl/C3df3gNjakj3nKdS6CZjBXhRZ9oW6rjvj2cNIORo6rBraNwiit4GEDc7ls1ln5QNxAetP/JTd4DSJpfBysYne2NIdIdwUCrWDLZ9WGdqAb+V77zYT/c6HNvo9NHAWz+8h1jHwD8Q=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=ZscJedG8; arc=none smtp.client-ip=209.85.216.52
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Ebpmbg+9"
-Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-2e915887d9dso9485835ad.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 20:43:47 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="ZscJedG8"
+Received: by mail-pj1-f52.google.com with SMTP id 98e67ed59e1d1-3ab4178ee33so1975305a91.3
+        for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 20:46:35 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791949427; x=1792554227; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1791949595; x=1792554395; darn=lists.linux.dev;
         h=content-transfer-encoding:content-type:mime-version:message-id:date
          :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=cPZ6CMVllg1ExTGuLIWcOTSOQLgRxBXxWD+/IcCpGYk=;
-        b=Ebpmbg+9a92TzXFCBVJcOPRXbMeNrm4Oy65zuO7kXfv8ylRj8QhzgvzNwsThscdyxR
-         Xnl0CbRKYeCI6qyLZtSGT3kMVGSrBB0XfDA6TnR6YdP7J1LqtM6x9NAQFk6rS6Yt61+V
-         W5tUwf3wNyZpvXHAYBu4gyf3K8cu9pLM7CIdvLQtLxY8AAj+gnu9QbNtq+G47gGNcxus
-         wtx+yOqQPFkBHB1QWVSnybKHSDrqcTcPyRhyxK2dnxIYEY5CRHxo7prudbfjAYI8WWGV
-         gAyiskOoxSvJ1Dxy+qd4oevVjXHPPFOfWJhnUiv21nNHy8p9gZSjwZMx5m5SdrTvKrwe
-         FSUQ==
+        bh=OMsUnlH498VEzFDwKMOMwmbF5NXX7koG+hTNIxSkTzI=;
+        b=ZscJedG8P+SM/7W8my2qzelARQTQqVbTmOnIxBqQv6iRyJzHCa72l8TCsQeWMKTgal
+         EzGyUu9m0k7Qb+ZRQNdWqe35IwWWU9/XHFU7kOcy+XLc8oEjGgegcN1KdhTbAy0WyW41
+         nXxQBD5NmLdRPSoaRAF7YQa3TR0u7raZC1p6M3EgIUS8b+6JJBs4XkiJFgEkbHX+mksm
+         I3Bh4sCG+DECYxDBSx5XccgD2e1JEschtd+GUmTd9a/NTKXi4F0OGnAyqKgFUIF2rRqI
+         5+jRUPSh5C0Xstu9teMrKW3ZQgUlVmPqy2malrCRh97A2cyIHi0B+wRcZXtxMaLazFAa
+         eA9Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791949427; x=1792554227;
+        d=1e100.net; s=20260707; t=1791949595; x=1792554395;
         h=content-transfer-encoding:content-type:mime-version:message-id:date
          :subject:cc:to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=cPZ6CMVllg1ExTGuLIWcOTSOQLgRxBXxWD+/IcCpGYk=;
-        b=ZoOPz8BJgcWKqhY7fDPKZPeNr14FnJKkkmnr3Rj7pVBZdIzkhcTxMndZbM+ywvqaoB
-         amUD//x0ek4gyF9mZehio3qWTZnjTo7iUNyPViWue6ZNjUoCJAv7R52vtWX25GrvvJ3L
-         gdbGW0yeQqQ4g7rJB9zfCg8B7Nir+vqo6ogDHDxax3y/mMt+hBni80cmaO3yj/o719yE
-         RNN64S2/jLP0ai9gOscX2Gk7Xg0+zNObF8nCqKfwfEV8g7d5VN1wNPRb/gwPGXAHqugi
-         BIrV1pYDumIhqAkf6wBYWzK+QRr4EGacw59fwahZovuiKAEj39hp7qipYv0lcyGK4+nM
-         pdkw==
-X-Gm-Message-State: AFq9FYLqzTlF8d2+hhrUYMIGUftndMOsDmQnI3bWqiwq4E9NRLk909FS
-	ZWhin9ytrOAjSdpygjUT6awoTkthxAFd93JBU0jGyofZYtql5meXOx88
-X-Gm-Gg: AYBFou2i4PwzEOpnpJMkLlPIgV8SIqWU5TBTfpbdkBMLu//VqGQDhzG73vxfHE6GGhS
-	lFg5EsX2RV69c6WN7Qcve6RgbxZml5NVjrT7u6vVAlAEvVA875/kOPEI6lhgip32L/VLkS4tB6T
-	T1ltClL3crYrwyd3KyTWoFUkEWRSFX4tFxXfGbZL/q4JmSkGjBLWPcQj3OBCt8u7W4Uy9DHxpeE
-	Oe5qw8Ojyq5BOlKlQT4SRyrmtDuG4rotR2xlGOw4F09wAfOI/qWeK9WrEy7KzYouMXUeihWmhqK
-	669R+iFtuzDEy4DdhdSPn8mTS9uV3fzVzbWftF89Oy+g/Krl3olc6Vitq3vJ/Nf0US7llkmvmde
-	pYOIOI4RQ4Lx5BeuY9gF0YjoMA2idHUibndxD/YdL3emIIpYKwEWSWjQZ1cdkln2zcxKc08FVjM
-	RYQn4jdweVyB+dc3Y7+JvfOPe9ZJMLgDrCd5KPfiaQWYtXhgHWGnzmsls8nIgMQGZSXw==
-X-Received: by 2002:a17:902:cec2:b0:2dd:ad73:c98b with SMTP id d9443c01a7336-2e842bcda99mr120161875ad.35.1791949427055;
-        Tue, 13 Oct 2026 20:43:47 -0700 (PDT)
+        bh=OMsUnlH498VEzFDwKMOMwmbF5NXX7koG+hTNIxSkTzI=;
+        b=MVj5JOPSQscJULGNV4erP6X+xV+yn1bW7/mdRM9+L+R6ZN8zOB4zkh73MjL3amlkGG
+         04fsVxVbZcj3vZqeVftiCWbq/+4pSL5IMMRUjMzBNeUhw99htyK3TBbJMQZyXRG5yBsC
+         KF+erv/clr775Qyys8dm1R4fZv3kk3PcmmQb+Tf2P2OC6NLGOnnQDExb1YEOULQZV4nL
+         4jQ7Rw+0l2bkZzW2KeVnd9EnHfVkQblJRfnB0qzkN43bfZOxizROjOehXKdVDYHJ/ogS
+         YTpmOGygg2aC6neCTVkQqNOXvUbZEwf75ZFJKBTCffqyXkt8CPhkpbq9pe2Uwtj2AmXv
+         qIdA==
+X-Gm-Message-State: AFq9FYLU5VlCs+oJiLdQFs8bdIgrTCvG7wUrF8tiqsgBn/fk/nacFhb9
+	UmUnnn2BQBkJ8KPT2erlogJMNDo3JHVaEjMybquqqdznyMMnt3fRfNuO
+X-Gm-Gg: AYBFou3VGu6Fu/pf0/EbD1IWESA/AHfwDxPvavfjPo2oMh3Xq7IOqwOji7nRkRCxg6z
+	18r5OymH+zHNWgPCH88QW1IGrcr/BIy+PSfZIgk1DLKEoSG/pXa+feje96q8i8fNuEdob2JoDQd
+	nePNK5Cl/c7o/Ts5Ay4UrgG9AXI0an+Wtt8bDUAQu6cs6hqSp+TSwHx55b74G9D7UfMmCwVd3lp
+	jMclwYkBtHVGka1rh4aLAw/Mo65aRAGrn6FMXR2tTLFrIstMVMVlKtSGVVfwmM2UInhsUCEsE+6
+	4vv98jIpKqBgCyM3NIlh6wY+x7lKL8HpMS5vH4jFVuHnHpF4+RoPKTUd24YSbIEvyXtq2NNNl/a
+	0u7f+2xFTkJ+026IuxSM53D0+/oXko7NBb9oV7GQNFgFQT01SR4ky89vpcdPwe/Vd1gd9aHy45j
+	idEZqi7GaZSm0K9/HXpFlAn9sNfKYnL8os7Yg4spwMSswYf5j++Z5/P5mi/jXBnNx88g==
+X-Received: by 2002:a17:90b:1a82:b0:39d:f08e:e6e7 with SMTP id 98e67ed59e1d1-3ab3a35a068mr12230516a91.9.1791949594986;
+        Tue, 13 Oct 2026 20:46:34 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e8422e4ebfsm65092695ad.78.2026.10.13.20.43.42
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ac5f05083fsm2532188a91.1.2026.10.13.20.46.30
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 13 Oct 2026 20:43:46 -0700 (PDT)
+        Tue, 13 Oct 2026 20:46:34 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
-	heming.zhao@suse.com,
-	chao@kernel.org,
-	jack@suse.cz
+	heming.zhao@suse.com
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	stable@vger.kernel.org,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com,
 	zzzccc427@gmail.com
-Subject: [PATCH] ocfs2: Cancel quota sync work before freeing quota info
-Date: Wed, 14 Oct 2026 11:43:40 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0052-v3-b4904bd6c85daf033adf@gmail.com>
+Subject: [PATCH] ocfs2: dlmfs: Hold l_lock through the unlock wakeup
+Date: Wed, 14 Oct 2026 11:46:27 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0055-v4-c1574edc9949e3a22edf@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -82,169 +80,164 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-OCFS2 quota info owns dqi_sync_work and must outlive both its timer
-and qsync_work_fn(). ocfs2_local_free_info() frees that owner without
-cancelling the work, relying on the quota suspend/disable wrappers.
+The user_lock_res embedded in a DLMFS inode must remain alive until the
+final unlock AST finishes accessing it. user_unlock_ast() clears
+USER_LOCK_BUSY under l_lock, but releases that lock before calling
+wake_up() on the embedded l_event. user_dlm_destroy_lock() waits only
+for BUSY to clear, so it can return before the callback's last access.
 
-Loading quotas on a read-only to read-write remount can successfully
-queue the work in ocfs2_global_read_info() and then fail while attaching
-a dquot to an existing inode in add_dquot_ref(). The quota core unwinds
-that failure directly through dquot_disable(), bypassing the OCFS2
-wrapper:
+With the native userspace stack, fs/dlm dispatches the unlock AST
+asynchronously. Unlinking an attached lock with no remaining local
+holders can therefore reach the following order while the parent domain
+stays mounted:
 
-  Remount task (s_umount write)        Timer/workqueue
-  ocfs2_global_read_info()
-    schedules dqi_sync_work
-  add_dquot_ref() returns an error
-  dquot_disable()
-    ocfs2_local_free_info()
-      frees oinfo
-                                     delayed-work timer expires
-                                     qsync_work_fn() reads oinfo
+  Unlink and inode release          Native unlock AST
+  ------------------------          -----------------
+  submit final unlock
+                                    clear BUSY under l_lock
+                                    release l_lock
+                                    delay before wake_up()
+  observe BUSY clear under l_lock
+  return from the destroy wait
+  unlink and evict the child
+  RCU callback frees the inode
+                                    wake_up(&lockres->l_event)
 
-The timer core can then write to the freed embedded timer, or
-qsync_work_fn() can read oinfo->dqi_gqinode before its s_umount trylock.
-The outer ocfs2_disable_quotas() cleanup skips the failed type because
-dquot_disable() has already cleared its loaded state.
+The initial condition check in wait_event() can succeed without joining
+the waitqueue. The callback holds no inode reference, and keeping the
+parent domain alive avoids disconnect draining the callback workqueue.
+The delayed wakeup then accesses freed inode storage, causing a
+use-after-free in waitqueue locking.
 
-Cancel dqi_sync_work synchronously at the start of
-ocfs2_local_free_info(), before dropping the global inode or freeing any
-owner state. The work is initialized whenever read_file_info() succeeds.
-dquot_disable() holds s_umount for write, so the callback skips its quota
-scan via down_read_trylock() and can finish without waiting for teardown.
-The synchronous cancel also handles its self-rearm.
+Keep l_lock held through wake_up(), as ocfs2_unlock_ast() already does.
+user_check_wait_flag() takes the same lock, so teardown cannot observe
+the cleared BUSY flag until the wakeup has finished. The callback and
+its wrappers do not access the lock resource after this final unlock.
+The waitqueue lock is released before wait_event() tests BUSY, so
+extending the critical section does not invert their lock order.
 
 KASAN report as below:
 
-    BUG: KASAN: slab-use-after-free in __run_timers+0x9e9/0xa10
-    Write of size 8 at addr ffff888111b0aad0 by task swapper/3/0
+    BUG: KASAN: slab-use-after-free in _raw_spin_lock_irqsave+0x3d/0x60
+    Read of size 1 at addr ffff888117dc93c0 by task kworker/u17:0/871
 
+    CPU: 2 UID: 0 PID: 871 Comm: kworker/u17:0 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+    Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+    Workqueue: dlm_callback dlm_callback_work
     Call Trace:
-     <IRQ>
+     <TASK>
      dump_stack_lvl+0x93/0xd0
      print_report+0xce/0x630
-     ? __run_timers+0x9e9/0xa10
+     ? _raw_spin_lock_irqsave+0x3d/0x60
      ? srso_alias_return_thunk+0x5/0xfbef5
      ? __virt_addr_valid+0x20e/0x420
-     ? __run_timers+0x9e9/0xa10
+     ? _raw_spin_lock_irqsave+0x3d/0x60
      kasan_report+0xe0/0x110
-     ? __run_timers+0x9e9/0xa10
-     __run_timers+0x9e9/0xa10
-     ? __pfx___run_timers+0x10/0x10
-     ? __lock_acquire+0x5a3/0x2140
-     ? __pfx_do_raw_spin_lock+0x10/0x10
+     ? _raw_spin_lock_irqsave+0x3d/0x60
+     ? _raw_spin_lock_irqsave+0x3d/0x60
+     __kasan_check_byte+0x36/0x50
+     lock_acquire+0x113/0x300
+     ? __pfx_pmbd_probe_hit_cookie+0x10/0x10
+     ? pmbd_probe_hit_cookie+0xee/0x1c0
+     _raw_spin_lock_irqsave+0x3d/0x60
+     ? __wake_up_common_lock+0x27/0xb0
+     __wake_up_common_lock+0x27/0xb0
+     user_unlock_ast+0x21a/0x490
+     ? __pfx_user_unlock_ast+0x10/0x10
      ? srso_alias_return_thunk+0x5/0xfbef5
-     timer_expire_remote+0xfa/0x160
-     ? __pfx_timer_expire_remote+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? trace_hardirqs_on+0x18/0x160
-     tmigr_handle_remote_up+0x4ba/0x9d0
-     ? __pfx_tmigr_handle_remote_up+0x10/0x10
-     ? tmigr_handle_remote+0x21a/0x340
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_release+0xc8/0x290
-     ? __pfx_tmigr_handle_remote_up+0x10/0x10
-     __walk_groups_from+0x5a/0x160
-     tmigr_handle_remote+0x24f/0x340
-     ? __pfx_tmigr_handle_remote+0x10/0x10
+     ? process_one_work+0x7c8/0x1b40
+     fsdlm_lock_ast_wrapper+0xf2/0x130
+     dlm_do_callback+0x2e9/0x6c0
+     ? __pfx_fsdlm_lock_ast_wrapper+0x10/0x10
+     process_one_work+0x9a8/0x1b40
+     ? __pfx_process_one_work+0x10/0x10
      ? lock_acquire+0x190/0x300
+     ? lock_is_held_type+0x8f/0x100
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_release+0xc8/0x290
-     run_timer_softirq+0x222/0x270
-     ? __pfx_run_timer_softirq+0x10/0x10
+     worker_thread+0x65c/0xe40
+     ? __pfx_worker_thread+0x10/0x10
+     kthread+0x351/0x460
      ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __pfx_kthread+0x10/0x10
+     ret_from_fork+0x659/0x940
+     ? __pfx_ret_from_fork+0x10/0x10
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lockdep_hardirqs_on_prepare+0xb8/0x1a0
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     handle_softirqs+0x1fa/0x8d0
-     ? __pfx_handle_softirqs+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? _raw_spin_unlock+0x23/0x40
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __hrtimer_rearm_deferred+0x1fb/0x5d0
-     __irq_exit_rcu+0x113/0x1e0
-     irq_exit_rcu+0xe/0x20
-     sysvec_apic_timer_interrupt+0x6c/0x80
-     </IRQ>
-     <TASK>
-     asm_sysvec_apic_timer_interrupt+0x1a/0x20
-     ? ct_kernel_exit.constprop.0+0xc5/0xf0
-     ? do_idle+0x3ae/0x650
-     default_idle+0x9/0x10
-     default_idle_call+0x6c/0xb0
-     do_idle+0x3ae/0x650
-     ? cpuhp_online_idle+0x9c/0xb0
-     ? __pfx_do_idle+0x10/0x10
-     ? __entry_text_end+0x1020f6/0x1020f9
-     ? lockdep_hardirqs_on_prepare+0xeb/0x1a0
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? trace_hardirqs_on+0x18/0x160
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     cpu_startup_entry+0x54/0x60
-     start_secondary+0x223/0x2d0
-     ? __pfx_start_secondary+0x10/0x10
-     common_startup_64+0x13e/0x158
+     ? __switch_to+0x74f/0xf70
+     ? __pfx_kthread+0x10/0x10
+     ret_from_fork_asm+0x1a/0x30
      </TASK>
 
-    Allocated by task 523:
+    Allocated by task 492:
      kasan_save_stack+0x33/0x60
      kasan_save_track+0x14/0x30
-     __kasan_kmalloc+0xaa/0xb0
-     __kmalloc_cache_noprof+0x28d/0x610
-     ocfs2_local_read_info+0x181/0x1580
-     dquot_load_quota_sb+0x69e/0x11c0
-     dquot_load_quota_inode+0x227/0x3e0
-     ocfs2_enable_quotas+0x27c/0x520
-     ocfs2_reconfigure+0x964/0xd00
-     reconfigure_super+0x3ca/0xa70
-     path_mount+0x141e/0x1e80
-     __x64_sys_mount+0x24b/0x2d0
+     __kasan_slab_alloc+0x89/0x90
+     kmem_cache_alloc_lru_noprof+0x205/0x5c0
+     dlmfs_alloc_inode+0x2a/0x50
+     alloc_inode+0x69/0x230
+     new_inode+0x23/0x1a0
+     dlmfs_get_inode+0x47/0x2d0
+     dlmfs_create+0x18f/0x2f0
+     lookup_open+0x88f/0x13e0
+     path_openat+0x95e/0x2020
+     do_file_open+0x21e/0x470
+     do_sys_openat2+0xf4/0x1b0
+     __x64_sys_openat+0x136/0x1e0
      do_syscall_64+0x114/0x620
      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
-    Freed by task 523:
+    Freed by task 0:
      kasan_save_stack+0x33/0x60
      kasan_save_track+0x14/0x30
      kasan_save_free_info+0x3b/0x60
      __kasan_slab_free+0x5f/0x80
-     kfree+0x308/0x580
-     ocfs2_local_free_info+0x47b/0x800
-     dquot_disable+0x5d9/0x17a0
-     dquot_load_quota_sb+0xd3c/0x11c0
-     dquot_load_quota_inode+0x227/0x3e0
-     ocfs2_enable_quotas+0x27c/0x520
-     ocfs2_reconfigure+0x964/0xd00
-     reconfigure_super+0x3ca/0xa70
-     path_mount+0x141e/0x1e80
-     __x64_sys_mount+0x24b/0x2d0
+     kmem_cache_free+0x242/0x580
+     dlmfs_free_inode+0x25/0x60
+     i_callback+0x4b/0x80
+     rcu_core+0x6be/0x1ed0
+     handle_softirqs+0x1fa/0x8d0
+     __irq_exit_rcu+0x113/0x1e0
+     irq_exit_rcu+0xe/0x20
+     sysvec_apic_timer_interrupt+0x6c/0x80
+     asm_sysvec_apic_timer_interrupt+0x1a/0x20
+
+    Last potentially related work creation:
+     kasan_save_stack+0x33/0x60
+     kasan_record_aux_stack+0xa7/0xc0
+     __call_rcu_common.constprop.0+0x80/0x280
+     destroy_inode+0x131/0x1b0
+     evict+0x543/0x9f0
+     iput+0x680/0xb80
+     filename_unlinkat+0x36d/0x660
+     __x64_sys_unlinkat+0xb0/0x110
      do_syscall_64+0x114/0x620
      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
-    The buggy address belongs to the object at ffff888111b0a800
-     which belongs to the cache kmalloc-1k of size 1024
-    The buggy address is located 720 bytes inside of
-     freed 1024-byte region [ffff888111b0a800, ffff888111b0ac00)
+    The buggy address belongs to the object at ffff888117dc92c0
+     which belongs to the cache dlmfs_inode_cache of size 1464
+    The buggy address is located 256 bytes inside of
+     freed 1464-byte region [ffff888117dc92c0, ffff888117dc9878)
 
-Host details, register and page dumps omitted.
+[Physical-page and shadow-memory dumps omitted.]
 
-Fixes: 1a6152d36dee ("quota: propagate error from __dquot_initialize")
+Fixes: cbe0e331fdbd ("ocfs2_dlmfs: Enable the use of user cluster stacks.")
 Cc: <stable@vger.kernel.org>
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 Assisted-by: LLM
 
 ---
-diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
-index 76e7dd5aecc8..a2ce25a33607 100644
---- a/fs/ocfs2/quota_local.c
-+++ b/fs/ocfs2/quota_local.c
-@@ -840,6 +840,9 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
- 	int mark_clean = 1, len;
- 	int status = 0;
+diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
+index 617c92e7b925..60653db7b411 100644
+--- a/fs/ocfs2/dlmfs/userdlm.c
++++ b/fs/ocfs2/dlmfs/userdlm.c
+@@ -253,9 +253,9 @@ static void user_unlock_ast(struct ocfs2_dlm_lksb *lksb, int status)
  
-+	/* Quota-core error paths can bypass ocfs2_disable_quotas(). */
-+	cancel_delayed_work_sync(&oinfo->dqi_sync_work);
-+
- 	iput(oinfo->dqi_gqinode);
- 	ocfs2_simple_drop_lockres(OCFS2_SB(sb), &oinfo->dqi_gqlock);
- 	ocfs2_lock_res_free(&oinfo->dqi_gqlock);
+ 	lockres->l_flags &= ~USER_LOCK_BUSY;
+ out_noclear:
+-	spin_unlock(&lockres->l_lock);
+-
++	/* Complete the wakeup before a BUSY waiter can free lockres. */
+ 	wake_up(&lockres->l_event);
++	spin_unlock(&lockres->l_lock);
+ }
+ 
+ /*
