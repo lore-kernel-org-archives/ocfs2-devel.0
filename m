@@ -1,292 +1,176 @@
-Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com [209.85.216.44])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from fhigh-b6-smtp.messagingengine.com (fhigh-b6-smtp.messagingengine.com [202.12.124.157])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 10985376469
-	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 03:47:21 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.44
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 628D0412266
+	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 04:40:40 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=202.12.124.157
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791949643; cv=none; b=nmG0aiBVOFlG2WUZAk7k2fp1ma3yiL7+jlCh8Q6AEuMrkLNhy7j8JtHrHYQZI9ibEbBbFozsagbqEfY6UpSgx+cjfpfeQDta+oX7Lr+di/pmOwXl93SNm+N0f5uRigxTpvaSZOkL9fj0yh8Zpt7f5100Fv9g/xZP2JntGmEFLq4=
+	t=1791952841; cv=none; b=Xnx8Yriax0/pmYgFM2b289+l9KnQ2yXcc+Tj5PazlR1bOaIzVEObn2J/+jvjB+xM6L/UCaUoRujCAFen4+ObmkECYTnuEnqyS7vVk0eVea74kQaBmhfOLXey8pY80DwzP476NgfO2y+r6Oh+0bxQjYSU+X/hc4tjMgmAu5liOKM=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791949643; c=relaxed/simple;
-	bh=HS1wHWsDOr6aHX0hoYpK3rAOrYOi2Hl0QD71HWWO310=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=Pq90zl5Vqo25q0TTvD1luQflhQHd6ekbYIaEyj/i1ntfFOtXk7OAHDxJ1SY/Um3lpUQmN0uj/trtcBVf/G2wNsadc/pS8Ll1dDJwB0UVOv683klpYiwP3glyoF+bthvnIKoBq3D+cU+GYzb5krZTrwZ2O49/NEulytgukTv9Cu4=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=CMuMJ4QY; arc=none smtp.client-ip=209.85.216.44
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	s=arc-20240116; t=1791952841; c=relaxed/simple;
+	bh=n0Hs5KVddvSkBLEzXlL+zhClUBSiGyvm5QaOrNgUFDY=;
+	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To; b=BrDvhTnjuwj0vfSaE9BQGJAIsNzzdcmwBaj1sbFLelRyA5e4yXrbhc+BjlDRUiufrdiz6xx+SftMjAH+G92hV/55kx45/PCtnCkhqdmU3qyrHuN0yQqZgmE25IanabmFf/ne5hJygJahK2mK4LeC225aP7u/UECkaLZ6/DxFafU=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=tyhicks.com; spf=pass smtp.mailfrom=tyhicks.com; dkim=pass (2048-bit key) header.d=tyhicks.com header.i=@tyhicks.com header.b=ncQOfXsY; dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b=K0VjHOtO; arc=none smtp.client-ip=202.12.124.157
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=tyhicks.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=tyhicks.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="CMuMJ4QY"
-Received: by mail-pj1-f44.google.com with SMTP id 98e67ed59e1d1-3ac397836fbso1202558a91.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 20:47:21 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791949641; x=1792554441; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:mime-version:message-id:date
-         :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=hg3Ib/3SZ5QgDJKkzlM/abstX2kfUMwhE6cPvMDLrDw=;
-        b=CMuMJ4QYZRxZ+XmIinlHti4dPRL2RclnUojY1T+nLNKkhZwaD3JBRWVptGAVq6vuZc
-         KJWO8gGxNqCHCKN2688tukUXkuwsax2t/TZVzkSf3yApUFEBs5DJtr80gX+47b53Rrws
-         WFbvCNDARS3nD9iUPJYVYIW4Dx69G9KETYfg+rKOJfyk+aVep38/b2GuOQPZDsqFsxO0
-         9rGenOISeSIiybpZftdOnyeI8a7dN0beZNbt4thnDPGhe1OW1UV/bAZIjjH8W/83g6WH
-         4YvhiopPpGVJC4EUKKWmm/g57rtkzke6VHsaA2hGdHSj6RJTTkHTQv2LBjq2woyNpy3k
-         6yJA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791949641; x=1792554441;
-        h=content-transfer-encoding:content-type:mime-version:message-id:date
-         :subject:cc:to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=hg3Ib/3SZ5QgDJKkzlM/abstX2kfUMwhE6cPvMDLrDw=;
-        b=dcWtWyvefFJ1X5RVPWyVdUxs6pJJNkkVjiCR4JVWZtCPH/Pcai9OiLAhVxZy+SOKGI
-         bi2rYUr0W0lD780dVSdWR6MACqiX2NdxyU6TtlnyqAAP3SvjmhJZppqUU33ZHac54n41
-         gG1QZ7/HZy4YjPWwctnWfhJT7+fJjVcS2m+2nA2UiSNPz0bp1XulfaSLC9V7NilGgjEn
-         XzbtlJ8EQE4MO8QtvOXY8hkgzcGU4rtqP3RV1MZ5qim5lHy8tzzUXXnEZrnvaTG9UHMT
-         f4eGpF/yr9qS5bhrUAYy4o5awcIcbtUilkoJCEW4vyN1y2bDaQviOF1A1N9n8hKrjp65
-         HZhQ==
-X-Gm-Message-State: AFq9FYL9VV9rYvkOBMt5SMqmWp73wHDXmR7+wF4gN8jp8qcSjzCZKbqi
-	L+esTsHrkQ42DNSTHg5ggqK0WBzWZ1xQNV0lpsxQ/TMPM3laH7+RjmdO
-X-Gm-Gg: AYBFou27HZ5FiMoD/qkNZCyz2N1Dgnk7+00mi4JrzSzE5tJiZUCqBpn5kFBZdzt2Xxc
-	c/KIlY1EUuAzklDA3JEnPcgoFPEYHw/6Ci1MFKiIOuIoqvv1ThU17dLi8o5nQHhkDtTYF/rpsum
-	ZI+JqvoBjTS+JkVokkjMGxEyxYNpwv8nHAri8Q7kRu1QVsxRDrQEhnKW+KHTkkb2HkGrl7qGT3o
-	xrhPIZ9Fg9Uv/KKZ1a2CyrKUkyVXbEjPzd9/k/fiwQvqBCf6oF75l6IYsAZOZOBBVfT04paW7yB
-	lkTK+FWrZSp+QlnGs7/gOFT2qUmRoBkknv1B5VED1/3Wipy6ixvuuorM/a3Sa8M7nW5naJEXZw6
-	EaqbOFH5MjiL5qxLjaVziS/qo2a0pvcO0AFpFqBHIjvwsRaUWx3CY9L2J6i7mb6fgbK47XPUEaF
-	6XMt7VCAVDHb6E2sAoto4uivQnbM9s11yZeIg//KUdwPrt2lH2/Jg5ky7SV5o7WEsxbA==
-X-Received: by 2002:a17:90b:1e49:b0:3ab:e588:c29a with SMTP id 98e67ed59e1d1-3abe588faf0mr7144466a91.6.1791949641023;
-        Tue, 13 Oct 2026 20:47:21 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ac5f24af99sm2423518a91.8.2026.10.13.20.47.17
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 13 Oct 2026 20:47:20 -0700 (PDT)
-From: Cen Zhang <zzzccc427@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com,
-	heming.zhao@suse.com,
-	tao.ma@oracle.com
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com,
-	zzzccc427@gmail.com
-Subject: [PATCH] ocfs2: Pin refcount trees before dropping the lookup lock
-Date: Wed, 14 Oct 2026 11:47:15 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0037-v4-9f1a261dfbc341721689@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	dkim=pass (2048-bit key) header.d=tyhicks.com header.i=@tyhicks.com header.b="ncQOfXsY";
+	dkim=pass (2048-bit key) header.d=messagingengine.com header.i=@messagingengine.com header.b="K0VjHOtO"
+Received: from phl-compute-05.internal (phl-compute-05.internal [10.202.2.45])
+	by mailfhigh.stl.internal (Postfix) with ESMTP id E5E4E7A0055
+	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 00:40:39 -0400 (EDT)
+Received: from phl-frontend-04 ([10.202.2.163])
+  by phl-compute-05.internal (MEProxy); Wed, 14 Oct 2026 00:40:39 -0400
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=tyhicks.com; h=
+	cc:cc:content-type:content-type:date:date:from:from:in-reply-to
+	:in-reply-to:message-id:mime-version:references:reply-to:subject
+	:subject:to:to; s=fm1; t=1791952838; x=1792039238; bh=mAFiYhtbFe
+	mwvvnCWTEeExr0pkWB7IZg7tNJUrlWDeo=; b=ncQOfXsYux6xUE5Yfpf1YgaBFT
+	cTHfw7QjzH5wusg7wxu/N7/hm73X28PpKquXZc5xiYwPW4+lAfqJxibqXR+UvLz+
+	2ZTUnxRz7HtcfNGFgS1MJkd0Tuv5h/GpjcWCaiSGJ1TZ1UdFlpedEaseFuzvowv/
+	TqQSSl8IG9OCVkOhNBJP95SN5RDQQl8GiR1aqF1Dp02uVWnRjvaljmZODDWOuAYc
+	RQbBArRhfe9jWPm3Oy560onwObhrAOQw70BBPuWWCXlWiSD0St3KNWW1JAL9kmbP
+	bNzF5pEbPDujqawxsBVKwUfbzwYVRc65jY+AqtX1732BeF90Rc9hAafKJ/NA==
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=
+	messagingengine.com; h=cc:cc:content-type:content-type:date:date
+	:feedback-id:feedback-id:from:from:in-reply-to:in-reply-to
+	:message-id:mime-version:references:reply-to:subject:subject:to
+	:to:x-me-proxy:x-me-sender:x-me-sender:x-sasl-enc; s=fm2; t=
+	1791952838; x=1792039238; bh=mAFiYhtbFemwvvnCWTEeExr0pkWB7IZg7tN
+	JUrlWDeo=; b=K0VjHOtOjP8x4OK/qLK5hjnzj3UEK+pOwByQK/diLCthYYtuRak
+	4w+UCUKGCK7JFq5rpq992TQ414sGpeXwoQll/jApp5jSvjv1N0AQ/vV6o8TAQSoj
+	0jIdCgbmVEwbpWc/GDIYhV7iGxhVnAVGyxOucONqfd+Qut3pa8xlZu9eupkPHb7a
+	O19RfpWHCKap1Ii2AG4C4Rgf9FKDqPAESBzjmyuI8I+/7v/rcZf87XvPdXRhxOVR
+	PHI64FJJSdJiopZc5fM/F+oblU4aUcPwF93Yc0oXuLowDYOwPy7A3lW/OBTdMI+P
+	X7xVR3mFNXlN4nZtsbMmUuaI/XZPAGqxlHA==
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
+	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
+	action=sign d=tyhicks.com a=rsa-sha256;
+DKIM2-Signature: i=1; m=1; t=1791952838; d=tyhicks.com;
+	mf=PGNvZGVAdHloaWNrcy5jb20+;
+	rt=PG9jZnMyLWRldmVsQGxpc3RzLmxpbnV4LmRldj4=;
+	s=fm1:rsa-sha256:dYugCIrEppjG7M2ICJxC0vAYrbinUw9KwWhdYYULo1PSma6
+	PnmWrTdZxlEeV3GRGuU9wg8a+b2YrW/iMnI07/ibTTP01HArRnO8Ef/FAAKL9CWD
+	Y0tZnzovLRrTq17VTxbMwu8kiLVZ9yNChd8bs3WpJQikNXdh7CJn3Itv+UFG522f
+	OByyfLPClJzlmTeMc9HAzOGWrZBgMlubaB/L2A4Ywg2Qzs4kOfmN2wUCkbgGX50K
+	CfEYVGpRLPoLcOHB1EU2dJhuL5wZpNlQx7BW/ypC0wZesP1ZqsNHgEedndzQUEUA
+	uT3WHHnaWNBTXgVAtTGiHklYBHFCOZ+3yGF9lJA==;
+X-DKIM2-Info: draft=ietf-dkim-dkim2-spec-06;
+	repo=github.com/dkim2wg/interop; date=2026-10-04; sw=lmtpprox;
+	action=mi-m=1; hc=12;
+	hn=cc,content-disposition,content-type,date,feedback-id,from,
+	in-reply-to,message-id,mime-version,references,subject,to;
+Message-Instance: m=1; h=sha256:qUmERcW4JyBitZMe5zuk9ywp5LRlIgLiVnlpfK0/pBM=:n0Hs5KVddvSkBLEzXlL+zhClUBSiGyvm5QaOrNgUFDY=;
+X-ME-Sender: <xms:xgfPaiirqaGth-_QIS8OAsoYy7Sf2rYbZwFhAfjJ0MuAWKxQ7THxuQ>
+    <xme:xgfPajaE8ofnGot4Pky4vdm_HNaxz3sV7tnqENiHW1NZcFJGvD6DD5wX-ruqy_MSt
+    qzisuah0SMwdW1miO5q3pRD4Y4a5JhX9iIk39cqEEXme_YFFqwv3Rg>
+X-ME-Received: <xmr:xgfParPcjPkYn4vlK0LMTgxNr5Ysji4BSj-bUDmcojpTmB7UhXNDHw>
+X-ME-Proxy-Cause: dmFkZTFKd7b9t+rYxj8fdFEGtNMVuNQ5jOwC8SdIlUTY97d1oNKv/jurn5DUraLtoIX+2E
+    I3bIdfkpsGhUi+/tt/Szji6YvW2+vzMoDGWv9xPK+lO1Sb1zC3bVSP3NLZ3IFInykWKEaP
+    PH93NfwO6+b7/crRfH4wX5WXalVIiTPCeErxbBQz6CcsOBGB7Z36o5CAXL7bOQ0KwYB3u2
+    Tt7S2s6M3ONy1Jf6lLNDRHUve8aF4/8yXcvszXWYbXHvQvvmoncKrISq6v28AJ11qBn/sv
+    qp0QBdjQ9qmGRZKU7BnZTWgAAxoRXCyTV5hWG4Si3B29+0DMJIgEbol0t/XKYLu9NNjraX
+    0smkOXWfrc/IBFYy/pyNxGx9kfhI0WiCxuDyZdzXI9f2NIYsJkUDkDUeJG4zUPuBWtaBvE
+    Mwi2vLMuBjIiVqP446bbIM7nhubKyyD0dXHP2HMFxaXSbWZp3G1UIOBjW6FPA7HQKr1TcP
+    BPwGPZdrFFh4a5r7M1kmZLbWcfqQp/zQcXFYEYi5bg9fYkAJaxBna2FbAXCGRPGb4Oc6Gh
+    1r+gceQWpvlFBkLAjH/mFrxDSXQUT5CImV6pag4feAxFZbphAWhHyasICJGejFWDtY2NaB
+    BCVdHpJu62iJDBfhFB3EF7k3EeYcm32d9i47bHoDPeSCp+YbyXeBn+EXahFQ
+X-ME-Proxy: <xmx:xgfPanR7GBzeumdsdancLyUun9rpWy2_-9xodM1WQNRR_NGP-MwpZg>
+    <xmx:xgfPau7MdffZ0A3QPGcRatiLqM8PYL5uRriXSWH_CfIWpuOpVlPScw>
+    <xmx:xgfPaia9aS220tTKgJDOpqj2xLlBZI6Y-T6J6zgubPIDKeXL060mVQ>
+    <xmx:xgfPaqZKI-8EgzC6LYS3JQGrtcebVT9OxULUA-QFxdCybqbmiymnFA>
+    <xmx:xgfPan3Lpy4_ahjI4bwYfGxNbwKEt-4H9IVwxWRAdOc68A38BkASVj37>
+Feedback-ID: i78e14604:Fastmail
+Received: by mail.messagingengine.com (Postfix) with ESMTPA; Wed,
+ 14 Oct 2026 00:40:36 -0400 (EDT)
+Date: Tue, 13 Oct 2026 23:40:28 -0500
+From: Tyler Hicks <code@tyhicks.com>
+To: Christian Brauner <brauner@kernel.org>
+Cc: Jan Kara <jack@suse.com>, Al Viro <viro@zeniv.linux.org.uk>,
+	ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org,
+	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org,
+	exfat@lists.linux.dev, linux-fsdevel@vger.kernel.org,
+	ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev,
+	linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev,
+	linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org,
+	linux-xfs@vger.kernel.org, stable@vger.kernel.org
+Subject: Re: [PATCH RFC 01/28] ecryptfs: don't leak the inode when a lookup
+ can't open the lower file
+Message-ID: <as8HvJJq-JP5-UCp@elm>
+References: <20261012-work-fs-sb_rdonly-v1-0-60743a3dc326@kernel.org>
+ <20261012-work-fs-sb_rdonly-v1-1-60743a3dc326@kernel.org>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=us-ascii
+Content-Disposition: inline
+In-Reply-To: <20261012-work-fs-sb_rdonly-v1-1-60743a3dc326@kernel.org>
 
-A refcount tree returned to ocfs2_lock_refcount_tree() must stay alive
-until that caller releases its operation reference. However,
-ocfs2_get_refcount_tree() returns the cached pointer after dropping
-osb_lock, and the caller only takes its kref afterwards. The registry
-reference does not protect this gap from concurrent removal.
+On 2026-10-12 12:20:46, Christian Brauner wrote:
+> ecryptfs_lookup_interpose() opens the lower file of a regular file to
+> read the size from the header. If that fails it calls make_bad_inode()
+> and returns the error. A new inode is still I_NEW at that point and
+> nothing ever unlocks or puts it, so it leaks together with the reference
+> it holds on the lower inode. And an inode that was already in the cache
+> gets marked bad for all its other users instead of just losing the
+> reference this lookup took.
+> 
+> umount then complains:
+> 
+>   VFS: Busy inodes after unmount of ecryptfs (ecryptfs)
+> 
+> That's a WARN, or a BUG with CONFIG_BUG_ON_DATA_CORRUPTION. The lower
+> filesystem reports the same when it is unmounted. Use iget_failed() for
+> a new inode and iput() for one from the cache.
+> 
+> Reproducer, opening the lower file read-write fails on a read-only bind
+> mount:
+> 
+>   sig=$(printf x | ecryptfs-add-passphrase - | sed -n 's/.*\[\(.*\)\].*/\1/p')
+>   mount --bind -o ro /lower /lower
+>   mount -i -t ecryptfs -o ecryptfs_sig=$sig,ecryptfs_cipher=aes,ecryptfs_key_bytes=16,ecryptfs_passthrough /lower /upper
+>   cat /upper/f      # EROFS
+>   umount /upper     # VFS: Busy inodes after unmount of ecryptfs
+> 
+> Fixes: 3b06b3ebf441 ("eCryptfs: Fix new inode race condition")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 
-This can happen when another node frees a refcount root and reuses its
-block with a different generation while this mount retains the old
-cached tree. Two local operations on different inodes sharing the new
-root, such as data CoW and an external xattr update, can then look up
-the same stale tree. Their inode locks are independent, and both the
-REFCOUNT DLM lock and rf_sem are acquired after the first operation
-reference.
+Thanks, Christian! I ran this through the regression tests in the
+ecryptfs-utils project and everything passed. I also followed the steps
+in your reproducer, with and without this change, and verified that it
+fixes the intended issue.
 
-The following ordering is possible, with no other operation references:
+  Acked-by: Tyler Hicks <code@tyhicks.com>
 
-  Data CoW                         Xattr update
-  --------                         ------------
-  Look up the old tree under
-    osb_lock, then drop osb_lock
-                                   Look up the same tree and take a kref
-                                   Acquire the tree locks and read the
-                                     new on-disk generation
-                                   Erase the old tree under osb_lock
-                                   Unlock and drop the operation kref
-                                   Drop the registry kref, freeing tree
-  Take a kref through the
-    freed tree pointer
+Tyler
 
-The final kref_get() accesses freed rf_getcnt storage, and subsequent
-accesses in ocfs2_lock_refcount_tree() also use the freed allocation.
-
-Take the operation reference in ocfs2_get_refcount_tree() before
-releasing osb_lock, including when an insertion loses to another lookup.
-Removal must acquire the same lock, so it cannot drop the registry
-reference before the lookup has pinned the tree. Keep the existing
-unlock and error path puts. The two callers that already hold the
-refcount tree lock keep their borrowed lookup behavior and do not
-acquire an extra reference.
-
-KASAN report as below:
-
-    BUG: KASAN: slab-use-after-free in ocfs2_lock_refcount_tree+0x94a/0x9b0
-    Read of size 4 at addr ffff888117212820 by task python3/497
-
-[Kernel and hardware identification omitted.]
-
-    Call Trace:
-     <TASK>
-     dump_stack_lvl+0x93/0xd0
-     print_report+0xce/0x630
-     ? ocfs2_lock_refcount_tree+0x94a/0x9b0
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __virt_addr_valid+0x20e/0x420
-     ? ocfs2_lock_refcount_tree+0x94a/0x9b0
-     kasan_report+0xe0/0x110
-     ? ocfs2_lock_refcount_tree+0x94a/0x9b0
-     ocfs2_lock_refcount_tree+0x94a/0x9b0
-     ? __pfx_ocfs2_lock_refcount_tree+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? ocfs2_refcount_cow+0x3b6/0xd90
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __kmalloc_cache_noprof+0x28d/0x610
-     ? ocfs2_refcount_cow+0x3b6/0xd90
-     ocfs2_refcount_cow+0x410/0xd90
-     ? __pfx_ocfs2_refcount_cow+0x10/0x10
-     ? __pfx___might_resched+0x10/0x10
-     ? down_write+0x11a/0x1f0
-     ? __pfx_down_write+0x10/0x10
-     ? ocfs2_inode_unlock+0x1a9/0x260
-     ? __pfx_ocfs2_inode_unlock+0x10/0x10
-     ? ocfs2_file_write_iter+0x1413/0x1d30
-     ocfs2_file_write_iter+0x157b/0x1d30
-     ? __pfx_ocfs2_file_write_iter+0x10/0x10
-     ? lock_acquire+0x190/0x300
-     ? __x64_sys_pwrite64+0x1b7/0x220
-     ? __pfx___might_resched+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? security_file_permission+0x26/0x80
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_is_held_type+0x8f/0x100
-     vfs_write+0x639/0x1010
-     ? __pfx_ocfs2_file_write_iter+0x10/0x10
-     ? lock_vma_under_rcu+0x154/0x4a0
-     ? __pfx_vfs_write+0x10/0x10
-     ? lock_release+0x121/0x290
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     __x64_sys_pwrite64+0x1b7/0x220
-     ? __pfx___x64_sys_pwrite64+0x10/0x10
-     ? irqentry_exit+0xbe/0x820
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? trace_hardirqs_on_prepare+0x11d/0x150
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-[Register dump omitted.]
-
-     </TASK>
-
-    Allocated by task 491:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     __kasan_kmalloc+0xaa/0xb0
-     __kmalloc_cache_noprof+0x28d/0x610
-     ocfs2_allocate_refcount_tree+0x49/0x1a0
-     ocfs2_create_refcount_tree+0x5d7/0x1630
-     ocfs2_attach_refcount_tree+0x57d/0x1100
-     __ocfs2_reflink.isra.0+0x1c4/0x1940
-     ocfs2_reflink+0x501/0x9b0
-     ocfs2_reflink_ioctl+0x6b2/0x920
-     ocfs2_ioctl+0x538/0x640
-     __x64_sys_ioctl+0x163/0x1d0
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-    Freed by task 498:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     kasan_save_free_info+0x3b/0x60
-     __kasan_slab_free+0x5f/0x80
-     kfree+0x308/0x580
-     ocfs2_lock_refcount_tree+0x672/0x9b0
-     ocfs2_xattr_set+0x72c/0x2530
-     ocfs2_xattr_user_set+0xaf/0xf0
-     __vfs_setxattr+0x143/0x1b0
-     __vfs_setxattr_noperm+0x112/0x5b0
-     __vfs_setxattr_locked+0xfe/0x2b0
-     vfs_setxattr+0x13c/0x370
-     do_setxattr+0x128/0x170
-     filename_setxattr+0x147/0x190
-     path_setxattrat+0x1ac/0x260
-     __x64_sys_setxattr+0xcb/0x140
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-    The buggy address belongs to the object at ffff888117212800
-     which belongs to the cache kmalloc-1k of size 1024
-    The buggy address is located 32 bytes inside of
-     freed 1024-byte region [ffff888117212800, ffff888117212c00)
-
-[Page and memory dumps omitted.]
-
-Fixes: 374a263e790c ("ocfs2: Add refcount tree lock mechanism.")
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
-Assisted-by: LLM
-
----
-diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-index 3e9cccf06e48..4f13b5a6faa7 100644
---- a/fs/ocfs2/refcounttree.c
-+++ b/fs/ocfs2/refcounttree.c
-@@ -375,8 +375,10 @@ ocfs2_allocate_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno)
- 	return new;
- }
- 
-+/* Callers without the refcount tree lock must request a reference. */
- static int ocfs2_get_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno,
--				   struct ocfs2_refcount_tree **ret_tree)
-+				   struct ocfs2_refcount_tree **ret_tree,
-+				   bool get_ref)
- {
- 	int ret = 0;
- 	struct ocfs2_refcount_tree *tree, *new = NULL;
-@@ -433,6 +435,8 @@ static int ocfs2_get_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno,
- 	new = NULL;
- 
- out:
-+	if (get_ref)
-+		ocfs2_refcount_tree_get(tree);
- 	*ret_tree = tree;
- 
- 	osb->osb_ref_tree_lru = tree;
-@@ -506,14 +510,12 @@ int ocfs2_lock_refcount_tree(struct ocfs2_super *osb,
- 	struct ocfs2_refcount_block *rb;
- 
- again:
--	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree);
-+	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree, true);
- 	if (ret) {
- 		mlog_errno(ret);
- 		return ret;
- 	}
- 
--	ocfs2_refcount_tree_get(tree);
--
- 	ret = __ocfs2_lock_refcount_tree(osb, tree, rw);
- 	if (ret) {
- 		mlog_errno(ret);
-@@ -2355,7 +2357,8 @@ int ocfs2_decrease_refcount(struct inode *inode,
- 		goto out;
- 	}
- 
--	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb), ref_blkno, &tree);
-+	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb), ref_blkno,
-+				      &tree, false);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
-@@ -2590,7 +2593,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
- 	BUG_ON(!ocfs2_is_refcount_inode(inode));
- 
- 	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb),
--				      refcount_loc, &tree);
-+				      refcount_loc, &tree, false);
- 	if (ret) {
- 		mlog_errno(ret);
- 		goto out;
+> ---
+>  fs/ecryptfs/inode.c | 5 ++++-
+>  1 file changed, 4 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ecryptfs/inode.c b/fs/ecryptfs/inode.c
+> index 525297c7ebd8..0d8452558a98 100644
+> --- a/fs/ecryptfs/inode.c
+> +++ b/fs/ecryptfs/inode.c
+> @@ -362,7 +362,10 @@ static struct dentry *ecryptfs_lookup_interpose(struct dentry *dentry,
+>  	if (S_ISREG(inode->i_mode)) {
+>  		rc = ecryptfs_i_size_read(dentry, inode);
+>  		if (rc) {
+> -			make_bad_inode(inode);
+> +			if (inode_state_read_once(inode) & I_NEW)
+> +				iget_failed(inode);
+> +			else
+> +				iput(inode);
+>  			return ERR_PTR(rc);
+>  		}
+>  	}
+> 
+> -- 
+> 2.53.0
+> 
+> 
