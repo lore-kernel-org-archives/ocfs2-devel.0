@@ -1,74 +1,76 @@
-Received: from mail-wm1-f47.google.com (mail-wm1-f47.google.com [209.85.128.47])
+Received: from mail-ej1-f45.google.com (mail-ej1-f45.google.com [209.85.218.45])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC56E47ECEE
-	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 14:35:35 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.128.47
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DAE11550DCE
+	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 15:18:56 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.218.45
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791988537; cv=none; b=Vx0g1Bsb2sjce8xJq3ikiOAEiMQ8bk5kHQWxo1D7YVGHFZc20wyTGaBYYFFScwi6VqzA+YqEZHlycnjw/0ON6SAPFr8jDWl78EndAHm+Jy0UlUZfm4wsPJhNCr9kqksCX7qBzSEBsDjtv+THDG++5quEr+OhatAayrlq4guY1fg=
+	t=1791991139; cv=none; b=BCGJ3qgR9RoTTPugBsV3NjEZ7FCN4bJTcrpjYnxIRgC5LQAz6jLI1T+FtEmvutZYFFs+YK5+PN8FE7zI21BZ37yDvwpzvW47KtVmgu7rtGVWLPVNYQLeYBNEAktXkJgrGZOWXhsq5weM5xPOxDGSaUFafby/59lXa1DeXQvv4pw=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791988537; c=relaxed/simple;
-	bh=iEb6Wyf8v6HCQ2gtxiwtWl90BNNFvcDXJo2VBnw7bOw=;
+	s=arc-20240116; t=1791991139; c=relaxed/simple;
+	bh=Iqv7An2ELPabpUT7OVtm+I8Wass6AmEfu1El7+uJI7c=;
 	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=kHi6I6ox8En1ix75Brspc+IKNFloCVQkHw11W0lp/D7e3cp/UhvzbDzEEZM4GxUQ8OadVCmuQr7WMIpPWAGBqbz7LEfNQUyXo3Y1gGD8itc2GzV8TlOERFO/O1Gue5Fi84S6fd0kv9ydTv8uOs8wh6R3E5l8bsym4H42FoIFH+8=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=LaeiOQXz; arc=none smtp.client-ip=209.85.128.47
+	 Content-Type:Content-Disposition:In-Reply-To; b=XsViVCNt6yn6nOfTrNCER4KZU084bwQ74zEYaD9S+X2VrIf1qLOddwMZHLnUUfFng+rQWdqfb288qzPOEj+CI7lsHXAub0kdA/YiRlU9Mr/dNvdxbw3m3PIBIbXVsPeI4wLIaenPB1xRRvEhPTPtqVjmgqCJRhNnoamfl5+wQ4A=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com; spf=pass smtp.mailfrom=suse.com; dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b=cC7fohK1; arc=none smtp.client-ip=209.85.218.45
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="LaeiOQXz"
-Received: by mail-wm1-f47.google.com with SMTP id 5b1f17b1804b1-4a1810f8855so2569615e9.3
-        for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 07:35:35 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.b="cC7fohK1"
+Received: by mail-ej1-f45.google.com with SMTP id a640c23a62f3a-c347be93d54so50246466b.2
+        for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 08:18:56 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1791988534; x=1792593334; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1791991135; x=1792595935; darn=lists.linux.dev;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=DbezI2uGy3QvoWseZWOGIcO/b3+YK9kmK9c/cECVLuE=;
-        b=LaeiOQXzdHcGiviiSi3VVqsvJWB1zGPHGuvOaXqt/hNLb6W62OrSKNItV87yLmBC2r
-         pNzl3mqos1vMuRBZ96qAw4r/qjTnBsEpHRC4kBjsHga8TUM8h+9r8/L31EQpga+2XWny
-         3cjoT+f/cCccADlqy1cTe09hBb7q7qSTMMw2lPx2Gej3r63pUCJTygEtlr/vY3i3Q4qz
-         I2LAqmizG2/Zxgng+iUgaqX9MeY0nsfPkHqNJYaBYRjo6p6LKS9j2D41gcuHMNkXaKw7
-         WXulJCI47/9FsZqwjCWRltEzb32sgZA+v3EsrkFYaNve39IziRsfLbq3wWcHK6z8ZwmI
-         YbtQ==
+        bh=eap6P8yfIrxQOWUklCvJ8ok9fbtwgYdF5plY1PGn76k=;
+        b=cC7fohK1DTca4zKiQ8XGjE3J2M1kNRukFnKPlFuqL4FL0ridb1JMdJ6EYHNI1iUt1g
+         ODhMoq3FOJroCY+cHeQkx/NBhGnBM10T0EH37rYNQnKLqX+tqbbb63HBjiVU4S1q6ciL
+         CFig6+70VvN9erf/nu9xxSzg29ggJFYpfkM1jXtr3ZCUIi4hqqReaBXNWJeiKL1w5Ijd
+         /pcemQLRlkX83q6XvZU6zJfzXTGKcuzCJHbXjyGYSkdftB17GjqCJsR7DFHS8NdsYqJs
+         1sOaHHa75+a164xLz1+J2k9nT84bsrjSu+8az3gQrwQyFyU+dPgVQ27cjuXZvQjlazHO
+         NlMg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791988534; x=1792593334;
+        d=1e100.net; s=20260707; t=1791991135; x=1792595935;
         h=in-reply-to:content-disposition:content-type:mime-version
          :references:message-id:subject:cc:to:from:date:x-gm-gg
          :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=DbezI2uGy3QvoWseZWOGIcO/b3+YK9kmK9c/cECVLuE=;
-        b=04BZT6du6ItBvr534dJBuDXFh8iMGCREeMWqUqM3N5VThCbwjaszpRZ97e6Pbw6wpB
-         Fxpb15ckM1X8mx0z3sJ0GJyoK9Ak9G3YvbZvJ+AbcK1m1GFqYRG7C4J0Ep6VgAJ3kShs
-         gJ2TGmxJq0zbxMclvwWj+UOPxXiltpvr0cTOH1F2X+bFBhLfoX08Oi4mBf/WCR0SFg4Y
-         Iv6CNLQN+R7MQFNuDeQTCVWLO08qDc888A53OxrSlpxyveD16CMyDChzqpjxxJAPJhom
-         RO3UYDdTqWlSdehhCysXzq0/bEiYa3jWES39mBEQvbBM+3MvIh2f9eJqo96d+4SQQWek
-         ijvg==
-X-Forwarded-Encrypted: i=1; AKwUvBynnHz8Qwy+3xA7ofY5cR3pifFYfUMFB8UPAArTf2t67XW6rYjFI7tKbSf2YpbvgGWBaLu1AmjZl/+EdA==@lists.linux.dev
-X-Gm-Message-State: AFq9FYK4i8en0o3qHG2Oyrj6oNb7RXUZ6bz5ZJl9r8RLexB4AJSUUDYf
-	7bIxP6JV8BqHeZJkgwammhm8QrsXpfU211qyZXfzvLCERiefrU4mLmEXh0VEHbycu6U=
-X-Gm-Gg: AYBFou3cZ3QuhvB58sYBiT7WQfLe43KyIfpepPJpRDTUsv/x3m5KdT4BohJMQ8Rw5sc
-	HT0yR2F8tAv89aFTg576QwJnrYtG8f1hmQGDvIfor6WYB08JXgmr9ZnrfsWgVI3rpLzH75fW20b
-	pyPjBn1vVFOmHWTtLzT6HfunS0NdLTZTcUTEeJHUTqNpQ0OHkM17cn870gRk9C4E1ERbT83FMCU
-	nuETeS6z+YEzzNE9NY1plckK1aVe7x5oQ50Filnd4CVLHn54IPn7HEOJ4kGt6fNwaCi4zcBs18F
-	Jklji+swH3EadkMpIn+yzTEFF6XtrfivMQ26ZFzIL0raH1Ktwt+NgoA0cwKcqumvYwHziLsbapM
-	+M2QVvGUxP6ncupiciXU64o32PKkZxmw+LrmWW/3ZwX6Sbeis6E/GAVabO5t3aF6AydOxLEFL9B
-	+GXytwE2amy5Rxl5wEreYnkcAHNL3TknZD2MyJauiSsr8aMWaO4Rap9QmXqLK9f+AS1UtE
-X-Received: by 2002:a05:600c:4ecc:b0:4a1:7dcf:be1f with SMTP id 5b1f17b1804b1-4a18e476022mr342666045e9.1.1791988533816;
-        Wed, 14 Oct 2026 07:35:33 -0700 (PDT)
+        bh=eap6P8yfIrxQOWUklCvJ8ok9fbtwgYdF5plY1PGn76k=;
+        b=zjBKLmsE6J64ySOtCi+FTiGgeZCUpHZDJ0jMGc+cMU7ek3xY1k0rVyR4YJtdbcJ+ZT
+         TkLTgtCG3i6bDaW/MHCLqeeEYIIFNxjNwEUEBL1f//mfJ/3SMdxpBP85AR84o49434Uh
+         u8x8QVLasswF7j8v0uawNDNVnf+EL8kOp/qgd17FE0DHbF3KIlGkBsXm1KSM41vhFLLx
+         GIWuD25MEnIg1Kxp+6dUgUzw07RE9pJkEZ2LvnH4bE5mIksvk25GgcZFS4M2lExMvXSC
+         q4GSwoRlYJxtKl10G/s5cgYmoWchE/T7Rvsh9FWLpFr/8LQhuoMgQadzEXuTRCcF26Ga
+         2KPw==
+X-Forwarded-Encrypted: i=1; AKwUvBzFpOeA4Rw3b/dfvgF77tn1x6fK9VULKM18OmitmBYZBIsvwIgzVdSo71g81aOTQdxhMmtiZXvdYr2HDg==@lists.linux.dev
+X-Gm-Message-State: AFq9FYJf30evcxM7wU+JN9zPPXV++dymzLmN+VHIB0MaGa+I/tTF1ICe
+	j0PoOVtKgVNyE8wrheDqpyADdYkwg/G1FK9K6Gm8mjMuvzsG8a07Qm3YIr7TFPyydsMCWfHg8wj
+	2mBVyFMM=
+X-Gm-Gg: AYBFou3rFNrcgSaNgNSAspjsuDMy3d1mnab2a0VxMeF2xUhAe6kOWUZtqO/E/3994d7
+	vEY4RTcxQ+bCrxurhmEgOgI/9VjjD0YpWMpxivQ5JADN/UWa2C9eiEDr1NB3YXWEpWyWKXPX/yn
+	dw+W0hI6idCf/OCFgaTe5rpKUX/hcx3AZLEUgzyPLeREQwRmScaFebswFdCf5IJQ5Z4wUpvXVn3
+	VYdBGAAoS5uWinovuflzlElkWw32xrBxN+C4o9ZlkdckNLN5J+ssE3PtvkdutbzixmD+sDn0FzB
+	tpGszdNWpQP5eEdkwHoG012gbZBUzcu3kRQZQi+Fx4aa21wEudDds1svbkjN2Z0vsZbHgxQ1YED
+	uE6U0vz3BdmTm8BnQDdzm0aD0tZ0wU5uxRZh2PuAntwjp3aQ3nIigHTPqtFUyhxzvGgrgUBm38Q
+	nr8zJjmOSiWrKgc6OxI5WsKwTvIFcgaIQgENoxAwgkkMknnOdAUmhHCKZzOshs3pFgp7HZUjAmH
+	sLKkmo=
+X-Received: by 2002:a17:907:7fab:b0:c29:5637:ed76 with SMTP id a640c23a62f3a-c31a9d117ebmr1775364166b.2.1791991134891;
+        Wed, 14 Oct 2026 08:18:54 -0700 (PDT)
 Received: from localhost ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e84219e525sm71732095ad.16.2026.10.14.07.35.32
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cd61fc465c3sm1990361a12.27.2026.10.14.08.18.52
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 14 Oct 2026 07:35:32 -0700 (PDT)
-Date: Wed, 14 Oct 2026 22:35:29 +0800
+        Wed, 14 Oct 2026 08:18:53 -0700 (PDT)
+Date: Wed, 14 Oct 2026 23:18:50 +0800
 From: Heming Zhao <heming.zhao@suse.com>
 To: Joseph Qi <joseph.qi@linux.alibaba.com>
 Cc: Andrew Morton <akpm@linux-foundation.org>, 
 	Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev, 
 	linux-kernel@vger.kernel.org
-Subject: Re: [PATCH] ocfs2: validate the xattr tree root of an indexed xattr
- block
-Message-ID: <as-SUraepqsded7n@p15>
-References: <20261014105856.2909777-1-joseph.qi@linux.alibaba.com>
+Subject: Re: [PATCH] ocfs2/dlm: hold the lookup reference across convert AST
+ enqueue
+Message-ID: <as-cs6Pxot8LavVG@p15>
+References: <20261014112321.2955584-1-joseph.qi@linux.alibaba.com>
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -77,84 +79,106 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 Content-Type: text/plain; charset=us-ascii
 Content-Disposition: inline
-In-Reply-To: <20261014105856.2909777-1-joseph.qi@linux.alibaba.com>
+In-Reply-To: <20261014112321.2955584-1-joseph.qi@linux.alibaba.com>
 
-On Wed, Oct 14, 2026 at 06:58:56PM +0800, Joseph Qi wrote:
-> ocfs2_validate_xattr_block() checks an xattr block's signature, blkno,
-> generation and suballocator fields, and for a non-indexed block the entry
-> array it carries.  An indexed block is passed straight through, so the
-> extent list in its xattr tree root is never looked at.
+On Wed, Oct 14, 2026 at 07:23:21PM +0800, Joseph Qi wrote:
+> dlm_convert_lock_handler() drops the reference it took when it found the
+> lock on res->granted at its leave label, one statement before it calls
+> dlm_queue_ast().  dlm_free_dead_locks() takes res->spinlock and drops the
+> list and base references, so a peer death landing in that gap leaves the
+> handler's own put as the one that frees the lock, and __dlm_queue_ast()
+> then reads lock->lockres from freed memory.
 > 
-> Both fields that describe the list are bounded.  The two places that
-> create a root set l_count from ocfs2_xattr_recs_per_xb() and nothing
-> rewrites it, and the insert path asserts in ocfs2_rotate_leaf() that
-> l_next_free_rec stays within l_count.  Check both when the block is
-> first read, so a root that disagrees with the block size, or claims more
-> records than it has room for, is caught before anything indexes into
-> l_recs[].
+> The handler is registered next to dlm_create_lock_handler(), so a convert
+> message buffered on a dying peer's socket arrives on the same o2net
+> receive work that o2net_disconnect_node() does not wait for.  The two can
+> interleave as follows, with the reference counts as they are before this
+> fix:
 > 
-> An empty root is deliberately not rejected.  Emptying the tree leaves it
-> that way: ocfs2_rm_xattr_cluster() removes one extent per transaction,
-> and the last one ends in ocfs2_truncate_rec(), whose closing
-> ocfs2_rotate_tree_left() reaches ocfs2_remove_empty_extent() on the
-> depth-zero root and takes l_next_free_rec to zero.  That transaction
-> commits before ocfs2_xattr_free_block() frees the block, and before
-> ocfs2_xattr_remove() clears i_xattr_loc, in two later transactions, so a
-> crash in between leaves an orphan inode pointing at an xattr block whose
-> root has no extents.  Both readers already cope with it:
-> __ocfs2_xattr_index_block_find() answers -ENODATA, and
-> ocfs2_iterate_xattr_index_block() returns without iterating.
+>   Socket data-ready       Node-down thread      Receive worker
+>   -----------------       ----------------      --------------
+>   o2net_data_ready()
+>     select sc under
+>     callback read lock
+>                           o2net_disconnect_node()
+>                             queue shutdown
+>                             begin flush; new color
+>     queue sc_rx_work
+>     in the new color
+>     release callback lock
+>                             shutdown socket
+>                             flush returns
+>                                                 read buffered convert_lock
+>                                                 dlm_convert_lock_handler()
+>                                                   find lock on res->granted
+>                                                   dlm_lock_get()  refs = 3
+>                                                   lock res->spinlock
+>                                                   __dlmconvert_master()
+>                                                     call_ast = 1
+>                                                   unlock res->spinlock
+>                           DLM node-down cleanup
+>                             lock res->spinlock
+>                             dlm_free_dead_locks()
+>                               unlink lock
+>                               put list ref  refs = 2
+>                               put base ref  refs = 1
+>                             unlock res->spinlock
+>                                                 dlm_lock_put()  refs = 0
+>                                                   free lock
+>                                                 dlm_queue_ast()
+>                                                   __dlm_queue_ast()
+>                                                   read lock->lockres
+>                                                   (use-after-free)
 > 
+> __dlmconvert_master() only moves the lock between lists, so the count
+> entering the gap is base, list and lookup.  Drop the lookup reference
+> after the AST is queued instead of before it and the race ends with the
+> one __dlm_queue_ast() took, which dlm_flush_asts() releases later with
+> ast_pending cleared and ast_list unlinked.  No extra get is needed, and
+> the normal case ends with the same count as before.
+> 
+> dlmconvert_master() has the same shape but is only reached from dlmlock()
+> for a lock this node owns, which dlm_free_dead_locks() never matches.
+> 
+> Fixes: 2c5c54aca9d0 ("ocfs2/dlm: Add missing dlm_lock_put()s")
+> Cc: <stable@vger.kernel.org>
 > Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-LGTM.
+The code looks good to me.
 Reviewed-by: Heming Zhao <heming.zhao@suse.com>
+
+btw, how do you find the issue?
+
 > ---
->  fs/ocfs2/xattr.c | 25 +++++++++++++++++++++++++
->  1 file changed, 25 insertions(+)
+>  fs/ocfs2/dlm/dlmconvert.c | 10 +++++++---
+>  1 file changed, 7 insertions(+), 3 deletions(-)
 > 
-> diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-> index 18d920b30602..b2bd06083a14 100644
-> --- a/fs/ocfs2/xattr.c
-> +++ b/fs/ocfs2/xattr.c
-> @@ -491,6 +491,7 @@ static int ocfs2_validate_xattr_block(struct super_block *sb,
->  				      struct buffer_head *bh)
->  {
->  	int rc;
-> +	struct ocfs2_extent_list *el;
->  	struct ocfs2_xattr_block *xb =
->  		(struct ocfs2_xattr_block *)bh->b_data;
->  
-> @@ -573,6 +574,30 @@ static int ocfs2_validate_xattr_block(struct super_block *sb,
->  							 region_offset);
+> diff --git a/fs/ocfs2/dlm/dlmconvert.c b/fs/ocfs2/dlm/dlmconvert.c
+> index 450d46eefab32..8a828448ba958 100644
+> --- a/fs/ocfs2/dlm/dlmconvert.c
+> +++ b/fs/ocfs2/dlm/dlmconvert.c
+> @@ -534,15 +534,19 @@ int dlm_convert_lock_handler(struct o2net_msg *msg, u32 len, void *data,
 >  	}
 >  
+>  leave:
+> -	if (lock)
+> -		dlm_lock_put(lock);
+> -
+>  	/* either queue the ast or release it, if reserved */
+>  	if (call_ast)
+>  		dlm_queue_ast(dlm, lock);
+>  	else if (ast_reserved)
+>  		dlm_lockres_release_ast(dlm, res);
+>  
 > +	/*
-> +	 * An indexed xattr block carries the root of the xattr tree.  Its
-> +	 * record count is fixed by the block size and l_next_free_rec never
-> +	 * exceeds it.  A zero l_next_free_rec is valid: emptying the tree on
-> +	 * the inode deletion path leaves the root with no extents.
+> +	 * Keep the lock alive through AST enqueue: a concurrent
+> +	 * dlm_free_dead_locks() drops the list and base references.
 > +	 */
-> +	el = &xb->xb_attrs.xb_root.xt_list;
+> +	if (lock)
+> +		dlm_lock_put(lock);
 > +
-> +	if (le16_to_cpu(el->l_count) != ocfs2_xattr_recs_per_xb(sb)) {
-> +		return ocfs2_error(sb,
-> +				   "Xattr tree root #%llu has invalid l_count %u (expected %u)\n",
-> +				   (unsigned long long)bh->b_blocknr,
-> +				   le16_to_cpu(el->l_count),
-> +				   ocfs2_xattr_recs_per_xb(sb));
-> +	}
-> +
-> +	if (le16_to_cpu(el->l_next_free_rec) > le16_to_cpu(el->l_count)) {
-> +		return ocfs2_error(sb,
-> +				   "Xattr tree root #%llu has l_next_free_rec %u past the end of its list (l_count %u)\n",
-> +				   (unsigned long long)bh->b_blocknr,
-> +				   le16_to_cpu(el->l_next_free_rec),
-> +				   le16_to_cpu(el->l_count));
-> +	}
-> +
->  	return 0;
->  }
+>  	if (kick_thread)
+>  		dlm_kick_thread(dlm, res);
 >  
 > -- 
 > 2.39.3
