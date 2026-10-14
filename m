@@ -1,79 +1,77 @@
-Received: from mail-pg1-f176.google.com (mail-pg1-f176.google.com [209.85.215.176])
+Received: from mail-pl1-f178.google.com (mail-pl1-f178.google.com [209.85.214.178])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A23D13ED5C3
-	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 03:39:33 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.215.176
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 48D983EC6B3
+	for <ocfs2-devel@lists.linux.dev>; Wed, 14 Oct 2026 03:43:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.178
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1791949180; cv=none; b=Nu/NqGyyrtwC2N0gYL94qn2vnEFbViVB03qGXNZwbD+QnrOjIt8u+wLMsqHgudicEt24AnM43qcgSD5E8Ap5n2WfRYEDU1xKwE5JCbHbDu2/VGSLqW0A//e/SAyc/goFPAMKD7+ZcN6TgsObo+w5LvzupQQJulaF56Mhlhg5AEQ=
+	t=1791949430; cv=none; b=Z21+p03bcmgJu2JrweXr52e7PVnswD27Fzis8GP3G6+Oe8xB86AtRuQxgKPGfhcxQ8F4hc8oXk5XbtEMYY/GFr8bZ/jniopPj/iZ6vKQE8+A/jqxXcJUMJKFaguHo7Ek9qkeDJIzvBDAAOwFsuI+nkXIz7K9ks/1rgSxdTneOqI=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1791949180; c=relaxed/simple;
-	bh=+EbvMu6501+9NLez/3vMiH+VfkpyJJ15wjPGlneDRX0=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=az3o8oOSq+DHWIbFYKTbtsDi+WrvRUiYZVLBAcWUeAwnmaXPzc+vuau7jC20cqXvhYxUA8SMy9pGxyHGZ+MaRRrY/gTv3gpN9X/CZSb9rkYfxMSBT9+YkxshunbYAEA2XKGXhq7TCof8AN071aeXtNrdvlfPX2492ylcZ98A0Go=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=m40V9uHz; arc=none smtp.client-ip=209.85.215.176
+	s=arc-20240116; t=1791949430; c=relaxed/simple;
+	bh=uAIPZvQ99EKhl4bzVyWX50RMipQcVv95QeJ6Gk6Fjr0=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=MznHRwCv1YpWmdl6ngd91+kDO5x6RhF9Hie0SHbtusciWglaT1uAL+/jQYzIWkCaIdeh6pYpaNgEtXioykW44itAB2tpD+orW8kqJfAFtklIPOtTZlUKtGGq68bJMw5kZ9NqajEhWliPu4XOBtF+8mji3j/vf8FWCFDbtPzR4a0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Ebpmbg+9; arc=none smtp.client-ip=209.85.214.178
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="m40V9uHz"
-Received: by mail-pg1-f176.google.com with SMTP id 41be03b00d2f7-cd3310348d2so2631312a12.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 20:39:33 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Ebpmbg+9"
+Received: by mail-pl1-f178.google.com with SMTP id d9443c01a7336-2e915887d9dso9485835ad.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 13 Oct 2026 20:43:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1791949173; x=1792553973; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1791949427; x=1792554227; darn=lists.linux.dev;
         h=content-transfer-encoding:content-type:mime-version:message-id:date
          :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to
          :content-type;
-        bh=g+VXEY6KytZXc6Fv8IK6cTFRuY+XHNxmJHHc2/60NuM=;
-        b=m40V9uHzUtngw2+snG1Xvi+zLttLxwvWpXSJCKFYIqqsNfiqbBLDdSYY2Ns8IPH/Zp
-         Bz7St43LAdnxqmGMhoNT4MIwfMz1V8JPho8UFgk9uxJYBjtbqd6ISGj/Ex/rbo9mu9Aa
-         Z/GnkrMBgHgg8M4pdJrZFXPBGp7iByOTJetVwnmFI8P23s5Ek15kNMDVDzkpqVYVle86
-         7TBSGjnd2NJlQbNY2J7JziOydtPCg5r0aRQgoq+ps4pm1Iv2hJvAUUMJ4/PEpGthcGLM
-         Eq+Cdg79nfLkR+R5IIIoNxShbL93I84YAY4j4WGUDAZoKu7TF5+p3Q7vJ4gx82HFIfeK
-         Y1jg==
+        bh=cPZ6CMVllg1ExTGuLIWcOTSOQLgRxBXxWD+/IcCpGYk=;
+        b=Ebpmbg+9a92TzXFCBVJcOPRXbMeNrm4Oy65zuO7kXfv8ylRj8QhzgvzNwsThscdyxR
+         Xnl0CbRKYeCI6qyLZtSGT3kMVGSrBB0XfDA6TnR6YdP7J1LqtM6x9NAQFk6rS6Yt61+V
+         W5tUwf3wNyZpvXHAYBu4gyf3K8cu9pLM7CIdvLQtLxY8AAj+gnu9QbNtq+G47gGNcxus
+         wtx+yOqQPFkBHB1QWVSnybKHSDrqcTcPyRhyxK2dnxIYEY5CRHxo7prudbfjAYI8WWGV
+         gAyiskOoxSvJ1Dxy+qd4oevVjXHPPFOfWJhnUiv21nNHy8p9gZSjwZMx5m5SdrTvKrwe
+         FSUQ==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1791949173; x=1792553973;
+        d=1e100.net; s=20260707; t=1791949427; x=1792554227;
         h=content-transfer-encoding:content-type:mime-version:message-id:date
          :subject:cc:to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject
          :date:message-id:reply-to:content-type;
-        bh=g+VXEY6KytZXc6Fv8IK6cTFRuY+XHNxmJHHc2/60NuM=;
-        b=2r3+qCJpktMo5R7ZnnmRAT3/KudfNF3bQSY6uZA3R0LeifuwA+hbxk5pC7tXiYzdJ4
-         KXxUa+juLG6juU5DtEoyHZGSJeKxXDhdZITSgDphX90VILCBs8VvmnUR6AyYWsr6bbX+
-         pqxI2Ztd4cGQprx7VxIm+TUXSFzdzKP5ViiOfc3i3JCShluSzVnulNTSSz3X7RvSnGfC
-         lZC80/IZapMd42TN/dbTR6OdZBc9UBJXSdFZ6F9TDNETQNDK9HzvdO0mavZZwIiec/TP
-         /IT7GcslfgYi4j5C9sP+2HD3JVSi002tEyTGEuTsFrapPBec8cAF1iWRMhvacGY0Lu78
-         mgUA==
-X-Gm-Message-State: AFq9FYK49aNgx+2WQnORkUK6ABhlwSi6OVAvxE4/KGyL6tbI2x5ZEjLX
-	18YAUvl+xcc2ULWzGtsHY/d3rmeA8s8dAzdLNHCtKoM15b/Sj5fBqVD6
-X-Gm-Gg: AYBFou0tmTtkljLOlL+app0Cgd+FVk+sVZ55iMCdSEUO0DD+L7VhoC8ojOIt0k304mo
-	cDNa2okgzvl/QYUuO33ddRid7neNG2lGgUiW/UIhFtEOAYb5RlyacGDGxfZeg7SvulS89OXdmUG
-	vmQ0enaKNRapWv3Vt9zugZBo64SzANd6MSU/NRRfKgE5dXpnhNERdQPyho53BUyv7OtksYzSWYE
-	38HB01r/tCWR4nfqsARrlA60cx633qUkZO7DHn+saWU7knLbcnoCWemET2hKC5+TKn4B06iwf29
-	dsmiK8yQ02N1Hd6lbLRGbeOkE+XggHW/RS3sCpCZiSL4E75bp1qVnY4bvaSpMq/FYbjjPs1ZQwN
-	9fzSsguUIWIh63pYE2bRFuaLNRLnkhpYsWjKm+G1uYR8iQakj+WJJKEAST01qeiW+Toq6fjb8lp
-	Kx0W+wyAQVgWW/ZDuYZGFtU8y+tBW3eN9LuurLpENLxGuHHJ85wXzqWLz3msbQkBSWcA==
-X-Received: by 2002:a17:90a:1016:b0:3a0:eec6:b065 with SMTP id 98e67ed59e1d1-3ab3a953308mr5803492a91.13.1791949172711;
-        Tue, 13 Oct 2026 20:39:32 -0700 (PDT)
+        bh=cPZ6CMVllg1ExTGuLIWcOTSOQLgRxBXxWD+/IcCpGYk=;
+        b=ZoOPz8BJgcWKqhY7fDPKZPeNr14FnJKkkmnr3Rj7pVBZdIzkhcTxMndZbM+ywvqaoB
+         amUD//x0ek4gyF9mZehio3qWTZnjTo7iUNyPViWue6ZNjUoCJAv7R52vtWX25GrvvJ3L
+         gdbGW0yeQqQ4g7rJB9zfCg8B7Nir+vqo6ogDHDxax3y/mMt+hBni80cmaO3yj/o719yE
+         RNN64S2/jLP0ai9gOscX2Gk7Xg0+zNObF8nCqKfwfEV8g7d5VN1wNPRb/gwPGXAHqugi
+         BIrV1pYDumIhqAkf6wBYWzK+QRr4EGacw59fwahZovuiKAEj39hp7qipYv0lcyGK4+nM
+         pdkw==
+X-Gm-Message-State: AFq9FYLqzTlF8d2+hhrUYMIGUftndMOsDmQnI3bWqiwq4E9NRLk909FS
+	ZWhin9ytrOAjSdpygjUT6awoTkthxAFd93JBU0jGyofZYtql5meXOx88
+X-Gm-Gg: AYBFou2i4PwzEOpnpJMkLlPIgV8SIqWU5TBTfpbdkBMLu//VqGQDhzG73vxfHE6GGhS
+	lFg5EsX2RV69c6WN7Qcve6RgbxZml5NVjrT7u6vVAlAEvVA875/kOPEI6lhgip32L/VLkS4tB6T
+	T1ltClL3crYrwyd3KyTWoFUkEWRSFX4tFxXfGbZL/q4JmSkGjBLWPcQj3OBCt8u7W4Uy9DHxpeE
+	Oe5qw8Ojyq5BOlKlQT4SRyrmtDuG4rotR2xlGOw4F09wAfOI/qWeK9WrEy7KzYouMXUeihWmhqK
+	669R+iFtuzDEy4DdhdSPn8mTS9uV3fzVzbWftF89Oy+g/Krl3olc6Vitq3vJ/Nf0US7llkmvmde
+	pYOIOI4RQ4Lx5BeuY9gF0YjoMA2idHUibndxD/YdL3emIIpYKwEWSWjQZ1cdkln2zcxKc08FVjM
+	RYQn4jdweVyB+dc3Y7+JvfOPe9ZJMLgDrCd5KPfiaQWYtXhgHWGnzmsls8nIgMQGZSXw==
+X-Received: by 2002:a17:902:cec2:b0:2dd:ad73:c98b with SMTP id d9443c01a7336-2e842bcda99mr120161875ad.35.1791949427055;
+        Tue, 13 Oct 2026 20:43:47 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ac5f27d573sm2485731a91.11.2026.10.13.20.39.28
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e8422e4ebfsm65092695ad.78.2026.10.13.20.43.42
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 13 Oct 2026 20:39:32 -0700 (PDT)
+        Tue, 13 Oct 2026 20:43:46 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
 	joseph.qi@linux.alibaba.com,
 	heming.zhao@suse.com,
-	kees@kernel.org,
-	akpm@linux-foundation.org,
-	kuba@kernel.org,
-	zzzccc427@gmail.com,
-	sunil.mushran@oracle.com
+	chao@kernel.org,
+	jack@suse.cz
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	stable@vger.kernel.org,
 	baijiaju1990@gmail.com,
-	jjzuming@gmail.com
-Subject: [PATCH v3] ocfs2/cluster: unlink socket containers before releasing resources
-Date: Wed, 14 Oct 2026 11:39:25 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0065-v10-e831f26814a00e9ef241@gmail.com>
+	jjzuming@gmail.com,
+	zzzccc427@gmail.com
+Subject: [PATCH] ocfs2: Cancel quota sync work before freeing quota info
+Date: Wed, 14 Oct 2026 11:43:40 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0052-v3-b4904bd6c85daf033adf@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -84,162 +82,169 @@ MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-A socket container's node and socket must remain alive while the
-container is on sock_containers. The debugfs formatter reads sc_node
-and sc_sock under o2net_debug_lock without taking their references, but
-sc_kref_release() releases both before taking that lock to unlink the
-container.
+OCFS2 quota info owns dqi_sync_work and must outlive both its timer
+and qsync_work_fn(). ocfs2_local_free_info() frees that owner without
+cancelling the work, relying on the quota suspend/disable wrappers.
 
-With CONFIG_DEBUG_FS enabled, a synchronous sender can retain its last
-socket-container reference after o2net_disconnect_node() has detached
-the connection and flushed o2net_wq. The caller runs outside that
-workqueue. After the sender removes its configfs dependency, node
-removal can proceed without waiting for the sender's final sc_put():
+Loading quotas on a read-only to read-write remount can successfully
+queue the work in ocfs2_global_read_info() and then fail while attaching
+a dquot to an existing inode in add_dquot_ref(). The quota core unwinds
+that failure directly through dquot_disable(), bypassing the OCFS2
+wrapper:
 
-  Sender (final sc_put)    Configfs rmdir        Debugfs reader
-  --------------------    --------------        --------------
-  o2nm_undepend_item()
-                          Drop node item refs
-  o2nm_node_put()
-    [node can be freed]
-                                               sc_seq_show()
-                                                 Lock debug lock
-                                                 Read sc_node->nd_name
-                                                 Unlock debug lock
-  sc_node = NULL
-  o2net_debug_del_sc()
+  Remount task (s_umount write)        Timer/workqueue
+  ocfs2_global_read_info()
+    schedules dqi_sync_work
+  add_dquot_ref() returns an error
+  dquot_disable()
+    ocfs2_local_free_info()
+      frees oinfo
+                                     delayed-work timer expires
+                                     qsync_work_fn() reads oinfo
 
-The earlier socket release has a similar window. The container is
-still selectable while its socket has been released and sc_sock has
-not yet been cleared:
+The timer core can then write to the freed embedded timer, or
+qsync_work_fn() can read oinfo->dqi_gqinode before its s_umount trylock.
+The outer ocfs2_disable_quotas() cleanup skips the failed type because
+dquot_disable() has already cleared its loaded state.
 
-  Sender (final sc_put)                       Debugfs reader
-  --------------------                       --------------
-  sock_release(sc->sc_sock)
-    [socket can be freed]
-                                             sc_seq_show()
-                                               Lock debug lock
-                                               Read sc_sock->sk fields
-                                               Unlock debug lock
-  sc_sock = NULL
-  ...
-  o2net_debug_del_sc()
-
-Move o2net_debug_del_sc() before releasing either resource. Unlinking
-under the existing debug lock waits for an active formatter to finish
-and prevents later readers from selecting the container. This covers
-both socket fields and node fields, including nd_num in the stats
-formatter.
+Cancel dqi_sync_work synchronously at the start of
+ocfs2_local_free_info(), before dropping the global inode or freeing any
+owner state. The work is initialized whenever read_file_info() succeeds.
+dquot_disable() holds s_umount for write, so the callback skips its quota
+scan via down_read_trylock() and can finish without waiting for teardown.
+The synchronous cancel also handles its self-rearm.
 
 KASAN report as below:
 
-    BUG: KASAN: slab-use-after-free in string+0x42b/0x470
-    Read of size 1 at addr ffff88810f56fc90 by task python3/506
+    BUG: KASAN: slab-use-after-free in __run_timers+0x9e9/0xa10
+    Write of size 8 at addr ffff888111b0aad0 by task swapper/3/0
 
-    CPU: 0 UID: 0 PID: 506 Comm: python3 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
-    Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
     Call Trace:
-     <TASK>
+     <IRQ>
      dump_stack_lvl+0x93/0xd0
      print_report+0xce/0x630
+     ? __run_timers+0x9e9/0xa10
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __virt_addr_valid+0x20e/0x420
+     ? __run_timers+0x9e9/0xa10
      kasan_report+0xe0/0x110
-     string+0x42b/0x470
-     vsnprintf+0x330/0x1110
-     seq_printf+0x1a8/0x260
-     sc_seq_show+0x604/0x9f0
-     seq_read_iter+0x480/0x1110
-     seq_read+0x362/0x5a0
-     full_proxy_read+0x11f/0x180
-     vfs_read+0x1a0/0xc20
-     ksys_read+0x111/0x200
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-(User register dump omitted.)
-
+     ? __run_timers+0x9e9/0xa10
+     __run_timers+0x9e9/0xa10
+     ? __pfx___run_timers+0x10/0x10
+     ? __lock_acquire+0x5a3/0x2140
+     ? __pfx_do_raw_spin_lock+0x10/0x10
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     timer_expire_remote+0xfa/0x160
+     ? __pfx_timer_expire_remote+0x10/0x10
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? trace_hardirqs_on+0x18/0x160
+     tmigr_handle_remote_up+0x4ba/0x9d0
+     ? __pfx_tmigr_handle_remote_up+0x10/0x10
+     ? tmigr_handle_remote+0x21a/0x340
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? lock_release+0xc8/0x290
+     ? __pfx_tmigr_handle_remote_up+0x10/0x10
+     __walk_groups_from+0x5a/0x160
+     tmigr_handle_remote+0x24f/0x340
+     ? __pfx_tmigr_handle_remote+0x10/0x10
+     ? lock_acquire+0x190/0x300
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? lock_release+0xc8/0x290
+     run_timer_softirq+0x222/0x270
+     ? __pfx_run_timer_softirq+0x10/0x10
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? lockdep_hardirqs_on_prepare+0xb8/0x1a0
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     handle_softirqs+0x1fa/0x8d0
+     ? __pfx_handle_softirqs+0x10/0x10
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? _raw_spin_unlock+0x23/0x40
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __hrtimer_rearm_deferred+0x1fb/0x5d0
+     __irq_exit_rcu+0x113/0x1e0
+     irq_exit_rcu+0xe/0x20
+     sysvec_apic_timer_interrupt+0x6c/0x80
+     </IRQ>
+     <TASK>
+     asm_sysvec_apic_timer_interrupt+0x1a/0x20
+     ? ct_kernel_exit.constprop.0+0xc5/0xf0
+     ? do_idle+0x3ae/0x650
+     default_idle+0x9/0x10
+     default_idle_call+0x6c/0xb0
+     do_idle+0x3ae/0x650
+     ? cpuhp_online_idle+0x9c/0xb0
+     ? __pfx_do_idle+0x10/0x10
+     ? __entry_text_end+0x1020f6/0x1020f9
+     ? lockdep_hardirqs_on_prepare+0xeb/0x1a0
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? trace_hardirqs_on+0x18/0x160
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     cpu_startup_entry+0x54/0x60
+     start_secondary+0x223/0x2d0
+     ? __pfx_start_secondary+0x10/0x10
+     common_startup_64+0x13e/0x158
      </TASK>
 
-    Allocated by task 497:
+    Allocated by task 523:
      kasan_save_stack+0x33/0x60
      kasan_save_track+0x14/0x30
      __kasan_kmalloc+0xaa/0xb0
      __kmalloc_cache_noprof+0x28d/0x610
-     o2nm_node_group_make_item+0xea/0x1a0
-     configfs_mkdir+0x762/0xca0
-     vfs_mkdir+0x399/0x7e0
-     filename_mkdirat+0x129/0x450
-     __x64_sys_mkdir+0x70/0xa0
+     ocfs2_local_read_info+0x181/0x1580
+     dquot_load_quota_sb+0x69e/0x11c0
+     dquot_load_quota_inode+0x227/0x3e0
+     ocfs2_enable_quotas+0x27c/0x520
+     ocfs2_reconfigure+0x964/0xd00
+     reconfigure_super+0x3ca/0xa70
+     path_mount+0x141e/0x1e80
+     __x64_sys_mount+0x24b/0x2d0
      do_syscall_64+0x114/0x620
      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
-    Freed by task 505:
+    Freed by task 523:
      kasan_save_stack+0x33/0x60
      kasan_save_track+0x14/0x30
      kasan_save_free_info+0x3b/0x60
      __kasan_slab_free+0x5f/0x80
      kfree+0x308/0x580
-     config_item_cleanup+0x14b/0x230
-     config_item_put+0x79/0x90
-     sc_put+0x454/0x6e0
-     o2net_send_message_vec+0x63d/0x1560
-     o2net_send_message+0xa6/0xe0
-     validation_send_write+0x17f/0x1d0
-     full_proxy_write+0x11f/0x180
-     vfs_write+0x25a/0x1010
-     ksys_write+0x111/0x200
+     ocfs2_local_free_info+0x47b/0x800
+     dquot_disable+0x5d9/0x17a0
+     dquot_load_quota_sb+0xd3c/0x11c0
+     dquot_load_quota_inode+0x227/0x3e0
+     ocfs2_enable_quotas+0x27c/0x520
+     ocfs2_reconfigure+0x964/0xd00
+     reconfigure_super+0x3ca/0xa70
+     path_mount+0x141e/0x1e80
+     __x64_sys_mount+0x24b/0x2d0
      do_syscall_64+0x114/0x620
      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 
-    The buggy address belongs to the object at ffff88810f56fc00
-     which belongs to the cache kmalloc-512 of size 512
-    The buggy address is located 144 bytes inside of
-     freed 512-byte region [ffff88810f56fc00, ffff88810f56fe00)
+    The buggy address belongs to the object at ffff888111b0a800
+     which belongs to the cache kmalloc-1k of size 1024
+    The buggy address is located 720 bytes inside of
+     freed 1024-byte region [ffff888111b0a800, ffff888111b0ac00)
 
-(Page and shadow-memory dumps omitted.)
+Host details, register and page dumps omitted.
 
-Fixes: 2309e9e040fe ("ocfs2/net: Add debug interface to o2net")
+Fixes: 1a6152d36dee ("quota: propagate error from __dquot_initialize")
 Cc: <stable@vger.kernel.org>
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 Assisted-by: LLM
 
 ---
-Changes in v3:
-- Revise commit message as joseph suggested.
-
-Changes in v2:
-- Move o2net_debug_del_sc() before socket and node cleanup, as Joseph
-  suggested.
-- Use the ocfs2/cluster title prefix and describe the races with sequence
-  diagrams.
-- Add Cc: stable@vger.kernel.org.
-
-Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0065-v4-f45e5cef38dd587b2cfd@gmail.com
-Link to v2: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0065-v6-3090153fd7cacb810214@gmail.com
-
- fs/ocfs2/cluster/tcp.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
-index 8b3830b601ba6e5fe964bec970581b8e4ddbb5dd..0eaf2c4a6989ecad00f7a88a66a782b334647f21 100644
---- a/fs/ocfs2/cluster/tcp.c
-+++ b/fs/ocfs2/cluster/tcp.c
-@@ -393,6 +393,9 @@ static void sc_kref_release(struct kref *kref)
+diff --git a/fs/ocfs2/quota_local.c b/fs/ocfs2/quota_local.c
+index 76e7dd5aecc8..a2ce25a33607 100644
+--- a/fs/ocfs2/quota_local.c
++++ b/fs/ocfs2/quota_local.c
+@@ -840,6 +840,9 @@ static int ocfs2_local_free_info(struct super_block *sb, int type)
+ 	int mark_clean = 1, len;
+ 	int status = 0;
  
- 	sclog(sc, "releasing\n");
- 
-+	/* Unlink before freeing anything the debugfs readers dereference. */
-+	o2net_debug_del_sc(sc);
++	/* Quota-core error paths can bypass ocfs2_disable_quotas(). */
++	cancel_delayed_work_sync(&oinfo->dqi_sync_work);
 +
- 	if (sc->sc_sock) {
- 		sock_release(sc->sc_sock);
- 		sc->sc_sock = NULL;
-@@ -402,8 +405,6 @@ static void sc_kref_release(struct kref *kref)
- 	o2nm_node_put(sc->sc_node);
- 	sc->sc_node = NULL;
- 
--	o2net_debug_del_sc(sc);
--
- 	if (sc->sc_page)
- 		__free_page(sc->sc_page);
- 	kfree(sc);
+ 	iput(oinfo->dqi_gqinode);
+ 	ocfs2_simple_drop_lockres(OCFS2_SB(sb), &oinfo->dqi_gqlock);
+ 	ocfs2_lock_res_free(&oinfo->dqi_gqlock);
