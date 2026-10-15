@@ -1,60 +1,61 @@
-Received: from mail-pl1-f177.google.com (mail-pl1-f177.google.com [209.85.214.177])
+Received: from mail-pf1-f181.google.com (mail-pf1-f181.google.com [209.85.210.181])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4512A3F4DF3
-	for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 16:42:41 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.214.177
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 15B1C531AE4
+	for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 16:57:47 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.210.181
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1792082573; cv=none; b=MPBU3Sv2jZpqMbvFlpDFcDAzpYMc50gv74bDaUpfrowiC8seOFBgafNvmQsTb//i9S7toI+BKkCTmiiU2aO8ZQHRuQwxnkmPMwrOpJ/fCjkokuCZyOayDzqkgh5a60l54Qh7/US2y+TiCa+B4JEQy445o3DziDjKsZZK319z3OQ=
+	t=1792083479; cv=none; b=lgPp8FSaPxZjXeM6TgPcEQqLGigU2zZ0ru90eF9VDcjtBgvs6SB2tdH/IvsHqM90rVh6fkWwlmK/vKIOboueDUb2Yg3jpXrPH51OFDdJTX6WXXKYzd/hxezpI58E0/4GVI5yEvjGmBFitwxKTNB/LS37Wutol00Yn23Vhfiz2qQ=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1792082573; c=relaxed/simple;
-	bh=OTU5FPXRS7SrHUOlR2OvN6NsypIYjQfFMY0pipFB/Qg=;
-	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=msDuicqiLWbKHWz2Wji0kjulNuOqSPYMZHQZudPmBV+QQwulNaAPb8LIMZU6kPa+AvRt82QDx1t74poPmNs0grvmksK0ij8dGXQirGkXzhscmu1rBG87c+4b50cnl41w/fpgoRVdmleFF86v16XpE6zatIamMua1PR0OVFpOArA=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=Dd5vJvJd; arc=none smtp.client-ip=209.85.214.177
+	s=arc-20240116; t=1792083479; c=relaxed/simple;
+	bh=gBYGD3tKItIGu9oXJXjWgIyeMXUwedDlFFMV8rc1jdA=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version:Content-Type; b=nfDmzwZgYeAbH0BZGurjHW0OtP4aFGnd5GuqFZc5cuLA63WPRkHkGbd1KXcMMD7DIQ8NSc/yIySERXx8S/a/7lVOB55nM4UcjOFcW60y1nGh20RDriJ/favQU61/dhbTkUIr1I3xxeU/Rlxq7Cajz6FeqDGrPb+XjfenaOy77q4=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=cR/vGW86; arc=none smtp.client-ip=209.85.210.181
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="Dd5vJvJd"
-Received: by mail-pl1-f177.google.com with SMTP id d9443c01a7336-2e5fb79ce82so31808145ad.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 09:42:41 -0700 (PDT)
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="cR/vGW86"
+Received: by mail-pf1-f181.google.com with SMTP id d2e1a72fcca58-85377c8bc96so2570277b3a.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 09:57:47 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792082560; x=1792687360; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=rhNH0BW2XAjBueCKdT6wW0Wg3sEZITNbVSl2Bvf6yOk=;
-        b=Dd5vJvJdcFMrYV1BjSOScbhQWbbWWU3HYEjHb7B/avGSk3/jSqOjMTACxsLjh9m7LM
-         yoPS1XIVY7AyRVVGMcvuh/rxYuDvQhKgvTOuDFESTkYgUE1JnObFyqFNS4Rhyr/AVXw2
-         1nSayxIE9bIRoGGx75mstUlTxfAHOrL+Uyzz9EVQcx3Aca/2eXOIflPF0XdGMRlshU3L
-         +CoCzSWeU1NRprqIkmwcOgUn0jaI80XHcgaQT7cMQnJh7C9WQNbguII+zp7GqGBgIdEC
-         9So+IcN2j0O06nlnw7TRFs9rrWdEbAADfuM8a6zDUBASUkZK9539qLf+hAoM15iUwcCU
-         pEAw==
+        d=gmail.com; s=20251104; t=1792083467; x=1792688267; darn=lists.linux.dev;
+        h=content-transfer-encoding:content-type:mime-version:message-id:date
+         :subject:cc:to:from:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=iPaWbI2r8AXvwprE8o0BKzZtz+m3PX1iYF2IvumBD60=;
+        b=cR/vGW86zAckPkf7pg4hU0s2bVegGt3e1WG5iBLYdePVLGV5bjx5BctMd71h0WlhTJ
+         pYiy0oepVwKg7uG660DrnhZ9mVQyVxtee5Z5u36/9uzigcetoT42lILqThmgT9nYe4OM
+         0H5/qDSANoZHwJxefTRPEoXz1BnzBQVlIjDZnXYhSudswVUeMMQVLRohRocrgM5UdYyC
+         iTaEDtr+b2YPlVEuJcTmd79wwZFg8lPxjUuzQdeP4hl2ybj3w6G9eoWWpDm4DXsiJ54I
+         FokR0THnPeQhC3XidYp+8lTyaJg8AgSv+cs5YlYpGZ94y6CEcmz2aNbTGmCH0TDjIQHd
+         6p6w==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792082560; x=1792687360;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=rhNH0BW2XAjBueCKdT6wW0Wg3sEZITNbVSl2Bvf6yOk=;
-        b=BW+FvvajAkND7JUClM4lwY8QurAKVAZgblXtgSvVUXvCKibwVFbjCGWCLVRJP8sBBa
-         XGP1f4Y0fHMDg9lc41f0cqBvQPNQE2PdOzBy3WGiHQ2WhwU+ggGcuslQwEQZEwLwLhmw
-         bvj0UpeDGqfqf+Xx3qZ5RfHKfauoTcUdMpOVotYw11p9wDb1b1uRrRXpgHjtUJwZhFo9
-         ssZPcbMksnFgR4OHbCsp8xjNhcNOtFlv/PkwbdAo76UhK0mhkcSC47odI1LvzSXgoYNv
-         L3xFY0z6HtRe4aNPMBwFe2aIWnhnHS4ooVbpQ/xj2wubP8hIMZYeLTUo4cB0O91HyLE5
-         fL8A==
-X-Gm-Message-State: AFq9FYJ66/3nsEHx45BWMzINN9pmnqx9UqoAFW2dbxhOyQgvOBa/172G
-	hDpYqIXBh+WvXVKugnQgXHV8JesITAPLk+tt3Y1U4tyKEIV93quGfVGH
-X-Gm-Gg: AYBFou1ejQgmv6Tb3VbouArj9HyysklCE/nfgnR411b1WTfn+1yugjPoGEretfDm8cU
-	XWhS5K02IBitjuuk00Zz6M+X1pAxyH6r7nENysUlMxUGbmidwqeprJ0iomWX5qsbvzRx0GwMs9c
-	j+DkUL661l6VYhR3Z8usvhp2vAimqXA4h84np82oDXUhaJlqFgZidKc3XZCIGLgwCso/lVDwn6j
-	zEitPXRaqiKb6oieARcMoOA51TDHiDQ4F8i0rB8u/4WjQxGUr3ikGxfa4uictQa2DRUzK75eHx7
-	sp2dBrZOokuJbloJtFt3TIp0MWokTgZ8J4cxRNZWGHoLN6VbQvucoJqPVamcoUZuvu5SY9pFQwX
-	a1d4BCXOGchavl7OtcvhXxYIn1L94e/+0gVjvfF966COzwcKIy16otvW0PAbGl7AATym7kzLWiw
-	l9ck8KLKwUHPxoWTDiyC/VQs9lGE2ZDHFI0dlt0/ukV2JJTpnobTz8spblz/+UpItX4A==
-X-Received: by 2002:a17:903:32cd:b0:2e2:d7d6:6563 with SMTP id d9443c01a7336-2e842ce162fmr161624375ad.43.1792082560456;
-        Thu, 15 Oct 2026 09:42:40 -0700 (PDT)
+        d=1e100.net; s=20260707; t=1792083467; x=1792688267;
+        h=content-transfer-encoding:content-type:mime-version:message-id:date
+         :subject:cc:to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=iPaWbI2r8AXvwprE8o0BKzZtz+m3PX1iYF2IvumBD60=;
+        b=sfEkeGA2uwzktwBvZDZMJMXCfvgsptvj/KhLq9r66umAE5xzEaJZ0iDrAsDY/hAoqc
+         xubIgIY4GzSqHvlWPP8iWlRd+Dt8GBLORZjDq1AyqBo1KyH8Ss8GbmZQTY+FpZrI1s4y
+         JjjRLu+ClQzDCMoq45Zbu2C5lWMBwO3uZaPmdS0bNR4XHJmd3iJ+Er4GdBOOqM7vxIao
+         GBbewOK8mgUqTbrRaMIWGOE3CPv1wW1p+bCZIpI1iVgCXZDoorUjHytMDvJqNDh2e1pe
+         Bf7tojYU5GiB/7zSvW0liRu2OAY28MjQNTwy4FmHIfU7jBrIcexm7M+TH6+WZl8cVp4B
+         HcPA==
+X-Gm-Message-State: AFq9FYJ1bwFOC+92CTOh4z/9VIuy92uugdlN1npQi7rFAYNYxZRoHgPe
+	3G26K9929qrSxXxNaawTDTNjYwW0ntpeH0qKdoC+SKAM1vh2TOC2ZNFq
+X-Gm-Gg: AYBFou2WyBEIQFCsIFjBVyRysjSyCqc/XWm44nsp7ESOKDrerQ6eVbi8gUJvzexfaRu
+	/4ohkauFj1E6kHWkh3cQ+YE2aXglEnbwGDsavOPhZYWL0I7hgu5ZJDCuaOlP31Z0pEVCepM7fMY
+	SUs3tO5OqNhs0FC2IwM/zkwaNANm4c0crQj7Z650dWO/97ti9cDvO1t2cWFhRqfcStvaL0BM4yy
+	9AZo/CwvJGcBiuRHwwKDiYjfMvEer8GpxSkNFUpzfkaF6royt+/fSBU87WSAsdBJHyB0Y7fuDL3
+	7hPPVNm0rzEWD47autlR85F/NCWg0oNMv+jdY/bX1M7sM/ICEUM+rQkZ3ZleB+g1MHKAehNPWZ3
+	UbtgYJen1ZY+aW8u4vpIedh3hPd/74orKhCYcBxjOdnooSwdTst3AA1aDDlTUt9aWK9tHPm7lwy
+	1ceDORAntIIIInZb5TrIigcEUJaMLD4338fW0l+91NmETcHZN8mqhyAatnO0a7dnCESw==
+X-Received: by 2002:a05:6a20:6a0e:b0:3e0:c2fd:511b with SMTP id adf61e73a8af0-3e16be0d320mr16966384637.32.1792083467156;
+        Thu, 15 Oct 2026 09:57:47 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2e8422e4eb2sm85667535ad.74.2026.10.15.09.42.35
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cd635cbaca7sm1556170a12.25.2026.10.15.09.57.41
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 15 Oct 2026 09:42:40 -0700 (PDT)
+        Thu, 15 Oct 2026 09:57:46 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
@@ -62,24 +63,18 @@ To: mark@fasheh.com,
 	heming.zhao@suse.com,
 	akpm@linux-foundation.org,
 	zzzccc427@gmail.com,
-	kees@kernel.org,
-	kmehltretter@gmail.com,
 	christophe.jaillet@wanadoo.fr,
-	ericterminal@gmail.com,
-	rppt@kernel.org,
-	rollkingzzc@gmail.com,
-	brauner@kernel.org,
-	sunil.mushran@oracle.com,
-	kurt.hackel@oracle.com,
-	jack@suse.cz
+	blum@kernel.org,
+	kees@kernel.org,
+	sunil.mushran@oracle.com
 Cc: ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	stable@vger.kernel.org,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com
-Subject: [PATCH v2] ocfs2: Pin owning modules for open debugfs files
-Date: Fri, 16 Oct 2026 00:42:32 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0089-v5-076c780eeaf45afb2a53@gmail.com>
+Subject: [PATCH] ocfs2: drain quorum work before removing the cluster
+Date: Fri, 16 Oct 2026 00:57:38 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0064-v4-51daf51db746eedf7533@gmail.com>
 X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
@@ -87,196 +82,106 @@ List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-The OCFS2 debugfs file operation tables do not set owner. The
-full debugfs proxy obtains real_fops with fops_get() at open and
-keeps it until final release. Without an owner, this does not acquire
-a reference to the module containing the table and its callbacks.
-Removing the debugfs entries does not drain retained open files.
+The configured cluster must remain available until an in-flight quorum
+decision has finished using its fencing method. o2quo_make_decision()
+drops qs_lock before calling o2quo_fence_self(), which marks heartbeat
+regions for unclean stop and then reads
+o2nm_single_cluster->cl_fence_method. Cluster removal clears the
+singleton without waiting for this independent system-workqueue item.
 
-An open connected_nodes file can therefore outlive ocfs2_nodemanager
-and make full_proxy_release() read real_fops->release from freed
-module memory. Heming also reproduced the issue with fs_state and
-asked for the other OCFS2 debugfs operation tables to be checked.
+When a failed-quorum decision overlaps removal of the heartbeat regions,
+nodes and cluster through configfs, the worker can be preempted after
+marking the regions and resume after the singleton has been cleared:
 
-Set owner to THIS_MODULE in all eleven explicit debugfs operation
-tables: five in ocfs2_nodemanager, four in ocfs2_dlm, and two in
-ocfs2. The existing debugfs get/put pair then holds the appropriate
-module until final release. Leave the open, read and release callbacks
-unchanged. The blockcheck table already sets owner through
-DEFINE_DEBUGFS_ATTRIBUTE(), so it needs no change.
+  Quorum worker                     Configfs removal
+  select fence; drop qs_lock
+  o2hb_stop_all_regions()
+                                    remove regions; join heartbeat threads
+                                    remove nodes; stop o2net
+                                    clear singleton; release cluster
+  read cl_fence_method
 
-The original controlled test used an unloadable OCFS2 module and
-case-local probe filters without changing the candidate open, unload
-or release logic. Closing a retained connected_nodes file after
-normal unload produced:
+The resumed read dereferences NULL instead of applying the configured
+fencing method. The heartbeat thread's dependency protects the local
+node only until the thread exits, and draining o2net does not wait for
+qs_work.
 
-  BUG: unable to handle page fault for address: fffffbfff804cfef
-  Oops: Oops: 0000 [#1] SMP KASAN NOPTI
-  RIP: 0010:full_proxy_release+0xbf/0x190
-  Call Trace:
-   <TASK>
-   __fput+0x39a/0xa60
-   fput_close_sync+0xff/0x200
-   __x64_sys_close+0x8c/0xf0
-   do_syscall_64+0x114/0x620
-   entry_SYSCALL_64_after_hwframe+0x77/0x7f
-   </TASK>
-  Modules linked in: [last unloaded: ocfs2_nodemanager]
+Call the existing o2quo_exit() flush before clearing the singleton in
+o2nm_cluster_group_drop_item(). By this point the heartbeat regions and
+nodes have been removed, so their work publishers are stopped. The
+flush lets any pending or running decision finish while the cluster is
+still available. It introduces no new state or locking; the worker does
+not acquire the configfs mutex held by the removal path.
 
-Fixes: 2309e9e040fe ("ocfs2/net: Add debug interface to o2net")
-Fixes: 87d3d3f3931f ("ocfs2/hb: Expose the list of heartbeating nodes via debugfs")
-Fixes: 3ba169ccec1c ("ocfs2/cluster: Add new function o2net_fill_node_map()")
-Fixes: 50397507e856 ("ocfs2: Expose the file system state via debugfs")
-Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-Fixes: 7209300a9b98 ("ocfs2/dlm: Dumps the purgelist into a debugfs file")
-Fixes: d0129aceaecc ("ocfs2/dlm: Dumps the mles into a debugfs file")
-Fixes: 4e3d24ed1a12 ("ocfs2/dlm: Dumps the lockres' into a debugfs file")
-Fixes: 007dce53a29c ("ocfs2/dlm: Dump the dlm state in a debugfs file")
-Assisted-by: LLM
+KASAN report as below:
+
+    Oops: general protection fault, probably for non-canonical address 0xdffffc000000011b: 0000 [#1] SMP KASAN NOPTI
+    KASAN: null-ptr-deref in range [0x00000000000008d8-0x00000000000008df]
+    CPU: 0 UID: 0 PID: 72 Comm: kworker/0:2 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+    Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+    Workqueue: events o2quo_make_decision
+    RIP: 0010:o2quo_fence_self+0x65/0x200
+
+Register dump omitted.
+
+    Call Trace:
+     <TASK>
+     o2quo_make_decision+0x345/0x3a0
+     ? __pfx_o2quo_make_decision+0x10/0x10
+     ? process_one_work+0x834/0x1b40
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? lock_release+0xc8/0x290
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     process_one_work+0x9a8/0x1b40
+     ? __pfx_process_one_work+0x10/0x10
+     ? lock_acquire+0x190/0x300
+     ? lock_is_held_type+0x8f/0x100
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     worker_thread+0x65c/0xe40
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __kthread_parkme+0x177/0x220
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __pfx_worker_thread+0x10/0x10
+     kthread+0x351/0x460
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __pfx_kthread+0x10/0x10
+     ret_from_fork+0x659/0x940
+     ? __pfx_ret_from_fork+0x10/0x10
+     ? srso_alias_return_thunk+0x5/0xfbef5
+     ? __switch_to+0x74f/0xf70
+     ? __pfx_kthread+0x10/0x10
+     ret_from_fork_asm+0x1a/0x30
+     </TASK>
+    Modules linked in:
+    ---[ end trace 0000000000000000 ]---
+
+Fixes: f6656d26d17b ("ocfs2/cluster: Make fence method configurable - v2")
 Cc: <stable@vger.kernel.org>
-Suggested-by: Heming Zhao <heming.zhao@suse.com>
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+Assisted-by: LLM
 
 ---
-Changes in v2:
-- Cover fs_state and locking_state in the OCFS2 filesystem module.
-- Cover all four OCFS2 DLM debugfs operation tables.
-- Keep the five node manager fixes and the original diagnostic.
-- Add explicit module headers and Fixes tags for the added tables.
-- Add Cc: stable@vger.kernel.org.
-
-Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0089-v2-4c67f48d4e2d0fc85990@gmail.com
-
- fs/ocfs2/cluster/heartbeat.c | 1 +
- fs/ocfs2/cluster/netdebug.c  | 4 ++++
- fs/ocfs2/dlm/dlmdebug.c      | 5 +++++
- fs/ocfs2/dlmglue.c           | 2 ++
- fs/ocfs2/super.c             | 1 +
- 5 files changed, 13 insertions(+)
-
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index 8e6ead433228e7419bfbbe5c7cdde65c654a24f4..1d4f71190d27b2b7fcf7db7b39fefcad5cc669cc 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -1447,6 +1447,7 @@ static ssize_t o2hb_debug_read(struct file *file, char __user *buf,
- #endif  /* CONFIG_DEBUG_FS */
+diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+index e08850a5d736..13d7f579047f 100644
+--- a/fs/ocfs2/cluster/nodemanager.c
++++ b/fs/ocfs2/cluster/nodemanager.c
+@@ -12,6 +12,7 @@
+ #include "tcp.h"
+ #include "nodemanager.h"
+ #include "heartbeat.h"
++#include "quorum.h"
+ #include "masklog.h"
+ #include "sys.h"
  
- static const struct file_operations o2hb_debug_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		o2hb_debug_open,
- 	.release =	o2hb_debug_release,
- 	.read =		o2hb_debug_read,
-diff --git a/fs/ocfs2/cluster/netdebug.c b/fs/ocfs2/cluster/netdebug.c
-index f7ab66e70799302f3ed4e70ab6a8fb057dd0bfa9..9b8e2cdd05ed452f98f95d45bfb7f5865db434f7 100644
---- a/fs/ocfs2/cluster/netdebug.c
-+++ b/fs/ocfs2/cluster/netdebug.c
-@@ -183,6 +183,7 @@ static int nst_fop_release(struct inode *inode, struct file *file)
- }
+@@ -740,6 +741,8 @@ static void o2nm_cluster_group_drop_item(struct config_group *group, struct conf
+ 	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
  
- static const struct file_operations nst_seq_fops = {
-+	.owner = THIS_MODULE,
- 	.open = nst_fop_open,
- 	.read = seq_read,
- 	.llseek = seq_lseek,
-@@ -415,6 +416,7 @@ static int stats_fop_open(struct inode *inode, struct file *file)
- }
+ 	BUG_ON(o2nm_single_cluster != cluster);
++	/* Drain quorum work before it loses access to the cluster. */
++	o2quo_exit();
+ 	o2nm_single_cluster = NULL;
  
- static const struct file_operations stats_seq_fops = {
-+	.owner = THIS_MODULE,
- 	.open = stats_fop_open,
- 	.read = seq_read,
- 	.llseek = seq_lseek,
-@@ -427,6 +429,7 @@ static int sc_fop_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations sc_seq_fops = {
-+	.owner = THIS_MODULE,
- 	.open = sc_fop_open,
- 	.read = seq_read,
- 	.llseek = seq_lseek,
-@@ -476,6 +479,7 @@ static ssize_t o2net_debug_read(struct file *file, char __user *buf,
- }
- 
- static const struct file_operations nodes_fops = {
-+	.owner = THIS_MODULE,
- 	.open		= nodes_fop_open,
- 	.release	= o2net_debug_release,
- 	.read		= o2net_debug_read,
-diff --git a/fs/ocfs2/dlm/dlmdebug.c b/fs/ocfs2/dlm/dlmdebug.c
-index ce6d301cb9420385211d20d59637069154a89993..4face0bea236748b679571e6ade068658d33bd12 100644
---- a/fs/ocfs2/dlm/dlmdebug.c
-+++ b/fs/ocfs2/dlm/dlmdebug.c
-@@ -7,6 +7,7 @@
-  * Copyright (C) 2004, 2008 Oracle.  All rights reserved.
-  */
- 
-+#include <linux/module.h>
- #include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/highmem.h>
-@@ -339,6 +340,7 @@ static int debug_purgelist_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations debug_purgelist_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		debug_purgelist_open,
- 	.release =	debug_release,
- 	.read =		debug_read,
-@@ -394,6 +396,7 @@ static int debug_mle_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations debug_mle_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		debug_mle_open,
- 	.release =	debug_release,
- 	.read =		debug_read,
-@@ -601,6 +604,7 @@ static int debug_lockres_release(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations debug_lockres_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		debug_lockres_open,
- 	.release =	debug_lockres_release,
- 	.read =		seq_read,
-@@ -791,6 +795,7 @@ static int debug_state_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations debug_state_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		debug_state_open,
- 	.release =	debug_release,
- 	.read =		debug_read,
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 6bc4a21cf5f02f04a6b54100925084aed239ae62..b332938fe57f87c3d9a81e3800eed1a25e49de1b 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -7,6 +7,7 @@
-  * Copyright (C) 2003, 2004 Oracle.  All rights reserved.
-  */
- 
-+#include <linux/module.h>
- #include <linux/types.h>
- #include <linux/slab.h>
- #include <linux/highmem.h>
-@@ -3332,6 +3333,7 @@ static int ocfs2_dlm_debug_open(struct inode *inode, struct file *file)
- }
- 
- static const struct file_operations ocfs2_dlm_debug_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		ocfs2_dlm_debug_open,
- 	.release =	ocfs2_dlm_debug_release,
- 	.read =		seq_read,
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 1e76b1d9fe0af4b3cf503e91e1dd077762fef88a..1f6d828a470fb28ccde2e6ed9a82a4ed7c294201 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -387,6 +387,7 @@ static ssize_t ocfs2_debug_read(struct file *file, char __user *buf,
- #endif	/* CONFIG_DEBUG_FS */
- 
- static const struct file_operations ocfs2_osb_debug_fops = {
-+	.owner = THIS_MODULE,
- 	.open =		ocfs2_osb_debug_open,
- 	.release =	ocfs2_debug_release,
- 	.read =		ocfs2_debug_read,
+ 	configfs_remove_default_groups(&cluster->cl_group);
