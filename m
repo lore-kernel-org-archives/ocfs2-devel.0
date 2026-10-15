@@ -1,225 +1,233 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
+Received: from mail-oi1-f200.google.com (mail-oi1-f200.google.com [209.85.167.200])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 56A383E0C59
-	for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 03:08:06 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E20454A2A7F
+	for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 07:48:29 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.167.200
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1792033690; cv=none; b=IdnRDNsvs8NlwxBsXDomoPA29QuQSgwJ+QYtBbfM+juXympFgzsQWv9/yxYTz5i7bu2IIrw6T2QPbI5dM5Y9MtrIoSuR4S+2oQCNiNsY1fn12gR/ITX9sS+DCgfltMtmqkFr6KbRyqfdrjbDvRF4PCbFkU3C8hPS6S9SkjE1DJg=
+	t=1792050512; cv=none; b=HZ7m6VAaxqJ8+ntqrbyqmFiRj+a0ZjURdAkT6fXBZKuIxHP90WVA2k9SHJU65pcyWqwyVrBkf0SG5RJ/WBZ0vscC+3FpMTfDWyIgh6mY/d1UQqeAJqimVKNGbM918I+n09cBr8FRDbyhlWq6recikzTzpBE0FxbvFzAxOAkJQLs=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1792033690; c=relaxed/simple;
-	bh=Gr8bvZjonjpuKPPLEESkDDRjyQuYoWcxa67/eUFrMGA=;
-	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=mXTW9ue79/qkz84Jspml3bnFsw0GhfBuOeYgaK5IXVJWQzoAwJ6GxUF2Iqwdw5g/JkWodH9RRUcGprTto+/8qTRfg3oXN6B44vI/154xHXxcLXDkgxyuXHQ3Uk1XAu4a04KCZ+0hEEZVaAZpewIO41ntcRsIWqjS+J5k5q54qe0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=Ae6k0kcf; arc=none smtp.client-ip=115.124.30.100
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="Ae6k0kcf"
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1792033678; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=X7/2qcsTlbXyBMa1huct+zwum1m1Lw9DoZkGyhEg03E=;
-	b=Ae6k0kcfUAan55LkwKeZOCdBd19p1d+HI1/ebYj06f+2JQ3JwXSRBnQNPZMjgXtEGXc+2KRVdU93Zgb/xQV7JODPkThiZU2wp6jH8RY43K2WEHpHXvJnu6FD6FIr3H634zbCdgUpXPewFuDpAS9QqD1KaeHAt2vmrkH/jitnVXg=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R331e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=11;SR=0;TI=SMTPD_---0XCqJIKb_1792033677;
-Received: from 30.221.144.234(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XCqJIKb_1792033677 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Thu, 15 Oct 2026 11:07:58 +0800
-Message-ID: <99dbb221-394b-4431-b8c3-9a6350b7d006@linux.alibaba.com>
-Date: Thu, 15 Oct 2026 11:07:56 +0800
+	s=arc-20240116; t=1792050512; c=relaxed/simple;
+	bh=B5rHPvUMUy94Nc62agu0HJV9DdovJS5sbqwBT0crImg=;
+	h=MIME-Version:Date:Message-ID:Subject:From:To:Content-Type; b=hmRU+3IOT8fZyzsJyjAV2GMBRJs8MyP5dRS9U4JHJrPeI+16w1eWa6E/EmZQy4VJP9kc4hiLs+G69NQ3Rl90WiXG6a9ZvJXcjBvQHdx693BZA/SztcqCc1Auvms+EI0ZRgS+aQdT6jk9cQwNSRvSH9hx42gAHdieF+2J9yyxO00=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com; arc=none smtp.client-ip=209.85.167.200
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f200.google.com with SMTP id 5614622812f47-4cc89e86e9eso1770660b6e.3
+        for <ocfs2-devel@lists.linux.dev>; Thu, 15 Oct 2026 00:48:29 -0700 (PDT)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1792050509; x=1792655309;
+        h=content-type:to:from:subject:message-id:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=Z1PKE5L79jyD+R9Snu6RYRvsR0qYd1dACKgpwu3b3TQ=;
+        b=HMvDEbVbdhYx5842DBRjQNNKKoVsN0Xl90LVtC0tnv+cmYhuXv2oopz4rMxWNTqzqx
+         Rq5KC0Nr393YhF2VhWdMpT2+1c1q3MFlLP0LYqkX9lQrmZRWKayGhFZtx8k6r6H59ZTK
+         W8dGC7BxWGAnrxn83fRs/5KBBjIsJ2DtEcESuS/Ub4lWNeT8vMgSwtWd2Hjx2DedJZIo
+         t9iiiIeSVBf82Qw367KQbLg66FRBMKaVky6N3npJutMV8+6lCNmgY3qn8NJF+PPGiFi+
+         D3YuU7xbdQVZKcxWTCoYrrh3P9Ft+C8Yh3kXMUwfzA48+7aD1kOkDe27a2Ca6YjyBKDv
+         sBxw==
+X-Forwarded-Encrypted: i=1; AKwUvBze0zNFP+usOhh3rCmTwneQd1y1Ft4VorpkwVeFQhr9LcFQWfMEha6JAPG79HFxfyF7bDGGrd9DbnMPFQ==@lists.linux.dev
+X-Gm-Message-State: AFq9FYKYPXz4kfRHCR5vTZzL97asEgSJ6GYAsIW2M1hNKAMI1am1rXsI
+	NO+qFbOx7EXn/sO34apaA/slrzAVplyW2+/yUszGlqW+WboJMCIfIi/lHL4idc+mDw6fTXWDM+T
+	wPyDQx0/2146YDMJjWQLZsEOwHvz77qRl83WGI/7y1drtsNttHVKGZTnTeK8=
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2] ocfs2: dlmfs: Hold l_lock through the unlock wakeup
-To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: mark@fasheh.com, jlbec@evilplan.org, kurt.hackel@oracle.com,
- heming.zhao@suse.com, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, stable@vger.kernel.org,
- baijiaju1990@gmail.com, jjzuming@gmail.com
-References: <pm-ocfs2-objects-candidate-0055-v5-5a07cf78ed1c5bd13e50@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <pm-ocfs2-objects-candidate-0055-v5-5a07cf78ed1c5bd13e50@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+X-Received: by 2002:a05:6808:6713:b0:4f6:1e12:e37d with SMTP id
+ 5614622812f47-50c5870a541mr16423504b6e.63.1792050508803; Thu, 15 Oct 2026
+ 00:48:28 -0700 (PDT)
+Date: Thu, 15 Oct 2026 00:48:28 -0700
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6ad0854c.5f317f00.247b6.0064.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_xattr_set_handle (2)
+From: syzbot <syzbot+b4732eab3dcd27c32ae6@syzkaller.appspotmail.com>
+To: heming.zhao@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-+ akpm
+Hello,
 
-On 10/15/26 10:22 AM, Cen Zhang wrote:
-> The user_lock_res embedded in a DLMFS inode must remain alive until the
-> final unlock AST finishes accessing it. user_unlock_ast() clears
-> USER_LOCK_BUSY under l_lock, but releases that lock before calling
-> wake_up() on the embedded l_event. user_dlm_destroy_lock() waits only
-> for BUSY to clear, so it can return before the callback's last access.
-> 
-> With the native userspace stack, fs/dlm dispatches the unlock AST
-> asynchronously. Unlinking an attached lock with no remaining local
-> holders can therefore reach the following order while the parent domain
-> stays mounted:
-> 
->   Unlink and inode release          Native unlock AST
->   ------------------------          -----------------
->   submit final unlock
->   prepare_to_wait_event(): enqueue
->                                     clear BUSY under l_lock
->                                     release l_lock
->                                     delay before wake_up()
->   test BUSY: already clear
->   finish_wait(): remove waiter
->   return from the destroy wait
->   unlink and evict the child
->   RCU callback frees the inode
->                                     wake_up(&lockres->l_event)
-> 
-> The queued waiter can observe BUSY already cleared, leave the wait loop
-> and run finish_wait() without waiting for the AST's wake_up(). The
-> callback holds no inode reference, and keeping the parent domain alive
-> avoids disconnect draining the callback workqueue. The delayed wakeup
-> then accesses freed inode storage, causing a use-after-free in
-> waitqueue locking.
-> 
-> Keep l_lock held through wake_up(), as ocfs2_unlock_ast() already does.
-> user_check_wait_flag() takes the same lock, so teardown cannot observe
-> the cleared BUSY flag until the wakeup has finished. The callback and
-> its wrappers do not access the lock resource after this final unlock.
-> The waitqueue lock is released before wait_event() tests BUSY, so
-> extending the critical section does not invert their lock order.
-> 
-> KASAN report as below:
-> 
->     BUG: KASAN: slab-use-after-free in _raw_spin_lock_irqsave+0x3d/0x60
->     Read of size 1 at addr ffff888117dc93c0 by task kworker/u17:0/871
-> 
->     CPU: 2 UID: 0 PID: 871 Comm: kworker/u17:0 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
->     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
->     Workqueue: dlm_callback dlm_callback_work
->     Call Trace:
->      <TASK>
->      dump_stack_lvl+0x93/0xd0
->      print_report+0xce/0x630
->      ? _raw_spin_lock_irqsave+0x3d/0x60
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __virt_addr_valid+0x20e/0x420
->      ? _raw_spin_lock_irqsave+0x3d/0x60
->      kasan_report+0xe0/0x110
->      ? _raw_spin_lock_irqsave+0x3d/0x60
->      ? _raw_spin_lock_irqsave+0x3d/0x60
->      __kasan_check_byte+0x36/0x50
->      lock_acquire+0x113/0x300
->      ? __pfx_pmbd_probe_hit_cookie+0x10/0x10
->      ? pmbd_probe_hit_cookie+0xee/0x1c0
->      _raw_spin_lock_irqsave+0x3d/0x60
->      ? __wake_up_common_lock+0x27/0xb0
->      __wake_up_common_lock+0x27/0xb0
->      user_unlock_ast+0x21a/0x490
->      ? __pfx_user_unlock_ast+0x10/0x10
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? process_one_work+0x7c8/0x1b40
->      fsdlm_lock_ast_wrapper+0xf2/0x130
->      dlm_do_callback+0x2e9/0x6c0
->      ? __pfx_fsdlm_lock_ast_wrapper+0x10/0x10
->      process_one_work+0x9a8/0x1b40
->      ? __pfx_process_one_work+0x10/0x10
->      ? lock_acquire+0x190/0x300
->      ? lock_is_held_type+0x8f/0x100
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      worker_thread+0x65c/0xe40
->      ? __pfx_worker_thread+0x10/0x10
->      kthread+0x351/0x460
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_kthread+0x10/0x10
->      ret_from_fork+0x659/0x940
->      ? __pfx_ret_from_fork+0x10/0x10
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __switch_to+0x74f/0xf70
->      ? __pfx_kthread+0x10/0x10
->      ret_from_fork_asm+0x1a/0x30
->      </TASK>
-> 
->     Allocated by task 492:
->      kasan_save_stack+0x33/0x60
->      kasan_save_track+0x14/0x30
->      __kasan_slab_alloc+0x89/0x90
->      kmem_cache_alloc_lru_noprof+0x205/0x5c0
->      dlmfs_alloc_inode+0x2a/0x50
->      alloc_inode+0x69/0x230
->      new_inode+0x23/0x1a0
->      dlmfs_get_inode+0x47/0x2d0
->      dlmfs_create+0x18f/0x2f0
->      lookup_open+0x88f/0x13e0
->      path_openat+0x95e/0x2020
->      do_file_open+0x21e/0x470
->      do_sys_openat2+0xf4/0x1b0
->      __x64_sys_openat+0x136/0x1e0
->      do_syscall_64+0x114/0x620
->      entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> 
->     Freed by task 0:
->      kasan_save_stack+0x33/0x60
->      kasan_save_track+0x14/0x30
->      kasan_save_free_info+0x3b/0x60
->      __kasan_slab_free+0x5f/0x80
->      kmem_cache_free+0x242/0x580
->      dlmfs_free_inode+0x25/0x60
->      i_callback+0x4b/0x80
->      rcu_core+0x6be/0x1ed0
->      handle_softirqs+0x1fa/0x8d0
->      __irq_exit_rcu+0x113/0x1e0
->      irq_exit_rcu+0xe/0x20
->      sysvec_apic_timer_interrupt+0x6c/0x80
->      asm_sysvec_apic_timer_interrupt+0x1a/0x20
-> 
->     Last potentially related work creation:
->      kasan_save_stack+0x33/0x60
->      kasan_record_aux_stack+0xa7/0xc0
->      __call_rcu_common.constprop.0+0x80/0x280
->      destroy_inode+0x131/0x1b0
->      evict+0x543/0x9f0
->      iput+0x680/0xb80
->      filename_unlinkat+0x36d/0x660
->      __x64_sys_unlinkat+0xb0/0x110
->      do_syscall_64+0x114/0x620
->      entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> 
->     The buggy address belongs to the object at ffff888117dc92c0
->      which belongs to the cache dlmfs_inode_cache of size 1464
->     The buggy address is located 256 bytes inside of
->      freed 1464-byte region [ffff888117dc92c0, ffff888117dc9878)
-> 
-> [Physical-page and shadow-memory dumps omitted.]
-> 
-> Fixes: 8df08c89c668 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-> Cc: <stable@vger.kernel.org>
-> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
-> Assisted-by: LLM
-> 
-> ---
-> Changes in v2:
-> - Clarify the queued-waiter interleaving through finish_wait() before the
->   unlock AST wakeup.
-> - Correct Fixes to the original dlmfs introduction.
-> - Add Joseph Qi's Reviewed-by; keep the code change unchanged.
-> 
-> Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0055-v4-c1574edc9949e3a22edf@gmail.com
-> 
-> diff --git a/fs/ocfs2/dlmfs/userdlm.c b/fs/ocfs2/dlmfs/userdlm.c
-> index 617c92e7b925..60653db7b411 100644
-> --- a/fs/ocfs2/dlmfs/userdlm.c
-> +++ b/fs/ocfs2/dlmfs/userdlm.c
-> @@ -253,9 +253,9 @@ static void user_unlock_ast(struct ocfs2_dlm_lksb *lksb, int status)
->  
->  	lockres->l_flags &= ~USER_LOCK_BUSY;
->  out_noclear:
-> -	spin_unlock(&lockres->l_lock);
-> -
-> +	/* Complete the wakeup before a BUSY waiter can free lockres. */
->  	wake_up(&lockres->l_event);
-> +	spin_unlock(&lockres->l_lock);
->  }
->  
->  /*
+syzbot found the following issue on:
 
+HEAD commit:    becb95e45ef0 Add linux-next specific files for 20261009
+git tree:       linux-next
+console output: https://syzkaller.appspot.com/x/log.txt?x=165a11d1580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=90dad226b9b89d98
+dashboard link: https://syzkaller.appspot.com/bug?extid=b4732eab3dcd27c32ae6
+compiler:       Debian clang version 22.1.8 (++20260613092233+e80beda6e255-1~exp1~20260613092250.77), Debian LLD 22.1.8
+
+Unfortunately, I don't have any reproducer for this issue yet.
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/c2788d0b538b/disk-becb95e4.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/13231cbc415a/vmlinux-becb95e4.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/e6abf775ab73/bzImage-becb95e4.xz
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+b4732eab3dcd27c32ae6@syzkaller.appspotmail.com
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Tainted: G                   Y
+------------------------------------------------------
+syz.1.1388/11252 is trying to acquire lock:
+ffff88805079b058 (&oi->ip_alloc_sem/1){+.+.}-{4:4}, at: ocfs2_xattr_set_handle+0x3fc/0x820 fs/ocfs2/xattr.c:3888
+
+but task is already holding lock:
+ffff888036ee0ce0 (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x3a9/0x6f0 fs/ocfs2/journal.c:370
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 (&journal->j_trans_barrier){.+.+}-{4:4}:
+       down_read+0x45/0x320 kernel/locking/rwsem.c:1574
+       ocfs2_start_trans+0x3a9/0x6f0 fs/ocfs2/journal.c:370
+       ocfs2_mknod+0xf07/0x2190 fs/ocfs2/namei.c:364
+       ocfs2_create+0x195/0x460 fs/ocfs2/namei.c:677
+       lookup_open+0xedc/0x1970 fs/namei.c:4598
+       open_last_lookups fs/namei.c:4798 [inline]
+       path_openat+0x673/0x1da0 fs/namei.c:5037
+       do_file_open+0x23e/0x4a0 fs/namei.c:5069
+       do_sys_openat2+0x115/0x200 fs/open.c:1442
+       do_sys_open fs/open.c:1448 [inline]
+       __do_sys_open fs/open.c:1780 [inline]
+       __se_sys_open fs/open.c:1776 [inline]
+       __x64_sys_open+0x11e/0x150 fs/open.c:1776
+       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #1 (sb_internal#4){.+.+}-{0:0}:
+       percpu_down_read_internal include/linux/percpu-rwsem.h:53 [inline]
+       percpu_down_read_freezable include/linux/percpu-rwsem.h:83 [inline]
+       __sb_start_write include/linux/fs/super.h:19 [inline]
+       sb_start_intwrite include/linux/fs/super.h:177 [inline]
+       ocfs2_start_trans+0x2a7/0x6f0 fs/ocfs2/journal.c:368
+       ocfs2_duplicate_inline_data+0x16a/0x570 fs/ocfs2/refcounttree.c:3988
+       ocfs2_reflink_remap_blocks+0x4aa/0x1ab0 fs/ocfs2/refcounttree.c:4681
+       ocfs2_remap_file_range+0x451/0x6f0 fs/ocfs2/file.c:2752
+       vfs_copy_file_range+0xd70/0x1340 fs/read_write.c:2309
+       __do_sys_copy_file_range fs/read_write.c:2392 [inline]
+       __se_sys_copy_file_range+0x2fb/0x480 fs/read_write.c:2359
+       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (&oi->ip_alloc_sem/1){+.+.}-{4:4}:
+       check_prev_add kernel/locking/lockdep.c:3209 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3328 [inline]
+       validate_chain kernel/locking/lockdep.c:3952 [inline]
+       __lock_acquire+0x164c/0x2de0 kernel/locking/lockdep.c:5288
+       lock_acquire+0x115/0x350 kernel/locking/lockdep.c:5942
+       down_write_nested+0x98/0x200 kernel/locking/rwsem.c:1757
+       ocfs2_xattr_set_handle+0x3fc/0x820 fs/ocfs2/xattr.c:3888
+       ocfs2_set_acl+0x6d1/0x7b0 fs/ocfs2/acl.c:250
+       ocfs2_init_acl+0x1fe/0x420 fs/ocfs2/acl.c:428
+       ocfs2_mknod+0x1383/0x2190 fs/ocfs2/namei.c:413
+       ocfs2_mkdir+0x180/0x430 fs/ocfs2/namei.c:661
+       vfs_mkdir+0x40e/0x630 fs/namei.c:5452
+       filename_mkdirat+0x285/0x510 fs/namei.c:5485
+       __do_sys_mkdirat fs/namei.c:5506 [inline]
+       __se_sys_mkdirat+0x35/0x150 fs/namei.c:5503
+       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  &oi->ip_alloc_sem/1 --> sb_internal#4 --> &journal->j_trans_barrier
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  rlock(&journal->j_trans_barrier);
+                               lock(sb_internal#4);
+                               lock(&journal->j_trans_barrier);
+  lock(&oi->ip_alloc_sem/1);
+
+ *** DEADLOCK ***
+
+locks held by syz.1.1388/11252: 8, last CPU#1:
+ #0: ffff888067e4c460 (sb_writers#24){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:527
+ #1: ffff8880507db3a0 (&type->i_mutex_dir_key#11/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
+ #1: ffff8880507db3a0 (&type->i_mutex_dir_key#11/1){+.+.}-{4:4}, at: __start_dirop fs/namei.c:2947 [inline]
+ #1: ffff8880507db3a0 (&type->i_mutex_dir_key#11/1){+.+.}-{4:4}, at: start_dirop fs/namei.c:2971 [inline]
+ #1: ffff8880507db3a0 (&type->i_mutex_dir_key#11/1){+.+.}-{4:4}, at: filename_create+0x200/0x370 fs/namei.c:5132
+ #2: ffff8880507e4fa0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1024 [inline]
+ #2: ffff8880507e4fa0 (&ocfs2_sysfile_lock_key[INODE_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x170/0x4850 fs/ocfs2/suballoc.c:904
+ #3: ffff8880507e5da0 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1024 [inline]
+ #3: ffff8880507e5da0 (&ocfs2_sysfile_lock_key[EXTENT_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_suballoc_bits+0x170/0x4850 fs/ocfs2/suballoc.c:904
+ #4: ffff8880507e33a0 (&ocfs2_sysfile_lock_key[LOCAL_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1024 [inline]
+ #4: ffff8880507e33a0 (&ocfs2_sysfile_lock_key[LOCAL_ALLOC_SYSTEM_INODE]){+.+.}-{4:4}, at: ocfs2_reserve_local_alloc_bits+0x11f/0x2680 fs/ocfs2/localalloc.c:636
+ #5: ffff888067e4c650 (sb_internal#4){.+.+}-{0:0}, at: ocfs2_mknod+0xf07/0x2190 fs/ocfs2/namei.c:364
+ #6: ffff888036ee0ce0 (&journal->j_trans_barrier){.+.+}-{4:4}, at: ocfs2_start_trans+0x3a9/0x6f0 fs/ocfs2/journal.c:370
+ #7: ffff88802ecae950 (jbd2_handle#2){.+.+}-{0:0}, at: start_this_handle+0x1fb0/0x21f0 fs/jbd2/transaction.c:444
+
+stack backtrace:
+CPU: 1 UID: 0 PID: 11252 Comm: syz.1.1388 Tainted: G                   Y syzkaller #0 PREEMPT(full) 
+Tainted: [Y]=FORCED_BIND
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 07/24/2026
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ print_circular_bug+0x2e2/0x300 kernel/locking/lockdep.c:2087
+ check_noncircular+0x12f/0x150 kernel/locking/lockdep.c:2219
+ check_prev_add kernel/locking/lockdep.c:3209 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3328 [inline]
+ validate_chain kernel/locking/lockdep.c:3952 [inline]
+ __lock_acquire+0x164c/0x2de0 kernel/locking/lockdep.c:5288
+ lock_acquire+0x115/0x350 kernel/locking/lockdep.c:5942
+ down_write_nested+0x98/0x200 kernel/locking/rwsem.c:1757
+ ocfs2_xattr_set_handle+0x3fc/0x820 fs/ocfs2/xattr.c:3888
+ ocfs2_set_acl+0x6d1/0x7b0 fs/ocfs2/acl.c:250
+ ocfs2_init_acl+0x1fe/0x420 fs/ocfs2/acl.c:428
+ ocfs2_mknod+0x1383/0x2190 fs/ocfs2/namei.c:413
+ ocfs2_mkdir+0x180/0x430 fs/ocfs2/namei.c:661
+ vfs_mkdir+0x40e/0x630 fs/namei.c:5452
+ filename_mkdirat+0x285/0x510 fs/namei.c:5485
+ __do_sys_mkdirat fs/namei.c:5506 [inline]
+ __se_sys_mkdirat+0x35/0x150 fs/namei.c:5503
+ do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+ do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fbdd239e1d9
+Code: ff c3 66 2e 0f 1f 84 00 00 00 00 00 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 e8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007fbdd3317028 EFLAGS: 00000246 ORIG_RAX: 0000000000000102
+RAX: ffffffffffffffda RBX: 00007fbdd2626090 RCX: 00007fbdd239e1d9
+RDX: 00000000000001ff RSI: 0000200000000040 RDI: ffffffffffffff9c
+RBP: 00007fbdd2435888 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 0000000000000000
+R13: 00007fbdd2626128 R14: 00007fbdd2626090 R15: 00007ffdaf0dd208
+ </TASK>
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
