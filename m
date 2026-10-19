@@ -1,157 +1,264 @@
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
-	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4EFB8258EE9;
-	Mon, 19 Oct 2026 09:52:32 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=195.135.223.131
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7C9253EBF11
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 11:07:08 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1792403553; cv=none; b=BjeHq6sz1Ef1uwLXGsbZGtGA5E/JOB3k0ozyuHI1Ya0XUNgzre/EOgRJJForfdcGFCIWVSQKFEaXBrwPJE4NGAorfrF2KmKt+JL4Dd2xBhcuEcSbZF1/nnKT3lkp2xHQjgbx+mWX+rl2ajOhY1gRhX9cE4a3/INn0W5W1hPyZfQ=
+	t=1792408031; cv=none; b=EAgUt2ryFNyBk2HUwbvAKWeJtHxJTCXcC8H9Smw3BzTnC/bo3PCnkg1HboedcN3ibav/CFGh24cxTO9LsXmt0ti896cc5IynBvdQ0eHuLEjnQBY3Tt+ujA5APAut6NBkvwSQG2q5X9bzUqpEIJoCpUGkO2jhX5ELYUNgfgU3Mhc=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1792403553; c=relaxed/simple;
-	bh=WvTtg8JCOogctn7ZSS15ZrjyvEQJ4j+2UdlxuxFQnTw=;
-	h=Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To; b=iWoUT9Sb38I8PvnVmd3cqioTRFGE1By6GMVyepQshBU9AN6XNmOATfYHERsGYwJQkTJ/IGVEepzhcYZ7PfQBBdQdZefxvHeArQkEfdOFLNlRqetFFnztgqNG8XzofotAlpYeRH4T6OgCbK5RqGV+gSIBRLYXpjKwUAT1tNKhkzo=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz; spf=pass smtp.mailfrom=suse.cz; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=DapX6O+I; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=HkvNOVKW; dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b=DapX6O+I; dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b=HkvNOVKW; arc=none smtp.client-ip=195.135.223.131
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	s=arc-20240116; t=1792408031; c=relaxed/simple;
+	bh=T7+V7YcGQwKV8ta8N7BmsNldMBh9i6o2i1/fr27PY20=;
+	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type; b=nc48QMyWd+hMyovf/1eAhWEgeSfKy1SJzX0fwgZBERX81CDzmYKTrU0ExNRbKQQ/Ly5YqEzHNWrtD1nlE2XdDDp3yOaorAWTzrX6TRzSb3JGvK7ZXY24KUBiAeDQKpFjq40Gq11MlrbtAMFjcGyj8l8n+RZdKvLJ0tbBTICnxF0=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=edzFwTsa; arc=none smtp.client-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="DapX6O+I";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="HkvNOVKW";
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.b="DapX6O+I";
-	dkim=permerror (0-bit key) header.d=suse.cz header.i=@suse.cz header.b="HkvNOVKW"
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out2.suse.de (Postfix) with ESMTPS id 6896E1F44E;
-	Mon, 19 Oct 2026 09:52:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1792403550; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=Q/XjywU63jHK3zYfOZqk/GFYoCnttMlmfWvXQ5qlU98=;
-	b=DapX6O+Ip4pKRXdlJVwKoYbFSgZmnci+oTZVGWx9N//wk+3Co0A6Gy6VjLwyPbJnXuzAkL
-	nK/2Yk9eDEsEWraU+H6ro4FbaBRxl+xMkoYT76R16fauUCeKeP7bK2SBFwKH5znABsckFq
-	6f8cRPlmgFApKa7bh+P/Y4scW5VQEgI=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1792403550;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=Q/XjywU63jHK3zYfOZqk/GFYoCnttMlmfWvXQ5qlU98=;
-	b=HkvNOVKWZPcLczlyzJhxbC7tMzVsoibO8LGhYXd0PSctA5J8hm3Rc9LMb4abX/F22nZPqn
-	qBMliAhGPtxMP+Ag==
-Authentication-Results: smtp-out2.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1792403550; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=Q/XjywU63jHK3zYfOZqk/GFYoCnttMlmfWvXQ5qlU98=;
-	b=DapX6O+Ip4pKRXdlJVwKoYbFSgZmnci+oTZVGWx9N//wk+3Co0A6Gy6VjLwyPbJnXuzAkL
-	nK/2Yk9eDEsEWraU+H6ro4FbaBRxl+xMkoYT76R16fauUCeKeP7bK2SBFwKH5znABsckFq
-	6f8cRPlmgFApKa7bh+P/Y4scW5VQEgI=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1792403550;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=Q/XjywU63jHK3zYfOZqk/GFYoCnttMlmfWvXQ5qlU98=;
-	b=HkvNOVKWZPcLczlyzJhxbC7tMzVsoibO8LGhYXd0PSctA5J8hm3Rc9LMb4abX/F22nZPqn
-	qBMliAhGPtxMP+Ag==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 3F3B4134B3;
-	Mon, 19 Oct 2026 09:52:30 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id emzKBV7o1WpYOgAAD6G6ig
-	(envelope-from <jack@suse.cz>); Mon, 19 Oct 2026 09:52:30 +0000
-Received: by quack3.suse.cz (Postfix, from userid 1000)
-	id BB917A1413; Mon, 19 Oct 2026 11:52:25 +0200 (CEST)
-Date: Mon, 19 Oct 2026 11:52:25 +0200
-From: Jan Kara <jack@suse.cz>
-To: Christian Brauner <brauner@kernel.org>
-Cc: Andreas Gruenbacher <agruenba@redhat.com>, Jan Kara <jack@suse.com>, 
-	Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
-	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, 
-	linux-fsdevel@vger.kernel.org, ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
-	linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, linux-efi@vger.kernel.org, 
-	linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org, stable@vger.kernel.org
-Subject: Re: [PATCH RFC 20/28] gfs2: wait for a pending withdraw before
- remounting read-only
-Message-ID: <wauqpgtmmf2beg3pc2kqlbizrigd4ew26do4zqch5ilwdjy4cd@brolwbx25sem>
-References: <20261012-work-fs-sb_rdonly-v1-0-60743a3dc326@kernel.org>
- <20261012-work-fs-sb_rdonly-v1-20-60743a3dc326@kernel.org>
- <CAHc6FU5bdAjABRm=bnH68b2f66TZTDZ8sPdatLB2fS7-55U=yw@mail.gmail.com>
- <20261018-ungemacht-sodbrennen-hausordnung-42d33a4f7098@brauner>
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="edzFwTsa"
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1792408019; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=jrUkv26B1C6NaItb/E+Hw7PsSN9vMKY+vIwrSV/qETY=;
+	b=edzFwTsazEJcTU663I/9t5y0LlGTtOj7/8/j+1xjNZasgxtIxtZFWmC+Fje3RYYQRnt4Om5dM56s9CMk/x23VsRP+do8UvNM5OSR0iIe8AoPO5DVlMhq076QVh0xDGHuOTujwgMv5Ge3vBibfuFYAKViXdOCC45cX9gpWJCVnCw=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R611e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XD5d2iT_1792408018;
+Received: from 30.251.227.55(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XD5d2iT_1792408018 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Mon, 19 Oct 2026 19:06:58 +0800
+Message-ID: <6cb5a64a-02cd-4230-a49b-08c704d10871@linux.alibaba.com>
+Date: Mon, 19 Oct 2026 19:06:57 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261018-ungemacht-sodbrennen-hausordnung-42d33a4f7098@brauner>
-X-Spam-Flag: NO
-X-Spam-Score: -3.80
-X-Spam-Level: 
-X-Spamd-Result: default: False [-3.80 / 50.00];
-	BAYES_HAM(-3.00)[100.00%];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	MISSING_XM_UA(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	RCPT_COUNT_TWELVE(0.00)[18];
-	ARC_NA(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	FROM_HAS_DN(0.00)[];
-	TO_DN_SOME(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	RCVD_COUNT_THREE(0.00)[3];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	RCVD_TLS_LAST(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[imap1.dmz-prg2.suse.org:helo,suse.com:email]
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: Pin refcount trees before dropping the lookup lock
+To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0037-v4-9f1a261dfbc341721689@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0037-v4-9f1a261dfbc341721689@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-On Sun 18-10-26 17:48:34, Christian Brauner wrote:
-...
-> On Fri, Oct 16, 2026 at 02:32:01AM +0200, Andreas Gruenbacher wrote:
-> > > diff --git a/fs/gfs2/util.c b/fs/gfs2/util.c
-> > > index 83b8bb6446e5..1535ce2b7aa8 100644
-> > > --- a/fs/gfs2/util.c
-> > > +++ b/fs/gfs2/util.c
-> > > @@ -122,7 +122,7 @@ static void do_withdraw(struct gfs2_sbd *sdp)
-> > >                 up_write(&sdp->sd_log_flush_lock);
-> > >                 return;
-> > >         }
-> > > -       clear_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
-> > > +       clear_and_wake_up_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
-> > >         gfs2_ail_drain(sdp); /* frees all transactions */
-> > >         up_write(&sdp->sd_log_flush_lock);
-> > >
-> > >
-> > > --
-> > > 2.53.0
-> > >
-> > 
-> > this looks good all around, thank you very much. Can I add it to my gfs2 queue?
+
+
+On 10/14/26 11:47 AM, Cen Zhang wrote:
+> A refcount tree returned to ocfs2_lock_refcount_tree() must stay alive
+> until that caller releases its operation reference. However,
+> ocfs2_get_refcount_tree() returns the cached pointer after dropping
+> osb_lock, and the caller only takes its kref afterwards. The registry
+> reference does not protect this gap from concurrent removal.
 > 
-> I was planning to just provide a stable branch for everyone to pull post
-> -rc1. Then you can just pull that in?
+> This can happen when another node frees a refcount root and reuses its
+> block with a different generation while this mount retains the old
+> cached tree. Two local operations on different inodes sharing the new
+> root, such as data CoW and an external xattr update, can then look up
+> the same stale tree. Their inode locks are independent, and both the
+> REFCOUNT DLM lock and rf_sem are acquired after the first operation
+> reference.
+> 
+> The following ordering is possible, with no other operation references:
+> 
+>   Data CoW                         Xattr update
+>   --------                         ------------
+>   Look up the old tree under
+>     osb_lock, then drop osb_lock
+>                                    Look up the same tree and take a kref
+>                                    Acquire the tree locks and read the
+>                                      new on-disk generation
+>                                    Erase the old tree under osb_lock
+>                                    Unlock and drop the operation kref
+>                                    Drop the registry kref, freeing tree
+>   Take a kref through the
+>     freed tree pointer
+> 
+> The final kref_get() accesses freed rf_getcnt storage, and subsequent
+> accesses in ocfs2_lock_refcount_tree() also use the freed allocation.
+> 
+> Take the operation reference in ocfs2_get_refcount_tree() before
+> releasing osb_lock, including when an insertion loses to another lookup.
+> Removal must acquire the same lock, so it cannot drop the registry
+> reference before the lookup has pinned the tree. Keep the existing
+> unlock and error path puts. The two callers that already hold the
+> refcount tree lock keep their borrowed lookup behavior and do not
+> acquire an extra reference.
+> 
+> KASAN report as below:
+> 
+>     BUG: KASAN: slab-use-after-free in ocfs2_lock_refcount_tree+0x94a/0x9b0
+>     Read of size 4 at addr ffff888117212820 by task python3/497
+> 
+> [Kernel and hardware identification omitted.]
+> 
+>     Call Trace:
+>      <TASK>
+>      dump_stack_lvl+0x93/0xd0
+>      print_report+0xce/0x630
+>      ? ocfs2_lock_refcount_tree+0x94a/0x9b0
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __virt_addr_valid+0x20e/0x420
+>      ? ocfs2_lock_refcount_tree+0x94a/0x9b0
+>      kasan_report+0xe0/0x110
+>      ? ocfs2_lock_refcount_tree+0x94a/0x9b0
+>      ocfs2_lock_refcount_tree+0x94a/0x9b0
+>      ? __pfx_ocfs2_lock_refcount_tree+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? ocfs2_refcount_cow+0x3b6/0xd90
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __kmalloc_cache_noprof+0x28d/0x610
+>      ? ocfs2_refcount_cow+0x3b6/0xd90
+>      ocfs2_refcount_cow+0x410/0xd90
+>      ? __pfx_ocfs2_refcount_cow+0x10/0x10
+>      ? __pfx___might_resched+0x10/0x10
+>      ? down_write+0x11a/0x1f0
+>      ? __pfx_down_write+0x10/0x10
+>      ? ocfs2_inode_unlock+0x1a9/0x260
+>      ? __pfx_ocfs2_inode_unlock+0x10/0x10
+>      ? ocfs2_file_write_iter+0x1413/0x1d30
+>      ocfs2_file_write_iter+0x157b/0x1d30
+>      ? __pfx_ocfs2_file_write_iter+0x10/0x10
+>      ? lock_acquire+0x190/0x300
+>      ? __x64_sys_pwrite64+0x1b7/0x220
+>      ? __pfx___might_resched+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? security_file_permission+0x26/0x80
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? lock_is_held_type+0x8f/0x100
+>      vfs_write+0x639/0x1010
+>      ? __pfx_ocfs2_file_write_iter+0x10/0x10
+>      ? lock_vma_under_rcu+0x154/0x4a0
+>      ? __pfx_vfs_write+0x10/0x10
+>      ? lock_release+0x121/0x290
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      __x64_sys_pwrite64+0x1b7/0x220
+>      ? __pfx___x64_sys_pwrite64+0x10/0x10
+>      ? irqentry_exit+0xbe/0x820
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? trace_hardirqs_on_prepare+0x11d/0x150
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> 
+> [Register dump omitted.]
+> 
+>      </TASK>
+> 
+>     Allocated by task 491:
+>      kasan_save_stack+0x33/0x60
+>      kasan_save_track+0x14/0x30
+>      __kasan_kmalloc+0xaa/0xb0
+>      __kmalloc_cache_noprof+0x28d/0x610
+>      ocfs2_allocate_refcount_tree+0x49/0x1a0
+>      ocfs2_create_refcount_tree+0x5d7/0x1630
+>      ocfs2_attach_refcount_tree+0x57d/0x1100
+>      __ocfs2_reflink.isra.0+0x1c4/0x1940
+>      ocfs2_reflink+0x501/0x9b0
+>      ocfs2_reflink_ioctl+0x6b2/0x920
+>      ocfs2_ioctl+0x538/0x640
+>      __x64_sys_ioctl+0x163/0x1d0
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> 
+>     Freed by task 498:
+>      kasan_save_stack+0x33/0x60
+>      kasan_save_track+0x14/0x30
+>      kasan_save_free_info+0x3b/0x60
+>      __kasan_slab_free+0x5f/0x80
+>      kfree+0x308/0x580
+>      ocfs2_lock_refcount_tree+0x672/0x9b0
+>      ocfs2_xattr_set+0x72c/0x2530
+>      ocfs2_xattr_user_set+0xaf/0xf0
+>      __vfs_setxattr+0x143/0x1b0
+>      __vfs_setxattr_noperm+0x112/0x5b0
+>      __vfs_setxattr_locked+0xfe/0x2b0
+>      vfs_setxattr+0x13c/0x370
+>      do_setxattr+0x128/0x170
+>      filename_setxattr+0x147/0x190
+>      path_setxattrat+0x1ac/0x260
+>      __x64_sys_setxattr+0xcb/0x140
+>      do_syscall_64+0x114/0x620
+>      entry_SYSCALL_64_after_hwframe+0x77/0x7f
+> 
+>     The buggy address belongs to the object at ffff888117212800
+>      which belongs to the cache kmalloc-1k of size 1024
+>     The buggy address is located 32 bytes inside of
+>      freed 1024-byte region [ffff888117212800, ffff888117212c00)
+> 
+> [Page and memory dumps omitted.]
+> 
+> Fixes: 374a263e790c ("ocfs2: Add refcount tree lock mechanism.")
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+> Assisted-by: LLM
+> 
 
-On a related topic: I didn't find any branch with this work in vfs.git - I
-wanted to check how all the things come together after adding the generic
-emergency RO bit. So if you can push some inofficial branch for now it
-would help me... Thanks!
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-								Honza
+> ---
+> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
+> index 3e9cccf06e48..4f13b5a6faa7 100644
+> --- a/fs/ocfs2/refcounttree.c
+> +++ b/fs/ocfs2/refcounttree.c
+> @@ -375,8 +375,10 @@ ocfs2_allocate_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno)
+>  	return new;
+>  }
+>  
+> +/* Callers without the refcount tree lock must request a reference. */
+>  static int ocfs2_get_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno,
+> -				   struct ocfs2_refcount_tree **ret_tree)
+> +				   struct ocfs2_refcount_tree **ret_tree,
+> +				   bool get_ref)
+>  {
+>  	int ret = 0;
+>  	struct ocfs2_refcount_tree *tree, *new = NULL;
+> @@ -433,6 +435,8 @@ static int ocfs2_get_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno,
+>  	new = NULL;
+>  
+>  out:
+> +	if (get_ref)
+> +		ocfs2_refcount_tree_get(tree);
+>  	*ret_tree = tree;
+>  
+>  	osb->osb_ref_tree_lru = tree;
+> @@ -506,14 +510,12 @@ int ocfs2_lock_refcount_tree(struct ocfs2_super *osb,
+>  	struct ocfs2_refcount_block *rb;
+>  
+>  again:
+> -	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree);
+> +	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree, true);
+>  	if (ret) {
+>  		mlog_errno(ret);
+>  		return ret;
+>  	}
+>  
+> -	ocfs2_refcount_tree_get(tree);
+> -
+>  	ret = __ocfs2_lock_refcount_tree(osb, tree, rw);
+>  	if (ret) {
+>  		mlog_errno(ret);
+> @@ -2355,7 +2357,8 @@ int ocfs2_decrease_refcount(struct inode *inode,
+>  		goto out;
+>  	}
+>  
+> -	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb), ref_blkno, &tree);
+> +	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb), ref_blkno,
+> +				      &tree, false);
+>  	if (ret) {
+>  		mlog_errno(ret);
+>  		goto out;
+> @@ -2590,7 +2593,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
+>  	BUG_ON(!ocfs2_is_refcount_inode(inode));
+>  
+>  	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb),
+> -				      refcount_loc, &tree);
+> +				      refcount_loc, &tree, false);
+>  	if (ret) {
+>  		mlog_errno(ret);
+>  		goto out;
 
--- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
