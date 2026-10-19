@@ -1,32 +1,32 @@
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+Received: from out30-133.freemail.mail.aliyun.com (out30-133.freemail.mail.aliyun.com [115.124.30.133])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES256-GCM-SHA384 (256/256 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7C9253EBF11
-	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 11:07:08 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.100
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A41444AA3F0
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 11:20:07 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=115.124.30.133
 ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1792408031; cv=none; b=EAgUt2ryFNyBk2HUwbvAKWeJtHxJTCXcC8H9Smw3BzTnC/bo3PCnkg1HboedcN3ibav/CFGh24cxTO9LsXmt0ti896cc5IynBvdQ0eHuLEjnQBY3Tt+ujA5APAut6NBkvwSQG2q5X9bzUqpEIJoCpUGkO2jhX5ELYUNgfgU3Mhc=
+	t=1792408813; cv=none; b=aLsNPgCraUXMDVyuakOWcGc0WjTXDU66NHMCBf8Z1gHYfJHbxjzz8Xh2TJk6LP3qwunKQ8QtbhpHErf3ZvDVqD5FswFxX04bYb1qxtA9iimoaKRaBQW+D3Hqb5wrptVKDwU591oyTifH1cx4GmhJErTHF6iZKsSH/h9joo22pP8=
 ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1792408031; c=relaxed/simple;
-	bh=T7+V7YcGQwKV8ta8N7BmsNldMBh9i6o2i1/fr27PY20=;
+	s=arc-20240116; t=1792408813; c=relaxed/simple;
+	bh=Bh3JFEeSOgD04v+jIOgFLNwqHkEIEEaaV1/NLO2q1zo=;
 	h=Message-ID:Date:MIME-Version:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type; b=nc48QMyWd+hMyovf/1eAhWEgeSfKy1SJzX0fwgZBERX81CDzmYKTrU0ExNRbKQQ/Ly5YqEzHNWrtD1nlE2XdDDp3yOaorAWTzrX6TRzSb3JGvK7ZXY24KUBiAeDQKpFjq40Gq11MlrbtAMFjcGyj8l8n+RZdKvLJ0tbBTICnxF0=
-ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=edzFwTsa; arc=none smtp.client-ip=115.124.30.100
+	 In-Reply-To:Content-Type; b=m+p9uQ6ufU39qbTQO/wA3dRlnsqbr8WnzD1Gs6uBsqJ/X7giBg4Iain2Di5Bkwo/uIPBxinqxi90Wb87aMFaH/UufRUEn9VZts2m/hE0BcalAbnJGG+m+nWoo4HZBaf9MyOv6I0CPbyxIB8llyty6Pdo7V88UHVDestO+3hMqEQ=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com; spf=pass smtp.mailfrom=linux.alibaba.com; dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b=BxlJitY1; arc=none smtp.client-ip=115.124.30.133
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="edzFwTsa"
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.b="BxlJitY1"
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1792408019; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=jrUkv26B1C6NaItb/E+Hw7PsSN9vMKY+vIwrSV/qETY=;
-	b=edzFwTsazEJcTU663I/9t5y0LlGTtOj7/8/j+1xjNZasgxtIxtZFWmC+Fje3RYYQRnt4Om5dM56s9CMk/x23VsRP+do8UvNM5OSR0iIe8AoPO5DVlMhq076QVh0xDGHuOTujwgMv5Ge3vBibfuFYAKViXdOCC45cX9gpWJCVnCw=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R611e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XD5d2iT_1792408018;
-Received: from 30.251.227.55(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XD5d2iT_1792408018 cluster:ay36)
+	t=1792408804; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=SCCN1hNOBzyFuMh0WPo9IiSvrFw2wKE+VBW+2gR8D4E=;
+	b=BxlJitY1z3dLwltUaMl8AGAltNz4Nk8dKLf3jVdjcJLDSGyCyGU9oCwiX6FpF7n1YFmWOhtlhyxwCFV/2JAakP5+i72i4QBnWAvuKcJiKG7z5boCILdmY13QhaHzvi9dRf7niC23SWQ9Ct+9oAYRxLs2ZO4tG4T2UV+tVqNQuE4=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R541e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=13;SR=0;TI=SMTPD_---0XD69E9b_1792408802;
+Received: from 30.251.227.55(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XD69E9b_1792408802 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 19 Oct 2026 19:06:58 +0800
-Message-ID: <6cb5a64a-02cd-4230-a49b-08c704d10871@linux.alibaba.com>
-Date: Mon, 19 Oct 2026 19:06:57 +0800
+          Mon, 19 Oct 2026 19:20:03 +0800
+Message-ID: <b273a680-6b96-4fd6-94e6-c1a79922efc2@linux.alibaba.com>
+Date: Mon, 19 Oct 2026 19:20:02 +0800
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -34,231 +34,196 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: Pin refcount trees before dropping the lookup lock
-To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+Subject: Re: [PATCH] ocfs2: Keep the dentry lock inode alive until callbacks
+ drain
+To: Cen Zhang <zzzccc427@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com, jack@suse.cz,
+ akpm@linux-foundation.org, rgoldwyn@suse.de, srinivas.eeda@oracle.com,
  ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
  stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
-References: <pm-ocfs2-objects-candidate-0037-v4-9f1a261dfbc341721689@gmail.com>
+References: <pm-ocfs2-objects-candidate-0012-v5-a0413a339b72c02fc885@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <pm-ocfs2-objects-candidate-0037-v4-9f1a261dfbc341721689@gmail.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0012-v5-a0413a339b72c02fc885@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 10/14/26 11:47 AM, Cen Zhang wrote:
-> A refcount tree returned to ocfs2_lock_refcount_tree() must stay alive
-> until that caller releases its operation reference. However,
-> ocfs2_get_refcount_tree() returns the cached pointer after dropping
-> osb_lock, and the caller only takes its kref afterwards. The registry
-> reference does not protect this gap from concurrent removal.
+On 10/16/26 12:03 AM, Cen Zhang wrote:
+> The inode reference held by a DENTRY lock must outlive callbacks on
+> that lock. ocfs2_drop_dentry_lock() drops dl_inode before marking the
+> lock freeing and waiting for DLM unlock completion, although the BAST
+> path still reads dl_inode->i_sb in ocfs2_get_dentry_osb().
 > 
-> This can happen when another node frees a refcount root and reuses its
-> block with a different generation while this mount retains the old
-> cached tree. Two local operations on different inodes sharing the new
-> root, such as data CoW and an external xattr update, can then look up
-> the same stale tree. Their inode locks are independent, and both the
-> REFCOUNT DLM lock and rf_sem are acquired after the first operation
-> reference.
+> An EX request, such as a remote unlink or rename, can make the
+> downconvert worker delete all matching aliases. If no other inode
+> reference remains, its post_unlock callback performs the final iput().
+> The O2CB DLM can deliver another BAST while the request is still
+> blocked, for example when another holder releases the same resource:
 > 
-> The following ordering is possible, with no other operation references:
+>   Downconvert worker                 DLM callback
+>   ------------------                 ------------
+>   Remove dentry aliases
+>   Clear QUEUED; post_unlock()
+>   ocfs2_drop_dentry_lock()
+>     iput(dl->dl_inode)
+>     [inode reclaimed after RCU]
+>                                      Duplicate BAST
+>                                      ocfs2_blocking_ast()
+>                                        ocfs2_get_dentry_osb()
+>                                          Read freed dl_inode->i_sb
+>   ocfs2_simple_drop_lockres()
 > 
->   Data CoW                         Xattr update
->   --------                         ------------
->   Look up the old tree under
->     osb_lock, then drop osb_lock
->                                    Look up the same tree and take a kref
->                                    Acquire the tree locks and read the
->                                      new on-disk generation
->                                    Erase the old tree under osb_lock
->                                    Unlock and drop the operation kref
->                                    Drop the registry kref, freeing tree
->   Take a kref through the
->     freed tree pointer
-> 
-> The final kref_get() accesses freed rf_getcnt storage, and subsequent
-> accesses in ocfs2_lock_refcount_tree() also use the freed allocation.
-> 
-> Take the operation reference in ocfs2_get_refcount_tree() before
-> releasing osb_lock, including when an insertion loses to another lookup.
-> Removal must acquire the same lock, so it cannot drop the registry
-> reference before the lookup has pinned the tree. Keep the existing
-> unlock and error path puts. The two callers that already hold the
-> refcount tree lock keep their borrowed lookup behavior and do not
-> acquire an extra reference.
+> Call ocfs2_simple_drop_lockres() before iput() so the existing inode
+> reference remains held while queued work and DLM callbacks are drained.
+> The inode can only be evicted after the DENTRY lock has been unlocked.
 > 
 > KASAN report as below:
 > 
->     BUG: KASAN: slab-use-after-free in ocfs2_lock_refcount_tree+0x94a/0x9b0
->     Read of size 4 at addr ffff888117212820 by task python3/497
+>     BUG: KASAN: slab-use-after-free in ocfs2_get_dentry_osb+0x155/0x170
+>     Read of size 8 at addr ffff8881100ff888 by task dlm-5B530197BEF/575
 > 
-> [Kernel and hardware identification omitted.]
-> 
+>     CPU: 0 UID: 0 PID: 575 Comm: dlm-5B530197BEF Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+>     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
 >     Call Trace:
 >      <TASK>
 >      dump_stack_lvl+0x93/0xd0
 >      print_report+0xce/0x630
->      ? ocfs2_lock_refcount_tree+0x94a/0x9b0
+>      ? ocfs2_get_dentry_osb+0x155/0x170
 >      ? srso_alias_return_thunk+0x5/0xfbef5
 >      ? __virt_addr_valid+0x20e/0x420
->      ? ocfs2_lock_refcount_tree+0x94a/0x9b0
+>      ? ocfs2_get_dentry_osb+0x155/0x170
 >      kasan_report+0xe0/0x110
->      ? ocfs2_lock_refcount_tree+0x94a/0x9b0
->      ocfs2_lock_refcount_tree+0x94a/0x9b0
->      ? __pfx_ocfs2_lock_refcount_tree+0x10/0x10
+>      ? ocfs2_get_dentry_osb+0x155/0x170
+>      ? __pfx_ocfs2_get_dentry_osb+0x10/0x10
+>      ? __pfx_o2dlm_blocking_ast_wrapper+0x10/0x10
+>      ocfs2_get_dentry_osb+0x155/0x170
+>      ocfs2_blocking_ast+0xd3/0x6d0
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? ocfs2_refcount_cow+0x3b6/0xd90
+>      ? __lock_acquire+0x5a3/0x2140
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __kmalloc_cache_noprof+0x28d/0x610
->      ? ocfs2_refcount_cow+0x3b6/0xd90
->      ocfs2_refcount_cow+0x410/0xd90
->      ? __pfx_ocfs2_refcount_cow+0x10/0x10
->      ? __pfx___might_resched+0x10/0x10
->      ? down_write+0x11a/0x1f0
->      ? __pfx_down_write+0x10/0x10
->      ? ocfs2_inode_unlock+0x1a9/0x260
->      ? __pfx_ocfs2_inode_unlock+0x10/0x10
->      ? ocfs2_file_write_iter+0x1413/0x1d30
->      ocfs2_file_write_iter+0x157b/0x1d30
->      ? __pfx_ocfs2_file_write_iter+0x10/0x10
->      ? lock_acquire+0x190/0x300
->      ? __x64_sys_pwrite64+0x1b7/0x220
->      ? __pfx___might_resched+0x10/0x10
+>      ? __mlog_printk+0x212/0x2a0
+>      ? __pfx_ocfs2_blocking_ast+0x10/0x10
+>      ? __pfx_o2dlm_blocking_ast_wrapper+0x10/0x10
+>      dlm_do_local_bast+0x20c/0x300
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? security_file_permission+0x26/0x80
+>      ? __pfx_dlm_do_local_bast+0x10/0x10
+>      ? dlm_thread+0x2e36/0x4480
+>      dlm_thread+0x32b8/0x4480
+>      ? __pfx_dlm_thread+0x10/0x10
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? lock_is_held_type+0x8f/0x100
->      vfs_write+0x639/0x1010
->      ? __pfx_ocfs2_file_write_iter+0x10/0x10
->      ? lock_vma_under_rcu+0x154/0x4a0
->      ? __pfx_vfs_write+0x10/0x10
->      ? lock_release+0x121/0x290
+>      ? __kthread_parkme+0xc1/0x220
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      __x64_sys_pwrite64+0x1b7/0x220
->      ? __pfx___x64_sys_pwrite64+0x10/0x10
->      ? irqentry_exit+0xbe/0x820
+>      ? lock_release+0xc8/0x290
+>      ? __pfx_autoremove_wake_function+0x10/0x10
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? trace_hardirqs_on_prepare+0x11d/0x150
 >      ? srso_alias_return_thunk+0x5/0xfbef5
->      do_syscall_64+0x114/0x620
->      entry_SYSCALL_64_after_hwframe+0x77/0x7f
-> 
-> [Register dump omitted.]
-> 
+>      ? __kthread_parkme+0x177/0x220
+>      ? __pfx_dlm_thread+0x10/0x10
+>      kthread+0x351/0x460
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_kthread+0x10/0x10
+>      ret_from_fork+0x659/0x940
+>      ? __pfx_ret_from_fork+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __switch_to+0x74f/0xf70
+>      ? __pfx_kthread+0x10/0x10
+>      ret_from_fork_asm+0x1a/0x30
 >      </TASK>
 > 
->     Allocated by task 491:
+>     Allocated by task 584:
 >      kasan_save_stack+0x33/0x60
 >      kasan_save_track+0x14/0x30
->      __kasan_kmalloc+0xaa/0xb0
->      __kmalloc_cache_noprof+0x28d/0x610
->      ocfs2_allocate_refcount_tree+0x49/0x1a0
->      ocfs2_create_refcount_tree+0x5d7/0x1630
->      ocfs2_attach_refcount_tree+0x57d/0x1100
->      __ocfs2_reflink.isra.0+0x1c4/0x1940
->      ocfs2_reflink+0x501/0x9b0
->      ocfs2_reflink_ioctl+0x6b2/0x920
->      ocfs2_ioctl+0x538/0x640
->      __x64_sys_ioctl+0x163/0x1d0
+>      __kasan_slab_alloc+0x89/0x90
+>      kmem_cache_alloc_lru_noprof+0x205/0x5c0
+>      ocfs2_alloc_inode+0x2b/0x100
+>      alloc_inode+0x69/0x230
+>      new_inode+0x23/0x1a0
+>      ocfs2_get_init_inode+0x84/0x190
+>      ocfs2_mknod+0x8a3/0x2150
+>      ocfs2_create+0x14f/0x3c0
+>      lookup_open+0x88f/0x13e0
+>      path_openat+0x95e/0x2020
+>      do_file_open+0x21e/0x470
+>      do_sys_openat2+0xf4/0x1b0
+>      __x64_sys_openat+0x136/0x1e0
 >      do_syscall_64+0x114/0x620
 >      entry_SYSCALL_64_after_hwframe+0x77/0x7f
 > 
->     Freed by task 498:
+>     Freed by task 0:
 >      kasan_save_stack+0x33/0x60
 >      kasan_save_track+0x14/0x30
 >      kasan_save_free_info+0x3b/0x60
 >      __kasan_slab_free+0x5f/0x80
->      kfree+0x308/0x580
->      ocfs2_lock_refcount_tree+0x672/0x9b0
->      ocfs2_xattr_set+0x72c/0x2530
->      ocfs2_xattr_user_set+0xaf/0xf0
->      __vfs_setxattr+0x143/0x1b0
->      __vfs_setxattr_noperm+0x112/0x5b0
->      __vfs_setxattr_locked+0xfe/0x2b0
->      vfs_setxattr+0x13c/0x370
->      do_setxattr+0x128/0x170
->      filename_setxattr+0x147/0x190
->      path_setxattrat+0x1ac/0x260
->      __x64_sys_setxattr+0xcb/0x140
->      do_syscall_64+0x114/0x620
->      entry_SYSCALL_64_after_hwframe+0x77/0x7f
+>      kmem_cache_free+0x242/0x580
+>      i_callback+0x4b/0x80
+>      rcu_core+0x6be/0x1ed0
+>      handle_softirqs+0x1fa/0x8d0
+>      __irq_exit_rcu+0x113/0x1e0
+>      irq_exit_rcu+0xe/0x20
+>      sysvec_apic_timer_interrupt+0x6c/0x80
+>      asm_sysvec_apic_timer_interrupt+0x1a/0x20
 > 
->     The buggy address belongs to the object at ffff888117212800
->      which belongs to the cache kmalloc-1k of size 1024
->     The buggy address is located 32 bytes inside of
->      freed 1024-byte region [ffff888117212800, ffff888117212c00)
+>     Last potentially related work creation:
+>      kasan_save_stack+0x33/0x60
+>      kasan_record_aux_stack+0xa7/0xc0
+>      __call_rcu_common.constprop.0+0x80/0x280
+>      destroy_inode+0x131/0x1b0
+>      evict+0x543/0x9f0
+>      iput+0x680/0xb80
+>      ocfs2_dentry_lock_put+0xca/0x230
+>      ocfs2_process_blocked_lock+0x1fb/0x420
+>      ocfs2_downconvert_thread+0x327/0x730
+>      kthread+0x351/0x460
+>      ret_from_fork+0x659/0x940
+>      ret_from_fork_asm+0x1a/0x30
 > 
-> [Page and memory dumps omitted.]
+>     The buggy address belongs to the object at ffff8881100ff000
+>      which belongs to the cache ocfs2_inode_cache of size 3400
+>     The buggy address is located 2184 bytes inside of
+>      freed 3400-byte region [ffff8881100ff000, ffff8881100ffd48)
 > 
-> Fixes: 374a263e790c ("ocfs2: Add refcount tree lock mechanism.")
+>     [page and shadow-memory details omitted]
+> 
+> Fixes: 8ed6b23709b3 ("ocfs2: revert iput deferring code in ocfs2_drop_dentry_lock")
+
+This is a revert for performance. Not sure if the regression will come
+back with the new order.
+
 > Cc: <stable@vger.kernel.org>
 > Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 > Assisted-by: LLM
 > 
-
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-
 > ---
-> diff --git a/fs/ocfs2/refcounttree.c b/fs/ocfs2/refcounttree.c
-> index 3e9cccf06e48..4f13b5a6faa7 100644
-> --- a/fs/ocfs2/refcounttree.c
-> +++ b/fs/ocfs2/refcounttree.c
-> @@ -375,8 +375,10 @@ ocfs2_allocate_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno)
->  	return new;
->  }
->  
-> +/* Callers without the refcount tree lock must request a reference. */
->  static int ocfs2_get_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno,
-> -				   struct ocfs2_refcount_tree **ret_tree)
-> +				   struct ocfs2_refcount_tree **ret_tree,
-> +				   bool get_ref)
+> diff --git a/fs/ocfs2/dcache.c b/fs/ocfs2/dcache.c
+> index e06774fd89d8..e2b560797f17 100644
+> --- a/fs/ocfs2/dcache.c
+> +++ b/fs/ocfs2/dcache.c
+> @@ -354,8 +354,9 @@ out_attach:
+>  static void ocfs2_drop_dentry_lock(struct ocfs2_super *osb,
+>  				   struct ocfs2_dentry_lock *dl)
 >  {
->  	int ret = 0;
->  	struct ocfs2_refcount_tree *tree, *new = NULL;
-> @@ -433,6 +435,8 @@ static int ocfs2_get_refcount_tree(struct ocfs2_super *osb, u64 rf_blkno,
->  	new = NULL;
->  
->  out:
-> +	if (get_ref)
-> +		ocfs2_refcount_tree_get(tree);
->  	*ret_tree = tree;
->  
->  	osb->osb_ref_tree_lru = tree;
-> @@ -506,14 +510,12 @@ int ocfs2_lock_refcount_tree(struct ocfs2_super *osb,
->  	struct ocfs2_refcount_block *rb;
->  
->  again:
-> -	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree);
-> +	ret = ocfs2_get_refcount_tree(osb, ref_blkno, &tree, true);
->  	if (ret) {
->  		mlog_errno(ret);
->  		return ret;
->  	}
->  
-> -	ocfs2_refcount_tree_get(tree);
-> -
->  	ret = __ocfs2_lock_refcount_tree(osb, tree, rw);
->  	if (ret) {
->  		mlog_errno(ret);
-> @@ -2355,7 +2357,8 @@ int ocfs2_decrease_refcount(struct inode *inode,
->  		goto out;
->  	}
->  
-> -	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb), ref_blkno, &tree);
-> +	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb), ref_blkno,
-> +				      &tree, false);
->  	if (ret) {
->  		mlog_errno(ret);
->  		goto out;
-> @@ -2590,7 +2593,7 @@ int ocfs2_prepare_refcount_change_for_del(struct inode *inode,
->  	BUG_ON(!ocfs2_is_refcount_inode(inode));
->  
->  	ret = ocfs2_get_refcount_tree(OCFS2_SB(inode->i_sb),
-> -				      refcount_loc, &tree);
-> +				      refcount_loc, &tree, false);
->  	if (ret) {
->  		mlog_errno(ret);
->  		goto out;
+> -	iput(dl->dl_inode);
+> +	/* Keep the inode alive until DENTRY callbacks have completed. */
+>  	ocfs2_simple_drop_lockres(osb, &dl->dl_lockres);
+> +	iput(dl->dl_inode);
+>  	ocfs2_lock_res_free(&dl->dl_lockres);
+>  	kfree(dl);
+>  }
 
+Commit 9f70968af3e6e ("ocfs2: Re-order iput in ocfs2_drop_dentry_lock")
+is what moved iput() above ocfs2_simple_drop_lockres() to begin with, and
+it was a deliberate move:
+
+  Do this to avoid a theoretical (I haven't seen this in practice) race where
+  the downconvert thread might drop the dentry lock, allowing a remote unlink
+  to proceed before dropping the inode locks. This could bounce access to the
+  orphan dir between nodes.
+
+With the new order the downconvert thread gives up the dentry lockres and
+only afterwards reaches iput() -> ocfs2_evict_inode() ->
+ocfs2_delete_inode(), which takes the nfs_sync lock in shared mode and
+then the inode lock exclusive.
+
+Thanks,
+Joseph
