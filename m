@@ -1,144 +1,210 @@
-Received: from mail-yx1-f49.google.com (mail-yx1-f49.google.com [74.125.224.49])
+Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com [209.85.216.44])
 	(using TLSv1.2 with cipher ECDHE-RSA-AES128-GCM-SHA256 (128/128 bits))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B06543DCD85
-	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 13:44:44 +0000 (UTC)
-Authentication-Results: smtp.subspace.kernel.org; arc=pass smtp.client-ip=74.125.224.49
-ARC-Seal:i=2; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
-	t=1792417485; cv=pass; b=TDwz7R8RHqnRRpeN4FwkVuvKyH9U3Evip/ZjlpLO8NdrM1Ll5qD7OqsKDJQwgtl0phVYRniIa6/OpuWCB22nkczMmpxDFdGrn1p8HWENvaP/zBhKnlBH3uRBzZwflT1IQW6Xz4IB7crpwTguDQTZOWp9I2PgT48NFTMFY5L2Sx0=
-ARC-Message-Signature:i=2; a=rsa-sha256; d=subspace.kernel.org;
-	s=arc-20240116; t=1792417485; c=relaxed/simple;
-	bh=N6otFQ+2tvXWfIAg1Rmz2WPlSNDcEmt3lrNhdwAkn1A=;
-	h=MIME-Version:References:In-Reply-To:From:Date:Message-ID:Subject:
-	 To:Cc:Content-Type; b=FBf4cEzdm+ZNl9wUIyOibsk7imde8M/a1j1ZsnMvlQTP11pn/+68pkOZVWq/lbiOrn+ElOb0oal17DTSE1nn6thmHC7wdlN0mB4kR54TzeW4fg3xKegxJYwf6BSYtKafqfhGMqcyzgg/QP5wCANxqlxmoV1fpBD7p71gJLAF2Ec=
-ARC-Authentication-Results:i=2; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=O4/wZaIh; arc=pass smtp.client-ip=74.125.224.49
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 760174F6490
+	for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 13:50:04 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.client-ip=209.85.216.44
+ARC-Seal:i=1; a=rsa-sha256; d=subspace.kernel.org; s=arc-20240116;
+	t=1792417806; cv=none; b=gqgOo+jBRdH4jOl6RBrfWLA8/OcBEcWrDqH+B4h9rtY+W8wfSc0eXsHNFjoaPUhfVeWkEv9npBYAm3cbE8kcD57+90FMZKU5RJVXzOUWamJz2BsZdqBvDd4wZBX/Njry1ZKAkI04ry5rtPwpx9kadF6kXBQo090D/GS8Q/CGHhM=
+ARC-Message-Signature:i=1; a=rsa-sha256; d=subspace.kernel.org;
+	s=arc-20240116; t=1792417806; c=relaxed/simple;
+	bh=mrAS8F2+28qGCNLp50PxVrDYefFqK+LB1R+oI6CY7E4=;
+	h=From:To:Cc:Subject:Date:Message-Id:MIME-Version; b=uY5OGxiBTlXpc48Lx00/ac7DQPNiHXQ+utMjIL4Qcx0NTLFZnz8lirpthxhEIuVMug+KX9dhlLYM43pPnW1u988eciTqfyB2e22o9GPQPNEidRZPDNU0D39FSeIxv41qFcP2kLuIoACnoXHTg8Am04fx9dS+5G8yIEQ7adDahnw=
+ARC-Authentication-Results:i=1; smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com; spf=pass smtp.mailfrom=gmail.com; dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b=VqhtyMWB; arc=none smtp.client-ip=209.85.216.44
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="O4/wZaIh"
-Received: by mail-yx1-f49.google.com with SMTP id 956f58d0204a3-6798af41644so1379454d50.2
-        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 06:44:44 -0700 (PDT)
-ARC-Seal: i=1; a=rsa-sha256; t=1792417483; cv=none;
-        d=google.com; s=arc-20260327;
-        b=Y0s6G4qSna5roz+hQnHKNpYaOPkPnAMV0yB7pUmE3Bj+smbbMfgoESjGcFMR8b8z5n
-         yl1c/zlobEz5E/5fdplCjXkdTrLJZPDJ0znrzZ923o/lkRBpjb7awTeDgBuXgbvwryQd
-         6ZiY8uZAuQB8PnKFQ6zo9oG7QDmxPJ4fzurMZ1tvTeKT4BXPzWHGU8LCPbGzZxrtM0VA
-         uZN0JPatXq3A7M1Bkgm6qCvh8sTtC1bC8vU2FmIsZK89MTxiqO/Rz2pRN9R9gq/hQ94W
-         XMhON8BpsXs3ZUe9XHqvS/+XJCXnrdl/G8J98nBSzbUEA499+4liL9TdEIX4ubpKzjAa
-         Ec1Q==
-ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
-        h=content-transfer-encoding:cc:to:subject:message-id:date:from
-         :in-reply-to:references:mime-version:dkim-signature;
-        bh=c6zrnlMaydst9vfRtkenLVpyYJzF31Gchs+iCqt4/Js=;
-        fh=xHv0axa0mvKtQv00JaKwdemqhuUdrYsiqf0rl9Fu78M=;
-        b=cTpRBKqqP95/zdhjVMTyF/9FJ6Fs0qbU4EuH+ugABmPBx3wEpCMLHSvykKMOI1l8xz
-         x2zzqN7Nc+hyIcy+YlYOADdB1E4iQqTAOCE7Pg2Ktpf8u+8RqhK9Qs9jZWN1GbL3H/XQ
-         fbJyiqhjZhHnSoXR6tGCHR0wYSknhWkGZY4D/Zz+B/8DmcuT0ffwZHsEeRG/hdJiy22P
-         C+NffYbA0PVftTlN58Q/2Po4dBxeZwsRx9uuc6ZXO6O7qD+ucmtIEs/XT8b455J0mHbu
-         pwccm9oprswc+3nqd71CmsPjcID1yjsmSuCgEiP8RKqqZBerYKrNXwMsm/K33ehtq3sA
-         d2gg==;
-        darn=lists.linux.dev
-ARC-Authentication-Results: i=1; mx.google.com; arc=none
+	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.b="VqhtyMWB"
+Received: by mail-pj1-f44.google.com with SMTP id 98e67ed59e1d1-398b3c37877so1214233a91.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 06:50:04 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792417483; x=1793022283; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=c6zrnlMaydst9vfRtkenLVpyYJzF31Gchs+iCqt4/Js=;
-        b=O4/wZaIhdjPbof1kN+dLnm7nvINnXC3PfUIreOBFBwo6yfqPogc/ZTJDe4XeB/VKpw
-         B/kJhyklizii0iOKHX3CTEz1shrk7+dG8Y3JQF1pbZkB57orcWD4dPy0yVy4HlqkhwBI
-         vrO6k+q8AlHD+q1g32ZejD7KqHm5TWSBMIUqIo1tT9rbTiZk1Nhxsm3rgytPvKb+JHBG
-         TmLyEfy7f3ATCWOIBiHbPyh6AHnFivQjG0/R/8zPcrgMqPC+KIJNrfgupGrURTqfm0ig
-         KlaMRQUtVAsAoZnj6Bx6kPXKdDUE0P6n8JdI8Fdvb278ZDqXgmpos+2YuMsClEnc+24m
-         +cHQ==
+        d=gmail.com; s=20251104; t=1792417804; x=1793022604; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=bDmQIm+N7Da6j83Yqrg/UI5yb0CX5Q6JMZKoKt0rve4=;
+        b=VqhtyMWBK4yDPJwppU8WOMO/Hs1M8KBFTxfGakw0FbYVqPU6/AvgfHH76RWD2UGYYz
+         PfUQ51Ul4x2izC3EcK9iF53RB/qeF5v/MvcyxXNJ+LGMaHrM9ZYbRWfa+jRulq1XQjLz
+         4VP/ODOdmxe/gTJDayQnE0CuIRTmrDefl36t7ITPDY8rN+2jQnmDilaAHB/OcN7wTEuB
+         MV2qMWlxXnJG8XDYo0vFu6jS0WD0nutPcvz3V5tPlRWVSJOOJQfbcL9hcyvd7jGCKHPb
+         qOJe2iGL6pLLhwN9ZG8DsctFywGeEum3IjSG9FODYzyaapq6D2/PiFkb+HxFJf6fDRfY
+         YUEg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792417483; x=1793022283;
-        h=content-transfer-encoding:content-type:cc:to:subject:message-id
-         :date:from:in-reply-to:references:mime-version:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=c6zrnlMaydst9vfRtkenLVpyYJzF31Gchs+iCqt4/Js=;
-        b=oCKwGxTXHlCQ07uKu+n9I03k3vPmT5lTF6njSgDgMJAoYKdg39oXX/RRlX1XSb1Aul
-         JTfVQFiChA8QJOxTJHJG2Q3AzRA0IqYDC9rZqi24q2ldODHHadlDO67GA0nWXnGXfqh8
-         9C9QZYVsqI62ck/Nd3Tb/+vCcc7+C3dhuJgZg9ka4zWVPbOKvBKELde/GqsZ83kTkA4T
-         asMHN9N2z4U8mORTBWSp4dSkJ8jgh415BT8HuJ2N9BFzNLYjnZMS7g5d98LesGRkSGBB
-         tyjbjSYDfqaM7X1nkY8JAl1rhV6JJgGtxiRWq9N+ABOjI9yNxnvnrUeei7sUBuNFRujL
-         PokA==
-X-Forwarded-Encrypted: i=1; AKwUvBwlMKvD5HquI+kP9oc4VOM2/7ZFf0HdQ4ouURj7NJUbQTY90AJplG2FcfKwhHd0VSZYvFkwhxsaYn2WyA==@lists.linux.dev
-X-Gm-Message-State: AFq9FYI0AbiKeT+Slsgs8MjLY8FowfWGEXdOWMDsGsKJowyiwSrBZQfq
-	J9F85Ktk43d6M4s0n3ntoTuabEwXUx3CbxonrvQzPEcOUYVRIBapKnkEsYL8pO6Tm/xVU0ydMWo
-	HkW12GqZmlmJB0+P5LO0BXQtut8K0flM=
-X-Gm-Gg: AYBFou3npATdnoWDRSWturzBkmcQSXNIgVqONdMKQ8d/CFXUnvCt8wEErKAz1DaOJGI
-	O+yFbMJxboOVKXJeWLjTCJ+Y52DiFN/2GKijkYqkiHwPLXT7hA28mIlsEepP5wQMAKVOOcKrcff
-	1qd2FmZRG6UdaPu20O3qzwzjEQwq93ylsmxFV6KZiUe7OWvQMmPg4lYZQv2lzkWlLvddNuNDcHr
-	tFNaJKLkCoN2fEVnbX1nrVe1i02r1pIkCFj/NB+h9/q6HG/gbluPXZckOMfEOIepV7IdAmFMm9J
-	JMfdJtvyc85Sdk4D/Y+iyhs1zP+7Jy0rEW9rt871XIrqe3krQLmfd84aLaeBE+6AV9+jVKjdsPf
-	aHoYhluR4Fg==
-X-Received: by 2002:a05:690e:400b:b0:677:d31f:5a6b with SMTP id
- 956f58d0204a3-679ca744115mr2203453d50.16.1792417483474; Mon, 19 Oct 2026
- 06:44:43 -0700 (PDT)
+        d=1e100.net; s=20260707; t=1792417804; x=1793022604;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=bDmQIm+N7Da6j83Yqrg/UI5yb0CX5Q6JMZKoKt0rve4=;
+        b=e8/eZcxVaarQ+5ix63hHmlCMUdeCpNFK3WZED0lDVG8pWDQlKFx8msX6XDm8TdqpT3
+         Sd9gkLxv0HRliwH13hbtRhtCisDv9LBeavqzOuJkHyxYsxh3gnLXov8oMzHSCbmufsAP
+         rbQNVBTQBfcWXPYn8dT1PGAuFv5NTYbvtLPIxqqUlhQRVCHxEier2P5sGGuHVYV4AfWU
+         6ge9nbKc9R739FlOgSMU8Vz54AJnPfBrF3fuWTBvRhwEqf/9bkyOXuaoqgCz1D61pltW
+         Ih0ss63WN2ydPeo8EqgWSihpa+e+gF7pLDzOh7BkL1Q0HrhMpEJ9z7dawRSSrNg55h2b
+         qF+A==
+X-Forwarded-Encrypted: i=1; AKwUvBydSyDDs23UZ5l4zMghvUs6UDYaAs7JglQ4S9fyBCVxlYoYB04WVgRR71+c+HXfTPdrSq04Ram1P5B6qA==@lists.linux.dev
+X-Gm-Message-State: AFq9FYKacTYA8s1nY7Pnl2skdfvVUaEF7l6oyvNK1kTrsdc1TtZlbuB4
+	KEUn2Er0ze+PspqBuKSkmOyvahUr80pMPzPPhAGyC4mnCWLuXzUULN8q
+X-Gm-Gg: AYBFou0YjzHCVAXtDd5x0/T7oPpRCzzsqpV5Q/CVNYyzCQY45lX4xX6GkoSJsmHFHQP
+	cul+TGNT4oCI4eCOeYWKEnZ/EJy1mBt2q7942i/TkbA5GS5Jce/7H28eqSnJKNSd+iNqsnXC6Zw
+	hxN60CMwjuS8Eqiw2Vc/uQw+piKrpKEMzKokOvy3TVafBhXFjcZOaK6WqJGJkfYJjzL82yxZUyt
+	cMif3b5BWh1WELWgraTARHhhHsS5lA7zmD1AiP/EcVRGFI5ksdUY/XVhEWY5Q2EwnhxcBJN2WQ0
+	TazvgD13DehDdUblnk0bWgULvfMJ1BNNZfIh4/hHHLXFZJA4MKse6ho1X0WJPKYNr1YiJ0j2h0u
+	O8QI80FFY6BbcwkRZFgOMP7w5cl2nb/qAeiqGjC83UWqie+BWU9wpNAeBSDgeSLdq0lhJ+jpEkq
+	BJzhzJPIwsR/dCeJUTFRSTickzZBlaoiyjfjNlCZ98WNf4nVhPC2zFeDRSF4MmrSNvVg==
+X-Received: by 2002:a17:90b:3892:b0:3a7:250:333e with SMTP id 98e67ed59e1d1-3aceefc176fmr7701283a91.11.1792417803488;
+        Mon, 19 Oct 2026 06:50:03 -0700 (PDT)
+Received: from localhost ([111.228.63.84])
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ad42878d72sm2792278a91.5.2026.10.19.06.50.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 19 Oct 2026 06:50:03 -0700 (PDT)
+From: Cen Zhang <zzzccc427@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: heming.zhao@suse.com,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	stable@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	jjzuming@gmail.com,
+	zzzccc427@gmail.com
+Subject: [PATCH v2] ocfs2: Cache the mount context for dentry lock callbacks
+Date: Mon, 19 Oct 2026 21:49:56 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0012-v6-17b58652a3505eeecb0c@gmail.com>
+X-Mailer: git-send-email 2.34.1
 Precedence: bulk
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 MIME-Version: 1.0
-References: <pm-ocfs2-objects-candidate-0012-v5-a0413a339b72c02fc885@gmail.com>
- <b273a680-6b96-4fd6-94e6-c1a79922efc2@linux.alibaba.com>
-In-Reply-To: <b273a680-6b96-4fd6-94e6-c1a79922efc2@linux.alibaba.com>
-From: Cen Zhang <zzzccc427@gmail.com>
-Date: Mon, 19 Oct 2026 21:44:31 +0800
-X-Gm-Features: AclHuK-1bDPBzjxBFC-g5JhoX08zvMpID73JpPkYTgaCzs0JQP3z-Kv1Dhf22ZY
-Message-ID: <CAFRLqsXdt0sDKAkKmWH0aL=urZgWWEwhGjnWpkx5CyDkDqnukA@mail.gmail.com>
-Subject: Re: [PATCH] ocfs2: Keep the dentry lock inode alive until callbacks drain
-To: Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com, jack@suse.cz, 
-	akpm@linux-foundation.org, rgoldwyn@suse.de, srinivas.eeda@oracle.com, 
-	ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org, 
-	stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: quoted-printable
+Content-Transfer-Encoding: 8bit
 
-Hi Joseph,
+ocfs2_drop_dentry_lock() drops the inode reference before releasing the
+DENTRY lock. This lets inode eviction release the local inode and open
+locks before a remote unlink can proceed past the DENTRY lock.
 
-Joseph Qi <joseph.qi@linux.alibaba.com> =E4=BA=8E2026=E5=B9=B410=E6=9C=8819=
-=E6=97=A5=E5=91=A8=E4=B8=80 19:20=E5=86=99=E9=81=93=EF=BC=9A
->
-> Commit 9f70968af3e6e ("ocfs2: Re-order iput in ocfs2_drop_dentry_lock")
-> is what moved iput() above ocfs2_simple_drop_lockres() to begin with, and
-> it was a deliberate move:
->
->   Do this to avoid a theoretical (I haven't seen this in practice) race w=
-here
->   the downconvert thread might drop the dentry lock, allowing a remote un=
-link
->   to proceed before dropping the inode locks. This could bounce access to=
- the
->   orphan dir between nodes.
->
-> With the new order the downconvert thread gives up the dentry lockres and
-> only afterwards reaches iput() -> ocfs2_evict_inode() ->
-> ocfs2_delete_inode(), which takes the nfs_sync lock in shared mode and
-> then the inode lock exclusive.
->
-> Thanks,
-> Joseph
+A DLM callback can still arrive before the DENTRY lock has been dropped.
+ocfs2_get_dentry_osb() obtains the mount context through dl_inode->i_sb,
+which can access a freed inode when the downconvert thread drops the
+last inode reference in its post-unlock callback:
 
-Thank you for the review and pointing out the history.
+  Downconvert thread                     DLM callback thread
+  ------------------                     -------------------
+  ocfs2_process_blocked_lock()
+    ocfs2_dentry_post_unlock()
+      ocfs2_dentry_lock_put()
+        ocfs2_drop_dentry_lock()
+          iput(dl->dl_inode)
+          [inode reclaimed after RCU]
+                                         ocfs2_blocking_ast()
+                                           ocfs2_get_dentry_osb()
+                                             dl->dl_inode->i_sb
+          ocfs2_simple_drop_lockres()
 
-I will preserve iput() before ocfs2_simple_drop_lockres(). The stale
-access is in ocfs2_get_dentry_osb(),
-which obtains osb through dl_inode->i_sb after the final inode
-reference may have been dropped.
+Store the mount context in the DENTRY lock resource's l_priv field and
+use the default mount-context lookup. Recover the containing dentry
+lock with container_of(), as already done for refcount locks, and remove
+ocfs2_get_dentry_osb(). ocfs2_dismount_volume() shuts down the DLM before
+freeing the mount context, so callbacks can use it without accessing the
+inode. Preserve the existing iput-before-unlock order to avoid delaying
+local inode and open lock release until after the DENTRY lock is released.
 
-For v2, I plan to store osb in the lock resource=E2=80=99s existing l_priv
-field, use the default osb lookup, and recover
-the containing dentry lock with container_of(). The mount context is
-freed after DLM shutdown, so the callbacks
-can obtain it without accessing the inode.
+Fixes: 8ed6b23709b3 ("ocfs2: revert iput deferring code in ocfs2_drop_dentry_lock")
+Cc: stable@vger.kernel.org
+Assisted-by: LLM
+Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+---
+Changes in v2:
+- Preserve the existing iput-before-unlock order and cache the mount context
+  in the lock resource's existing l_priv field instead.
+- Recover the containing dentry lock with container_of() and remove the
+  inode-dependent mount-context lookup.
+- Correct the comment describing the dentry lock's inode reference.
 
-This preserves the existing inode and open lock release order. I will
-send a revised patch soon.
+Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0012-v5-a0413a339b72c02fc885@gmail.com
 
-Best regards,
-Cen Zhang
+ fs/ocfs2/dcache.h  |  5 ++---
+ fs/ocfs2/dlmglue.c | 16 ++++------------
+ 2 files changed, 6 insertions(+), 15 deletions(-)
+
+diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
+index 7f246c5692d8..046ab9a80769 100644
+--- a/fs/ocfs2/dcache.h
++++ b/fs/ocfs2/dcache.h
+@@ -17,9 +17,8 @@ struct ocfs2_dentry_lock {
+ 	u64			dl_parent_blkno;
+ 
+ 	/*
+-	 * The ocfs2_dentry_lock keeps an inode reference until
+-	 * dl_lockres has been destroyed. This is usually done in
+-	 * ->d_iput() anyway, so there should be minimal impact.
++	 * The inode reference is dropped before dl_lockres is unlocked.
++	 * Callbacks must not use it to find the mount context during teardown.
+ 	 */
+ 	struct inode		*dl_inode;
+ 	struct ocfs2_lock_res	dl_lockres;
+diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
+index 6bc4a21cf5f0..d12635c4db95 100644
+--- a/fs/ocfs2/dlmglue.c
++++ b/fs/ocfs2/dlmglue.c
+@@ -57,7 +57,6 @@ struct ocfs2_mask_waiter {
+ #endif
+ };
+ 
+-static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres);
+ static struct ocfs2_super *ocfs2_get_inode_osb(struct ocfs2_lock_res *lockres);
+ static struct ocfs2_super *ocfs2_get_file_osb(struct ocfs2_lock_res *lockres);
+ static struct ocfs2_super *ocfs2_get_qinfo_osb(struct ocfs2_lock_res *lockres);
+@@ -257,7 +256,6 @@ static const struct ocfs2_lock_res_ops ocfs2_orphan_scan_lops = {
+ };
+ 
+ static const struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
+-	.get_osb	= ocfs2_get_dentry_osb,
+ 	.post_unlock	= ocfs2_dentry_post_unlock,
+ 	.downconvert_worker = ocfs2_dentry_convert_worker,
+ 	.flags		= 0,
+@@ -308,7 +306,7 @@ static inline struct ocfs2_dentry_lock *ocfs2_lock_res_dl(struct ocfs2_lock_res
+ {
+ 	BUG_ON(lockres->l_type != OCFS2_LOCK_TYPE_DENTRY);
+ 
+-	return (struct ocfs2_dentry_lock *)lockres->l_priv;
++	return container_of(lockres, struct ocfs2_dentry_lock, dl_lockres);
+ }
+ 
+ static inline struct ocfs2_mem_dqinfo *ocfs2_lock_res_qinfo(struct ocfs2_lock_res *lockres)
+@@ -609,13 +607,6 @@ static __u64 ocfs2_get_dentry_lock_ino(struct ocfs2_lock_res *lockres)
+ 	return be64_to_cpu(inode_blkno_be);
+ }
+ 
+-static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres)
+-{
+-	struct ocfs2_dentry_lock *dl = lockres->l_priv;
+-
+-	return OCFS2_SB(dl->dl_inode->i_sb);
+-}
+-
+ void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
+ 				u64 parent, struct inode *inode)
+ {
+@@ -623,6 +614,7 @@ void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
+ 	u64 inode_blkno = OCFS2_I(inode)->ip_blkno;
+ 	__be64 inode_blkno_be = cpu_to_be64(inode_blkno);
+ 	struct ocfs2_lock_res *lockres = &dl->dl_lockres;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+ 
+ 	ocfs2_lock_res_init_once(lockres);
+ 
+@@ -651,9 +643,9 @@ void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
+ 	memcpy(&lockres->l_name[OCFS2_DENTRY_LOCK_INO_START], &inode_blkno_be,
+ 	       sizeof(__be64));
+ 
+-	ocfs2_lock_res_init_common(OCFS2_SB(inode->i_sb), lockres,
++	ocfs2_lock_res_init_common(osb, lockres,
+ 				   OCFS2_LOCK_TYPE_DENTRY, &ocfs2_dentry_lops,
+-				   dl);
++				   osb);
+ }
+ 
+ static void ocfs2_super_lock_res_init(struct ocfs2_lock_res *res,
+-- 
+2.43.0
