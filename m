@@ -1,54 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.167.198
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.110
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792455069;
-	b=pbRH/yABow+boEn/IN/FS51mS7bmKYNT7u7iDEwo/LypNJV0s9jGl17QFW8Z8IxCy0HR
-	 HtJpi/FTZzW/gsX+le1JSAGGmZwHU1OLSnjtMtvKnX8nhVFBLauboJDo+uQYntd0qAW5G
-	 IN1YhBadzSgQ+k4Jd2zuZXjn/sefmw6yXJkuYDQu6SwNgH+8HDc8VNVvUEeSrQybmPSrs
-	 iXPXcwOtPN5078x06rTzUhMAHc3q0YS3UVSrc45IrXhlXpsuPMTEh6MVZxhC8fqq/Zo1/
-	 JLN89uqeWLpcux7KAPzzwxXByVOtTdaOxRWWC613EKSzEL7/sma8EcK704IeqxHWFoQ==
+	t=1792458270;
+	b=LXADauEZhuShVdaUIaOK7PH+XGGWKlcF7WIONjpBDu2fOjDEi7wCvH0czOkHASotBj1z
+	 xUDFtWthHHha1hv0dcK+xP2NVB1wR6jtAF6jviDmX+06g2BhCB20tTGGdJXsoD2/sMVx1
+	 OpDC3x+l7GMWPTklUbh4yB5HtPh4iVRpeHzWqkoX+WO1wfCqmLFn62YS+gUm3xM69Qcn9
+	 lZr/rDEudaLRNbZpyDnoiEgWGupNKznA0+vLCneJiA4S8ELVMRj+DzIuCd6yMKu+U31Cz
+	 EN/T7MKMSKfAfQ+bn+BfcCnV+g2jYycE3YZznUZTkfbeVbWlnLIHPl8hoR6UL2dmtQA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792455069;
-	h=DMARC-Filter:Received:X-Google-DKIM-Signature:X-Forwarded-Encrypted:
-	 X-Gm-Message-State:MIME-Version:X-Received:Date:In-Reply-To:
-	 X-Google-Appengine-App-Id:X-Google-Appengine-App-Id-Alias:Message-ID:
-	 Subject:From:To:Content-Type;
-	bh=qacHuQ2VTNVsYjQ1obuJTYMar2bSfpTVm9fcmHzhRIQ=;
-	b=ruOdHarD1owOx3eIcZj/+ntDIBKWH9EsLHq6wplGVdEpldgnB2w5c9NQTVLfT/9vG179
-	 NIdnrt3oSDhxYufITHGP2P6HAwVgxngMN2V9tF9ZFpTHj9rGyWq9YR6tTynvQr5ePwiAL
-	 lNYTJNagWgT3P/PH63sfFy5vZm7/VGYlCHnAZ8ZpyFOC3I6aWsoiNiZU8EwPcadOPscl/
-	 MtFdp9I5/K1TzWBXLWsUxqxtiHBmMIKRhNfiWmQcJAhCqW1nG63qgoLTDWrspFjU9MpMW
-	 6CvXmezxm0d1n5YtRrYyZaYjQjt3upiVYLq/CcA94gwshMEbIeO7TJhdOywzGDJGqbA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792458270;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=l/hNaEYX7pwjnbOy9kQT5DzXVQgH4HbRFHOPYgj+TYc=;
+	b=rOhbGtfDe6q4rZFKG9/pcRU6J7rcPCadtfbSwm1qZvEjXfjw1IpXmovFRSkI2aaNAObH
+	 468wLph1oM+J3El2wx6BN6vbJHRbQQzOGbtyLpnFYXoYbWncyNLHLeOVnLyS47SPkpcFy
+	 MHh+5qDD+2llFjBz5xEihGwjyMfHWNQzXGUedfmsZmVY/E4IgVGrHLpYXuv9ZwccAuG+F
+	 mBUL0s5X1AjCvZiNo/HBMFj9y+hJf+FYP+X2+US22VLeBItPfASgYhivfW9LoglklK2b4
+	 /uZHvEHBevIatfKXRr/7zyHD5m8tc67Qx65P3//OBmoe1z47nmVgrzWxCAxEm1WGcIQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=fail header.from=syzkaller.appspotmail.com;
-	spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com;
-	arc=none smtp.remote-ip=209.85.167.198
-Received: from mail-oi1-f198.google.com (mail-oi1-f198.google.com [209.85.167.198])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=s1jvQjTY;
+	arc=none smtp.remote-ip=115.124.30.110
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E0212606A319
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 00:11:08 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E0212606A319
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f198.google.com with SMTP id 5614622812f47-4f2040e10d8so2447791b6e.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 17:11:08 -0700 (PDT)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792455068; x=1793059868;
-        h=content-type:to:from:subject:message-id:in-reply-to:date
-         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
-         :reply-to:content-type;
-        bh=qacHuQ2VTNVsYjQ1obuJTYMar2bSfpTVm9fcmHzhRIQ=;
-        b=Ql61+SpV9lHWGxKJFKyiL4Fs5T53a/IqNgD28ATsThJSJoG5rRtt1U89DkP/84nKGa
-         rbFBoKP7jVPuzEWOuOdlONVzdcYbIgU7d+wcMGBOdnW6xkK8E0u3QaT4F88DcBbmFi96
-         s3C9TXwwWUYrN7p/t6bqXqOTmf3JfJFFOKHfFXpHA34hwMRWiSIA1X0Flv90azGGP+dh
-         X4zrfF3qhyI/2rdRBk089tE7S1pUBtK3EFPxKn8kToAMVrt52ZvNNwa2WgblM+1W32Gg
-         JVAZhi1GJ2jtqO8toVSE0Td8NFHyZx7MoDlxSMOPRvvtcY/Xun669Fro6UoHxZp2KdY9
-         gX5w==
-X-Forwarded-Encrypted: i=1; AKwUvBwQ2ghq+n9yHzRKzzLLJpeTv+gi5iFECJw/jAcbPNDENNgZeRzKie3zN0NZyNI7AYGcTgF65boQ2tesiw==@lists.linux.dev
-X-Gm-Message-State: AFq9FYL5ffcq4NwXK57TebyYGIxnSz02CGjDE+atFn1Q4t/AEUqcXthZ
-	inlpi/h4580fw9zT+2y/2eXgzNE1V3fDhvOF/y2Dn7FsiRAnUywcrKvH+k3360wstafGb1Nkv3A
-	lpj//V1loPOr5qPBrRRz9B7Ndm3llpJeytFj7sK5W8OG2jYZ4fs7rp1gKWfs=
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0DD1F606A319
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 01:04:28 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0DD1F606A319
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=s1jvQjTY
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1792458261; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=l/hNaEYX7pwjnbOy9kQT5DzXVQgH4HbRFHOPYgj+TYc=;
+	b=s1jvQjTYnZhmePGm0bkEKOZ5/y1N7l4MVPuI80gB8d9ywoio2DJirxlHSoOrL2I6Jzp9dpIPgJsLgZHyTIbrZIhknc48rLQy526y5fK/c5zTDXm7A6CiX8CBi2QTMi+wd64tgTXkivR9Gj0SB1LesNr8brNj/U6Znmk0LTCD6f4=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R161e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=14;SR=0;TI=SMTPD_---0XDAoyyL_1792458259;
+Received: from 30.221.145.25(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDAoyyL_1792458259 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Tue, 20 Oct 2026 09:04:20 +0800
+Message-ID: <1beb38aa-e068-456c-a4d8-6590f2bd1266@linux.alibaba.com>
+Date: Tue, 20 Oct 2026 09:04:19 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -58,177 +53,129 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-X-Received: by 2002:a05:6808:a87:b0:540:5827:6d93 with SMTP id
- 5614622812f47-54058277a49mr4728766b6e.25.1792455067836; Mon, 19 Oct 2026
- 17:11:07 -0700 (PDT)
-Date: Mon, 19 Oct 2026 17:11:07 -0700
-In-Reply-To: <6ab41b7d.e548f532.1ca396.0020.GAE@google.com>
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6ad6b19b.b5bd089a.6b57.0081.GAE@google.com>
-Subject: Re: [syzbot] [ocfs2?] possible deadlock in vfs_rename (3)
-From: syzbot <syzbot+c73ff6790f3d6c635abc@syzkaller.appspotmail.com>
-To: heming.zhao@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
-
-syzbot has found a reproducer for the following issue on:
-
-HEAD commit:    c03c1a14507d Linux 7.3
-git tree:       upstream
-console+strace: https://syzkaller.appspot.com/x/log.txt?x=14a519cd580000
-kernel config:  https://syzkaller.appspot.com/x/.config?x=c4b098695335c89f
-dashboard link: https://syzkaller.appspot.com/bug?extid=c73ff6790f3d6c635abc
-compiler:       Debian clang version 22.1.8 (1~deb13u4), Debian LLD 22.1.8
-syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=12a519cd580000
-C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=137cc831580000
-
-Downloadable assets:
-disk image: https://storage.googleapis.com/syzbot-assets/c9d4a36731a6/disk-c03c1a14.raw.xz
-vmlinux: https://storage.googleapis.com/syzbot-assets/3c00e4e185bb/vmlinux-c03c1a14.xz
-kernel image: https://storage.googleapis.com/syzbot-assets/1f95d3156291/bzImage-c03c1a14.xz
-mounted in repro: https://storage.googleapis.com/syzbot-assets/2e6531d7c325/mount_0.gz
-  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=15381831580000)
-
-IMPORTANT: if you fix the issue, please add the following tag to the commit:
-Reported-by: syzbot+c73ff6790f3d6c635abc@syzkaller.appspotmail.com
-
-======================================================
-WARNING: possible circular locking dependency detected
-syzkaller #0 Not tainted
-------------------------------------------------------
-syz-executor105/5623 is trying to acquire lock:
-ffff8880767009a0 (&sb->s_type->i_mutex_key#18){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1024 [inline]
-ffff8880767009a0 (&sb->s_type->i_mutex_key#18){+.+.}-{4:4}, at: vfs_rename+0x6e3/0xef0 fs/namei.c:-1
-
-but task is already holding lock:
-ffff8880764ff9a0 (&sb->s_type->i_mutex_key#18/2){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
-ffff8880764ff9a0 (&sb->s_type->i_mutex_key#18/2){+.+.}-{4:4}, at: vfs_rename+0x64d/0xef0 fs/namei.c:6159
-
-which lock already depends on the new lock.
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH] ocfs2: drain quorum work before removing the cluster
+To: Cen Zhang <zzzccc427@gmail.com>
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+ akpm@linux-foundation.org, christophe.jaillet@wanadoo.fr, blum@kernel.org,
+ kees@kernel.org, sunil.mushran@oracle.com, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org, stable@vger.kernel.org,
+ baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0064-v4-51daf51db746eedf7533@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0064-v4-51daf51db746eedf7533@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
 
-the existing dependency chain (in reverse order) is:
 
--> #3 (&sb->s_type->i_mutex_key#18/2){+.+.}-{4:4}:
-       down_write_nested+0x9d/0x210 kernel/locking/rwsem.c:1757
-       inode_lock_nested include/linux/fs.h:1069 [inline]
-       __ocfs2_reflink+0xcab/0x16e0 fs/ocfs2/refcounttree.c:4198
-       ocfs2_reflink+0x4eb/0x920 fs/ocfs2/refcounttree.c:4297
-       ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4423
-       ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4463
-       ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
-       vfs_ioctl fs/ioctl.c:51 [inline]
-       __do_sys_ioctl fs/ioctl.c:597 [inline]
-       __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+On 10/16/26 12:57 AM, Cen Zhang wrote:
+> The configured cluster must remain available until an in-flight quorum
+> decision has finished using its fencing method. o2quo_make_decision()
+> drops qs_lock before calling o2quo_fence_self(), which marks heartbeat
+> regions for unclean stop and then reads
+> o2nm_single_cluster->cl_fence_method. Cluster removal clears the
+> singleton without waiting for this independent system-workqueue item.
+> 
+> When a failed-quorum decision overlaps removal of the heartbeat regions,
+> nodes and cluster through configfs, the worker can be preempted after
+> marking the regions and resume after the singleton has been cleared:
+> 
+>   Quorum worker                     Configfs removal
+>   select fence; drop qs_lock
+>   o2hb_stop_all_regions()
+>                                     remove regions; join heartbeat threads
+>                                     remove nodes; stop o2net
+>                                     clear singleton; release cluster
+>   read cl_fence_method
+> 
+> The resumed read dereferences NULL instead of applying the configured
+> fencing method. The heartbeat thread's dependency protects the local
+> node only until the thread exits, and draining o2net does not wait for
+> qs_work.
+> 
+> Call the existing o2quo_exit() flush before clearing the singleton in
+> o2nm_cluster_group_drop_item(). By this point the heartbeat regions and
+> nodes have been removed, so their work publishers are stopped. The
+> flush lets any pending or running decision finish while the cluster is
+> still available. It introduces no new state or locking; the worker does
+> not acquire the configfs mutex held by the removal path.
+> 
+> KASAN report as below:
+> 
+>     Oops: general protection fault, probably for non-canonical address 0xdffffc000000011b: 0000 [#1] SMP KASAN NOPTI
+>     KASAN: null-ptr-deref in range [0x00000000000008d8-0x00000000000008df]
+>     CPU: 0 UID: 0 PID: 72 Comm: kworker/0:2 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+>     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+>     Workqueue: events o2quo_make_decision
+>     RIP: 0010:o2quo_fence_self+0x65/0x200
+> 
+> Register dump omitted.
+> 
+>     Call Trace:
+>      <TASK>
+>      o2quo_make_decision+0x345/0x3a0
+>      ? __pfx_o2quo_make_decision+0x10/0x10
+>      ? process_one_work+0x834/0x1b40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? lock_release+0xc8/0x290
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      process_one_work+0x9a8/0x1b40
+>      ? __pfx_process_one_work+0x10/0x10
+>      ? lock_acquire+0x190/0x300
+>      ? lock_is_held_type+0x8f/0x100
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      worker_thread+0x65c/0xe40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __kthread_parkme+0x177/0x220
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_worker_thread+0x10/0x10
+>      kthread+0x351/0x460
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_kthread+0x10/0x10
+>      ret_from_fork+0x659/0x940
+>      ? __pfx_ret_from_fork+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __switch_to+0x74f/0xf70
+>      ? __pfx_kthread+0x10/0x10
+>      ret_from_fork_asm+0x1a/0x30
+>      </TASK>
+>     Modules linked in:
+>     ---[ end trace 0000000000000000 ]---
+> 
+> Fixes: f6656d26d17b ("ocfs2/cluster: Make fence method configurable - v2")
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+> Assisted-by: LLM
+> 
+> ---
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index e08850a5d736..13d7f579047f 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -12,6 +12,7 @@
+>  #include "tcp.h"
+>  #include "nodemanager.h"
+>  #include "heartbeat.h"
+> +#include "quorum.h"
+>  #include "masklog.h"
+>  #include "sys.h"
+>  
+> @@ -740,6 +741,8 @@ static void o2nm_cluster_group_drop_item(struct config_group *group, struct conf
+>  	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
+>  
+>  	BUG_ON(o2nm_single_cluster != cluster);
+> +	/* Drain quorum work before it loses access to the cluster. */
+> +	o2quo_exit();
+>  	o2nm_single_cluster = NULL;
+>  
+>  	configfs_remove_default_groups(&cluster->cl_group);
+------------------------------------------------------------------------
+o2quo_exit() is the counterpart of o2quo_init(), and it is called from
+o2net_exit() when the module goes away.
 
--> #2 (&oi->ip_alloc_sem){+.+.}-{4:4}:
-       down_write+0x96/0x200 kernel/locking/rwsem.c:1631
-       ocfs2_reflink+0x4d2/0x920 fs/ocfs2/refcounttree.c:4296
-       ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4423
-       ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4463
-       ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
-       vfs_ioctl fs/ioctl.c:51 [inline]
-       __do_sys_ioctl fs/ioctl.c:597 [inline]
-       __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+I'd like a separate drain helper, say o2quo_flush_work(), to describe
+this better than reusing the exit function.
 
--> #1 (&oi->ip_xattr_sem){++++}-{4:4}:
-       down_write+0x96/0x200 kernel/locking/rwsem.c:1631
-       ocfs2_reflink+0x4c3/0x920 fs/ocfs2/refcounttree.c:4295
-       ocfs2_vfs_reflink+0x338/0x450 fs/ocfs2/refcounttree.c:4423
-       ocfs2_reflink_ioctl+0x3a0/0x450 fs/ocfs2/refcounttree.c:4463
-       ocfs2_ioctl+0x5b5/0x7e0 fs/ocfs2/ioctl.c:920
-       vfs_ioctl fs/ioctl.c:51 [inline]
-       __do_sys_ioctl fs/ioctl.c:597 [inline]
-       __se_sys_ioctl+0xfc/0x170 fs/ioctl.c:583
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
--> #0 (&sb->s_type->i_mutex_key#18){+.+.}-{4:4}:
-       check_prev_add kernel/locking/lockdep.c:3209 [inline]
-       check_prevs_add kernel/locking/lockdep.c:3328 [inline]
-       validate_chain kernel/locking/lockdep.c:3952 [inline]
-       __lock_acquire+0x164c/0x2de0 kernel/locking/lockdep.c:5288
-       lock_acquire+0x115/0x350 kernel/locking/lockdep.c:5942
-       down_write+0x96/0x200 kernel/locking/rwsem.c:1631
-       inode_lock include/linux/fs.h:1024 [inline]
-       vfs_rename+0x6e3/0xef0 fs/namei.c:-1
-       filename_renameat2+0x533/0x9a0 fs/namei.c:6325
-       __do_sys_rename fs/namei.c:6369 [inline]
-       __se_sys_rename+0x55/0x2c0 fs/namei.c:6365
-       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
-       do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
-       entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-other info that might help us debug this:
-
-Chain exists of:
-  &sb->s_type->i_mutex_key#18 --> &oi->ip_alloc_sem --> &sb->s_type->i_mutex_key#18/2
-
- Possible unsafe locking scenario:
-
-       CPU0                    CPU1
-       ----                    ----
-  lock(&sb->s_type->i_mutex_key#18/2);
-                               lock(&oi->ip_alloc_sem);
-                               lock(&sb->s_type->i_mutex_key#18/2);
-  lock(&sb->s_type->i_mutex_key#18);
-
- *** DEADLOCK ***
-
-locks held by syz-executor105/5623: 5, last CPU#1:
- #0: ffff88807f244460 (sb_writers#8){.+.+}-{0:0}, at: mnt_want_write+0x41/0x90 fs/namespace.c:531
- #1: ffff88807f244768 (&type->s_vfs_rename_key){+.+.}-{4:4}, at: lock_rename fs/namei.c:3789 [inline]
- #1: ffff88807f244768 (&type->s_vfs_rename_key){+.+.}-{4:4}, at: __start_renaming+0xed/0x410 fs/namei.c:3878
- #2: ffff8880767025a0 (&type->i_mutex_dir_key#6/1){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
- #2: ffff8880767025a0 (&type->i_mutex_dir_key#6/1){+.+.}-{4:4}, at: lock_two_directories+0x141/0x220 fs/namei.c:3755
- #3: ffff8880767017a0 (&sb->s_type->i_mutex_key#18/5){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
- #3: ffff8880767017a0 (&sb->s_type->i_mutex_key#18/5){+.+.}-{4:4}, at: lock_two_directories+0x16b/0x220 fs/namei.c:3756
- #4: ffff8880764ff9a0 (&sb->s_type->i_mutex_key#18/2){+.+.}-{4:4}, at: inode_lock_nested include/linux/fs.h:1069 [inline]
- #4: ffff8880764ff9a0 (&sb->s_type->i_mutex_key#18/2){+.+.}-{4:4}, at: vfs_rename+0x64d/0xef0 fs/namei.c:6159
-
-stack backtrace:
-CPU: 1 UID: 0 PID: 5623 Comm: syz-executor105 Not tainted syzkaller #0 PREEMPT(full) 
-Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 08/26/2026
-Call Trace:
- <TASK>
- dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
- print_circular_bug+0x2e2/0x300 kernel/locking/lockdep.c:2087
- check_noncircular+0x12f/0x150 kernel/locking/lockdep.c:2219
- check_prev_add kernel/locking/lockdep.c:3209 [inline]
- check_prevs_add kernel/locking/lockdep.c:3328 [inline]
- validate_chain kernel/locking/lockdep.c:3952 [inline]
- __lock_acquire+0x164c/0x2de0 kernel/locking/lockdep.c:5288
- lock_acquire+0x115/0x350 kernel/locking/lockdep.c:5942
- down_write+0x96/0x200 kernel/locking/rwsem.c:1631
- inode_lock include/linux/fs.h:1024 [inline]
- vfs_rename+0x6e3/0xef0 fs/namei.c:-1
- filename_renameat2+0x533/0x9a0 fs/namei.c:6325
- __do_sys_rename fs/namei.c:6369 [inline]
- __se_sys_rename+0x55/0x2c0 fs/namei.c:6365
- do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
- do_syscall_64+0x166/0x520 arch/x86/entry/syscall_64.c:84
- entry_SYSCALL_64_after_hwframe+0x77/0x7f
-RIP: 0033:0x7f5228311de9
-Code: c0 79 93 eb d5 48 8d 7c 1d 00 eb 99 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 d8 ff ff ff f7 d8 64 89 01 48
-RSP: 002b:00007ffd98464798 EFLAGS: 00000246 ORIG_RAX: 0000000000000052
-RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007f5228311de9
-RDX: 69662f7375622f2e RSI: 0000200000002bc0 RDI: 0000200000002b80
-RBP: 0000000000000000 R08: 0000000000000000 R09: 00007ffd984647d0
-R10: 00007ffd984647a0 R11: 0000000000000246 R12: 00007ffd984647d0
-R13: 0000000000000002 R14: 431bde82d7b634db R15: 00007f522837104b
- </TASK>
-
-
----
-If you want syzbot to run the reproducer, reply with:
-#syz test: git://repo/address.git branch-or-commit-hash
-If you attach or paste a git patch, syzbot will apply it before testing.
+Thanks,
+Joseph
