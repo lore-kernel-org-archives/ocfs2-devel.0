@@ -1,96 +1,61 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.48
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792506361;
-	b=NQL3Up18qZ4ow27Fif4piVFY1Uxwp3hPcfYJw5hWbZwO7N+DzHSSiykz8zZV9ciZ3gZA
-	 INJBlPq4+HplIyxpTmWWQ7snXnpua2a/V4nTgVWhpqOjsHLlFCzldLinR5uui2TuD/gYG
-	 93bCoZIktyo193IfCNsYbV8nyR+n3VkK7U3fniSqosfSBkuTHOlRibY+HuyAsKOHPzhsq
-	 N9OPIq8vRfuiKJaRUUnPO+cmMj6orl3ApykZGcOtvTJEgH7OEezucD0sc1OxFwGMK/Adw
-	 keS5LZcOFn/ZUilmd1ZloatPxD5BhkgOHKO3VNbBcYot+DerZjnnJXvAN51MZ1CZAyw==
+	t=1792508036;
+	b=f5ZhU1Zby4A19J4+hUpXgyd73lLTBkwN8wlN1SuQEFKtxqmAb9bS5JU+ogGe4SEvzrc2
+	 Mvf7L01Iad55N1r9x5eZChZc9IkrxnedXE3xG/4sJ0BtLTXpa/8g7Xp2FRVF+J1FIIkGu
+	 Mvr+ddszbRUr+13nWVIhZrRooRwFFcfEZs8oY3lOd7RTo4UQ9iedP5zOwpuvDpMDBNg5a
+	 0Jx5uPOnYVf2tj4OpE4MxxyNbBnEX1aFER/CExmrkGNeebwiMBtFLJkIDoCkCvFysWEhT
+	 jWh6KC+0LItR3O1nuKGw+H5f8Qd8kL9AZb9gnqFSUqrx2/TstIsa5CxJrhpgtZocrmw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792506361;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=7RWczmxZUd2zIPBf7cDOEeEN988E+Le0eDxxMs8/MXs=;
-	b=P6hkRaf6jd4OcCUAmI463R68jYrzssH9uxJQZFbmI0qWFYH+B8Odw7Hcq6ePfYc6u14D
-	 m92N2ZUj7ga6cuywJ/Uno2sQ9mROA+SoZ6hljVEZGxpfErZC1e8hni5Y97WfG5hrLNxV+
-	 f8PtgBPEd/6CuXsTfgFfcvlChEd5WAJ2ucn2gAj+MdDbUl51hQCERzAVPQGqbHVXR+rvv
-	 34Y/FkKro39mMrlZJ/ZLsHLFFVOpBYOaz/mH+pRxaTWMh3pt2fxtMHltneUrv/6yLP5AE
-	 ruinhf4XEbq84La+vu6YvWTZcgNcyJ4NAgvXBjHxLvtcXPJgg3P1GHq0olvUmaxd3Qg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792508036;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=/bwYNsuvdLOeGIvvyV7lXuTJEpgdy2xoAlb1KPVe2eU=;
+	b=kvGvn/yBRpq3pajMQq3GvJg6WTxWOpiWP+TIO49xEc2VKKZEV6ORne7hwamwk4JjIZiy
+	 /PDK7sGurlRcXU1l3fduhyn/FEdzKjDgME3CDeczbj6WzsT3xD/SEgGfWRioZPymQGw+s
+	 vi0LNy4menNgzDuRXO9O0pUAT8YQ8swM7ydHE18avHZ2g3EjBZ+X0EJgKcdLxQDQNfrKV
+	 gJXP+nAltnQiBJu7IUqC3S9sbnnGZRmI9jaaomBqLFd2NTkdnqkMAOEa/1zaQZQNgFUy5
+	 ybqtHiNo7+VZkZjwE3Vc3dvCx5Ob6XAdamaDzjR4CLNVG+r1/5ablyrTHfQySu5WilA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=a9n35L9g;
-	arc=none smtp.remote-ip=209.85.216.48
-Received: from mail-pj1-f48.google.com (mail-pj1-f48.google.com [209.85.216.48])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=j+nClr50;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B517D606A31A
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 14:26:00 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B517D606A31A
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9377C606A324;
+	Tue, 20 Oct 2026 14:53:55 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=a9n35L9g
-Received: by mail-pj1-f48.google.com with SMTP id 98e67ed59e1d1-3ac78f4c10bso1519153a91.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 07:26:00 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792506360; x=1793111160; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=7RWczmxZUd2zIPBf7cDOEeEN988E+Le0eDxxMs8/MXs=;
-        b=a9n35L9gCb72l97xhXk5GvAV9xO+shveEnYn/wDOIEL22kOSVSnSdNS9ntiF4FdHkA
-         k7jPLlu2/uruozyHyqBziN26i4kCJjw+nHaUfdczHEwxoAxUtIDMWxYaPMngNWDz9nA7
-         Eddbkl3pzUg9WzUiGN2WKI40NZRXhRpq7gZMXH48Mld6KZEC+D0aDAtJ7kwD+uMJIlVs
-         YULX318mt+pqIUT9Qf/dUSz0q192mHqBnFK8QNP89ledHmGLgj7AG4TNcwMvtGBBmOMq
-         ojPUcdnSR38tKisQfGUZ6MOGDaY0G25UorQ58LCUy+tdoh0oB8dOBACQGu45vcQ8Irfb
-         tSaA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792506360; x=1793111160;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=7RWczmxZUd2zIPBf7cDOEeEN988E+Le0eDxxMs8/MXs=;
-        b=xR/X2zhkxCU4Fx/ypkzXFmzaB6dZqw6wTNCDs4A7VOeS3JaEp8kOBTY48cDL9n+4T8
-         HPUr+tEN0esg2AjFkWyDQOzU+JLNb+tTPwFWM3SZhsGXVvBUVn45O97ZhnA7QGS0DBck
-         a4jl758vaRqv8nusX4bNWpfjTaZtoWvPDldIazgTkiYo4vd7dY9Vkz7ZV7irVFiRxEd/
-         PNj8oImOcKd6Ys32DasA/WRX335mbkO++7cE7wtTj61DJAYOoOomUQzfZpzZOs57LdWx
-         qEFRRKuZDMn01Rjn6buQFitU7+33HaJDxDjh/RAKhpFwa2HFeSJth78fpz+G1g9m2KIU
-         C5EA==
-X-Forwarded-Encrypted: i=1; AKwUvBwZp4P7jJWc0taMPAXk5B67HwHKsJNJAVZnHj9jAZZoIaaMK2IKFqpZA0XtmcKVXy2DcJBijqQcMg9Y8Q==@lists.linux.dev
-X-Gm-Message-State: AFq9FYJB+d4VU3vJ+EbCXIvZK3VTnNPpQiCLbhIPVIsb72lVUp5A+vW/
-	dreqVf9HxLInQ7FPIU26wKLoTwtIEMpujTEvzVceA3a6gSl6u/YLSuG2
-X-Gm-Gg: AYBFou2uKSfhDRZaE2AX4I9XEpj08euXjgVqEIXcmsOTTEpSKRNpU4mrLNl8jlLZUol
-	49g93CbJ0fywA1nHnTR12JdRy8Un8GPXnUqMMS9SqlZfmesQf7f/E9o0tjndVCSa9pD0fTiv8nT
-	nJVMdhtAPS63rSA23hCuW2iDTuYv63BtYmf7QCUU/BVQLRyqK49JCqxo1enfJN66FnEibXV7NcP
-	bqQYm5Oym/4mRUMTXFNRka5X6uf1PruKRO7IROEtCdeixtVqzB5ikHnaxxAkdJolsWzp75sHsgW
-	KayTMh5yahJZf+S8u2ora3eKVRnm/rHpEdS7O4N5Pa8Gco/iPIz0p/4vNJk+tWhOpBvqc3n4tTO
-	Y5ZbPI3PoNYX+AzqHuov59/f0ZGgYiw1R7UOi03uH9MOTLqQDIN3Va+/554k9OQPSHsD3WcCJIm
-	A6T1gYOLEk5b5JlqBgDE7QF43a8tcar6beCRc8ElKMtQNuE9ijMkVbgvYcHIJT5EPwNM2eHQxj4
-	wSXG7EPia8Nmstv+vahYKJNHl8AAzg1rtRTOmzlSqiLNIvsa6r+HyjirnnVtICoJt9CNamj
-X-Received: by 2002:a17:90b:5743:b0:3ab:1b1c:8a70 with SMTP id 98e67ed59e1d1-3acef29e7c2mr9107677a91.38.1792506359913;
-        Tue, 20 Oct 2026 07:25:59 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3acd0cde4fdsm10447319a91.4.2026.10.20.07.25.56
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 20 Oct 2026 07:25:59 -0700 (PDT)
-From: Cen Zhang <zzzccc427@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: heming.zhao@suse.com,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com,
-	zzzccc427@gmail.com
-Subject: [PATCH v4] ocfs2: cache the mount context for dentry lock callbacks
-Date: Tue, 20 Oct 2026 22:25:53 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0012-v9-eeb9084fb29577971229@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=j+nClr50
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 7BC0B1F000C4;
+	Tue, 20 Oct 2026 14:53:51 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1792508035;
+	bh=/bwYNsuvdLOeGIvvyV7lXuTJEpgdy2xoAlb1KPVe2eU=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=j+nClr509Ip2YmEn7/caQLmG/4tBtyXZnslPC9cLou/c2WF5cUyD8vV0z4nB9Tev2
+	 plhyZAe/DFKunvOqX8v/oXRElPiP3zxk2HziYyB5Fx7bPGt0t29G9UDf+1rfbuTFys
+	 26EzMGskCjKKCcH4vAuqOv+1PYrBjiQnY9DVI9Dr4fSEZ8yAk0LnKIRmk7JwU0k+tW
+	 rl99vZagqlR6jXNFfVasyDMk1PxV7oE6nRO/s1kciIZkWvnPgB1U5HfkO6NzVlXd9L
+	 pR5YKf1B76wv3ukXrumON6Rbv57+rbThp5bo1tebJ6WrsH6Sye8PXipcbNZHIwrAzz
+	 YGHmJPYOdgplw==
+Date: Tue, 20 Oct 2026 16:53:45 +0200
+From: Christian Brauner <brauner@kernel.org>
+To: Jan Kara <jack@suse.cz>
+Cc: Andreas Gruenbacher <agruenba@redhat.com>, Jan Kara <jack@suse.com>, 
+	Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
+	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, 
+	linux-fsdevel@vger.kernel.org, ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
+	linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, linux-efi@vger.kernel.org, 
+	linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org, stable@vger.kernel.org
+Subject: Re: [PATCH RFC 20/28] gfs2: wait for a pending withdraw before
+ remounting read-only
+Message-ID: <20261020-steinbock-sprachen-charmant-e4fd6d840395@brauner>
+References: <20261012-work-fs-sb_rdonly-v1-0-60743a3dc326@kernel.org>
+ <20261012-work-fs-sb_rdonly-v1-20-60743a3dc326@kernel.org>
+ <CAHc6FU5bdAjABRm=bnH68b2f66TZTDZ8sPdatLB2fS7-55U=yw@mail.gmail.com>
+ <20261018-ungemacht-sodbrennen-hausordnung-42d33a4f7098@brauner>
+ <wauqpgtmmf2beg3pc2kqlbizrigd4ew26do4zqch5ilwdjy4cd@brolwbx25sem>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -100,148 +65,42 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <wauqpgtmmf2beg3pc2kqlbizrigd4ew26do4zqch5ilwdjy4cd@brolwbx25sem>
 
-ocfs2_drop_dentry_lock() drops the inode reference before releasing the
-DENTRY lock. This lets inode eviction release the local inode and open
-locks before a remote unlink can proceed past the DENTRY lock.
+On Mon, Oct 19, 2026 at 11:52:25AM +0200, Jan Kara wrote:
+> On Sun 18-10-26 17:48:34, Christian Brauner wrote:
+> ...
+> > On Fri, Oct 16, 2026 at 02:32:01AM +0200, Andreas Gruenbacher wrote:
+> > > > diff --git a/fs/gfs2/util.c b/fs/gfs2/util.c
+> > > > index 83b8bb6446e5..1535ce2b7aa8 100644
+> > > > --- a/fs/gfs2/util.c
+> > > > +++ b/fs/gfs2/util.c
+> > > > @@ -122,7 +122,7 @@ static void do_withdraw(struct gfs2_sbd *sdp)
+> > > >                 up_write(&sdp->sd_log_flush_lock);
+> > > >                 return;
+> > > >         }
+> > > > -       clear_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
+> > > > +       clear_and_wake_up_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
+> > > >         gfs2_ail_drain(sdp); /* frees all transactions */
+> > > >         up_write(&sdp->sd_log_flush_lock);
+> > > >
+> > > >
+> > > > --
+> > > > 2.53.0
+> > > >
+> > > 
+> > > this looks good all around, thank you very much. Can I add it to my gfs2 queue?
+> > 
+> > I was planning to just provide a stable branch for everyone to pull post
+> > -rc1. Then you can just pull that in?
+> 
+> On a related topic: I didn't find any branch with this work in vfs.git - I
+> wanted to check how all the things come together after adding the generic
+> emergency RO bit. So if you can push some inofficial branch for now it
+> would help me... Thanks!
 
-A DLM callback can still arrive before the DENTRY lock has been dropped.
-ocfs2_get_dentry_osb() obtains the mount context through dl_inode->i_sb,
-which can access a freed inode when the downconvert thread drops the
-last inode reference in its post-unlock callback:
+Absolutely:
 
-  Downconvert thread                     DLM callback thread
-  ------------------                     -------------------
-  ocfs2_process_blocked_lock()
-    ocfs2_dentry_post_unlock()
-      ocfs2_dentry_lock_put()
-        ocfs2_drop_dentry_lock()
-          iput(dl->dl_inode)
-          [inode reclaimed after RCU]
-                                         ocfs2_blocking_ast()
-                                           ocfs2_get_dentry_osb()
-                                             dl->dl_inode->i_sb
-          ocfs2_simple_drop_lockres()
-
-Store the mount context in the DENTRY lock resource's l_priv field and
-use the default mount-context lookup. Recover the containing dentry
-lock with container_of(), as already done for refcount locks, and remove
-ocfs2_get_dentry_osb(). ocfs2_dismount_volume() shuts down the DLM before
-freeing the mount context, so callbacks can use it without accessing the
-inode. Preserve the existing iput-before-unlock order to avoid delaying
-local inode and open lock release until after the DENTRY lock is released.
-
-Fixes: 8ed6b23709b3 ("ocfs2: revert iput deferring code in ocfs2_drop_dentry_lock")
-Cc: stable@vger.kernel.org
-Assisted-by: LLM
-Suggested-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
----
-Changes in v4:
-- Drop the convert-worker change from v3. Keep MAYBE_ORPHANED marking before
-  the extra-reference check, including the dl_count == 0 path needed for
-  local orphan cleanup.
-- Retain the osb cache from v2 and the original iput-before-unlock order;
-  remove the incorrect worker-lifetime claims from the commit message.
-
-Changes in v3:
-- Move the inode lookup and MAYBE_ORPHANED update after the existing
-  FREEING/dl_count guard and successful extra-reference acquisition,
-  addressing Joseph Qi's review.
-- Keep the osb cache from v2 and preserve iput-before-unlock ordering.
-
-Changes in v2:
-- Preserve the existing iput-before-unlock order and cache the mount context
-  in the lock resource's existing l_priv field instead.
-- Recover the containing dentry lock with container_of() and remove the
-  inode-dependent mount-context lookup.
-- Correct the comment describing the dentry lock's inode reference.
-
-Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0012-v5-a0413a339b72c02fc885@gmail.com
-Link to v2: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0012-v6-17b58652a3505eeecb0c@gmail.com
-Link to v3: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0012-v8-d01e30cb3f465e294c0a@gmail.com
-
- fs/ocfs2/dcache.h  |  5 ++---
- fs/ocfs2/dlmglue.c | 16 ++++------------
- 2 files changed, 6 insertions(+), 15 deletions(-)
-
-diff --git a/fs/ocfs2/dcache.h b/fs/ocfs2/dcache.h
-index 7f246c5692d8..046ab9a80769 100644
---- a/fs/ocfs2/dcache.h
-+++ b/fs/ocfs2/dcache.h
-@@ -17,9 +17,8 @@ struct ocfs2_dentry_lock {
- 	u64			dl_parent_blkno;
- 
- 	/*
--	 * The ocfs2_dentry_lock keeps an inode reference until
--	 * dl_lockres has been destroyed. This is usually done in
--	 * ->d_iput() anyway, so there should be minimal impact.
-+	 * The inode reference is dropped before dl_lockres is unlocked.
-+	 * Callbacks must not use it to find the mount context during teardown.
- 	 */
- 	struct inode		*dl_inode;
- 	struct ocfs2_lock_res	dl_lockres;
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 88d946466083..437a726834c8 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -58,7 +58,6 @@ struct ocfs2_mask_waiter {
- #endif
- };
- 
--static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres);
- static struct ocfs2_super *ocfs2_get_inode_osb(struct ocfs2_lock_res *lockres);
- static struct ocfs2_super *ocfs2_get_file_osb(struct ocfs2_lock_res *lockres);
- static struct ocfs2_super *ocfs2_get_qinfo_osb(struct ocfs2_lock_res *lockres);
-@@ -258,7 +257,6 @@ static const struct ocfs2_lock_res_ops ocfs2_orphan_scan_lops = {
- };
- 
- static const struct ocfs2_lock_res_ops ocfs2_dentry_lops = {
--	.get_osb	= ocfs2_get_dentry_osb,
- 	.post_unlock	= ocfs2_dentry_post_unlock,
- 	.downconvert_worker = ocfs2_dentry_convert_worker,
- 	.flags		= 0,
-@@ -309,7 +307,7 @@ static inline struct ocfs2_dentry_lock *ocfs2_lock_res_dl(struct ocfs2_lock_res
- {
- 	BUG_ON(lockres->l_type != OCFS2_LOCK_TYPE_DENTRY);
- 
--	return (struct ocfs2_dentry_lock *)lockres->l_priv;
-+	return container_of(lockres, struct ocfs2_dentry_lock, dl_lockres);
- }
- 
- static inline struct ocfs2_mem_dqinfo *ocfs2_lock_res_qinfo(struct ocfs2_lock_res *lockres)
-@@ -610,13 +608,6 @@ static __u64 ocfs2_get_dentry_lock_ino(struct ocfs2_lock_res *lockres)
- 	return be64_to_cpu(inode_blkno_be);
- }
- 
--static struct ocfs2_super *ocfs2_get_dentry_osb(struct ocfs2_lock_res *lockres)
--{
--	struct ocfs2_dentry_lock *dl = lockres->l_priv;
--
--	return OCFS2_SB(dl->dl_inode->i_sb);
--}
--
- void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
- 				u64 parent, struct inode *inode)
- {
-@@ -624,6 +615,7 @@ void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
- 	u64 inode_blkno = OCFS2_I(inode)->ip_blkno;
- 	__be64 inode_blkno_be = cpu_to_be64(inode_blkno);
- 	struct ocfs2_lock_res *lockres = &dl->dl_lockres;
-+	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
- 
- 	ocfs2_lock_res_init_once(lockres);
- 
-@@ -652,9 +644,9 @@ void ocfs2_dentry_lock_res_init(struct ocfs2_dentry_lock *dl,
- 	memcpy(&lockres->l_name[OCFS2_DENTRY_LOCK_INO_START], &inode_blkno_be,
- 	       sizeof(__be64));
- 
--	ocfs2_lock_res_init_common(OCFS2_SB(inode->i_sb), lockres,
-+	ocfs2_lock_res_init_common(osb, lockres,
- 				   OCFS2_LOCK_TYPE_DENTRY, &ocfs2_dentry_lops,
--				   dl);
-+				   osb);
- }
- 
- static void ocfs2_super_lock_res_init(struct ocfs2_lock_res *res,
+vfs-7.5.super.ro
