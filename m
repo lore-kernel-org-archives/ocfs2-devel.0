@@ -1,49 +1,95 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.110
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.180
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792467102;
-	b=1hcE9v7sKN1vl/Cyd6iueYsd3gWcg8l55IZF/eaaD/RhUa1NuFEVWNyvIzQVvPbO0iJi
-	 +squ5vbza7lteOQT6kK/uQW7ViP/U+ghoIIfOMO9lWbhufq5zEvcZRyVYYavS2UF1339n
-	 xQayZLVagPRsmhyKC1sYXgHaCrBFAyLvvozbQ4xWRYemnNnU292dZj6Nu2Vio5+jg5hR/
-	 0P3KVcPS/UQ+K5aQIUcCG9MUCV6vovZgQvzihmmbsoKG+aIFqiGng5hM5Z4OMuXy0MWxr
-	 ohlkdQeUqLCw2GBs5ZlZ7H3xfVsydN+SsXEcIGgSTpNq1LCkVv+/YVsg/oTNt7HoZgA==
+	t=1792467839;
+	b=3h/Tg5VgJ3qyw5IrxMQVIyOCZWWjaaLxZJU74b0NWccOv1DGGwaZHSCsKhRQ4E0167Ty
+	 8sHMoccML8Sfy0RbjH4ikxfSzIPwvr3Krv5vn+nsRvjeF0Q64ZIYoL2icMs0a2e3ikMTC
+	 H4lQwINw+prQ7UHi6wVummsGLftpo94cFiJKYdSQgAU0YxXNRag3+1Z0T6noGBwS1rbnp
+	 8qWU1h8Z2ChgbfNEwJh/6e2ulYD8WbeE2NmHMK//xSC665vYgEv5XlcHZfTVOi55LcfGs
+	 7sOo5VhM+Y0IrbXJJMNmRWLT87tVQ0aTNKKtwfK1s9yyu3/HlPrfFQohIbWnaUNtKag==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792467102;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
-	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=1pMnW+z+gnolEDK9i8P/Eq0D/nBibiu3P4XvjwqIpzs=;
-	b=uiMdp4MyzDJMay0g4Y50mzdTFjfN569GAIFXgQpVuoNNZeD8obAB9+z/ypqegFXl7mZ6
-	 /PatG3z+dYCGiuRNWNESC7OQnexS5jfbfN579cFsCf9Ts0Bhcoi0jwkmGREhhcYo1HxMc
-	 YLfewAJsmgtAOzUpgCAxE0+1uoEFQgVpHIV4m47d2Mix6Y8zcAHsjurDzIWQwlN+OSORn
-	 HBwQTmergvoNbB7+gb8vjoaa89HH+fv4nE9/jLzKaXe/eI46Ka1E7ozx0o188MUWS+6cx
-	 nRAXce2v1EhX0E/MJcNVdtk58kE8P7ZsxhibGC4OBFnXJ6I3hyscFrKmh0V1ySIOA6g==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792467839;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
+	 Content-Transfer-Encoding;
+	bh=6AmciestcwpfVwikDIiE2zDRFZ72F9LqkNUf023WPXQ=;
+	b=z0pGqqfoi0fv1h8mL6pU/8jDtNCHzzz5CsRjv8Kx1S0Qbw/hoDD5pBK1PWDuc03EiBYs
+	 u6faXH+eepYmxTuD4MyWqGW5S5FDpZiEXUiXvwABMpEP9ywN9CUd+f/Iljahn9Y+GgfUI
+	 3DXrmE3qD9HMsTaaCjuyD4UsbH3ZMpflulKgM8H1ecKMwu0WfT7+AVlyTa8HCpUuDM6aF
+	 aQrEB++SllJzetRG+g52ATsuXFK1DGsjcNWYK94MxW+qLp0iTAgCc1zIjrW6cw3F6S3z0
+	 BsOnl4dZx0AxcgAlDBdIfdg4AvFoNCKSQiR8RtLE9D2jG2ftBdlwCZDUe7ijxrDzRxw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.alibaba.com;
-	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=eXfivCoj;
-	arc=none smtp.remote-ip=115.124.30.110
-Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b="DNj8/ms7";
+	arc=none smtp.remote-ip=209.85.214.180
+Received: from mail-pl1-f180.google.com (mail-pl1-f180.google.com [209.85.214.180])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B63D9606A320
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 03:31:40 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B63D9606A320
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 77F2B606A31A
+	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 03:43:59 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 77F2B606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=eXfivCoj
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1792467098; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=1pMnW+z+gnolEDK9i8P/Eq0D/nBibiu3P4XvjwqIpzs=;
-	b=eXfivCoj6alcsMss2B9RKh4IRf/h/P1mnXAf/qMjbhrSJxP5FRdIkMXP2Lno4sHOxk+1yePVlVQrynfJNENQBVm6uXa7DmKvjkXGXBVjDwS9trJxdDTlOIPhE8KYZ3e3BiFpiCoL1kPf6iMP6klDw2fo/N8qH5N8RZoj3AEIHwY=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=14;SR=0;TI=SMTPD_---0XDBTS2G_1792467096;
-Received: from 30.221.145.25(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDBTS2G_1792467096 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Tue, 20 Oct 2026 11:31:37 +0800
-Message-ID: <12688893-dc59-4234-9faf-14c257396c93@linux.alibaba.com>
-Date: Tue, 20 Oct 2026 11:31:36 +0800
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=DNj8/ms7
+Received: by mail-pl1-f180.google.com with SMTP id d9443c01a7336-2db80fcdf8bso16132305ad.2
+        for <ocfs2-devel@lists.linux.dev>; Mon, 19 Oct 2026 20:43:59 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1792467839; x=1793072639; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=6AmciestcwpfVwikDIiE2zDRFZ72F9LqkNUf023WPXQ=;
+        b=DNj8/ms7o0r4FW4KfwbXPtPy0St0f8nkV2VSDO6mWdkMYDuonohSxRNicIIizph/8f
+         XlChBoibume+AmC72hiQtbu4T7JdLQE2WysFj3nMaJeaS1TJOxnxlxjt4+lEXVuytf/N
+         At4IkaVVIYPJ8vhQ8gXEdqD2kTNr8WT62CEkmKb3bHnVmwF2poOgmq884QaKoaBnnhgH
+         QQSCa2NOi1rJrkzcRox96d9JwQ8+gDNfzq7yjnp25MxRb8FJxeshmJciXCTDPxBg0PwW
+         7XSWYiorJncyxvJF9RUXupcaZxrdyGpnjxiijH/qKLwDifLZwoeZgcrj8heHlljnF0v3
+         11lQ==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1792467839; x=1793072639;
+        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
+         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=6AmciestcwpfVwikDIiE2zDRFZ72F9LqkNUf023WPXQ=;
+        b=JcA9YHWMTh0kwlIfTRqKbExefDUMwLWkI+1Ww+LVG4hCW0gOsb6VuoFEt0XlrOXpcT
+         F+wL69JBrpT3+GPZr+3glIIkSRQ97tlwhsj2GmH4vYhCABkkoFBEcZ0lGYUlKJNZErM/
+         sqmUOHD4FalwxLmBn10PgJqPyjeNUcN4T+kDLIJB7BNexU7byS43DbfgHRQMeM+AlCe2
+         4kc+3GiXjI96jnigDeBrtMdH2n1YodkI96q8ih6WqB9whupysYJYszuLQAn63klHdeyh
+         bVjr7HHFlceL6uZHiWX0Ykv516rtNDiT5gxuSOfPhlkdKDB/oOd676RICsQFr+EXfoeG
+         VNIw==
+X-Forwarded-Encrypted: i=1; AKwUvBxCCMQ3nwhZCVEuvSRmhATRup9Jf6XMKGfKNTMkvVs18qT5NY0U1rIvxVKTmPkFSgtGgmyFcwURpBI2Bw==@lists.linux.dev
+X-Gm-Message-State: AFq9FYJk58PYeaBQjYuTfas8YSZlgA8sOLyDldl3lXvCVoty6kbJ1k4w
+	/hWSSU2FFx4hW+CtJZDf2F9arX+il0CZQhNBcS4h8EQd29iX4gZDIaU7
+X-Gm-Gg: AYBFou3qQkPzU/9nGeo2XHbSVSUZPHlv+wRiruc0a1o9Z53XWwAD8/sfqJ8gpVGcg1m
+	ycSoEuR6zBjFKrY9QZI5aUxXwp6+Kd/dCA/K29o2gk95e4PaczP4ES1G6RYAb8Obycm42/N1euQ
+	zTxnuSO0OfubiXslY4M02VKwZO59Q0m9IqGYHN/WVZtlmGuxoMcuJLHm2/z9XoBJB77yB6hLSuo
+	gmNhZ7TW0WfCcIQlyvpEG6lIrydG/y8rNOeHUfvAmJw1S3Si5Qjl/oqcBrGC7zwfLu6VY8FQv2S
+	/s04ciNtRawYKd/vECHhutHquJ7DDMw5+dRWGCFKPtUzODjEJ4kNf/vv79n9xMi3gG/qrakkJFH
+	lnawgfTHXiIrKaahtE8K70E883QdNLGldckCeWWGU83uLay+depq7ROzN6Ek5azEFaebiHiVL0j
+	fOasEjZCidTeQPqPpYFlUq+W15hj5NDlyEPShxAO34hWtq5FzQpJWZR1fC8kPqo3S36A==
+X-Received: by 2002:a17:902:e844:b0:2e9:9a19:c5b with SMTP id d9443c01a7336-2e9a6e558admr80578225ad.47.1792467838712;
+        Mon, 19 Oct 2026 20:43:58 -0700 (PDT)
+Received: from localhost ([111.228.63.84])
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2ea14caa857sm8143885ad.12.2026.10.19.20.43.55
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Mon, 19 Oct 2026 20:43:58 -0700 (PDT)
+From: Cen Zhang <zzzccc427@gmail.com>
+To: mark@fasheh.com,
+	jlbec@evilplan.org,
+	joseph.qi@linux.alibaba.com
+Cc: heming.zhao@suse.com,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	stable@vger.kernel.org,
+	baijiaju1990@gmail.com,
+	jjzuming@gmail.com,
+	zzzccc427@gmail.com
+Subject: [PATCH v3 0/2] ocfs2: stabilize dentry names in file-operation trace events
+Date: Tue, 20 Oct 2026 11:43:50 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0088-v6-d3056754af7e660155d9-0@gmail.com>
+X-Mailer: git-send-email 2.34.1
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -53,192 +99,41 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2/cluster: Initialize heartbeat regions before
- publishing them
-To: Cen Zhang <zzzccc427@gmail.com>, akpm@linux-foundation.org
-Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
- ericterminal@gmail.com, christophe.jaillet@wanadoo.fr, kees@kernel.org,
- kmehltretter@gmail.com, ocfs2-devel@lists.linux.dev,
- linux-kernel@vger.kernel.org, stable@vger.kernel.org,
- baijiaju1990@gmail.com, jjzuming@gmail.com
-References: <pm-ocfs2-objects-candidate-0079-v5-f931a29339cadc0a2a70@gmail.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <pm-ocfs2-objects-candidate-0079-v5-f931a29339cadc0a2a70@gmail.com>
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
+All six users of ocfs2__file_ops pass a dentry name to its shared
+__string field. A file reference keeps the dentry alive while rename
+can still change the name being recorded.
 
+Use name snapshots at all six call sites, as Joseph requested. The
+first patch handles the five callers that take no inode spinlock
+around their trace call. The second handles file release separately
+to preserve its locked open-count sample while taking and releasing
+the snapshot outside that critical section.
 
-On 10/16/26 12:58 AM, Cen Zhang wrote:
-> A region on o2hb_all_regions must have an initialized config item and
-> name. o2hb_heartbeat_group_make_item() currently links the zeroed region
-> under o2hb_live_lock, drops the lock, and only then initializes hr_item.
-> The lock therefore protects the list without protecting initialization
-> from readers of the published item.
-> 
-> With global heartbeat enabled, a DLM_QUERY_REGION from the current
-> joining node can pass the existing-domain and protocol checks while a
-> configfs mkdir creates another region. The DLM locks are not taken by
-> the constructor, and the network worker does not take the configfs
-> subsystem mutex. The following ordering is possible:
-> 
->   Configfs mkdir                     O2net receive worker
->   --------------                     --------------------
->   Allocate reg
->   Lock o2hb_live_lock
->   Link into o2hb_all_regions
->   Unlock o2hb_live_lock
->                                      dlm_query_region_handler()
->                                        dlm_match_regions()
->                                          o2hb_get_all_regions()
->                                            Lock o2hb_live_lock
->                                            Copy 32 bytes from NULL name
->                                            Unlock o2hb_live_lock
->   config_item_init_type_name()
-> 
-> The query thus dereferences NULL. Initialize hr_item before linking the
-> region so the existing list lock also orders name initialization before
-> any reader. Reject a failed name allocation, since the initialization
-> helper does not propagate that error.
-> 
-> Use config_item_put() on initialized constructor failures to release the
-> name and respect references retained by o2hb_region_pin(). Initialize
-> the list heads, mutex and delayed works needed by o2hb_region_release()
-> before any such put, and leave the list node self-linked after rollback.
-> Keep the existing handler drain before removing a failed published item.
-> 
-> KASAN report as below:
-> 
->     ==================================================================
->     BUG: KASAN: null-ptr-deref in o2hb_get_all_regions+0xbb/0x1f0
->     Read of size 32 at addr 0000000000000000 by task kworker/u16:1/14
-> 
->     CPU: 2 UID: 0 PID: 14 Comm: kworker/u16:1 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
->     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
->     Workqueue: o2net o2net_rx_until_empty
->     Call Trace:
->      <TASK>
->      dump_stack_lvl+0x93/0xd0
->      kasan_report+0xe0/0x110
->      ? o2hb_get_all_regions+0xbb/0x1f0
->      kasan_check_range+0x105/0x1b0
->      __asan_memcpy+0x23/0x60
->      o2hb_get_all_regions+0xbb/0x1f0
->      dlm_query_region_handler+0x4c2/0xc20
->      ? __pfx_dlm_query_region_handler+0x10/0x10
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? trace_hardirqs_on+0x18/0x160
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? kvm_clock_get_cycles+0x31/0x60
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_dlm_query_region_handler+0x10/0x10
->      o2net_rx_until_empty+0x1a50/0x3200
->      ? reacquire_held_locks+0xdd/0x200
->      ? __pfx_o2net_rx_until_empty+0x10/0x10
->      ? lock_acquire+0x190/0x300
->      ? process_one_work+0x935/0x1b40
->      ? process_one_work+0x834/0x1b40
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? lock_release+0xc8/0x290
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      process_one_work+0x9a8/0x1b40
->      ? __pfx_process_one_work+0x10/0x10
->      ? lock_acquire+0x190/0x300
->      ? lock_is_held_type+0x8f/0x100
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      worker_thread+0x65c/0xe40
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __kthread_parkme+0x177/0x220
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_worker_thread+0x10/0x10
->      kthread+0x351/0x460
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __pfx_kthread+0x10/0x10
->      ret_from_fork+0x659/0x940
->      ? __pfx_ret_from_fork+0x10/0x10
->      ? srso_alias_return_thunk+0x5/0xfbef5
->      ? __switch_to+0x74f/0xf70
->      ? __pfx_kthread+0x10/0x10
->      ret_from_fork_asm+0x1a/0x30
->      </TASK>
->     ==================================================================
-> 
-> Fixes: 536f0741f324 ("ocfs2/cluster: Track number of global heartbeat regions")
-> Cc: <stable@vger.kernel.org>
-> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+The patches are independent and leave the event class and trace format
+unchanged.
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cen Zhang (2):
+  ocfs2: snapshot dentry names in file-operation traces
+  ocfs2: snapshot the dentry name while tracing file release
 
-> Assisted-by: LLM
-> 
-> ---
-> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-> index 8e6ead433228..9a4703bdc4e8 100644
-> --- a/fs/ocfs2/cluster/heartbeat.c
-> +++ b/fs/ocfs2/cluster/heartbeat.c
-> @@ -2140,6 +2140,18 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
->  	}
->  	reg->hr_node_num = O2NM_MAX_NODES;
->  
-> +	INIT_LIST_HEAD(&reg->hr_all_item);
-> +	mutex_init(&reg->hr_arming_mutex);
-> +	reg->hr_stopping = true;
-> +	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
-> +	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
-> +	INIT_LIST_HEAD(&reg->hr_handler_list);
-> +	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
-> +	if (!config_item_name(&reg->hr_item)) {
-> +		ret = -ENOMEM;
-> +		goto put_item;
-> +	}
-> +
->  	spin_lock(&o2hb_live_lock);
->  	reg->hr_region_num = 0;
->  	if (o2hb_global_heartbeat_active()) {
-> @@ -2148,26 +2160,19 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
->  		if (reg->hr_region_num >= O2NM_MAX_REGIONS) {
->  			spin_unlock(&o2hb_live_lock);
->  			ret = -EFBIG;
-> -			goto free;
-> +			goto put_item;
->  		}
->  		set_bit(reg->hr_region_num, o2hb_region_bitmap);
->  	}
->  	list_add_tail(&reg->hr_all_item, &o2hb_all_regions);
->  	spin_unlock(&o2hb_live_lock);
->  
-> -	config_item_init_type_name(&reg->hr_item, name, &o2hb_region_type);
-> -
->  	/* this is the same way to generate msg key as dlm, for local heartbeat,
->  	 * name is also the same, so make initial crc value different to avoid
->  	 * message key conflict.
->  	 */
->  	reg->hr_key = crc32_le(reg->hr_region_num + O2NM_MAX_REGIONS,
->  		name, strlen(name));
-> -	mutex_init(&reg->hr_arming_mutex);
-> -	reg->hr_stopping = true;
-> -	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
-> -	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
-> -	INIT_LIST_HEAD(&reg->hr_handler_list);
->  	ret = o2net_register_handler(O2HB_NEGO_TIMEOUT_MSG, reg->hr_key,
->  			sizeof(struct o2hb_nego_msg),
->  			o2hb_nego_timeout_handler,
-> @@ -2190,10 +2195,13 @@ unregister_handler:
->  	o2net_unregister_and_flush_handler_list(&reg->hr_handler_list);
->  remove_item:
->  	spin_lock(&o2hb_live_lock);
-> -	list_del(&reg->hr_all_item);
-> +	list_del_init(&reg->hr_all_item);
->  	if (o2hb_global_heartbeat_active())
->  		clear_bit(reg->hr_region_num, o2hb_region_bitmap);
->  	spin_unlock(&o2hb_live_lock);
-> +put_item:
-> +	config_item_put(&reg->hr_item);
-> +	return ERR_PTR(ret);
->  free:
->  	kfree(reg);
->  	return ERR_PTR(ret);
+ fs/ocfs2/file.c | 97 ++++++++++++++++++++++++++++++++++---------------
+ 1 file changed, 68 insertions(+), 29 deletions(-)
 
+---
+Changes in v3:
+- Cover all six ocfs2__file_ops call sites with two patches, grouping open,
+  fsync, read, write and splice-read and handling release separately.
+- For release, keep the trace and open-count sample under oi->ip_lock while
+  taking and releasing the snapshot outside that lock; cache the
+  event-enabled check.
+
+Changes in v2:
+- Replace d_lock around the tracepoint with a dentry name snapshot so trace
+  callbacks run without the caller holding the dentry lock.
+- Pass both the name and its length from the snapshot; keep the event
+  enabled check and release the snapshot after the trace call.
+
+Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0088-v3-d628f98bfcb6784a0bfb@gmail.com
+Link to v2: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0088-v4-a9a0df898afb4fc65fa0@gmail.com
