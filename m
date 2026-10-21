@@ -1,100 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.171
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.99
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792531444;
-	b=d8za5y3FSuBXYaZvayKTx0whklts266Mo7bFKugshKsopmOzTR/BOA9b8P+FnR68izI4
-	 VIJkX9hg4bIWsXoWl0JG5mfMcyRZn1zieUIXA0yuq27rWoEhPFxoOYKuZLFy5UqaFkaid
-	 8e1OU50N+f/fpW/hMTxhK0sykNNJHBq8HnFlfuDlo3eiH46mTfvRhItAFsr04g+BmeToH
-	 u/Tb5BsD3F/TBjwLLtZSiwiTb0c95oVbWLZRUWOARN9fB9Rg/ey1OFGcrfhKAu/3H4U5R
-	 maRLzE+YtU7pUh8C0A3qN8oz2Min3lRY6NlWDcOLaxp2fK1dSR6Lodk1z0oCkq79whw==
+	t=1792580167;
+	b=hoYMIHTcXGxfu/dRUbVUdV0HKCWKZCYLWXontRKmgM/B+Jd3JSUshURGeMbDrbp/V+M8
+	 h1j3Tw/xLGjkCqSwFGx+oifqUzYrdvPi21wvs7u3q2lDQUTDW2Bj8B03Z8Q0n9uxi6bNq
+	 7hn1M4qjngj/Y5tuSOM9KsvddsoQpDGivawOiujThL9HW0bLy5q06b0fk9raUrrG5PjX6
+	 5JgO6nxTpXKymTyNk9SDFIi7v05FHodlI7ApbBShboO8nPVwPQWOQMoKh54pftvNyWNKT
+	 Pxgt/hUvJbPoQHLNwpTvCZ2d3y1FDcEwmxEHmvQrWfuK0RcN9UP5drjM3Oqe4RQoA8g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792531444;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
-	 MIME-Version:Content-Transfer-Encoding;
-	bh=sEPH3pV5NQDGveQ4gCC4SZc339s/ZpKzGxrmka5jI0c=;
-	b=VQTrXsHPFtnIW4i9M9878XL6MLowdWCi/4/vA6rnHbxEu8OQFgiNXyq6mFmMs8bnQLF2
-	 VmEVsIyaR5mnM3pUy0Vpv+0ckIi4AhMoEFy0CqJrk2cEDzO+JIMZtaCOvxmxmnw1lfN5s
-	 FOU8pSFbLBFrx1viL7O0DhNukBdVfiHGpIxxNHWbW/Mmu/E4rbGGri9N2lYhjNdUCu76M
-	 9ZGYYPq2ykRepKGQr2RegtzyNOcmmqCpCh8Fh0savIuWQwAoRqiMG++2Dh5FlYjpdlQMC
-	 BTbL6HyfSS1apq1pr2yYps3iYm/rfgoXTlLR05/jbCPyCUsCvHuACFhwIb7gzhCuO4w==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792580167;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=1awJR/cIwunF3OYLn6iH249UFQKC6nkambq2EgaI6ro=;
+	b=WMtPr8Oqg9xQBBFmGv2dSOehuB0L1MsOg9CeIFaTGMleT7bu4ENgF8Lh32W2vliOktlo
+	 PRCT4wFyjgeZ/DiTd4gGkVkJsjVwrV5kzROiwDJ1a7x4wb6e+E/GDKlFH6CKvNee1nnWZ
+	 iRp//MMMW/UvIcn7gDtH3Rhypfjf5dtHqBRQv/1AJHWQJud+sH0WM5mqTmdj0lj1xrSpC
+	 p7nfC1QCpYih46tL4cNpmbCKYfVQQVTCeZTzKTDVYQHYVEpw6aaLqR6NJsI7M+mRvxKoR
+	 YUhC/ASDgLvU01O9IK0lgFCJQ9KhIhEIkr2MQKnmMGXsNaJvY2t8zl0feTKMjCCBSXA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=L9Xx5GCE;
-	arc=none smtp.remote-ip=74.125.82.171
-Received: from mail-dy1-f171.google.com (mail-dy1-f171.google.com [74.125.82.171])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=wTJYdyrb;
+	arc=none smtp.remote-ip=115.124.30.99
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 56DE8606A32D
-	for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 21:24:04 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 56DE8606A32D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 380C0606A327
+	for <ocfs2-devel@lists.linux.dev>; Wed, 21 Oct 2026 10:56:05 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 380C0606A327
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=L9Xx5GCE
-Received: by mail-dy1-f171.google.com with SMTP id 5a478bee46e88-33fb4680717so28811eec.1
-        for <ocfs2-devel@lists.linux.dev>; Tue, 20 Oct 2026 14:24:04 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792531443; x=1793136243; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=sEPH3pV5NQDGveQ4gCC4SZc339s/ZpKzGxrmka5jI0c=;
-        b=L9Xx5GCEd94gnyEGmc5WRk89jfk5w5/FrThG1bmx3JnOT6ZZQJ6lTd8epOOMjOTbTL
-         VVXyM46fMMQ5Zfdvc0W2nbHPhrEZhBGmlnN+soN/gPdIXqT0OhKFqP+Ynfkp/w0ToI+5
-         qg8QZUjGrpGLZuHaTamVPW5x6hs+4IN1rYqege2MkkUJavn634HKudAdQgyjL7ch4OPO
-         BFaifjwH5W/zbyBlF7yUnh3OUcY+YMeGhpcIPSzBYgjlUZUHulh6nw1O0Y/EAsusgm+W
-         hhPqoonbTXMbmJNPsr0f2bfJAu8fCX8KO/eNqAdUdNWmjacTiFJNP5ghGgqTtRI5Xr/g
-         3WZA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792531443; x=1793136243;
-        h=content-transfer-encoding:mime-version:references:in-reply-to
-         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
-         :to:cc:subject:date:message-id:reply-to:content-type;
-        bh=sEPH3pV5NQDGveQ4gCC4SZc339s/ZpKzGxrmka5jI0c=;
-        b=pH/lapX9tEGN+eJXyFzvt7CI6ideEwzNhZG/0GCUIQjoFQJ2MSg97rKHjWk7vloo8C
-         QKYfy0yvvio2Rk5RLoWF88nDhvjLH7a2CgvkZ2uds1eXJejgzUxCzjPjQ+cWaeLpIsnq
-         Mcj7EmhMLO+XqN23MFH4u00XE7QaNPHKYXDMsviB2HyRE+F+Y1bS/HtPxq+5T/IRDqQb
-         YdWeCN7RDHc1L9S3GPZFjRp9XAME5k8Yg1ln6OYlOCDwpzdXt4VJybay0vMPpzNdj1tf
-         7o+2cW4aCsFdZ4Q45JJutup6aG6O6cmfNfhgr5Ndpl9dv/Y5do2ZbNhss1/o5hDyWhRT
-         2irw==
-X-Forwarded-Encrypted: i=1; AKwUvBzvbWuvdZ8p4sllVUEZeGtLpr4Zxg1zrIp/n2QckMhXSDvUm5SkdzM7HDWSGBXTLfmdSJTIOKJXf8suCA==@lists.linux.dev
-X-Gm-Message-State: AFq9FYIH8YWkbfogQAqPf60LPl1y1Ehb1Wrvu0RKaa/eY5uGaytCNgA6
-	ICGPgBM94xx+iY8lVnuUx9mEVAt45VHVRnkn8gqieoinFe3Igk+abfP9
-X-Gm-Gg: AYBFou1fTX/au5DdWzd+32U+BX6vR4/oz0QY7JKxpDQ4fLwRaVsdyileG9n6QiWtQXT
-	PAXiZn7jVEDQORa050r64TFswGsn8mrBxSUV/s0eymlsQmkaky0TTyyMqaI4ORYi0jUciQWoSPd
-	isCbmuIizvBcJhRxNLvGhu4r79wD/a+zK2UaUS3uh81X6rYIXPiC9LogSSOPqMEQ+H4e5rE7l7J
-	5DjGjJaSnrTJzEo4ZXKkZez0U815JrUDy1qjEzJwlkKAf4+wd9bRxfrTHKOFYPjA4UKxPyMxKzu
-	E/V/pbfgEuZaeHnu2xKVvCu2HADhuvUXa01ShhWyNl7ByhSXbc+e+2xlkLhyHQOQqrNltL3Xp16
-	jps5+KoIoSDhThy1zi4hecJNsiGfgSQkYvbKZs6kcLvGU2eMdfqDmsonYVfdkkxMnB2GpdULlCn
-	OyPNTzv5r71GCyzITCfY7ZhXD5iOsfVEa94HU6W8cZSQMBkeCdAKKXG7R8Pj5cqxNLfb0oa+KHE
-	2/HPkuaPF2SHRJ2j3I78jk43uz77kg=
-X-Received: by 2002:a05:693c:884f:b0:359:9e84:dc99 with SMTP id 5a478bee46e88-367474becaemr467629eec.0.1792531443223;
-        Tue, 20 Oct 2026 14:24:03 -0700 (PDT)
-Received: from localhost.localdomain ([139.167.143.182])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-36741e71eaesm2003444eec.26.2026.10.20.14.23.58
-        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Tue, 20 Oct 2026 14:24:02 -0700 (PDT)
-From: Eklavya Singh <eklavyasingh2106@gmail.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Heming Zhao <heming.zhao@suse.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	Deepanshu Kartikey <kartikey406@gmail.com>,
-	Cen Zhang <zzzccc427@gmail.com>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	syzbot+5d4e96acd0febccb5e87@syzkaller.appspotmail.com,
-	stable@vger.kernel.org
-Subject: [PATCH v3] ocfs2/heartbeat: serialize concurrent writes to a region's dev attribute
-Date: Wed, 21 Oct 2026 02:53:39 +0530
-Message-ID: <20261020212339.46591-1-eklavyasingh2106@gmail.com>
-X-Mailer: git-send-email 2.52.0
-In-Reply-To: <20261019072936.2279-1-eklavyasingh2106@gmail.com>
-References: <20261019072936.2279-1-eklavyasingh2106@gmail.com>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=wTJYdyrb
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1792580163; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=1awJR/cIwunF3OYLn6iH249UFQKC6nkambq2EgaI6ro=;
+	b=wTJYdyrbKZItmkDakTkijPvVTsBvzwcLWxLd+HMcS3IBSaslGs/8ODsaJ9N/BfgcIdOpB7XJIh3QViZ5F7wUTu6MXmIniUoKkp1SX5mxCEDpWa8bmXbqZXE2jdmJOKjV3C4jjsHrK3wWoVnXwg9SzZKjweIK0B/DmxbY/PSeizg=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XDG8Q0F_1792580162;
+Received: from 30.221.149.139(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDG8Q0F_1792580162 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Wed, 21 Oct 2026 18:56:02 +0800
+Message-ID: <1baa76fc-4fc8-4943-816c-cc04e4dfec21@linux.alibaba.com>
+Date: Wed, 21 Oct 2026 18:56:01 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -104,194 +53,170 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2: drain quorum work before removing the cluster
+To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0064-v5-e3870bf6571b80b07b52@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0064-v5-e3870bf6571b80b07b52@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-o2hb_region_dev_store() checks reg->hr_bdev_file to see if the region
-is already started, but nothing stops two writers from doing that at
-the same time. configfs only serializes writes through the same open
-file, so two processes that each open the dev attribute can both get
-past the check:
 
-  A: hr_bdev_file is NULL, opens file A, sets hr_bdev_file = A
-  B: hr_bdev_file is NULL, opens file B, sets hr_bdev_file = B
-  A: start fails, fput(hr_bdev_file) drops B, sets it to NULL
-  B: start fails, fput(NULL)
 
-Both calls also use the same hr_slots, hr_slot_data and hr_tmp_block,
-so the error paths can free the slot data twice.
+On 10/20/26 11:45 AM, Cen Zhang wrote:
+> The configured cluster must remain available until an in-flight quorum
+> decision has finished using its fencing method. o2quo_make_decision()
+> drops qs_lock before calling o2quo_fence_self(), which marks heartbeat
+> regions for unclean stop and then reads
+> o2nm_single_cluster->cl_fence_method. Cluster removal clears the
+> singleton without waiting for this independent system-workqueue item.
+> 
+> When a failed-quorum decision overlaps removal of the heartbeat regions,
+> nodes and cluster through configfs, the worker can be preempted after
+> marking the regions and resume after the singleton has been cleared:
+> 
+>   Quorum worker                     Configfs removal
+>   select fence; drop qs_lock
+>   o2hb_stop_all_regions()
+>                                     remove regions; join heartbeat threads
+>                                     remove nodes; stop o2net
+>                                     clear singleton; release cluster
+>   read cl_fence_method
+> 
+> The resumed read dereferences NULL instead of applying the configured
+> fencing method. The heartbeat thread's dependency protects the local
+> node only until the thread exits, and draining o2net does not wait for
+> qs_work.
+> 
+> Add o2quo_flush_work() to drain pending or running quorum decisions
+> before clearing the singleton in o2nm_cluster_group_drop_item(). By
+> this point the heartbeat regions and nodes have been removed, so their
+> work publishers are stopped. The worker can finish while the cluster
+> and its configured fencing method remain available. It does not acquire
+> the configfs mutex held by the removal path.
+> 
+> Keep o2quo_exit() as the counterpart of o2quo_init() for module teardown
+> and initialization failure, and have it call the same drain helper.
+> Cluster removal uses only the explicitly named drain operation.
+> 
+> KASAN report as below:
+> 
+>     Oops: general protection fault, probably for non-canonical address 0xdffffc000000011b: 0000 [#1] SMP KASAN NOPTI
+>     KASAN: null-ptr-deref in range [0x00000000000008d8-0x00000000000008df]
+>     CPU: 0 UID: 0 PID: 72 Comm: kworker/0:2 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+>     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+>     Workqueue: events o2quo_make_decision
+>     RIP: 0010:o2quo_fence_self+0x65/0x200
+> 
+> Register dump omitted.
+> 
+>     Call Trace:
+>      <TASK>
+>      o2quo_make_decision+0x345/0x3a0
+>      ? __pfx_o2quo_make_decision+0x10/0x10
+>      ? process_one_work+0x834/0x1b40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? lock_release+0xc8/0x290
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      process_one_work+0x9a8/0x1b40
+>      ? __pfx_process_one_work+0x10/0x10
+>      ? lock_acquire+0x190/0x300
+>      ? lock_is_held_type+0x8f/0x100
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      worker_thread+0x65c/0xe40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __kthread_parkme+0x177/0x220
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_worker_thread+0x10/0x10
+>      kthread+0x351/0x460
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_kthread+0x10/0x10
+>      ret_from_fork+0x659/0x940
+>      ? __pfx_ret_from_fork+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __switch_to+0x74f/0xf70
+>      ? __pfx_kthread+0x10/0x10
+>      ret_from_fork_asm+0x1a/0x30
+>      </TASK>
+>     Modules linked in:
+>     ---[ end trace 0000000000000000 ]---
+> 
+> Fixes: f6656d26d17b ("ocfs2/cluster: Make fence method configurable - v2")
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 
-syzbot hit the fput(NULL) with an unbound loop device, where every
-start fails with -EIO. With four threads doing the same thing on a
-KASAN kernel I get both crashes within a second:
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-  BUG: KASAN: double-free in o2hb_unmap_slot_data+0x14d/0x2f0
-  BUG: kernel NULL pointer dereference, address: 0000000000000158
-
-Add a mutex to the region and hold it in dev_store(), in the
-block_bytes, start_block and blocks stores, and in dev_show(), since
-they all look at hr_bdev_file. dev_store() cleans up with goto, so it
-takes the mutex in a small wrapper rather than with guard(). The mutex
-is dropped while dev_store() waits for the heartbeat to become steady,
-which takes seconds, so a read of dev doesn't stall behind a start.
-hr_bdev_file is already set at that point, so other writers still get
--EINVAL, and the cleanup after the wait retakes the mutex.
-
-With the patch the same test ran for 10 minutes with lockdep on and
-nothing was reported. So did a second one, with a working loop device,
-that interrupts starts during the wait while other threads read and
-write the attributes.
-
-Fixes: a7f6a5fb4bde ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-Reported-by: syzbot+5d4e96acd0febccb5e87@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=5d4e96acd0febccb5e87
-Cc: stable@vger.kernel.org
-Signed-off-by: Eklavya Singh <eklavyasingh2106@gmail.com>
----
-Changes in v3:
-- rebase onto linux-next
-- drop hr_dev_mutex while waiting for the heartbeat to become steady,
-  so a read of dev that races a start no longer blocks (Joseph)
-- name the four attributes in the hr_dev_mutex comment and assert the
-  mutex is held in __o2hb_region_dev_store() (Joseph)
-
-Changes in v2:
-- take the mutex in a wrapper around dev_store() instead of with
-  guard(), since dev_store() uses goto for its cleanup
-
-Deepanshu Kartikey [1] and Cen Zhang [2] have posted patches for the
-same race, and they conflict with this one. This version also takes
-the mutex in dev_show(), which otherwise can read hr_bdev_file while a
-failed start is dropping it.
-
-[1] https://lore.kernel.org/all/20261020085100.8819-1-kartikey406@gmail.com/
-[2] https://lore.kernel.org/all/pm-ocfs2-objects-candidate-0077-v7-34980443ec254b2a1ffc@gmail.com/
-
-v2: https://lore.kernel.org/all/20261019072936.2279-1-eklavyasingh2106@gmail.com/
-v1: https://lore.kernel.org/all/20261018163121.128911-1-eklavyasingh2106@gmail.com/
-
- fs/ocfs2/cluster/heartbeat.c | 40 ++++++++++++++++++++++++++++++------
- 1 file changed, 34 insertions(+), 6 deletions(-)
-
-diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
-index b45adc3..7a18e71 100644
---- a/fs/ocfs2/cluster/heartbeat.c
-+++ b/fs/ocfs2/cluster/heartbeat.c
-@@ -269,6 +269,8 @@ struct o2hb_region {
- 	struct list_head	hr_handler_list;
- 	/* Serializes timeout arming against failed-start and teardown. */
- 	struct mutex		hr_arming_mutex;
-+	/* Serializes the dev, block_bytes, start_block and blocks attributes. */
-+	struct mutex		hr_dev_mutex;
- 	bool			hr_stopping;
- 
- 	/* last hb status, 0 for success, other value for error. */
-@@ -1681,6 +1683,7 @@ static ssize_t o2hb_region_block_bytes_store(struct config_item *item,
- 	unsigned long block_bytes;
- 	unsigned int block_bits;
- 
-+	guard(mutex)(&reg->hr_dev_mutex);
- 	if (reg->hr_bdev_file)
- 		return -EINVAL;
- 
-@@ -1710,6 +1713,7 @@ static ssize_t o2hb_region_start_block_store(struct config_item *item,
- 	char *p = (char *)page;
- 	ssize_t ret;
- 
-+	guard(mutex)(&reg->hr_dev_mutex);
- 	if (reg->hr_bdev_file)
- 		return -EINVAL;
- 
-@@ -1736,6 +1740,7 @@ static ssize_t o2hb_region_blocks_store(struct config_item *item,
- 	char *p = (char *)page;
- 	int ret;
- 
-+	guard(mutex)(&reg->hr_dev_mutex);
- 	if (reg->hr_bdev_file)
- 		return -EINVAL;
- 
-@@ -1753,10 +1758,12 @@ static ssize_t o2hb_region_blocks_store(struct config_item *item,
- 
- static ssize_t o2hb_region_dev_show(struct config_item *item, char *page)
- {
-+	struct o2hb_region *reg = to_o2hb_region(item);
- 	unsigned int ret = 0;
- 
--	if (to_o2hb_region(item)->hr_bdev_file)
--		ret = sprintf(page, "%pg\n", reg_bdev(to_o2hb_region(item)));
-+	guard(mutex)(&reg->hr_dev_mutex);
-+	if (reg->hr_bdev_file)
-+		ret = sprintf(page, "%pg\n", reg_bdev(reg));
- 
- 	return ret;
- }
-@@ -1872,11 +1879,9 @@ out:
-  * this is acting as commit; we set up all of hr_bdev_file and hr_task or
-  * nothing
-  */
--static ssize_t o2hb_region_dev_store(struct config_item *item,
--				     const char *page,
--				     size_t count)
-+static ssize_t __o2hb_region_dev_store(struct o2hb_region *reg,
-+				       const char *page, size_t count)
- {
--	struct o2hb_region *reg = to_o2hb_region(item);
- 	struct task_struct *hb_task;
- 	long fd;
- 	int sectsize;
-@@ -1884,6 +1889,8 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
- 	ssize_t ret = -EINVAL;
- 	int live_threshold;
- 
-+	lockdep_assert_held(&reg->hr_dev_mutex);
-+
- 	if (reg->hr_bdev_file)
- 		return -EINVAL;
- 
-@@ -1987,9 +1994,15 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
- 
- 	wake_up_process(hb_task);
- 
-+	/*
-+	 * Don't hold hr_dev_mutex across the wait, which can take seconds.
-+	 * hr_bdev_file is already set, so other writers still get -EINVAL.
-+	 */
-+	mutex_unlock(&reg->hr_dev_mutex);
- 	ret = wait_event_interruptible(o2hb_steady_queue,
- 				atomic_read(&reg->hr_steady_iterations) == 0 ||
- 				reg->hr_node_deleted);
-+	mutex_lock(&reg->hr_dev_mutex);
- 	if (ret) {
- 		atomic_set(&reg->hr_steady_iterations, 0);
- 		reg->hr_aborted_start = 1;
-@@ -2041,6 +2054,20 @@ out:
- 	return ret;
- }
- 
-+static ssize_t o2hb_region_dev_store(struct config_item *item,
-+				     const char *page,
-+				     size_t count)
-+{
-+	struct o2hb_region *reg = to_o2hb_region(item);
-+	ssize_t ret;
-+
-+	mutex_lock(&reg->hr_dev_mutex);
-+	ret = __o2hb_region_dev_store(reg, page, count);
-+	mutex_unlock(&reg->hr_dev_mutex);
-+
-+	return ret;
-+}
-+
- static ssize_t o2hb_region_pid_show(struct config_item *item, char *page)
- {
- 	struct o2hb_region *reg = to_o2hb_region(item);
-@@ -2143,6 +2170,7 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
- 
- 	INIT_LIST_HEAD(&reg->hr_all_item);
- 	mutex_init(&reg->hr_arming_mutex);
-+	mutex_init(&reg->hr_dev_mutex);
- 	reg->hr_stopping = true;
- 	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
- 	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
--- 
-2.52.0
+> Assisted-by: LLM
+> ---
+> Changes in v2:
+> - Add a dedicated o2quo_flush_work() helper and use it before clearing the
+>   cluster singleton, as requested by Joseph Qi.
+> - Preserve o2quo_exit() as the counterpart of o2quo_init() and make it call
+>   the shared drain helper.
+> 
+> Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0064-v4-51daf51db746eedf7533@gmail.com
+> 
+>  fs/ocfs2/cluster/nodemanager.c | 3 +++
+>  fs/ocfs2/cluster/quorum.c      | 7 ++++++-
+>  fs/ocfs2/cluster/quorum.h      | 1 +
+>  3 files changed, 10 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index e08850a5d736..ced4fe6d3b59 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -12,6 +12,7 @@
+>  #include "tcp.h"
+>  #include "nodemanager.h"
+>  #include "heartbeat.h"
+> +#include "quorum.h"
+>  #include "masklog.h"
+>  #include "sys.h"
+>  
+> @@ -740,6 +741,8 @@ static void o2nm_cluster_group_drop_item(struct config_group *group, struct conf
+>  	struct o2nm_cluster *cluster = to_o2nm_cluster(item);
+>  
+>  	BUG_ON(o2nm_single_cluster != cluster);
+> +	/* Drain quorum work before it loses access to the cluster. */
+> +	o2quo_flush_work();
+>  	o2nm_single_cluster = NULL;
+>  
+>  	configfs_remove_default_groups(&cluster->cl_group);
+> diff --git a/fs/ocfs2/cluster/quorum.c b/fs/ocfs2/cluster/quorum.c
+> index bfb8b456876c..ab5b3d4fd0e8 100644
+> --- a/fs/ocfs2/cluster/quorum.c
+> +++ b/fs/ocfs2/cluster/quorum.c
+> @@ -318,9 +318,14 @@ void o2quo_init(void)
+>  	INIT_WORK(&qs->qs_work, o2quo_make_decision);
+>  }
+>  
+> -void o2quo_exit(void)
+> +void o2quo_flush_work(void)
+>  {
+>  	struct o2quo_state *qs = &o2quo_state;
+>  
+>  	flush_work(&qs->qs_work);
+>  }
+> +
+> +void o2quo_exit(void)
+> +{
+> +	o2quo_flush_work();
+> +}
+> diff --git a/fs/ocfs2/cluster/quorum.h b/fs/ocfs2/cluster/quorum.h
+> index d64bf4482a4a..1ce5fc2a8ca9 100644
+> --- a/fs/ocfs2/cluster/quorum.h
+> +++ b/fs/ocfs2/cluster/quorum.h
+> @@ -8,6 +8,7 @@
+>  
+>  void o2quo_init(void);
+>  void o2quo_exit(void);
+> +void o2quo_flush_work(void);
+>  
+>  void o2quo_hb_up(u8 node);
+>  void o2quo_hb_down(u8 node);
 
