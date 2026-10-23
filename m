@@ -1,49 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.98
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792727623;
-	b=FMuLbgbFfbQpVqmox7kTvaMz2UWrDiOPC1lr+7KkIHYSVdt64jrrFiCt+uXiuKApsvAX
-	 u8Fv1CUPUQ9OxjkwdRvPKV5HEQHcLE2IcMCMAi8JHUuKLdcGzAWHK+xbZdHZNqrx2wXzw
-	 0PGBXaI5jJ7kXoPswbGbA+YD+vPSOc5kYM+nZLBzZrkfDBxLLX0u1DyPlwlzrqbomTRzY
-	 0GofYH3pT/7nS4YHygPVTPyqvVX3p1dI15vaoUJDKx5hnfcp/CEcjDFbv7fWUH2F7FNas
-	 PoxyTK5pa5ThhERYAO/iOdzuZ2oCJhPGwYqPnZ0yHczOHYI2bmvX/rQcNSmWyoi9Nyg==
+	t=1792738962;
+	b=u0CcGxzzBCgxSQk12kz45Sc4J8PQOhY3bm4YO3/yeaILwL3X9xMVoIKC8ZxWhZ3LgPEn
+	 14JSvWVoGbl9X/JLCOsnFW4KypNq14a6tFwITO6/bwtgAJ5GdM4cm/qLjKVC6WwWUhN+b
+	 KRlRLJfgA6g2LCVmlWR81y/gfJBgvivSGqctfFfkVX+tiqOCu2fQ3N+BXMHfYzT2Aetta
+	 AAmmJFoZ8k/lkGHIoPFV+VoMs8VbO2h4dt8QGilQbpTxVfr4WvIJDe+ZMruedVk82NwiI
+	 2Z+hx3nBSLszrCPucrpj3aFpfLxpbynZLTMbu0gBTabCxeMiLQGsUfmY9xaaEyufY9w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792727623;
+	a=rsa-sha256; c=relaxed/relaxed; t=1792738962;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
 	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=00chgJ5vuSlYKjU0FZpFNh0WM82ZVpBLb1f1nlA8X3g=;
-	b=gNKCCUMXizQkJNeZ9aHCbJE5qw1PPj7F83CgwfJXOY3GalCdGqvEHtnmqoN90QGF3ZNR
-	 k0ky37djdvFb29YTkzcBOspd++1jT4yHoPPOIwGFYI0GXdcj5dQNRChzxdfnRAHTEo+BV
-	 uWJKMgH6r9xdPdg0gyCf+WhgCjNiDGqwSV0HvB5hSge7+RJkvxMhXi8eXFuAIJX2zIJ2U
-	 ZwcJR2HEQck5f10y0qk9slPflgRCCqATdQ7bcnF25GJPZX+d/UOwHSCp6cJkLsEBsfOj4
-	 XzupDAVcFr5sMdo08d0e7nlPnp5+nShgbL+huYAvqEsTh1PzeNdO61LnYqxXgVnyjoA==
+	bh=Kc3NtUK8eQip9/0mvl4xkoyZxqWwahrf29NWu5Kg0ZE=;
+	b=Clpr9bdKQkFXHzL7COlUHDLfT45N3tz9sX4Wm6hC0JJsb88Qi2RrnVi8Nujr5X4TCYV0
+	 /Qo6JjAOkpSlWiOrMDUD9/EeRTqiYtAVfC1nasa2kJwlmXT3LIWyr7NOw/SXYoNYS5bUV
+	 EytpawGbQBT/Tbq/7CqBBjemZZdGHBE0OPsWEiNDdke/2TodrhOoz1BLw8TwIOZ5G8inp
+	 iz0WazqrMjsYg3GTk3vJXH2NGOl+p9ShxZ+r7/4JHKY8DXyhewJD/4OG54ps4XiQjH9GD
+	 Qq5YpWqvoRFzK7FxMU1C81j8EvNdlAUvt6QiXy+UP7C0dKcehXpW/xbRqfeexTbSM7w==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=AHAonRpB;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=uCVJmzOu;
 	arc=none smtp.remote-ip=115.124.30.98
 Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0038F606A31A
-	for <ocfs2-devel@lists.linux.dev>; Fri, 23 Oct 2026 03:53:41 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0038F606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E8DE2606A336
+	for <ocfs2-devel@lists.linux.dev>; Fri, 23 Oct 2026 07:02:40 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E8DE2606A336
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=AHAonRpB
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=uCVJmzOu
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1792727613; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=00chgJ5vuSlYKjU0FZpFNh0WM82ZVpBLb1f1nlA8X3g=;
-	b=AHAonRpBk+785hakRAshlMEJkbWATgNaYiIIpS7X6eYgFtOSBzspYxEWagX8sw44H/imBbsUx8DpRAXoNfGaq1q5MTJA+81MiYftHiujC95O+P8LPwYy5P9o0lGsslKI2Iw7dsyaa6d9uEmyGBuqZ2hhqHTAULT60xQbv12O/JE=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XDKtBj7_1792727611;
-Received: from 30.221.129.69(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDKtBj7_1792727611 cluster:ay36)
+	t=1792738956; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=Kc3NtUK8eQip9/0mvl4xkoyZxqWwahrf29NWu5Kg0ZE=;
+	b=uCVJmzOu/LRk2ISKh3HlRz31rUgpWnEpOT9ljwkAYoROQdPQ8CaOZvBK4fiBeJRns92BQff5ShgH8UKTVSOSyhuuIsFRvxuTMZLCgQSgV6rhDPaMZFp7wA7hG8FpzzYZ801i4xvtKkc458SBB3lMQ4HXcLS4v/MSzCOFDl2a3aE=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XDLJ3Lw_1792738954;
+Received: from 30.221.129.69(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDLJ3Lw_1792738954 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 23 Oct 2026 11:53:32 +0800
-Message-ID: <8b746b1c-4647-4f88-acc7-6f91eedb2f2d@linux.alibaba.com>
-Date: Fri, 23 Oct 2026 11:53:31 +0800
+          Fri, 23 Oct 2026 15:02:35 +0800
+Message-ID: <cb8eef8c-40da-439c-9f62-0428a75bc977@linux.alibaba.com>
+Date: Fri, 23 Oct 2026 15:02:34 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,84 +54,65 @@ List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v4 2/2] ocfs2: snapshot the dentry name while tracing file
- release
+Subject: Re: [PATCH] ocfs2/cluster: remove zero-address nodes from IP tree on
+ teardown
 To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
 Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
  ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
  stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
-References: <pm-ocfs2-objects-candidate-0088-v7-6324344256f0c3b1c3d8-0@gmail.com>
- <pm-ocfs2-objects-candidate-0088-v7-6324344256f0c3b1c3d8-2@gmail.com>
+References: <pm-ocfs2-node-ip-rbtree-zero-address-uaf-v5-e7f64be16b7c3b0988d1@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <pm-ocfs2-objects-candidate-0088-v7-6324344256f0c3b1c3d8-2@gmail.com>
+In-Reply-To: <pm-ocfs2-node-ip-rbtree-zero-address-uaf-v5-e7f64be16b7c3b0988d1@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 10/22/26 5:08 PM, Cen Zhang wrote:
-> ocfs2_file_release() passes the live dentry name and length to a trace
-> event while holding oi->ip_lock. This lock protects the open count and
-> delays RCU reclamation of external names, but it does not serialize name
-> changes during rename. The dentry can switch between inline and external
-> names, and a separately loaded length can describe a different name.
+On 10/20/26 9:12 PM, Cen Zhang wrote:
+> o2nm_node_ipv4_address_store() accepts 0.0.0.0. It sets
+> O2NM_NODE_ATTR_ADDRESS and links nd_ip_node into cl_node_ip_tree under
+> cl_nodes_lock, but o2nm_node_group_drop_item() uses nd_ipv4_address as a
+> membership test. A zero address therefore leaves the rbtree node linked
+> when config_item_put() releases and frees struct o2nm_node. A later
+> address store or IP lookup can then walk the stale node and dereference
+> freed memory.
 > 
-> The ocfs2__file_ops event sizes and copies its __string separately.
-> A concurrently rewritten inline name need not remain consistent between
-> those operations. External names can also be selected at this call site;
-> the existing spinlock critical section protects their allocation lifetime,
-> while a snapshot additionally pairs a stable name with its length.
+> During teardown, drop_item takes cl_nodes_lock, skips rb_erase()
+> for the zero key, and then calls config_item_put(). A later
+> o2nm_node_ipv4_address_store() duplicate check or o2nm_get_node_by_ip()
+> lookup takes the same lock and walks the stale cl_node_ip_tree entry. Use
+> O2NM_NODE_ATTR_ADDRESS for teardown so every published nd_ip_node is
+> erased before configfs can release the node, without rejecting 0.0.0.0
+> or changing lookup semantics.
 > 
-> Take a name snapshot before acquiring oi->ip_lock and release it after
-> dropping the lock. Keep the trace call and open-count argument inside
-> the original critical section. Cache the event-enabled check so the
-> snapshot stays paired even if tracing is toggled meanwhile.
-> 
-> Fixes: 468eedde23d6 ("ocfs2: Remove mlog(0) from fs/ocfs2/file.c")
+> Fixes: 0c83ed8eeb28 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
 > Cc: stable@vger.kernel.org
 > Assisted-by: LLM
 > Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 
+Looks fine.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
 > ---
->  fs/ocfs2/file.c | 18 +++++++++++++-----
->  1 file changed, 13 insertions(+), 5 deletions(-)
+>  fs/ocfs2/cluster/nodemanager.c | 7 +++++--
+>  1 file changed, 5 insertions(+), 2 deletions(-)
 > 
-> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
-> index c6e7606ff9e1..b3a37b9d259a 100644
-> --- a/fs/ocfs2/file.c
-> +++ b/fs/ocfs2/file.c
-> @@ -141,18 +141,26 @@ leave:
->  static int ocfs2_file_release(struct inode *inode, struct file *file)
->  {
->  	struct ocfs2_inode_info *oi = OCFS2_I(inode);
-> +	struct dentry *dentry = file->f_path.dentry;
-> +	struct name_snapshot name;
-> +	bool trace_enabled = trace_ocfs2_file_release_enabled();
-> +
-> +	if (trace_enabled)
-> +		take_dentry_name_snapshot(&name, dentry);
+> diff --git a/fs/ocfs2/cluster/nodemanager.c b/fs/ocfs2/cluster/nodemanager.c
+> index e08850a5d736..be184c5ad54d 100644
+> --- a/fs/ocfs2/cluster/nodemanager.c
+> +++ b/fs/ocfs2/cluster/nodemanager.c
+> @@ -626,8 +626,11 @@ static void o2nm_node_group_drop_item(struct config_group *group,
 >  
->  	spin_lock(&oi->ip_lock);
->  	if (!--oi->ip_open_count)
->  		oi->ip_flags &= ~OCFS2_INODE_OPEN_DIRECT;
+>  	write_lock(&cluster->cl_nodes_lock);
 >  
-> -	trace_ocfs2_file_release(inode, file, file->f_path.dentry,
-> -				 oi->ip_blkno,
-> -				 file->f_path.dentry->d_name.len,
-> -				 file->f_path.dentry->d_name.name,
-> -				 oi->ip_open_count);
-> +	if (trace_enabled)
-> +		trace_ocfs2_file_release(inode, file, dentry,
-> +					 oi->ip_blkno, name.name.len,
-> +					 name.name.name, oi->ip_open_count);
->  	spin_unlock(&oi->ip_lock);
+> -	/* XXX sloppy */
+> -	if (node->nd_ipv4_address)
+> +	/*
+> +	 * 0.0.0.0 is a valid configured address, so nd_ipv4_address does
+> +	 * not tell us whether nd_ip_node was published in the IP tree.
+> +	 */
+> +	if (test_bit(O2NM_NODE_ATTR_ADDRESS, &node->nd_set_attributes))
+>  		rb_erase(&node->nd_ip_node, &cluster->cl_node_ip_tree);
 >  
-> +	if (trace_enabled)
-> +		release_dentry_name_snapshot(&name);
-> +
->  	ocfs2_free_file_private(inode, file);
->  
->  	return 0;
+>  	/* nd_num might be 0 if the node number hasn't been set.. */
 
