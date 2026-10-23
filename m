@@ -1,77 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.131
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.97
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792674333;
-	b=XtIHp9cmY87jTwppsnhC5c7qt/z4jd3GnRZX73QVEIFMyzWSQop94Sx/NnAHwT8ZRlZi
-	 Ag1bAKLNPO62O0OxEYF82sD9SSJmMjQ5UhfxNid2bC05925msmC1brfH7qLO+RpR54bvj
-	 Z1MTtWE2mL8AB/TB7srKt29bNx/uVSpRQDBn4ZAQHFJ9xZaSIAw69Myk/QdimaMH6VgLn
-	 ZS1r0k+rwD+6rLh0Q4cTEEUVZrXNZEY7IwYbxRnU/Bc/RwnyzzN9k7kRWzIo3QMsDSs75
-	 3h4Zr+XEh5twnC415lPSDtDmbTLefJa4sl/h79K3g/Z5FtYWjBzcVAhUUn+NKhxa8iQ==
+	t=1792724896;
+	b=eHYjYeTeejDZYuiUciqntaXJohJa0Rr4ulmBjjyPoWWrz4ans0d5cxiQOYh2pQIaOZO6
+	 Awe3wHY4sJrV65KGq/0RWJ38HstCi6sFyQb+5MNW63OiUJksrSIeaqYTBIDMVLnNAecl7
+	 gBAkEIEt54nvoBNDzp8sS1MoM6Gl8VsrC9ZjVUHM4dQQKV3CxU2uXEAMNbpKP9Tg6/Y+o
+	 8ka8vC0WkuS6su1vnnB9BbdQ/5k8sS7CNgBp4iRsXzjPtCxZuv7EzMYi35jD11AdysLnI
+	 KWaJsGZ4WF52wTDNT9SYdNL/eIhZ4iRm2wvoJYudNc7M1E+GaQkx7aDxjZlMVlAUm+Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792674333;
-	h=DMARC-Filter:Received:DKIM-Signature:DKIM-Signature:From:To:Cc:
-	 Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding:X-Rspamd-Queue-Id:X-Spam-Level:
-	 X-Rspamd-Server:X-Rspamd-Action:X-Spam-Flag:X-Spamd-Result:
-	 X-Spam-Score;
-	bh=8im1UzNMkFwAjrjrRVbJ8a8P3900EWF9/5lDbm3fB04=;
-	b=RXhjcwWgsAE37fm0bdXucRvH1/ZSGlzw/7GpaKAiDD3CmQP+6WVfsAQtXxNCJlk8nNev
-	 8z87KOaotfL48DgMdIMAUz35QquIO/h4vfrIBJHGKBj17ax1A6sxlfWuqBsSkJiW9RpZo
-	 U3YlbcF1e+eroRBxrP+Sok/uLstI+kOm3RLvwJ01zKAz6Wwe+vpUPmIDAy4ECnuC96pBQ
-	 oFhQPPinNdUUJn7AxPwZqUTQPeUKgoWSMdWGWt7bZl70CdEndydxV9lcSm99CurfRqJe8
-	 6/TyOAeuXg+r76vRulJnmDVrgGxbk1JIT63UZxmnKljq+O5sgR3Ugbn5OMzR7MzsVrA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792724896;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=k5/3ir0P1aWVS/9JkvUlKwKFLtVvmSX8TXwpmoFMN7Y=;
+	b=yKJdlx6Z9eXr0bwXndG13l9Z1RRULkQjHj1aka2ln2wEJwn/0L7r7PffRJM4VIIsh0ii
+	 jMBp15oM7NLMwOVsszPlH8Q4DzDZhMc/KHcdhmm6jGOHbRmtNdMJnN5ZcI2x1qdYYrKa3
+	 AwGZ3rDhGD4N7yPzWNzMKOGrKErhJ55OsdMajOV1Xmji7zlA5iRUMxBbGsrVNet34SpRk
+	 pkC8GWN08U3ox11gjsFfymD1YLS0GXUmY78hHvJuKGqV5XOx0Lchc+jiJ5eqkGFlwTxUS
+	 nV9CxHtRtvdyM89dGSSWl/SIBuYeg6QZXW9yt6srVU5F7hfjob5PpAOsJHuFVmz9elQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=suse.com;
-	spf=pass smtp.mailfrom=suse.com;
-	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=susede1 header.b=eDyXJGTR;
-	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=susede1 header.b="c/OahpSx";
-	arc=none smtp.remote-ip=195.135.223.131
-Received: from smtp-out2.suse.de (smtp-out2.suse.de [195.135.223.131])
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=qqlxZb+x;
+	arc=none smtp.remote-ip=115.124.30.97
+Received: from out30-97.freemail.mail.aliyun.com (out30-97.freemail.mail.aliyun.com [115.124.30.97])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id DCFD3606A322
-	for <ocfs2-devel@lists.linux.dev>; Thu, 22 Oct 2026 13:05:31 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org DCFD3606A322
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 964A2606A31E
+	for <ocfs2-devel@lists.linux.dev>; Fri, 23 Oct 2026 03:08:13 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 964A2606A31E
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=susede1 header.b=eDyXJGTR;
-	dkim=pass (1024-bit key) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=susede1 header.b=c/OahpSx
-Received: from kunlun.suse.cz (unknown [IPv6:2a07:de40:b306:2000::2])
-	by smtp-out2.suse.de (Postfix) with ESMTP id 0C1091F7C4;
-	Thu, 22 Oct 2026 13:05:29 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-	t=1792674330; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8im1UzNMkFwAjrjrRVbJ8a8P3900EWF9/5lDbm3fB04=;
-	b=eDyXJGTRvOtgZWqm/ObsnKIcYp/L+m0pmOrwVSqd2VVQZLQM7OzJ3kvA2hXH/a9iUndZQ7
-	coPt56yLZRgp86t5sDXKQHN+NO+Mzu955geSx3xvCwGX0eC10ySW7T1W7ORDlROl84KHrE
-	Id46NkflLM3DmV3eFwsqlRZJDQllJ7E=
-Authentication-Results: smtp-out2.suse.de;
-	dkim=pass header.d=suse.com header.s=susede1 header.b="c/OahpSx"
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.com; s=susede1;
-	t=1792674329; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:
-	 content-transfer-encoding:content-transfer-encoding:
-	 in-reply-to:in-reply-to:references:references;
-	bh=8im1UzNMkFwAjrjrRVbJ8a8P3900EWF9/5lDbm3fB04=;
-	b=c/OahpSxvk3uFr63kd7tvQjVPBHv8HjfErF4JBM9HCrqIMl6dFYXjup1pRj2FW7mgoYJro
-	80p3SYbDmKJQj36Mun5lNpWqYGzF4t2Yp95pm5oXMJGWlpCGWVQNBmg/jb1uoKtcEoT3FS
-	8OwPyJxUXAg7j+ZpRjedRrBiDIcZMOs=
-From: Anthony Iliopoulos <ailiop@suse.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH v2 2/2] ocfs2: replace ocfs2-specific inode flags with generic ones
-Date: Thu, 22 Oct 2026 15:04:57 +0200
-Message-ID: <20261022130457.69343-3-ailiop@suse.com>
-X-Mailer: git-send-email 2.56.0
-In-Reply-To: <20261022130457.69343-1-ailiop@suse.com>
-References: <20261022130457.69343-1-ailiop@suse.com>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=qqlxZb+x
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1792724890; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=k5/3ir0P1aWVS/9JkvUlKwKFLtVvmSX8TXwpmoFMN7Y=;
+	b=qqlxZb+xPsJKJw9MxHpyF4I4ScsGoq4lz8wm6VDhNff98bxpSwME8tnxfFtm3Fzqjk4D3EMzNzRVqJgLalByCpWP2JZwrlp7ES3gO2X/1J9guO31w9luIXqY5Gbi/Si38RZcbs0u8fkIjLnKAmultGGsYQ616cnrzXaWo3JyFuo=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R911e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XDKnkiC_1792724888;
+Received: from 30.221.129.69(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDKnkiC_1792724888 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 23 Oct 2026 11:08:09 +0800
+Message-ID: <16c6e640-d99f-4f10-9f16-f016d30023cb@linux.alibaba.com>
+Date: Fri, 23 Oct 2026 11:08:08 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -81,172 +53,140 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-Rspamd-Queue-Id: 0C1091F7C4
-X-Spam-Level: 
-X-Rspamd-Server: rspamd2.dmz-prg2.suse.org
-X-Rspamd-Action: no action
-X-Spam-Flag: NO
-X-Spamd-Result: default: False [-2.87 / 50.00];
-	SUSE_INTERNAL_BYPASS(-9.00)[];
-	BAYES_HAM(-3.00)[100.00%];
-	NEURAL_SPAM_SHORT(2.94)[0.979];
-	HFILTER_HOSTNAME_UNKNOWN(2.50)[];
-	ONCE_RECEIVED(1.20)[];
-	RDNS_NONE(1.00)[];
-	HFILTER_HELO_IP_A(1.00)[kunlun.suse.cz];
-	MID_CONTAINS_FROM(1.00)[];
-	NEURAL_HAM_LONG(-1.00)[-0.999];
-	R_MISSING_CHARSET(0.50)[];
-	HFILTER_HELO_NORES_A_OR_MX(0.30)[kunlun.suse.cz];
-	R_DKIM_ALLOW(-0.20)[suse.com:s=susede1];
-	MIME_GOOD(-0.10)[text/plain];
-	MX_GOOD(-0.01)[];
-	DIRECT_TO_MX(0.00)[git-send-email 2.56.0];
-	RBL_SPAMHAUS_BLOCKED_OPENRESOLVER(0.00)[2a07:de40:b306:2000::2:from];
-	MIME_TRACE(0.00)[0:+];
-	ARC_NA(0.00)[];
-	TO_DN_SOME(0.00)[];
-	DKIM_SIGNED(0.00)[suse.com:s=susede1];
-	FROM_HAS_DN(0.00)[];
-	RCPT_COUNT_FIVE(0.00)[5];
-	DNSWL_BLOCKED(0.00)[2a07:de40:b306:2000::2:from];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	RCVD_COUNT_ZERO(0.00)[0];
-	DKIM_TRACE(0.00)[suse.com:+];
-	FROM_EQ_ENVFROM(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[kunlun.suse.cz:helo,suse.com:dkim,suse.com:email]
-X-Spam-Score: -2.87
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2] ocfs2/dlm: drain join handlers before releasing module
+ text
+To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0076-v6-12de5f4628f57fba3be3@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <pm-ocfs2-objects-candidate-0076-v6-12de5f4628f57fba3be3@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-The ocfs2 inode flag macros are alias definitions for the generic fs
-flags. Remove these redundant macros, most of which are anyway unused,
-and use the generic flags directly.
 
-Signed-off-by: Anthony Iliopoulos <ailiop@suse.com>
----
- fs/ocfs2/inode.c    | 24 ++++++++++++------------
- fs/ocfs2/ioctl.c    |  8 ++++----
- fs/ocfs2/ocfs2_fs.h | 27 ---------------------------
- 3 files changed, 16 insertions(+), 43 deletions(-)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 180107a11046..64d92d30aa31 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -107,16 +107,16 @@ void ocfs2_set_inode_flags(struct inode *inode)
- 	inode->i_flags &= ~(S_IMMUTABLE |
- 		S_SYNC | S_APPEND | S_NOATIME | S_DIRSYNC);
- 
--	if (flags & OCFS2_IMMUTABLE_FL)
-+	if (flags & FS_IMMUTABLE_FL)
- 		inode->i_flags |= S_IMMUTABLE;
- 
--	if (flags & OCFS2_SYNC_FL)
-+	if (flags & FS_SYNC_FL)
- 		inode->i_flags |= S_SYNC;
--	if (flags & OCFS2_APPEND_FL)
-+	if (flags & FS_APPEND_FL)
- 		inode->i_flags |= S_APPEND;
--	if (flags & OCFS2_NOATIME_FL)
-+	if (flags & FS_NOATIME_FL)
- 		inode->i_flags |= S_NOATIME;
--	if (flags & OCFS2_DIRSYNC_FL)
-+	if (flags & FS_DIRSYNC_FL)
- 		inode->i_flags |= S_DIRSYNC;
- }
- 
-@@ -125,18 +125,18 @@ void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi)
- {
- 	unsigned int flags = oi->vfs_inode.i_flags;
- 
--	oi->ip_attr &= ~(OCFS2_SYNC_FL|OCFS2_APPEND_FL|
--			OCFS2_IMMUTABLE_FL|OCFS2_NOATIME_FL|OCFS2_DIRSYNC_FL);
-+	oi->ip_attr &= ~(FS_SYNC_FL | FS_APPEND_FL | FS_IMMUTABLE_FL |
-+			FS_NOATIME_FL | FS_DIRSYNC_FL);
- 	if (flags & S_SYNC)
--		oi->ip_attr |= OCFS2_SYNC_FL;
-+		oi->ip_attr |= FS_SYNC_FL;
- 	if (flags & S_APPEND)
--		oi->ip_attr |= OCFS2_APPEND_FL;
-+		oi->ip_attr |= FS_APPEND_FL;
- 	if (flags & S_IMMUTABLE)
--		oi->ip_attr |= OCFS2_IMMUTABLE_FL;
-+		oi->ip_attr |= FS_IMMUTABLE_FL;
- 	if (flags & S_NOATIME)
--		oi->ip_attr |= OCFS2_NOATIME_FL;
-+		oi->ip_attr |= FS_NOATIME_FL;
- 	if (flags & S_DIRSYNC)
--		oi->ip_attr |= OCFS2_DIRSYNC_FL;
-+		oi->ip_attr |= FS_DIRSYNC_FL;
- }
- 
- struct inode *ocfs2_ilookup(struct super_block *sb, u64 blkno)
-diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-index 2d95c1e5ad8b..2d962da9ba5c 100644
---- a/fs/ocfs2/ioctl.c
-+++ b/fs/ocfs2/ioctl.c
-@@ -78,7 +78,7 @@ int ocfs2_fileattr_get(struct dentry *dentry, struct file_kattr *fa)
- 	flags = OCFS2_I(inode)->ip_attr;
- 	ocfs2_inode_unlock(inode, 0);
- 
--	fileattr_fill_flags(fa, flags & OCFS2_FL_VISIBLE);
-+	fileattr_fill_flags(fa, flags & FS_FL_USER_VISIBLE);
- 
- 	return status;
- }
-@@ -105,11 +105,11 @@ int ocfs2_fileattr_set(const struct mnt_idmap *idmap,
- 	}
- 
- 	if (!S_ISDIR(inode->i_mode))
--		flags &= ~OCFS2_DIRSYNC_FL;
-+		flags &= ~FS_DIRSYNC_FL;
- 
- 	oldflags = ocfs2_inode->ip_attr;
--	flags = flags & OCFS2_FL_MODIFIABLE;
--	flags |= oldflags & ~OCFS2_FL_MODIFIABLE;
-+	flags = flags & FS_FL_USER_MODIFIABLE;
-+	flags |= oldflags & ~FS_FL_USER_MODIFIABLE;
- 
- 	/* Check already done by VFS, but repeat with ocfs lock */
- 	status = -EPERM;
-diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-index c501eb3cdcda..53ddeb5e762f 100644
---- a/fs/ocfs2/ocfs2_fs.h
-+++ b/fs/ocfs2/ocfs2_fs.h
-@@ -235,33 +235,6 @@
- #define OCFS2_INDEXED_DIR_FL	(0x0008)
- #define OCFS2_HAS_REFCOUNT_FL   (0x0010)
- 
--/* Inode attributes, keep in sync with EXT2 */
--#define OCFS2_SECRM_FL			FS_SECRM_FL	/* Secure deletion */
--#define OCFS2_UNRM_FL			FS_UNRM_FL	/* Undelete */
--#define OCFS2_COMPR_FL			FS_COMPR_FL	/* Compress file */
--#define OCFS2_SYNC_FL			FS_SYNC_FL	/* Synchronous updates */
--#define OCFS2_IMMUTABLE_FL		FS_IMMUTABLE_FL	/* Immutable file */
--#define OCFS2_APPEND_FL			FS_APPEND_FL	/* writes to file may only append */
--#define OCFS2_NODUMP_FL			FS_NODUMP_FL	/* do not dump file */
--#define OCFS2_NOATIME_FL		FS_NOATIME_FL	/* do not update atime */
--/* Reserved for compression usage... */
--#define OCFS2_DIRTY_FL			FS_DIRTY_FL
--#define OCFS2_COMPRBLK_FL		FS_COMPRBLK_FL	/* One or more compressed clusters */
--#define OCFS2_NOCOMP_FL			FS_NOCOMP_FL	/* Don't compress */
--#define OCFS2_ECOMPR_FL			FS_ECOMPR_FL	/* Compression error */
--/* End compression flags --- maybe not all used */
--#define OCFS2_BTREE_FL			FS_BTREE_FL	/* btree format dir */
--#define OCFS2_INDEX_FL			FS_INDEX_FL	/* hash-indexed directory */
--#define OCFS2_IMAGIC_FL			FS_IMAGIC_FL	/* AFS directory */
--#define OCFS2_JOURNAL_DATA_FL		FS_JOURNAL_DATA_FL /* Reserved for ext3 */
--#define OCFS2_NOTAIL_FL			FS_NOTAIL_FL	/* file tail should not be merged */
--#define OCFS2_DIRSYNC_FL		FS_DIRSYNC_FL	/* dirsync behaviour (directories only) */
--#define OCFS2_TOPDIR_FL			FS_TOPDIR_FL	/* Top of directory hierarchies*/
--#define OCFS2_RESERVED_FL		FS_RESERVED_FL	/* reserved for ext2 lib */
--
--#define OCFS2_FL_VISIBLE		FS_FL_USER_VISIBLE	/* User visible flags */
--#define OCFS2_FL_MODIFIABLE		FS_FL_USER_MODIFIABLE	/* User modifiable flags */
--
- /*
-  * Extent record flags (e_node.leaf.flags)
-  */
--- 
-2.56.0
+On 10/22/26 5:09 PM, Cen Zhang wrote:
+> The code for a registered DLM handler must remain resident until its
+> last invocation finishes. dlm_unregister_net_handlers() only removes
+> dlm_join_handlers from the o2net registry. o2net_handler_get() takes a
+> kref on the wrapper, but that reference does not pin ocfs2_dlm text.
+> o2net_process_message() calls nh_func after dropping o2net_handler_lock.
+> 
+> With CONFIG_OCFS2_FS_O2CB=m, ocfs2_dlm can be loaded independently of
+> ocfs2_stack_o2cb while nodemanager continues handling messages from a
+> configured, heartbeating peer. If no dependent module or module reference
+> prevents normal unload, the following ordering is possible:
+> 
+>   Receive worker                       Module unload
+>   --------------                       -------------
+>   o2net_handler_get()
+>     take wrapper kref
+>     drop handler lock
+>   <preempted>
+>                                        dlm_exit()
+>                                          unregister handlers
+>                                        release DLM module text
+>   call saved nh_func
+>     in released module text
+> 
+> Use o2net_unregister_and_flush_handler_list() in the shared DLM
+> unregister helper. It first prevents new lookups, then waits for the
+> ordered o2net workqueue to drain, including a concurrent destruction of
+> that queue. The acquired invocation therefore finishes before dlm_exit()
+> returns and the loader releases the callback code. The same helper
+> covers partial registration and dlm_init() error unwind before module
+> memory is released.
+> 
+> Skip the drain when the private join-handler list is empty. Early
+> dlm_init() failures can reach this helper before any handler has been
+> published. Partial-registration failure also reaches it a second time
+> after the first call has already unregistered and drained the list.
+> Neither case needs to take o2net_wq_mutex or drain unrelated work.
+> The list is changed only by serialized module init/exit paths; a
+> nonempty list still uses the full unregister-and-flush helper.
+> 
+> Oops report as below:
+> 
+>     Oops: int3: 0000 [#1] SMP KASAN NOPTI
+>     CPU: 2 UID: 0 PID: 54 Comm: kworker/u16:3 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy)
+> 
+> Hardware identification omitted.
+> 
+>     Workqueue: o2net o2net_rx_until_empty [ocfs2_nodemanager]
+>     RIP: 0010:0xffffffffc0423871
+>     [Instruction byte dump omitted.]
+> 
+> Register dump omitted.
+> 
+>     Call Trace:
+>      <TASK>
+>      ? o2net_rx_until_empty+0x19b1/0x3300 [ocfs2_nodemanager]
+>      ? __pfx_o2net_rx_until_empty+0x10/0x10 [ocfs2_nodemanager]
+>      ? lock_acquire+0x190/0x300
+>      ? process_one_work+0x935/0x1b40
+>      ? process_one_work+0x834/0x1b40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? lock_release+0xc8/0x290
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? process_one_work+0x9a8/0x1b40
+>      ? __pfx_process_one_work+0x10/0x10
+>      ? lock_acquire+0x190/0x300
+>      ? lock_is_held_type+0x8f/0x100
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? worker_thread+0x65c/0xe40
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __kthread_parkme+0x177/0x220
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_worker_thread+0x10/0x10
+>      ? kthread+0x351/0x460
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __pfx_kthread+0x10/0x10
+>      ? ret_from_fork+0x659/0x940
+>      ? __pfx_ret_from_fork+0x10/0x10
+>      ? srso_alias_return_thunk+0x5/0xfbef5
+>      ? __switch_to+0x74f/0xf70
+>      ? __pfx_kthread+0x10/0x10
+>      ? ret_from_fork_asm+0x1a/0x30
+>      </TASK>
+>     Modules linked in: ocfs2_nodemanager [last unloaded: ocfs2_dlm]
+>     ---[ end trace 0000000000000000 ]---
+> 
+> Fixes: 6714d8e86bf4 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+> Cc: <stable@vger.kernel.org>
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
+> Assisted-by: LLM
+
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+
+> ---
+> Changes in v2:
+> - Skip unregister-and-flush when the private join-handler list is empty,
+>   covering early dlm_init failures and the second cleanup after
+>   partial-registration unwind.
+> - Retain the full unregister-and-flush helper for every nonempty list; do
+>   not change the generic o2net helper.
+> 
+> Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0076-v5-dd198d8a9358ad81f70e@gmail.com
+> 
+>  fs/ocfs2/dlm/dlmdomain.c | 3 ++-
+>  1 file changed, 2 insertions(+), 1 deletion(-)
+> 
+> diff --git a/fs/ocfs2/dlm/dlmdomain.c b/fs/ocfs2/dlm/dlmdomain.c
+> index 97bb9400e24b..a7dc3da6dfc7 100644
+> --- a/fs/ocfs2/dlm/dlmdomain.c
+> +++ b/fs/ocfs2/dlm/dlmdomain.c
+> @@ -2215,7 +2215,8 @@ static LIST_HEAD(dlm_join_handlers);
+>  
+>  static void dlm_unregister_net_handlers(void)
+>  {
+> -	o2net_unregister_handler_list(&dlm_join_handlers);
+> +	if (!list_empty(&dlm_join_handlers))
+> +		o2net_unregister_and_flush_handler_list(&dlm_join_handlers);
+>  }
+>  
+>  static int dlm_register_net_handlers(void)
 
