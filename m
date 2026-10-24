@@ -1,57 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.98
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.118
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792854632;
-	b=Tc8Nf6Kw0pfyhlnt3zHUfbph5c5rkoZdm834memjgQxE9BT/JkTt4Np7D/gTgPAws9Uu
-	 fx7ukphHDWMLQ0OifnedHqQm8jMvQIZ7FRZtJ3gGSdSiLXp0lsQS/nSEaF8AdtoITkVIe
-	 /9rzoU9xqlklEKlvt2Gyzcjr21tu8tJdlGeARuIi8qKi4u09w+jXpB8xGlX6sSMd8lT0s
-	 B9REbNbfDbQPJZ4jf4L/seDM/2V+pqgAAfeqjZ96g1TyWgx+9TyDonVRQDR9ElQCo4RAi
-	 z/l9pqjO0Iy9zIV7SmjyvR8LXGeIKOWa96H0yKudF2zZ2KXh8qnAmdA/Vyb9z9Ko3bA==
+	t=1792855681;
+	b=cuooPFUHjrxCtAmjKQLxqrJ4U9njOFthhzDZAlV6ZGtE5JtvX1ftSV6DX2w9CKrqMBjf
+	 nDhWOTF2nm3+VumLgIlLHL8cyqZedKtuYh5pW4Nc/9iPzKaYkMLmAXnw2I8GHoNlauOHc
+	 oGHRTL0m+/497RQTvTXqTaS4+olVINTgCgLy0Ix5/OauOnlhlGMdjxufWVtyPJcwxccHE
+	 MCmMyZZP5Nk6zf0bQLtcHuBHp6Hd0mvJJbkILwulsc/g2eVuSymA5nSGRVnEGFESKUOZ4
+	 e9eNF5/9EJU2r6Gl9iyl9qkRfYwioNypKsQPIIW2Dv7QmYGBe7IL8UUUWONV/SevKag==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792854632;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
-	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=ZDlcAeojPWg25zmpljtugJi6kVq+0n3tsOpMW2HWI1o=;
-	b=mVD39ngxA9Ctiuoj8crRR+0XY2X0UcnzBstqso47WP3m+dZc+nRTKW/xupkRZFmgAGVL
-	 TCnoLEvoDdc+HnjwSZxmzKksRxa+ow6N/jbwxKHxrev/5jfkkK41DOBYKFdAST3NXUp0r
-	 X5rSo+iK2te4z8XfkdJWVSxPDjMKCCLc1U6RjAhiQli6Exj6lzzw58ebmucipe6yExDzW
-	 CUlsf6/dvOj1BLUbY6QqyIdZR/RyqXuGr/R3kgP+KljW44K7Rs7DeUa4hiTNgJmT/iNqi
-	 eIycJPx3tA8uPC2yTJwh+BlaOCL1Nf5HKct2KP3TDCvaU8xS8APkgfgRy7ZUnmk7Mqg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792855681;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=uKJ4KOECymSbQFCzAxwhODQQk3xEPDqheddn974Jz9Y=;
+	b=Qh9oDVi19s+54G7nNxMgEg6zGXNPh43yvES+B9rTE+xVdVILG5cHBtmd54cyFFZEy6rv
+	 l4jnRtcCFR6jSw+8w4ZRaIW8CIUj4ZHr755xA3kzLfDy/wDIv3Dfp0s0P6I3WsSNBIsta
+	 jZqTy26HbuE61B5CSGwW3yJHGhu4F7blEfaRHfdBVdaDSE1iWnfiDlk1artMp/1LboUxK
+	 DD2gaSJp3povUFS3LfoAu+RmswEsL0DUZYXbQDCvP1uTnTK33/eT8zm/KNaCtnjMYOg/T
+	 B2L2bFJfviJ0ELNwL9M63fzp6azsCgDbuUyZx1LR5LXfj63Hog1hd/0+dAxMjx5XYtA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=qGBBI1+i;
-	arc=none smtp.remote-ip=115.124.30.98
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
-	by smtp.subspace.kernel.org (Postfix) with ESMTP id A61AC606A327
-	for <ocfs2-devel@lists.linux.dev>; Sat, 24 Oct 2026 15:10:30 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A61AC606A327
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=njDF0ZwQ;
+	arc=none smtp.remote-ip=115.124.30.118
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	(No client certificate requested)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 80B25606A324
+	for <ocfs2-devel@lists.linux.dev>; Sat, 24 Oct 2026 15:28:00 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 80B25606A324
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=qGBBI1+i
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=njDF0ZwQ
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1792854617; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=ZDlcAeojPWg25zmpljtugJi6kVq+0n3tsOpMW2HWI1o=;
-	b=qGBBI1+iZ9rJ7D0XeJmeyrbrs1jVTR1ZwYaBXMd8qk/F8LE30eCJD7IWpf/OlYo9q6P3xOu+15WxKawmuac/OreBGUGAkytr38p4q/9PQ05MApjg6NNbXMhEmwHsbIHg58yDeTKsWLN6v/T/zYtBPJ3Kbu3Eqm3P3ttWMiSipjA=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R671e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XDONeQd_1792854615;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDONeQd_1792854615 cluster:ay36)
+	t=1792855677; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=uKJ4KOECymSbQFCzAxwhODQQk3xEPDqheddn974Jz9Y=;
+	b=njDF0ZwQRYn6yhwb3q20cv3MT2bWDrg1DZQ4sCB7NCu+T/LyDUxXC9F75gHhzUYUmCW+ZhONCZUBWmQsO+Z+X9hWMN2YJJxaBbvF0i74mm3tkOf/suAEx36l2F0n8r2hAxYmNal7r3pTKtDACxam6pHnEn93APWf1M65h3+UmQI=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R371e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=11;SR=0;TI=SMTPD_---0XDOTpQI_1792855675;
+Received: from 30.251.227.55(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDOTpQI_1792855675 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Sat, 24 Oct 2026 23:10:16 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH 4/6] ocfs2: do not read the entry array of an empty xattr bucket
-Date: Sat, 24 Oct 2026 23:10:10 +0800
-Message-Id: <20261024151012.1059683-5-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
-In-Reply-To: <20261024151012.1059683-1-joseph.qi@linux.alibaba.com>
-References: <20261024151012.1059683-1-joseph.qi@linux.alibaba.com>
+          Sat, 24 Oct 2026 23:27:56 +0800
+Message-ID: <5b2e0676-da77-49b6-8015-8613d4fcd6cd@linux.alibaba.com>
+Date: Sat, 24 Oct 2026 23:27:54 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -61,76 +53,214 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v3] ocfs2/heartbeat: serialize concurrent writes to a
+ region's dev attribute
+To: Eklavya Singh <eklavyasingh2106@gmail.com>,
+ Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Heming Zhao <heming.zhao@suse.com>,
+ Deepanshu Kartikey <kartikey406@gmail.com>, Cen Zhang <zzzccc427@gmail.com>,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ syzbot+5d4e96acd0febccb5e87@syzkaller.appspotmail.com, stable@vger.kernel.org
+References: <20261019072936.2279-1-eklavyasingh2106@gmail.com>
+ <20261020212339.46591-1-eklavyasingh2106@gmail.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20261020212339.46591-1-eklavyasingh2106@gmail.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-ocfs2_check_xattr_bucket_collision() decides whether splitting a bucket
-can make room by comparing the hash being inserted against the first and
-the last entry.  xh_count comes off disk and is never checked, and a
-bucket is allowed to hold no entries: ocfs2_xa_remove_entry() keeps the
-last slot when it removes the only one, so that an empty bucket still
-carries the hash it is keyed by.  xh_count then reads back as 0 while
-xh_entries[0] is still meaningful, and the second comparison indexes
-xh_entries[-1].
 
-That is outside the __counted_by_le(xh_count) bounds of xh_entries[] and
-lands on the header.  An entry is 16 bytes and xe_name_hash is its first
-field, so the value read is xh_count | xh_free_start << 16.  It stays
-inside the block, but the answer is arbitrary, and for an empty bucket
-it says there is no collision, so a new bucket gets added on the
-strength of it.
 
-An empty bucket holds no entries to collide with.  Return before reading
-the array.
+On 10/21/26 5:23 AM, Eklavya Singh wrote:
+> o2hb_region_dev_store() checks reg->hr_bdev_file to see if the region
+> is already started, but nothing stops two writers from doing that at
+> the same time. configfs only serializes writes through the same open
+> file, so two processes that each open the dev attribute can both get
+> past the check:
+> 
+>   A: hr_bdev_file is NULL, opens file A, sets hr_bdev_file = A
+>   B: hr_bdev_file is NULL, opens file B, sets hr_bdev_file = B
+>   A: start fails, fput(hr_bdev_file) drops B, sets it to NULL
+>   B: start fails, fput(NULL)
+> 
+> Both calls also use the same hr_slots, hr_slot_data and hr_tmp_block,
+> so the error paths can free the slot data twice.
+> 
+> syzbot hit the fput(NULL) with an unbound loop device, where every
+> start fails with -EIO. With four threads doing the same thing on a
+> KASAN kernel I get both crashes within a second:
+> 
+>   BUG: KASAN: double-free in o2hb_unmap_slot_data+0x14d/0x2f0
+>   BUG: kernel NULL pointer dereference, address: 0000000000000158
+> 
+> Add a mutex to the region and hold it in dev_store(), in the
+> block_bytes, start_block and blocks stores, and in dev_show(), since
+> they all look at hr_bdev_file. dev_store() cleans up with goto, so it
+> takes the mutex in a small wrapper rather than with guard(). The mutex
+> is dropped while dev_store() waits for the heartbeat to become steady,
+> which takes seconds, so a read of dev doesn't stall behind a start.
+> hr_bdev_file is already set at that point, so other writers still get
+> -EINVAL, and the cleanup after the wait retakes the mutex.
+> 
+> With the patch the same test ran for 10 minutes with lockdep on and
+> nothing was reported. So did a second one, with a working loop device,
+> that interrupts starts during the wait while other threads read and
+> write the attributes.
+> 
+> Fixes: a7f6a5fb4bde ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+> Reported-by: syzbot+5d4e96acd0febccb5e87@syzkaller.appspotmail.com
+> Closes: https://syzkaller.appspot.com/bug?extid=5d4e96acd0febccb5e87
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Eklavya Singh <eklavyasingh2106@gmail.com>
 
-One way to reach the test with an empty bucket is a set that removes the
-bucket's only entry during cleanup and then fails for space again, since
-it is that second -ENOSPC which calls this.  Growing a value past
-OCFS2_XATTR_INLINE_SIZE is the easy route: the cluster allocation fails,
-the "!orig_clusters" arm of ocfs2_xa_cleanup_value_truncate() removes
-the entry, and although the "growing" caller does set ctxt->set_abort,
-only ocfs2_xattr_block_set() and __ocfs2_xattr_set_handle() look at it,
-so ocfs2_xattr_set_entry_index_block() goes straight on to the collision
-check.
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-This sits on commit a9ea8b397864 ("ocfs2: use the stored hash when
-checking xattr bucket collision"), which gave the collision check its two
-argument form and is marked for 6.2 and later.  The read fixed here is
-present in the three argument version too, but a tree without that
-commit needs the hunk adapted by hand.
-
-Fixes: 012255961c9e ("ocfs2: Enable xattr set in index btree")
-Cc: <stable@vger.kernel.org>
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/xattr.c | 11 ++++++++++-
- 1 file changed, 10 insertions(+), 1 deletion(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 2c069029cef7..3a16b4a36d9a 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -6061,11 +6061,20 @@ static int ocfs2_check_xattr_bucket_collision(struct ocfs2_xattr_bucket *bucket,
- 					      u32 name_hash)
- {
- 	struct ocfs2_xattr_header *xh = bucket_xh(bucket);
-+	u16 count = le16_to_cpu(xh->xh_count);
-+
-+	/*
-+	 * An empty bucket keeps the hash of the entry that was removed in
-+	 * xh_entries[0] so that it can still be found, but it holds no
-+	 * entries to collide with.
-+	 */
-+	if (!count)
-+		return 0;
- 
- 	if (name_hash != le32_to_cpu(xh->xh_entries[0].xe_name_hash))
- 		return 0;
- 
--	if (xh->xh_entries[le16_to_cpu(xh->xh_count) - 1].xe_name_hash ==
-+	if (xh->xh_entries[count - 1].xe_name_hash ==
- 	    xh->xh_entries[0].xe_name_hash) {
- 		mlog(ML_ERROR, "Too much hash collision in xattr bucket %llu, "
- 		     "hash = %u\n",
--- 
-2.39.3
+> ---
+> Changes in v3:
+> - rebase onto linux-next
+> - drop hr_dev_mutex while waiting for the heartbeat to become steady,
+>   so a read of dev that races a start no longer blocks (Joseph)
+> - name the four attributes in the hr_dev_mutex comment and assert the
+>   mutex is held in __o2hb_region_dev_store() (Joseph)
+> 
+> Changes in v2:
+> - take the mutex in a wrapper around dev_store() instead of with
+>   guard(), since dev_store() uses goto for its cleanup
+> 
+> Deepanshu Kartikey [1] and Cen Zhang [2] have posted patches for the
+> same race, and they conflict with this one. This version also takes
+> the mutex in dev_show(), which otherwise can read hr_bdev_file while a
+> failed start is dropping it.
+> 
+> [1] https://lore.kernel.org/all/20261020085100.8819-1-kartikey406@gmail.com/
+> [2] https://lore.kernel.org/all/pm-ocfs2-objects-candidate-0077-v7-34980443ec254b2a1ffc@gmail.com/
+> 
+> v2: https://lore.kernel.org/all/20261019072936.2279-1-eklavyasingh2106@gmail.com/
+> v1: https://lore.kernel.org/all/20261018163121.128911-1-eklavyasingh2106@gmail.com/
+> 
+>  fs/ocfs2/cluster/heartbeat.c | 40 ++++++++++++++++++++++++++++++------
+>  1 file changed, 34 insertions(+), 6 deletions(-)
+> 
+> diff --git a/fs/ocfs2/cluster/heartbeat.c b/fs/ocfs2/cluster/heartbeat.c
+> index b45adc3..7a18e71 100644
+> --- a/fs/ocfs2/cluster/heartbeat.c
+> +++ b/fs/ocfs2/cluster/heartbeat.c
+> @@ -269,6 +269,8 @@ struct o2hb_region {
+>  	struct list_head	hr_handler_list;
+>  	/* Serializes timeout arming against failed-start and teardown. */
+>  	struct mutex		hr_arming_mutex;
+> +	/* Serializes the dev, block_bytes, start_block and blocks attributes. */
+> +	struct mutex		hr_dev_mutex;
+>  	bool			hr_stopping;
+>  
+>  	/* last hb status, 0 for success, other value for error. */
+> @@ -1681,6 +1683,7 @@ static ssize_t o2hb_region_block_bytes_store(struct config_item *item,
+>  	unsigned long block_bytes;
+>  	unsigned int block_bits;
+>  
+> +	guard(mutex)(&reg->hr_dev_mutex);
+>  	if (reg->hr_bdev_file)
+>  		return -EINVAL;
+>  
+> @@ -1710,6 +1713,7 @@ static ssize_t o2hb_region_start_block_store(struct config_item *item,
+>  	char *p = (char *)page;
+>  	ssize_t ret;
+>  
+> +	guard(mutex)(&reg->hr_dev_mutex);
+>  	if (reg->hr_bdev_file)
+>  		return -EINVAL;
+>  
+> @@ -1736,6 +1740,7 @@ static ssize_t o2hb_region_blocks_store(struct config_item *item,
+>  	char *p = (char *)page;
+>  	int ret;
+>  
+> +	guard(mutex)(&reg->hr_dev_mutex);
+>  	if (reg->hr_bdev_file)
+>  		return -EINVAL;
+>  
+> @@ -1753,10 +1758,12 @@ static ssize_t o2hb_region_blocks_store(struct config_item *item,
+>  
+>  static ssize_t o2hb_region_dev_show(struct config_item *item, char *page)
+>  {
+> +	struct o2hb_region *reg = to_o2hb_region(item);
+>  	unsigned int ret = 0;
+>  
+> -	if (to_o2hb_region(item)->hr_bdev_file)
+> -		ret = sprintf(page, "%pg\n", reg_bdev(to_o2hb_region(item)));
+> +	guard(mutex)(&reg->hr_dev_mutex);
+> +	if (reg->hr_bdev_file)
+> +		ret = sprintf(page, "%pg\n", reg_bdev(reg));
+>  
+>  	return ret;
+>  }
+> @@ -1872,11 +1879,9 @@ out:
+>   * this is acting as commit; we set up all of hr_bdev_file and hr_task or
+>   * nothing
+>   */
+> -static ssize_t o2hb_region_dev_store(struct config_item *item,
+> -				     const char *page,
+> -				     size_t count)
+> +static ssize_t __o2hb_region_dev_store(struct o2hb_region *reg,
+> +				       const char *page, size_t count)
+>  {
+> -	struct o2hb_region *reg = to_o2hb_region(item);
+>  	struct task_struct *hb_task;
+>  	long fd;
+>  	int sectsize;
+> @@ -1884,6 +1889,8 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
+>  	ssize_t ret = -EINVAL;
+>  	int live_threshold;
+>  
+> +	lockdep_assert_held(&reg->hr_dev_mutex);
+> +
+>  	if (reg->hr_bdev_file)
+>  		return -EINVAL;
+>  
+> @@ -1987,9 +1994,15 @@ static ssize_t o2hb_region_dev_store(struct config_item *item,
+>  
+>  	wake_up_process(hb_task);
+>  
+> +	/*
+> +	 * Don't hold hr_dev_mutex across the wait, which can take seconds.
+> +	 * hr_bdev_file is already set, so other writers still get -EINVAL.
+> +	 */
+> +	mutex_unlock(&reg->hr_dev_mutex);
+>  	ret = wait_event_interruptible(o2hb_steady_queue,
+>  				atomic_read(&reg->hr_steady_iterations) == 0 ||
+>  				reg->hr_node_deleted);
+> +	mutex_lock(&reg->hr_dev_mutex);
+>  	if (ret) {
+>  		atomic_set(&reg->hr_steady_iterations, 0);
+>  		reg->hr_aborted_start = 1;
+> @@ -2041,6 +2054,20 @@ out:
+>  	return ret;
+>  }
+>  
+> +static ssize_t o2hb_region_dev_store(struct config_item *item,
+> +				     const char *page,
+> +				     size_t count)
+> +{
+> +	struct o2hb_region *reg = to_o2hb_region(item);
+> +	ssize_t ret;
+> +
+> +	mutex_lock(&reg->hr_dev_mutex);
+> +	ret = __o2hb_region_dev_store(reg, page, count);
+> +	mutex_unlock(&reg->hr_dev_mutex);
+> +
+> +	return ret;
+> +}
+> +
+>  static ssize_t o2hb_region_pid_show(struct config_item *item, char *page)
+>  {
+>  	struct o2hb_region *reg = to_o2hb_region(item);
+> @@ -2143,6 +2170,7 @@ static struct config_item *o2hb_heartbeat_group_make_item(struct config_group *g
+>  
+>  	INIT_LIST_HEAD(&reg->hr_all_item);
+>  	mutex_init(&reg->hr_arming_mutex);
+> +	mutex_init(&reg->hr_dev_mutex);
+>  	reg->hr_stopping = true;
+>  	INIT_DELAYED_WORK(&reg->hr_write_timeout_work, o2hb_write_timeout);
+>  	INIT_DELAYED_WORK(&reg->hr_nego_timeout_work, o2hb_nego_timeout);
 
