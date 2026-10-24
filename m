@@ -1,49 +1,54 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.101
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792859170;
-	b=4Zobo82qVxaR6tbkj8+sMDbrv1p7GNiEtRBBSGiIPcUDzYf6EHDWzmjaI8eReuDwjkHq
-	 RmXdH2IRvpx9fhg6ILxBVOPzK82ELvDTAucMvVUJxZFOan2ww36GG7JIb6jqpHqPGQyzL
-	 tZXYXHLJYJRToXLXxv6s31bA7fIcYqvtULB9amlp0L+4Zw09NPbYLzddsA8Au+LdBOdmH
-	 ixxt0WCCdOzm/57n+NUuBNt/1ThF/kEbTbWbduGcrMoOg//XcheZGC72D087ngLel8OBe
-	 pbqqXoyPM0xLYwZbim60CuEimDiIA8aGuJXBJlnl4M1W2cvQtTZmxZu4o/RWMHKttZg==
+	t=1792863431;
+	b=FXRnuykgsCnix6hT/sO9Yf/1GcxgQ2yHX4cqG25rUid4fLh5QnqYLHlmj9P9L1V242rN
+	 Sj6tGpGpGqx9owfYzy7Na2QFR/r82y481wdp73DuVeCbMnEV6pXgzxrXSlnG7HzQwF9iz
+	 Jr3hosliZgdiO/ZanvlR+rZyugKGsnBCcFuHmAiSHrofzn3sJhAIAiRjt34vSTu3IXwkk
+	 7QLfTS2hdqTxo+j70TLCE9IsHRrmsl2A2nLicNdhmAzxHByECxpTzITtFOSKyhfXhx+7T
+	 VM3jE/slQbwOzNggBeeHY4+rGCK8mTE5nohgxHNvZbJOToYbzGVhdd6JffX/NeE1tTw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792859170;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
-	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
-	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=z/p2VUdb1mRboXHrAHabwKrriZCrUMsu8HfRneN5UBc=;
-	b=1pHVrAm+YC8p5pu2JRYFiFe6juKBxNdMyeS406Dj6i3bWJCn78MbhL3u5O8Whxp8TowL
-	 +AvS6qYR4tGO7VEXzPxEeU10KN1ZVB/1UCZ7DxjsUpcjRSmMukqgqEnQ0/jpi6Nn+EFYi
-	 ayhlWLcFm8zd9ecEYrEwK6/mGpxgVLJfKD7tQukyy9LbuR/3FA7B9Latlie4Ze/IZyco6
-	 hNxmvB+i6SclhzUa70y1FXn7IYFUVVWbxlEk2HsmoV4Mpnj/t2zjSsefWhG5Wiwprcl/e
-	 +fPKxYW4AZ2iWhpoXVkeoVXh5lJ/ApQcQwGdwi7ZJ+P6e631Vonza0sx4Hzz3Oh8L7A==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792863431;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-Id:
+	 In-Reply-To:References:X-Mailer:Mime-Version:Content-Type:
+	 Content-Transfer-Encoding;
+	bh=SRWXm8At6b5HdVZInJapA+0lJxYRvCuweq82q6D9PzQ=;
+	b=MDgFxkqKvoJckCWhuuldJuZwMGz904p3D58FX40gNiljENBxDXEMIJ+1sXgEWHQEQkHl
+	 jzsvPkrvQ5LbUNb10zmCSQ4VaCobvLeuGZr0qYURNkBDvsz5WnI9rytFHKOswYg5rviwt
+	 0HZlcxVxkizxh63+4ahrwJjGLFL8ibXk6VN+YBIRUX38EzsudrRPG5KHRkIqnqOAyRjW3
+	 092cf57ow0Le2KjNQoXhiQ60/4c4uK30adEAFE9aMXGR0WPIEnn4kXbopHZqb+x/RqA9O
+	 bvlUksB+HPfR4E0FsdAl7nzWRJqsxZfEPSkoMstj9VJTSnoQTDy7O+IQphjia17DEMA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=linux.alibaba.com;
-	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=c7au+LeJ;
-	arc=none smtp.remote-ip=115.124.30.101
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+	dkim=pass header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=korg header.b=jVop9g0h;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F1697606A327
-	for <ocfs2-devel@lists.linux.dev>; Sat, 24 Oct 2026 16:26:08 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F1697606A327
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D3AF2606A31A;
+	Sat, 24 Oct 2026 17:37:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=c7au+LeJ
-DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
-	d=linux.alibaba.com; s=default;
-	t=1792859166; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=z/p2VUdb1mRboXHrAHabwKrriZCrUMsu8HfRneN5UBc=;
-	b=c7au+LeJFC6fIK4KmU1przhw+K89Mz43517nZqJrJsPz8/GqDyo5g/io+6dzQ6iO7IKdJySomoffTATDqduozK3Ox1tHH2N3Ifo4MEHNZyHfpvZFwdN+MeqfiR3YaerAmAUUA7Cs2uDXt+XgApKqVXOyU6naHBrdFzBjgb7hY1A=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XDOXgDK_1792859165;
-Received: from 30.251.227.55(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDOXgDK_1792859165 cluster:ay36)
-          by smtp.aliyun-inc.com;
-          Sun, 25 Oct 2026 00:26:06 +0800
-Message-ID: <d7cc3c11-c99e-4f25-8de8-bf8779810239@linux.alibaba.com>
-Date: Sun, 25 Oct 2026 00:26:05 +0800
+	dkim=pass (1024-bit key, unprotected) header.d=linux-foundation.org header.i=@linux-foundation.org header.a=rsa-sha256 header.s=korg header.b=jVop9g0h
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 2FAA41F01825;
+	Sat, 24 Oct 2026 17:37:10 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux-foundation.org; s=korg; t=1792863430;
+	bh=SRWXm8At6b5HdVZInJapA+0lJxYRvCuweq82q6D9PzQ=;
+	h=Date:From:To:Cc:Subject:In-Reply-To:References;
+	b=jVop9g0h4ZI7XcVh03CA+LePOEecISeccoFDLHnCBokcbrRAlQ1j1Ebp9CUTmZq5G
+	 c8tSVFOMudA82qQKw7/3No9R/oNpIHGl2LQAV4u+y5ZNuAxRk564cfO9QD4hkUoRWj
+	 JEf2DcM4QUINYCZCK3UKPz6Mt/FNRjQTwKJq+4sc=
+Date: Sat, 24 Oct 2026 10:37:09 -0700
+From: Andrew Morton <akpm@linux-foundation.org>
+To: Joseph Qi <joseph.qi@linux.alibaba.com>
+Cc: Heming Zhao <heming.zhao@suse.com>, Mark Fasheh <mark@fasheh.com>, Joel
+ Becker <jlbec@evilplan.org>, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+Subject: Re: [PATCH 0/6] ocfs2: fix stale xattr entry pointers and empty
+ header reads
+Message-Id: <20261024103709.7ada16bbca6403787892cb5c@linux-foundation.org>
+In-Reply-To: <20261024151012.1059683-1-joseph.qi@linux.alibaba.com>
+References: <20261024151012.1059683-1-joseph.qi@linux.alibaba.com>
+X-Mailer: Sylpheed 3.8.0beta1 (GTK+ 2.24.33; x86_64-pc-linux-gnu)
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -52,155 +57,36 @@ List-Subscribe: <mailto:ocfs2-devel+subscribe@lists.linux.dev>
 List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
-MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 2/2] ocfs2: replace ocfs2-specific inode flags with
- generic ones
-To: Anthony Iliopoulos <ailiop@suse.com>,
- Andrew Morton <akpm@linux-foundation.org>
-Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <20261022130457.69343-1-ailiop@suse.com>
- <20261022130457.69343-3-ailiop@suse.com>
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20261022130457.69343-3-ailiop@suse.com>
-Content-Type: text/plain; charset=UTF-8
+Mime-Version: 1.0
+Content-Type: text/plain; charset=US-ASCII
 Content-Transfer-Encoding: 7bit
 
+On Sat, 24 Oct 2026 23:10:06 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
 
-
-On 10/22/26 9:04 PM, Anthony Iliopoulos wrote:
-> The ocfs2 inode flag macros are alias definitions for the generic fs
-> flags. Remove these redundant macros, most of which are anyway unused,
-> and use the generic flags directly.
+> Five defects in the ocfs2 extended attribute code, plus one robustness
+> measure that belongs with them, all on the paths that move entries
+> between a block, a bucket and an index tree.  They fall into two groups.
 > 
-> Signed-off-by: Anthony Iliopoulos <ailiop@suse.com>
 
-Looks fine.
-Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+Thanks.
 
-> ---
->  fs/ocfs2/inode.c    | 24 ++++++++++++------------
->  fs/ocfs2/ioctl.c    |  8 ++++----
->  fs/ocfs2/ocfs2_fs.h | 27 ---------------------------
->  3 files changed, 16 insertions(+), 43 deletions(-)
-> 
-> diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-> index 180107a11046..64d92d30aa31 100644
-> --- a/fs/ocfs2/inode.c
-> +++ b/fs/ocfs2/inode.c
-> @@ -107,16 +107,16 @@ void ocfs2_set_inode_flags(struct inode *inode)
->  	inode->i_flags &= ~(S_IMMUTABLE |
->  		S_SYNC | S_APPEND | S_NOATIME | S_DIRSYNC);
->  
-> -	if (flags & OCFS2_IMMUTABLE_FL)
-> +	if (flags & FS_IMMUTABLE_FL)
->  		inode->i_flags |= S_IMMUTABLE;
->  
-> -	if (flags & OCFS2_SYNC_FL)
-> +	if (flags & FS_SYNC_FL)
->  		inode->i_flags |= S_SYNC;
-> -	if (flags & OCFS2_APPEND_FL)
-> +	if (flags & FS_APPEND_FL)
->  		inode->i_flags |= S_APPEND;
-> -	if (flags & OCFS2_NOATIME_FL)
-> +	if (flags & FS_NOATIME_FL)
->  		inode->i_flags |= S_NOATIME;
-> -	if (flags & OCFS2_DIRSYNC_FL)
-> +	if (flags & FS_DIRSYNC_FL)
->  		inode->i_flags |= S_DIRSYNC;
->  }
->  
-> @@ -125,18 +125,18 @@ void ocfs2_get_inode_flags(struct ocfs2_inode_info *oi)
->  {
->  	unsigned int flags = oi->vfs_inode.i_flags;
->  
-> -	oi->ip_attr &= ~(OCFS2_SYNC_FL|OCFS2_APPEND_FL|
-> -			OCFS2_IMMUTABLE_FL|OCFS2_NOATIME_FL|OCFS2_DIRSYNC_FL);
-> +	oi->ip_attr &= ~(FS_SYNC_FL | FS_APPEND_FL | FS_IMMUTABLE_FL |
-> +			FS_NOATIME_FL | FS_DIRSYNC_FL);
->  	if (flags & S_SYNC)
-> -		oi->ip_attr |= OCFS2_SYNC_FL;
-> +		oi->ip_attr |= FS_SYNC_FL;
->  	if (flags & S_APPEND)
-> -		oi->ip_attr |= OCFS2_APPEND_FL;
-> +		oi->ip_attr |= FS_APPEND_FL;
->  	if (flags & S_IMMUTABLE)
-> -		oi->ip_attr |= OCFS2_IMMUTABLE_FL;
-> +		oi->ip_attr |= FS_IMMUTABLE_FL;
->  	if (flags & S_NOATIME)
-> -		oi->ip_attr |= OCFS2_NOATIME_FL;
-> +		oi->ip_attr |= FS_NOATIME_FL;
->  	if (flags & S_DIRSYNC)
-> -		oi->ip_attr |= OCFS2_DIRSYNC_FL;
-> +		oi->ip_attr |= FS_DIRSYNC_FL;
->  }
->  
->  struct inode *ocfs2_ilookup(struct super_block *sb, u64 blkno)
-> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
-> index 2d95c1e5ad8b..2d962da9ba5c 100644
-> --- a/fs/ocfs2/ioctl.c
-> +++ b/fs/ocfs2/ioctl.c
-> @@ -78,7 +78,7 @@ int ocfs2_fileattr_get(struct dentry *dentry, struct file_kattr *fa)
->  	flags = OCFS2_I(inode)->ip_attr;
->  	ocfs2_inode_unlock(inode, 0);
->  
-> -	fileattr_fill_flags(fa, flags & OCFS2_FL_VISIBLE);
-> +	fileattr_fill_flags(fa, flags & FS_FL_USER_VISIBLE);
->  
->  	return status;
->  }
-> @@ -105,11 +105,11 @@ int ocfs2_fileattr_set(const struct mnt_idmap *idmap,
->  	}
->  
->  	if (!S_ISDIR(inode->i_mode))
-> -		flags &= ~OCFS2_DIRSYNC_FL;
-> +		flags &= ~FS_DIRSYNC_FL;
->  
->  	oldflags = ocfs2_inode->ip_attr;
-> -	flags = flags & OCFS2_FL_MODIFIABLE;
-> -	flags |= oldflags & ~OCFS2_FL_MODIFIABLE;
-> +	flags = flags & FS_FL_USER_MODIFIABLE;
-> +	flags |= oldflags & ~FS_FL_USER_MODIFIABLE;
->  
->  	/* Check already done by VFS, but repeat with ocfs lock */
->  	status = -EPERM;
-> diff --git a/fs/ocfs2/ocfs2_fs.h b/fs/ocfs2/ocfs2_fs.h
-> index c501eb3cdcda..53ddeb5e762f 100644
-> --- a/fs/ocfs2/ocfs2_fs.h
-> +++ b/fs/ocfs2/ocfs2_fs.h
-> @@ -235,33 +235,6 @@
->  #define OCFS2_INDEXED_DIR_FL	(0x0008)
->  #define OCFS2_HAS_REFCOUNT_FL   (0x0010)
->  
-> -/* Inode attributes, keep in sync with EXT2 */
-> -#define OCFS2_SECRM_FL			FS_SECRM_FL	/* Secure deletion */
-> -#define OCFS2_UNRM_FL			FS_UNRM_FL	/* Undelete */
-> -#define OCFS2_COMPR_FL			FS_COMPR_FL	/* Compress file */
-> -#define OCFS2_SYNC_FL			FS_SYNC_FL	/* Synchronous updates */
-> -#define OCFS2_IMMUTABLE_FL		FS_IMMUTABLE_FL	/* Immutable file */
-> -#define OCFS2_APPEND_FL			FS_APPEND_FL	/* writes to file may only append */
-> -#define OCFS2_NODUMP_FL			FS_NODUMP_FL	/* do not dump file */
-> -#define OCFS2_NOATIME_FL		FS_NOATIME_FL	/* do not update atime */
-> -/* Reserved for compression usage... */
-> -#define OCFS2_DIRTY_FL			FS_DIRTY_FL
-> -#define OCFS2_COMPRBLK_FL		FS_COMPRBLK_FL	/* One or more compressed clusters */
-> -#define OCFS2_NOCOMP_FL			FS_NOCOMP_FL	/* Don't compress */
-> -#define OCFS2_ECOMPR_FL			FS_ECOMPR_FL	/* Compression error */
-> -/* End compression flags --- maybe not all used */
-> -#define OCFS2_BTREE_FL			FS_BTREE_FL	/* btree format dir */
-> -#define OCFS2_INDEX_FL			FS_INDEX_FL	/* hash-indexed directory */
-> -#define OCFS2_IMAGIC_FL			FS_IMAGIC_FL	/* AFS directory */
-> -#define OCFS2_JOURNAL_DATA_FL		FS_JOURNAL_DATA_FL /* Reserved for ext3 */
-> -#define OCFS2_NOTAIL_FL			FS_NOTAIL_FL	/* file tail should not be merged */
-> -#define OCFS2_DIRSYNC_FL		FS_DIRSYNC_FL	/* dirsync behaviour (directories only) */
-> -#define OCFS2_TOPDIR_FL			FS_TOPDIR_FL	/* Top of directory hierarchies*/
-> -#define OCFS2_RESERVED_FL		FS_RESERVED_FL	/* reserved for ext2 lib */
-> -
-> -#define OCFS2_FL_VISIBLE		FS_FL_USER_VISIBLE	/* User visible flags */
-> -#define OCFS2_FL_MODIFIABLE		FS_FL_USER_MODIFIABLE	/* User modifiable flags */
-> -
->  /*
->   * Extent record flags (e_node.leaf.flags)
->   */
+The series is a little awkward - [1/6] is "no functional change" hence
+it's upstream-in-7.5-rc1 material.
 
+The other 5 are cc:stable fixes, so they're upstream-in-7.4-rcX material.
+
+That means splitting the series and it means upstreaming an untested
+code combination - 2-5 haven't been tested without the presence of
+[1/6].
+
+I think I'll just cheat a bit.  I'll keep all 6 together and I'll put
+them in mm-nonmm-unstable for now.  After Linus releases 7.4-rc1 I'll
+move all 6 into mm-nonmm-hotfixes-unstable for upstreaming during the
+7.4-rcX cycle.
+
+I'll add 
+
+Fixes: e39baff18b85 ("ocfs2: use the stored hash when checking xattr bucket collision")
+
+to [1/6] just to make things look better and to reduce the risk
+associated with -stable running that untested code combination.
