@@ -1,96 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.53
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.98
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1792858808;
-	b=jVTZpmZ8y1yPSc0mR3fiUPBKhxl5GdplfYuV0C+ZUH6rpaONh6UyU75HgKHjdczB2GD7
-	 0e3pVw0FlN5GH2KnXaQ4lV+QiqMjEqq52lvgd9FQvxSxhCfxswH/AO/sFoKd5R9zSj91f
-	 8uMhG7j9z6Zm/sZEQ2zZZ2MBAe5uftoFsj1sAhF9KSoE5amShkKQpwGSTDWBn7edAWaC8
-	 nqL5sS/6tU55oA5In3CVNY3k9+yXDK1Aofny3D63roX7DPB2XFyOaNfH7eyUbr31dJly/
-	 QuzvPBzgB2g83mPHIUZjpnjo6Y2qxXSMbs2c2N1pxu+WsKA5j4xFoVO/JwQBpYftHSg==
+	t=1792859147;
+	b=mIAS1KREp5RUZk1Y3heyBYvtygWOmEXvD3xkXTGK2e94B9Vw28hDLw2pR7XYDjV+VmLe
+	 FFgbes6PQbOGP+s8e6NugMoaUwTGHsOm/4dOe2iuLLoMrGDAXksIsBz9RDouy2SXUAk8n
+	 5pCy7q7ePP+LsmOesgyxKQTvbyyW+1V/pbdw2laCo+EVp9foGbUdpMqTwBfRTMYY8mKvo
+	 gBRU0KnZqyJS5xrvy2/MOSrQO1nQ7KLGK7gcc0bj+KyPkzIsCdiSRldP0Ei4NzwNYAJsL
+	 0iJ/0qrkwj7PWt6FDj9+J1EZl6uD9/LgtLoSyXXa9CJ40BkZDkct25N9vDttpAt8mWA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1792858808;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=xwmLnAa6b4VIfgYdyaQibjdMJAMiidZmgGGch02/UIc=;
-	b=rn/QEoqoleaJrgOQ6bgX6c70bXEhh+vx9P2F1uiH7RYmHybk/gslWPol6Eyp+1UABkD5
-	 BDKtqqCKU3jguwHYXB1/6vjdpGNOsjiJ9mIO/jz4vbxqMlLYVC8Y1OKesmq/Fu6RCvEp/
-	 NPrTprhjHBt8a5rPxv2FSVa8PUyD1ohSGCI5A8b1nPrZ2ecudIlO4lwqrL0liCgXh0x6d
-	 m4pTkigeWg+KGwkmasApiUosq2/EmakH1Kn7m2qcib3u11wECCt1P25faal5NAAMPsn7N
-	 oFJfBE1wyuJu8azWpb36zEHQp5m2yF7MT+xqDtL5myGTwp1BplATkelKD+g2X8rWE5g==
+	a=rsa-sha256; c=relaxed/relaxed; t=1792859147;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=NrnZscWyj9crJ/SaqHEjGZjptWpIZAvXl4BIL7lTILo=;
+	b=PFs5FG5gCaa7h6Rbt58ZGWViYRktTvHqLDtjswn0XfrHcCJ3usX66JhbWSqRDhp0i1sn
+	 IXh8RjaZw+sahjb5/P/AGWKvkIaFQ/ltt/a0u4aIUBXgcMuzHVXUsQaY28P+y2+KCxYwE
+	 r3H8x7ImjLe9mwj0Fm4wZNqLWpnFjjgd9A0PmHiy0KkPoaULjLTi+Hyvq8I6Qc9b1dG1o
+	 XK7VB8D06vCaRrQQ2ASD+KkUybqX8p5dx64/nRMAUOA468qfGK4rkRAh5zEzPExbHpj8d
+	 Ln/qkPHxUz2dz1ttD4Bf+WOHCaFbOt6+VzwyzEMcyInziCl7mikFlB92bbBtvjaTjxg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=L44EX3Dr;
-	arc=none smtp.remote-ip=209.85.216.53
-Received: from mail-pj1-f53.google.com (mail-pj1-f53.google.com [209.85.216.53])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=Gi9C+HII;
+	arc=none smtp.remote-ip=115.124.30.98
+Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1910C606A31D
-	for <ocfs2-devel@lists.linux.dev>; Sat, 24 Oct 2026 16:20:07 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1910C606A31D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 89385606A31A
+	for <ocfs2-devel@lists.linux.dev>; Sat, 24 Oct 2026 16:25:44 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 89385606A31A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=L44EX3Dr
-Received: by mail-pj1-f53.google.com with SMTP id 98e67ed59e1d1-3acb11973c3so1233231a91.3
-        for <ocfs2-devel@lists.linux.dev>; Sat, 24 Oct 2026 09:20:07 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1792858807; x=1793463607; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=xwmLnAa6b4VIfgYdyaQibjdMJAMiidZmgGGch02/UIc=;
-        b=L44EX3Dra/ZdWA2His7yoLD039CDgxPta94FnfsZXHlL0Va/SlWZ7V/Y6K43ZCc+p3
-         1xZdsGUZxzLNeMdDPjHEEtsG+Hkno6IHyzPSytU1k/GRCu6hgzrpwK1rDAXvgZJOOo0r
-         jklFeBW54wk+JBpDWyUVEe3ryCkSbR3Ow77Md8peNO7j+cGbtvmqSQt3yxdfkw0qPdcK
-         qOXjOmM0I2yj8JCoAI/ukuJSfLOv6AZFguyUrCLjqCwyO908TRfLdNv1oomFUizvP11a
-         aO/eZ18pdxEPJSQkfKuZSC0Kldco0KQAeVezF9c9xAvzc2T2C6eM7w5KqBuXo7BQBOrO
-         x0Uw==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1792858807; x=1793463607;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=xwmLnAa6b4VIfgYdyaQibjdMJAMiidZmgGGch02/UIc=;
-        b=giCzdK218KjAqOuGlz4mM6d1IblUA7xjdDwBlhagoif6ibM5wflyYnRAFWNW4sDt06
-         p2snKj3lOiyJdXAQ1CRGH3/5bAR1Cj/T+nsPKn0IVcgvvPLXkqp4HzReT6NRFFh9g0Kd
-         gWYZDCn4sJrKiGEq44h8Q3H8Lk0YsT0GxEpus981r/DvO7yFVhbGYiP5WhFs8GdleSJt
-         DZZBHj1ribNSRPQyZNC8eCx/RSZBZ4nDXFEr3blNgypqXoAJhc1Lcz5VLio5yRvKPZLh
-         WScQvY4x8HGcMnP16h6UKowuw0Y89JxlmpxwAmcqGySHqAE/K7VlvLgITBgzpCMRK7FU
-         AU3g==
-X-Forwarded-Encrypted: i=1; AKwUvBx2AsIO9fA60cG5zendlde/AxRSmCCfAKBN8T4H5OZ7ROqlYFrqdpf5oUj3DogNNqPzeG0uq22twyEwXg==@lists.linux.dev
-X-Gm-Message-State: AFq9FYJLEmAMaIll9dx63VyIxxly5+/sFi5aZH8S1BmnHHVZzTtOvOIy
-	nLCW7n8uSvbDAf9dLJAqwrvevZrgBF+qHdYE4EYyHMZTstCodvC0SRnr
-X-Gm-Gg: AYBFou0yQ8h4b2ZyCVf/hhRc67XAmrOn/Uz3YUmFY6RPz9ZLG1hoPNVHbIqIWgfJpHb
-	LRBkQ4FhWIamK6JDME5h0dQjGd++smE0Tu4SPkyJbKCkpu+HtK4oJ++aO6YWcMPgdP4Abf/ANOG
-	eYZGMx6sQKVXDmohaZRrQUvB/PypUoPQGOWofKPJPeSh/nmoQ4l2M1S2OHgNDjs8cxKkdP4HQCc
-	KWbr1D5bEujDbETgJho43ZZex1S9USM8hreupnpYlUVb52Ut6vCyoZ2IWKavbvr08HYnPJjaqHK
-	5EshuHL7oP65019uo7u74l8BN9aoIIarxpq4evQO5Rg6ghXxtbQlQ8/kVwvsizA0PsSo2IgNrlw
-	wE8hwVpFzrLNJLR2Ph+4NrRPUuBrj3jVSira2nWa0QajkcHquu1UsGnr62ZlxHiRfpbijULGvuD
-	UDwJ5pS6VvCtwsGHeTG25CanSIgHUUj/h1vStaSMsrmEJyTVgR5GVNKXUqjpYoxVdoZrbcqdWYI
-	iEGwTlotwH8/cTK+BYyH4EoroXX5giijfj5ZokLzMKzzvhvpkc=
-X-Received: by 2002:a17:90b:1645:b0:3ac:9c37:9418 with SMTP id 98e67ed59e1d1-3adead50acfmr2166488a91.19.1792858807236;
-        Sat, 24 Oct 2026 09:20:07 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3adeb8240b5sm2180033a91.0.2026.10.24.09.20.03
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sat, 24 Oct 2026 09:20:06 -0700 (PDT)
-From: Cen Zhang <zzzccc427@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: heming.zhao@suse.com,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com,
-	zzzccc427@gmail.com
-Subject: [PATCH v2] ocfs2: validate move extents against a stable EOF
-Date: Sun, 25 Oct 2026 00:20:00 +0800
-Message-Id: <pm-ocfs2-move-extents-isize-rrw-v4-d4b80ed0748f84dc3f8e@gmail.com>
-X-Mailer: git-send-email 2.34.1
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=Gi9C+HII
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1792859142; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=NrnZscWyj9crJ/SaqHEjGZjptWpIZAvXl4BIL7lTILo=;
+	b=Gi9C+HII4Urmre1UuzordZZHJQl8zGsUtPhY9PS1HnrX+j8u8ai2xQ643fWjgK+6N477fFQAEx83k1RuEURPczhHSxi7Y1vItZK0Qgwzbfte16m+UNC1ul5/8i0hOtfEsCYXJg2TRIcd1Dh8Qm5QqvQfvV6X5M6DVYqSTe2klAQ=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XDOU24s_1792859140;
+Received: from 30.251.227.55(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDOU24s_1792859140 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Sun, 25 Oct 2026 00:25:41 +0800
+Message-ID: <9cb9736b-a668-460c-bd1e-a691486741b9@linux.alibaba.com>
+Date: Sun, 25 Oct 2026 00:25:40 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -100,166 +53,233 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 1/2] ocfs2: replace ocfs2-specific falloc ioctls with
+ generic ones
+To: Anthony Iliopoulos <ailiop@suse.com>,
+ Andrew Morton <akpm@linux-foundation.org>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
+References: <20261022130457.69343-1-ailiop@suse.com>
+ <20261022130457.69343-2-ailiop@suse.com>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20261022130457.69343-2-ailiop@suse.com>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-The move-extents range must be bounded by the inode size used for extent
-movement. ocfs2_ioctl_move_extents() checks and clamps the request before
-taking the local inode and cluster locks in ocfs2_move_extents(). It also
-uses separate i_size_read() calls for the range check and subtraction.
 
-A concurrent truncate can invalidate the first check and make the later
-unsigned subtraction underflow:
 
-  Move-extents ioctl                  Truncate
-  ------------------                  --------
-  check me_start <= i_size
-                                      take inode and cluster locks
-                                      shrink EOF below me_start
-                                      release locks
-  compare me_start + me_len with EOF
-  set me_len = EOF - me_start
-    [unsigned underflow]
-  acquire inode and cluster locks
-  select extents using the bad range
+On 10/22/26 9:04 PM, Anthony Iliopoulos wrote:
+> Replace custom ocfs2 space reservation structures and ioctl definitions
+> with the generic file space allocation interfaces.
+> 
+> Those were originally copied from xfs in commit b25801038da5 ("ocfs2:
+> Support xfs style space reservation ioctls") for compatibility reasons,
+> which were eventually lifted to vfs and made generic. As such there is
+> no reason to carry around the redundant definitions any longer, they can
+> be dropped at this point.
+> 
+> Signed-off-by: Anthony Iliopoulos <ailiop@suse.com>
 
-A truncate after clamping can also leave the range extending beyond EOF.
-Conversely, the cached size may be smaller than the size refreshed when
-the cluster inode lock is acquired. Early validation can then reject a
-valid start or permanently shorten the requested length and threshold.
-The me_start + me_len comparison can also wrap for a large input length.
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 
-Validate and adjust the original request once, after inode_lock(), the
-exclusive rw lock and ocfs2_inode_lock() have stabilized and refreshed
-the size. Read EOF once, reject a start beyond it, and bound the length
-by EOF minus start. Normalize the threshold using the same EOF snapshot.
-This keeps zero as the default-threshold sentinel until validation uses
-the size that will govern extent movement.
+> ---
+>  fs/ocfs2/file.c        | 26 +++++++++++++-------------
+>  fs/ocfs2/file.h        |  4 +++-
+>  fs/ocfs2/ioctl.c       | 19 ++++++++++---------
+>  fs/ocfs2/ocfs2_ioctl.h | 26 --------------------------
+>  4 files changed, 26 insertions(+), 49 deletions(-)
+> 
+> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+> index 62f45a1b5ca1..5ccc2a613e2d 100644
+> --- a/fs/ocfs2/file.c
+> +++ b/fs/ocfs2/file.c
+> @@ -1944,7 +1944,7 @@ int ocfs2_remove_inode_range(struct inode *inode,
+>   */
+>  static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
+>  				     loff_t f_pos, unsigned int cmd,
+> -				     struct ocfs2_space_resv *sr,
+> +				     struct space_resv *sr,
+>  				     int change_size)
+>  {
+>  	int ret;
+> @@ -2008,8 +2008,8 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
+>  	}
+>  	size = sr->l_start + sr->l_len;
+>  
+> -	if (cmd == OCFS2_IOC_RESVSP || cmd == OCFS2_IOC_RESVSP64 ||
+> -	    cmd == OCFS2_IOC_UNRESVSP || cmd == OCFS2_IOC_UNRESVSP64) {
+> +	if (cmd == FS_IOC_RESVSP || cmd == FS_IOC_RESVSP64 ||
+> +	    cmd == FS_IOC_UNRESVSP || cmd == FS_IOC_UNRESVSP64) {
+>  		if (sr->l_len <= 0) {
+>  			ret = -EINVAL;
+>  			goto out_inode_unlock;
+> @@ -2026,8 +2026,8 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
+>  
+>  	down_write(&OCFS2_I(inode)->ip_alloc_sem);
+>  	switch (cmd) {
+> -	case OCFS2_IOC_RESVSP:
+> -	case OCFS2_IOC_RESVSP64:
+> +	case FS_IOC_RESVSP:
+> +	case FS_IOC_RESVSP64:
+>  		/*
+>  		 * This takes unsigned offsets, but the signed ones we
+>  		 * pass have been checked against overflow above.
+> @@ -2035,8 +2035,8 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
+>  		ret = ocfs2_allocate_unwritten_extents(inode, sr->l_start,
+>  						       sr->l_len);
+>  		break;
+> -	case OCFS2_IOC_UNRESVSP:
+> -	case OCFS2_IOC_UNRESVSP64:
+> +	case FS_IOC_UNRESVSP:
+> +	case FS_IOC_UNRESVSP64:
+>  		ret = ocfs2_remove_inode_range(inode, di_bh, sr->l_start,
+>  					       sr->l_len);
+>  		break;
+> @@ -2090,16 +2090,16 @@ static int __ocfs2_change_file_space(struct file *file, struct inode *inode,
+>  }
+>  
+>  int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+> -			    struct ocfs2_space_resv *sr)
+> +			    struct space_resv *sr)
+>  {
+>  	struct inode *inode = file_inode(file);
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>  	int ret;
+>  
+> -	if ((cmd == OCFS2_IOC_RESVSP || cmd == OCFS2_IOC_RESVSP64) &&
+> +	if ((cmd == FS_IOC_RESVSP || cmd == FS_IOC_RESVSP64) &&
+>  	    !ocfs2_writes_unwritten_extents(osb))
+>  		return -ENOTTY;
+> -	else if ((cmd == OCFS2_IOC_UNRESVSP || cmd == OCFS2_IOC_UNRESVSP64) &&
+> +	else if ((cmd == FS_IOC_UNRESVSP || cmd == FS_IOC_UNRESVSP64) &&
+>  		 !ocfs2_sparse_alloc(osb))
+>  		return -ENOTTY;
+>  
+> @@ -2122,9 +2122,9 @@ static long ocfs2_fallocate(struct file *file, int mode, loff_t offset,
+>  {
+>  	struct inode *inode = file_inode(file);
+>  	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+> -	struct ocfs2_space_resv sr;
+> +	struct space_resv sr;
+>  	int change_size = 1;
+> -	int cmd = OCFS2_IOC_RESVSP64;
+> +	int cmd = FS_IOC_RESVSP64;
+>  	int ret = 0;
+>  
+>  	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE))
+> @@ -2141,7 +2141,7 @@ static long ocfs2_fallocate(struct file *file, int mode, loff_t offset,
+>  	}
+>  
+>  	if (mode & FALLOC_FL_PUNCH_HOLE)
+> -		cmd = OCFS2_IOC_UNRESVSP64;
+> +		cmd = FS_IOC_UNRESVSP64;
+>  
+>  	sr.l_whence = 0;
+>  	sr.l_start = (s64)offset;
+> diff --git a/fs/ocfs2/file.h b/fs/ocfs2/file.h
+> index 97492ee5789e..7f587dc06dab 100644
+> --- a/fs/ocfs2/file.h
+> +++ b/fs/ocfs2/file.h
+> @@ -10,6 +10,8 @@
+>  #ifndef OCFS2_FILE_H
+>  #define OCFS2_FILE_H
+>  
+> +#include <linux/falloc.h>
+> +
+>  extern const struct file_operations ocfs2_fops;
+>  extern const struct file_operations ocfs2_dops;
+>  extern const struct file_operations ocfs2_fops_no_plocks;
+> @@ -64,7 +66,7 @@ int ocfs2_update_inode_atime(struct inode *inode,
+>  			     struct buffer_head *bh);
+>  
+>  int ocfs2_change_file_space(struct file *file, unsigned int cmd,
+> -			    struct ocfs2_space_resv *sr);
+> +			    struct space_resv *sr);
+>  
+>  int ocfs2_check_range_for_refcount(struct inode *inode, loff_t pos,
+>  				   size_t count);
+> diff --git a/fs/ocfs2/ioctl.c b/fs/ocfs2/ioctl.c
+> index 36c7c9ac8b5d..2d95c1e5ad8b 100644
+> --- a/fs/ocfs2/ioctl.c
+> +++ b/fs/ocfs2/ioctl.c
+> @@ -11,6 +11,7 @@
+>  #include <linux/blkdev.h>
+>  #include <linux/compat.h>
+>  #include <linux/fileattr.h>
+> +#include <linux/falloc.h>
+>  
+>  #include <cluster/masklog.h>
+>  
+> @@ -857,12 +858,12 @@ long ocfs2_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+>  	int status;
+>  
+>  	switch (cmd) {
+> -	case OCFS2_IOC_RESVSP:
+> -	case OCFS2_IOC_RESVSP64:
+> -	case OCFS2_IOC_UNRESVSP:
+> -	case OCFS2_IOC_UNRESVSP64:
+> +	case FS_IOC_RESVSP:
+> +	case FS_IOC_RESVSP64:
+> +	case FS_IOC_UNRESVSP:
+> +	case FS_IOC_UNRESVSP64:
+>  	{
+> -		struct ocfs2_space_resv sr;
+> +		struct space_resv sr;
+>  
+>  		if (copy_from_user(&sr, (int __user *) arg, sizeof(sr)))
+>  			return -EFAULT;
+> @@ -971,10 +972,10 @@ long ocfs2_compat_ioctl(struct file *file, unsigned cmd, unsigned long arg)
+>  	void __user *argp = (void __user *)arg;
+>  
+>  	switch (cmd) {
+> -	case OCFS2_IOC_RESVSP:
+> -	case OCFS2_IOC_RESVSP64:
+> -	case OCFS2_IOC_UNRESVSP:
+> -	case OCFS2_IOC_UNRESVSP64:
+> +	case FS_IOC_RESVSP:
+> +	case FS_IOC_RESVSP64:
+> +	case FS_IOC_UNRESVSP:
+> +	case FS_IOC_UNRESVSP64:
+>  	case OCFS2_IOC_GROUP_EXTEND:
+>  	case OCFS2_IOC_GROUP_ADD:
+>  	case OCFS2_IOC_GROUP_ADD64:
+> diff --git a/fs/ocfs2/ocfs2_ioctl.h b/fs/ocfs2/ocfs2_ioctl.h
+> index 2de2f8733283..30244c94239b 100644
+> --- a/fs/ocfs2/ocfs2_ioctl.h
+> +++ b/fs/ocfs2/ocfs2_ioctl.h
+> @@ -10,32 +10,6 @@
+>  #ifndef OCFS2_IOCTL_H
+>  #define OCFS2_IOCTL_H
+>  
+> -/*
+> - * Space reservation / allocation / free ioctls and argument structure
+> - * are designed to be compatible with XFS.
+> - *
+> - * ALLOCSP* and FREESP* are not and will never be supported, but are
+> - * included here for completeness.
+> - */
+> -struct ocfs2_space_resv {
+> -	__s16		l_type;
+> -	__s16		l_whence;
+> -	__s64		l_start;
+> -	__s64		l_len;		/* len == 0 means until end of file */
+> -	__s32		l_sysid;
+> -	__u32		l_pid;
+> -	__s32		l_pad[4];	/* reserve area			    */
+> -};
+> -
+> -#define OCFS2_IOC_ALLOCSP		_IOW ('X', 10, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_FREESP		_IOW ('X', 11, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_RESVSP		_IOW ('X', 40, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_UNRESVSP	_IOW ('X', 41, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_ALLOCSP64	_IOW ('X', 36, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_FREESP64	_IOW ('X', 37, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_RESVSP64	_IOW ('X', 42, struct ocfs2_space_resv)
+> -#define OCFS2_IOC_UNRESVSP64	_IOW ('X', 43, struct ocfs2_space_resv)
+> -
+>  /* Used to pass group descriptor data when online resize is done */
+>  struct ocfs2_new_group_input {
+>  	__u64 group;		/* Group descriptor's blkno. */
 
-Move goal validation after range adjustment as well. Its allocation-group
-capacity check uses me_len and must see the EOF-clamped length. Both
-validation failures use the existing inode-lock unwind path before any
-extent movement or transaction starts.
-
-Fixes: 53069d4e7695 ("Ocfs2/move_extents: move/defrag extents within a certain range.")
-Cc: stable@vger.kernel.org
-Assisted-by: LLM
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
----
-Changes in v2:
-- Validate and normalize the original range only once, after inode and
-  cluster locking have stabilized and refreshed EOF.
-- Move goal validation after range adjustment because its allocation-group
-  capacity check depends on me_len.
-
-Link to v1: https://lore.kernel.org/r/pm-ocfs2-move-extents-isize-rrw-v3-b2a7508c41108cc2d00b@gmail.com
-
- fs/ocfs2/move_extents.c | 68 ++++++++++++++++++++++-------------------
- 1 file changed, 37 insertions(+), 31 deletions(-)
-
-diff --git a/fs/ocfs2/move_extents.c b/fs/ocfs2/move_extents.c
-index ad1678ee7cc4..f2682ef6bf2b 100644
---- a/fs/ocfs2/move_extents.c
-+++ b/fs/ocfs2/move_extents.c
-@@ -907,6 +907,30 @@ out:
- 	return ret;
- }
- 
-+static int ocfs2_validate_and_adjust_move_range(struct inode *inode,
-+						struct ocfs2_move_extents *range)
-+{
-+	u64 i_size = i_size_read(inode);
-+
-+	if (range->me_start > i_size)
-+		return -EINVAL;
-+
-+	if (range->me_len > i_size - range->me_start)
-+		range->me_len = i_size - range->me_start;
-+
-+	/*
-+	 * The default threshold for defragmentation is 1 MiB, which
-+	 * matches the maximum OCFS2 cluster size.
-+	 */
-+	if (!range->me_threshold)
-+		range->me_threshold = 1024 * 1024;
-+
-+	if (range->me_threshold > i_size)
-+		range->me_threshold = i_size;
-+
-+	return 0;
-+}
-+
- static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
- {
- 	int status;
-@@ -936,6 +960,19 @@ static int ocfs2_move_extents(struct ocfs2_move_extents_context *context)
- 		goto out_rw_unlock;
- 	}
- 
-+	status = ocfs2_validate_and_adjust_move_range(inode, context->range);
-+	if (status) {
-+		mlog_errno(status);
-+		goto out_inode_unlock;
-+	}
-+
-+	/* The goal check depends on the adjusted range length. */
-+	if (!context->auto_defrag) {
-+		status = ocfs2_validate_and_adjust_move_goal(inode, context->range);
-+		if (status)
-+			goto out_inode_unlock;
-+	}
-+
- 	/*
- 	 * remember ip_xattr_sem also needs to be held if necessary
- 	 */
-@@ -1028,27 +1065,8 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
- 		goto out_free;
- 	}
- 
--	if (range.me_start > i_size_read(inode)) {
--		status = -EINVAL;
--		goto out_free;
--	}
--
--	if (range.me_start + range.me_len > i_size_read(inode))
--			range.me_len = i_size_read(inode) - range.me_start;
--
- 	context->range = &range;
- 
--	/*
--	 * ok, the default threshold for the defragmentation
--	 * is 1M, since our maximum clustersize was 1M also.
--	 * any thought?
--	 */
--	if (!range.me_threshold)
--		range.me_threshold = 1024 * 1024;
--
--	if (range.me_threshold > i_size_read(inode))
--		range.me_threshold = i_size_read(inode);
--
- 	if (range.me_flags & ~(OCFS2_MOVE_EXT_FL_AUTO_DEFRAG |
- 			       OCFS2_MOVE_EXT_FL_PART_DEFRAG)) {
- 		status = -EINVAL;
-@@ -1060,23 +1078,11 @@ int ocfs2_ioctl_move_extents(struct file *filp, void __user *argp)
- 
- 		if (range.me_flags & OCFS2_MOVE_EXT_FL_PART_DEFRAG)
- 			context->partial = 1;
--	} else {
--		/*
--		 * first best-effort attempt to validate and adjust the goal
--		 * (physical address in block), while it can't guarantee later
--		 * operation can succeed all the time since global_bitmap may
--		 * change a bit over time.
--		 */
--
--		status = ocfs2_validate_and_adjust_move_goal(inode, &range);
--		if (status)
--			goto out_copy;
- 	}
- 
- 	status = ocfs2_move_extents(context);
- 	if (status)
- 		mlog_errno(status);
--out_copy:
- 	/*
- 	 * movement/defragmentation may end up being partially completed,
- 	 * that's the reason why we need to return userspace the finished
