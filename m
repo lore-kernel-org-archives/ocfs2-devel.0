@@ -1,81 +1,81 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.215.171
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.170
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793026952;
-	b=MNVBgvxt9MVog/3q8gSva0yCo7OXSD9pmg4AUQ4VXfoSVGlsgNR1v+O86YeuPVJag2E5
-	 HHLhFD3I9482H576C/OqXCRIvxKL320/RmtsOMaYcRgDgIQ+o19xl/SJm+YG09zXWfW3I
-	 smrTltAXq6vF5L2k0+WlbdX7cO/h1L7omoJaa/+Zo9S+zTw0qTpMFu/X5a+lgn6Oa6sFZ
-	 V9RVV5mvRkUHMm3aeQByVnYkY1Qcg3ORyhL+VKJOO/GTo3BOby/2pT3sD5gGsYZGkMn/y
-	 VQuPb4pvdGPESkHf7XpnThDgLqX5l2UYR4VxE1Y5r4IQJJUCksIDUJRFan3lQnNmhug==
+	t=1793069612;
+	b=HqPbM7ahUAGWscBA/roWbNKWBRiOQmcBEePUOApcr2ZGDeF5qDM+lr+z/xn7f9vC3xg5
+	 9JMKDKDa1W9siH1Kx9Vu2LVf85Puiu8pS7yV4luEjWBmE6zmLhH7xMZZB0q/1Ct4iGnOO
+	 jIFgHSy8TQFoXeTDqcr12rIaOlboj3WCUGQFqB+gCEKtghNq/5JynGbbN2fqzHnqiL8Ao
+	 hmV0MDfCpP3nHTWYsOYCaG302w1pZXDCApLTM1HXJ+wka8lkIkKIRB+/4z/1b8zVM+5yl
+	 Sx4cLkuF9NlUCYPWIB7AnQh5x0WzTP1OpVWybesHZkaCI+q1MflXRTSslhJww0ji22g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793026952;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793069612;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=51fg6U2SlDMs9QfFDrf96+937Pgq73X2qQwa/pimzEc=;
-	b=MICoLaVnWHH7zU3UodvYQShs12lYV8vy+53hO2o8z/WSLnGACFrGbhnCNkcUeuVn2ETn
-	 E+BgRLmQ4xOcsnK+jpKNLetIBA4bhmQqFoPwVxf04Gz2k6eFvCZ4fnWvu07QGZ3aR+aBU
-	 DQSkElseBxCJQBPArsv7nvurxKdb1cGqVOVvdNj2Q1/MCLMnZ8gYUKLZH9ttJ8aBcBkmE
-	 mSKvzasLU1ccWrNV7M3l/yddBe6aD6kYI5uDUKsoRUYX26gAnE+BbsoVwE9IBimzVqI/X
-	 wltqtbbgKc0IVWUE4LLmUKknzC7fXhhLY2I28NNbxBsroNSW7oOG0BeYS6mwlb8mxIw==
+	bh=eANz6TxlfIefza3dEAFXrv5EtYoHJKoB5jG0laNfxhM=;
+	b=ThBaVOtu3mGc+ck5zBzO1NdH5InywoOgOofoeDBylach+KjoFRU9elTpAr3qVsRcZC89
+	 DNoAhwXQj/bIqaHFRU5MR8T0MUzcTpp/qwtJAtfl687uGSTSQDmIvEyN+mJ4N+RxbN8rA
+	 PVe2Bfq1mFY2JogZRuJRQqTfhaa9ShkLDOr08yMKTn2z/4WREJrpLOnylsE/6kve1CzzQ
+	 p2Wief9Ml7wq9PAWIsg71180nlifZ/Z1AB3pfswC50dXxWTp8qqj3shxYh+pVTq4AJR6s
+	 7myLCSNBjkZP8Hc1SmTshXAklke2QdinRkumF60fQOAkhlrjbvHvZG74LxAdsMRp8wQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=OXwGS4gI;
-	arc=none smtp.remote-ip=209.85.215.171
-Received: from mail-pg1-f171.google.com (mail-pg1-f171.google.com [209.85.215.171])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b="P/so+O48";
+	arc=none smtp.remote-ip=209.85.214.170
+Received: from mail-pl1-f170.google.com (mail-pl1-f170.google.com [209.85.214.170])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1123E606A324
-	for <ocfs2-devel@lists.linux.dev>; Mon, 26 Oct 2026 15:02:32 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1123E606A324
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6B162606A31A
+	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Oct 2026 02:53:32 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6B162606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=OXwGS4gI
-Received: by mail-pg1-f171.google.com with SMTP id 41be03b00d2f7-cd69954c755so2094369a12.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 26 Oct 2026 08:02:32 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=P/so+O48
+Received: by mail-pl1-f170.google.com with SMTP id d9443c01a7336-2ea0efd636dso29090465ad.0
+        for <ocfs2-devel@lists.linux.dev>; Mon, 26 Oct 2026 19:53:32 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1793026950; x=1793631750; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1793069612; x=1793674412; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=51fg6U2SlDMs9QfFDrf96+937Pgq73X2qQwa/pimzEc=;
-        b=OXwGS4gIWwHHSuwtcHbbpSCmw4gvq5FEXJyND9NmTsZjgG7n1XIN0gtLjnxD2XfKAP
-         g8CbERJxcpieKtZJUdrcv+i6HCwoPYkpXYGkYoCdBNSEpPQQhxu0uL8CXy8mTlpJZwZ7
-         T254/ejPD14Jw0qs/fEcFbHSXBpWgldtizEjWWKS3ELnwpiqXKHv7lveEgXWjBZA42fj
-         IMoznQEGEUbFDuOCQIwrOgvaZctoS/KmvgSN9l3MhM5yGXr6/XZmivFRl50rLm/zLhyv
-         4+SyifsWDyVXTlNBEOkggxveT0wvArZfrJNTsGFUNdtXviN1hcak2uIKJegFTT2XM1j6
-         Pmxg==
+        bh=eANz6TxlfIefza3dEAFXrv5EtYoHJKoB5jG0laNfxhM=;
+        b=P/so+O48+1Rdcpqk1LuDq+UeK7Ove2YW/KEpXg9k6o60Hljs6BWQldxYZCexjHHQl9
+         79Iay2fRHCLuWfABb/IACfMsSiKvabOtki68TmUXij5zitoDGUyUii5JskRWeZC1D+9j
+         sA2y4d5DUGkRO6FCcJFRhZCOWGTZWrAyL5vrsbxSY63BEZtvcAnpqQXEsgXLzeWFZs0C
+         db9rHtYJIXm+JYvc2GDlm5oeIhedTF6Ci6nU69ak0Z+VednutZh6OG+HTL3W0O4bVlSW
+         yON3oIYvY/Uzc6P2gqC5gvSvrHU83Sk+7u+JiKREx4T/dAo6h5Niu1YWBo2T1be4r4iU
+         M1QA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793026950; x=1793631750;
+        d=1e100.net; s=20260707; t=1793069612; x=1793674412;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=51fg6U2SlDMs9QfFDrf96+937Pgq73X2qQwa/pimzEc=;
-        b=wBu9YuLdQduR9kLcmTimbl0ot72/YIY1PsFoUrGzdnVHMXu0XgItfodSYs/i0daZdi
-         mY835XdEu1xxmlelKJKIYJmitGPKp+/q4QlcDhYYVrJ8s0OjA6eiKOx1ZUyCM5pD4rGF
-         GYZvFpXoagxFCQjj46eLnGjTcBGQUTwQ/ILCny2cpalJN50XVS5tFVB2qPjOs9EVVkso
-         STxQTGqKGhhUrMMXuhVrBOFOr3XTnUTRI+3pkxfvm3DRz6cpiiLfnc92J+dJak+1SBVM
-         UzmQONlhyBJ1WH0a3XT8dRxfoZ9SjKESB6tK4IGAmyoWdvgGbdTJkpAl/rVe88m7nRkS
-         hKDQ==
-X-Forwarded-Encrypted: i=1; AKwUvBw1mTTMXLJjIVY0qfUqmaQyb/e2HtFNxoglea2CN9e1XEF5c7+v5uWtpK+by+XpAbgfFoVtQw7TbpsoHQ==@lists.linux.dev
-X-Gm-Message-State: AFq9FYJrHqPqKroNVVm3gfTwSaj3b5uD4yc3sKqzpw/PcADniOYQcNf+
-	rSlxg8nKeKdymuDsyaffbiFLm+x5+b2NyAy2T/vMqL+x+q/0NMPzFUJZ
-X-Gm-Gg: AYBFou0EStzFHdjQYy5cpBrAEqEXRBSMi3JYLHuetgGibWB/Tfbc5+snDphNKao0eA5
-	ewlMcK+OFBaUnx+Su0CvdAsTSDCT3FBnOYvGjvs5Q6cmSVnuc/m9lxe/v3m5D/RjHacz0P12qvR
-	fdW+qhu4sDGVL/o3geYO8Y/haWfK7YGx/I3UTab5QCl/BK6v66Pxq+ImRqsP9JUVz+cQtp33ZZK
-	5EdQ5KEiTgkXm5jMRuf3W3kT2QSZRG+RGbz9jp38sx5ahYc1npPIIjIIqAJ/BwZgaAyKmlrs85U
-	iyESLa0nM5zKnoRXg7dSYnfpenuGvaF0h8wu2nRLwgSW0ZEULsivQpbnIMWndhsHG5qFWywI/hs
-	5ZuhU+cdCcXOr07krGgLJswsAIyFh13pZrzHN54RHpk7qYvh/bwGMLYeMiA6YvNsvJynBuDVwLw
-	8H4ck+Svyj3PFoYawyRZu7sRGKswckEFDjxbxBeqEluOpixfwfC8U2opP4Y37o8EHV2VRPuQF/D
-	TFEOVsSYH0uc/IoRgRaumZemxmKFRnYeHYZjffh7KnpTxJsTC0=
-X-Received: by 2002:a05:6a20:db8e:b0:3dd:85a9:55ab with SMTP id adf61e73a8af0-3e7cd52c0a5mr6393833637.36.1793026950156;
-        Mon, 26 Oct 2026 08:02:30 -0700 (PDT)
+        bh=eANz6TxlfIefza3dEAFXrv5EtYoHJKoB5jG0laNfxhM=;
+        b=mnWZ8dZrFFkHthizoFLwMt0n1d0r+nmvbmFVbQg57bWfmgZqSt0JT6rKbXRCGpXQ6M
+         hdMvR8ZUq4apG6rKPzYVC4qvymyfXneF1VNDFW7ouWA9MBm7pOeZl600JD+aTrFss7LR
+         floHwddb3xzRuDteDhC/bzfIMnhuh73jt/x7J6alvye1/NncCkwPZUvyjRJN/BRgUH8C
+         P+xrO2NMm+5GdWludrfDct8PQDCxMHdvshxMep1ikrk6dX2Qv/TbBptt/drqzW8IEcM1
+         2JVPnAoULAZga/65onpxMuA66RejO6wPgt7Z6iytwH23MkRqYC9KH/U0mOOuFXMY5kx/
+         ltsg==
+X-Forwarded-Encrypted: i=1; AKwUvByZsm28UZaqZKIAPs9byrApBbGioqSzhqMqpWeZ/1I6KYUxMlm6yfkfiNN4hqAmQmJ/NKD/Tn5WrlICJQ==@lists.linux.dev
+X-Gm-Message-State: AFq9FYKN6g1pdtb7jkt30iHBrEpPxVvvzAE0Ailvn+75/5IgcIlj8Bb9
+	DryOyWiPtqNSxvbOBQo/408pLUbd7bTlWGmM7O0s8pIkSdynHCbv3x73
+X-Gm-Gg: AYBFou21/AVBM6FPALfTDW/RRpjSshig0gPPllO1umv3nlFE3ufJ+j9gKrbd9nnU/JE
+	GOqZTpk16b1SExHGlQcpAde8/H8szovEbudc94inoGIKZL3W6F64lRfqJur9gQ172W/vCtmS2cj
+	2fDXARUCEhZOxMdnZoG1LlSMH8VKQu+0WorFR06v2m986Dm9N92DhCRLrD5pkfWUH607eTpr67S
+	TQc3z6ZOU3pV1aLJ/SGYuPBCutteZKnUuhhq2XqfnefszT+73+4seq3aT7n6RjUFbUEP9UrcSIS
+	pOBKUppquh7UCg/lQ8sMC19vPqBXnBpmrtiIV8wY1/yTqPHXdcs5tQn5qvfUc98CFb2mXrsGfT+
+	iVNUco5dKIDkghYmsGk/lKOFvPX6sEjRZupZU6/ibVRa6nSqweA+MBJWQvvDSxSsWO45rA77zZj
+	/7yWmHZaFb3tO8vBatNRpaJ7zkZuBv0IMYnUTEuJtwnaKZomMqtET0jcsv8a/W8TTIKCOnV2XPw
+	ffv9w2fhjhdnJial1D9tY8Do/KEcNL3C06sHT2bEwgOQkVAvBY=
+X-Received: by 2002:a17:902:db07:b0:2e5:a355:56d8 with SMTP id d9443c01a7336-2ea9c87704dmr79704695ad.42.1793069611711;
+        Mon, 26 Oct 2026 19:53:31 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8a36acadf0dsm1461671b3a.13.2026.10.26.08.02.25
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2eae6c8f24esm2216125ad.57.2026.10.26.19.53.28
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 26 Oct 2026 08:02:28 -0700 (PDT)
+        Mon, 26 Oct 2026 19:53:31 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
@@ -87,9 +87,9 @@ Cc: heming.zhao@suse.com,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com,
 	zzzccc427@gmail.com
-Subject: [PATCH] ocfs2: keep locking_state within the cluster connection lifetime
-Date: Mon, 26 Oct 2026 23:02:21 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0011-v6-14cf2458f4fc90780f76@gmail.com>
+Subject: [PATCH] ocfs2/cluster: cancel peer work synchronously on listener shutdown
+Date: Tue, 27 Oct 2026 10:53:24 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0090-v6-127847d463212a41b773@gmail.com>
 X-Mailer: git-send-email 2.34.1
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -102,140 +102,113 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The locking_state reader calls ocfs2_dlm_lvb() through the selected
-cluster stack. Its debug-object reference keeps the tracking list alive,
-but does not keep that stack selected without a cluster connection.
+Listener shutdown must cancel delayed peer work before destroying the
+o2net workqueue. destroy_workqueue() drains the work that is queued,
+but delayed work whose timer has not expired is invisible to it and is
+queued onto the freed workqueue when the timer fires.
 
-DLM initialization publishes the file before establishing its connection.
-On later mount failure, ocfs2_mount_volume() also disconnects before
-ocfs2_fill_super() removes the debugfs subtree:
+o2net_stop_listening() currently only disconnects peers that can still
+be found in the node table, and o2net_disconnect_node() cancels the
+delayed work without waiting for a running instance. Two paths leave
+armed timers behind.
 
-  Mount error unwind                  Debugfs reader
-  ------------------                  --------------
-  ocfs2_mount_volume(): out_dlm
-    disconnect last cluster
-      clear active_stack
-                                      read locking_state
-                                        ocfs2_dlm_seq_show()
-                                          ocfs2_dlm_lvb()
-                                            dereference active_stack
-  fill_super(): out_debugfs
-    remove debugfs subtree
+Node removal disconnects a peer before taking it out of the table. A
+heartbeat-up callback sees the persistent error and rearms the connect
+and expiry work in between, and the listener shutdown then skips the
+peer because it is no longer in the table:
 
-Publish the debug files only after the connection and mount lock resources
-are initialized. Failed DLM initialization then has no debug reference to
-drop. Remove locking_state in the mount error path before disconnecting,
-while its parent directory is still present. Keep normal unmount subtree
-removal separate; it can already run before DLM shutdown, so looking up a
-child from the common DLM shutdown helper would use a removed parent.
+  Peer removal                       Heartbeat / listener shutdown
+  ------------                       -----------------------------
+  disconnect peer; cancel work
+                                     heartbeat-up: rearm delayed work
+  remove peer from node table
+                                     stop listener
+                                       synchronize heartbeat callbacks
+                                       skip peer absent from node table
+                                       destroy o2net workqueue
+                                     delayed-work timer expires
+                                       queue on freed workqueue
 
-KASAN report as below:
+For a peer that is still in the table, o2net_connect_expired() may be
+running while o2net_disconnect_node() cancels: once the disconnect
+drops nn_lock, the expiry handler requeues itself and the connect work,
+and the flush does not wait for those timers either.
 
-    Oops: general protection fault, probably for non-canonical address 0xdffffc0000000001: 0000 [#1] SMP KASAN NOPTI
-    KASAN: null-ptr-deref in range [0x0000000000000008-0x000000000000000f]
-    CPU: 0 UID: 0 PID: 557 Comm: python3 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy) 
-    Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-    RIP: 0010:ocfs2_dlm_lvb+0x38/0xf0
-    Code: 89 fb e8 9b c5 b3 fe eb 5a e8 94 c5 b3 fe 48 8b 2d 8d e8 be 09 48 b8 00 00 00 00 00 fc ff df 48 8d 7d 08 48 89 fa 48 c1 ea 03 <80> 3c 02 00 0f 85 9d 00 00 00 48 b8 00 00 00 00 00 fc ff df 48 8b
-    RSP: 0018:ffff88810b12fa80 EFLAGS: 00010212
-    RAX: dffffc0000000000 RBX: ffff888116aca2c0 RCX: ffffffff82d2c4ec
-    RDX: 0000000000000001 RSI: 0000000000000000 RDI: 0000000000000008
-    RBP: 0000000000000000 R08: 0000000000000001 R09: 0000000000000001
-    R10: ffffffff8965795f R11: 0000000000000001 R12: 0000000000000000
-    R13: ffff888116aca3a8 R14: 0000000000000000 R15: ffff888116aca200
-    FS:  00007f7bfa66e780(0000) GS:ffff8881fd4da000(0000) knlGS:0000000000000000
-    CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-    CR2: 0000000000494c6d CR3: 0000000106c8a005 CR4: 0000000000770ef0
-    PKRU: 55555554
-    Call Trace:
-     <TASK>
-     ocfs2_dlm_seq_show+0x36a/0xb70
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? _raw_spin_unlock+0x23/0x40
-     seq_read_iter+0x480/0x1110
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_release+0xc8/0x290
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     seq_read+0x362/0x5a0
-     ? __pfx_seq_read+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? _copy_to_user+0x7b/0x90
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? selinux_file_permission+0x11d/0x540
-     full_proxy_read+0x11f/0x180
-     ? __pfx_full_proxy_read+0x10/0x10
-     vfs_read+0x1a0/0xc20
-     ? __pfx_vfs_read+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __do_sys_newfstat+0xa6/0x100
-     ? __pfx___mutex_unlock_slowpath+0x10/0x10
-     ? __pfx___do_sys_newfstat+0x10/0x10
-     ksys_read+0x111/0x200
-     ? __pfx_ksys_read+0x10/0x10
-     ? full_proxy_llseek+0x11e/0x170
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-    RIP: 0033:0x7f7bfa702687
-    Code: 48 89 fa 4c 89 df e8 58 b3 00 00 8b 93 08 03 00 00 59 5e 48 83 f8 fc 74 1a 5b c3 0f 1f 84 00 00 00 00 00 48 8b 44 24 10 0f 05 <5b> c3 0f 1f 80 00 00 00 00 83 e2 39 83 fa 08 75 de e8 23 ff ff ff
-    RSP: 002b:00007ffc0334de10 EFLAGS: 00000202 ORIG_RAX: 0000000000000000
-    RAX: ffffffffffffffda RBX: 00007f7bfa66e780 RCX: 00007f7bfa702687
-    RDX: 0000000000002000 RSI: 000000002b8dc700 RDI: 0000000000000003
-    RBP: 0000000000000000 R08: 0000000000000000 R09: 0000000000000000
-    R10: 0000000000000000 R11: 0000000000000202 R12: 00007f7bfa66e700
-    R13: 0000000000002000 R14: 00007f7bfa388500 R15: 0000000000a55b98
-     </TASK>
-    Modules linked in:
-    ---[ end trace 0000000000000000 ]---
+Cancel the connect-expiry, connect and still-up work synchronously for
+every peer slot after the disconnect. Expiry can queue connect work, so
+cancel it first. Heartbeat callbacks are already disabled and drained
+at this point, a removed peer cannot hold a socket container because
+that pins the configfs item, and connect work for a removed peer stops
+once its node lookup fails, so nothing rearms after the cancellations.
 
-Fixes: 286eaa95c5c5 ("ocfs2: Break out stackglue into modules.")
+KASAN report, only the relevant frames are kept:
+
+BUG: KASAN: slab-use-after-free in __queue_work+0x1189/0x1600
+Read of size 4 at addr ffff8881169069c0 by task swapper/2/0
+
+Call Trace:
+ <IRQ>
+ __queue_work+0x1189/0x1600
+ call_timer_fn+0x176/0x540
+ </IRQ>
+
+Allocated by task 486:
+ __kmalloc_noprof+0x2de/0x780
+ __alloc_workqueue+0x61/0x17a0
+ alloc_workqueue_noprof+0xcc/0x130
+ o2net_start_listening+0x139/0x7c0
+ o2nm_node_local_store+0x4c0/0x810
+ configfs_write_iter+0x2f9/0x4f0
+ vfs_write+0x639/0x1010
+ ksys_write+0x111/0x200
+
+Freed by task 485:
+ kfree+0x308/0x580
+ rcu_core+0x6be/0x1ed0
+
+Last potentially related work creation:
+ __call_rcu_common.constprop.0+0x80/0x280
+ pwq_release_workfn+0x740/0xe10
+
+The buggy address belongs to the object at ffff888116906800
+ which belongs to the cache kmalloc-1k of size 1024
+The buggy address is located 448 bytes inside of
+ freed 1024-byte region [ffff888116906800, ffff888116906c00)
+
+Fixes: 98211489d414 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
 Cc: stable@vger.kernel.org
 Assisted-by: LLM
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
-
 ---
- fs/ocfs2/dlmglue.c | 5 ++---
- fs/ocfs2/super.c   | 2 ++
- 2 files changed, 4 insertions(+), 3 deletions(-)
+ fs/ocfs2/cluster/tcp.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
 
-diff --git a/fs/ocfs2/dlmglue.c b/fs/ocfs2/dlmglue.c
-index 88d946466083..3660da6e4e24 100644
---- a/fs/ocfs2/dlmglue.c
-+++ b/fs/ocfs2/dlmglue.c
-@@ -3370,8 +3370,6 @@ int ocfs2_dlm_init(struct ocfs2_super *osb)
- 		goto local;
+diff --git a/fs/ocfs2/cluster/tcp.c b/fs/ocfs2/cluster/tcp.c
+index 8b3830b601ba..b0cafda827bc 100644
+--- a/fs/ocfs2/cluster/tcp.c
++++ b/fs/ocfs2/cluster/tcp.c
+@@ -2200,10 +2200,24 @@ void o2net_stop_listening(struct o2nm_node *node)
+ 
+ 	for (i = 0; i < ARRAY_SIZE(o2net_nodes); i++) {
+ 		struct o2nm_node *node = o2nm_get_node_by_num(i);
++		struct o2net_node *nn = o2net_nn_from_num(i);
++
+ 		if (node) {
+ 			o2net_disconnect_node(node);
+ 			o2nm_node_put(node);
+ 		}
++
++		/*
++		 * Delayed work can be rearmed after a disconnect: a heartbeat
++		 * callback requeues it for a node that was disconnected but
++		 * not yet removed, and a running expiry handler requeues
++		 * itself and the connect work. Work waiting on its timer is
++		 * invisible to the flush below, so cancel it synchronously.
++		 * Expiry can queue connect work, so cancel it first.
++		 */
++		cancel_delayed_work_sync(&nn->nn_connect_expired);
++		cancel_delayed_work_sync(&nn->nn_connect_work);
++		cancel_delayed_work_sync(&nn->nn_still_up);
  	}
  
--	ocfs2_dlm_init_debug(osb);
--
- 	/* launch downconvert thread */
- 	osb->dc_task = kthread_run(ocfs2_downconvert_thread, osb, "ocfs2dc-%s",
- 			osb->uuid_str);
-@@ -3411,9 +3409,10 @@ local:
- 	ocfs2_orphan_scan_lock_res_init(&osb->osb_orphan_scan.os_lockres, osb);
- 
- 	osb->cconn = conn;
-+	if (conn)
-+		ocfs2_dlm_init_debug(osb);
- bail:
- 	if (status < 0) {
--		ocfs2_dlm_shutdown_debug(osb);
- 		if (osb->dc_task)
- 			kthread_stop(osb->dc_task);
- 	}
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0af2245ae303..fef666a3a8d3 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1795,6 +1795,8 @@ out_system_inodes:
- out_super_lock:
- 	ocfs2_super_unlock(osb, 1);
- out_dlm:
-+	/* Drain readers before the mount-error path releases the stack. */
-+	debugfs_lookup_and_remove("locking_state", osb->osb_debug_root);
- 	ocfs2_dlm_shutdown(osb, 0);
- out:
- 	return status;
--- 
-2.43.0
-
+ 	/* finish all work and tear down the work queue */
