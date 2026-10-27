@@ -1,82 +1,81 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.44
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.46
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793081373;
-	b=0PeVxANMC34XR6Y6F3XM1tAlmd9GOmYrqwcQJeRokzbDMkaQ2G9Dv1fEy9R68RrT5yex
-	 p23w1MFS7EanQDnPBacAMOqGHpIDOW4PikPowzCh3JqG13T0Kf8bSSVhR5nXWN5l24ORD
-	 6B5UFwGFCUM0ZCExx+CJ0Kc5bUzsoouubEbqRQTF6CTAyo/A57XZhKEtbpwew71tV4eSb
-	 f+xy0YoiYlDYrBKu5v9SN56ci+Q9lruHuXQ4gslNYLOBMJAesWD1ayTXEShK4uoRa0HPC
-	 PDD99H54B5uKLy34mJcaM1tNLLkAX+1HzMPzI+6auZYMjnI3+NqaA25eYPujZGKhJrw==
+	t=1793096099;
+	b=N8p7FBbDTDczsVkMEn7a9zfY4LneMFFIBOxnSa0eAJnUwu8RhDmjHX8lrmMse7S/ZlV/
+	 i7lU5o5NTEzlERmjyiEW0yLkN4nI5JcK5/BMHDTUGX1vUU7HWuG7mmYqAd6IcUala+FjN
+	 p8lPTTNuNlOvpX3pU6Vdxz2C8EX8U+2uQ1RBBZcJfYsCKdvHDiWJgOiKy/dVYwsomziUx
+	 m953c2v1YoyxuFH8vxJr6jsh8kYE5lvSqEtDrH7lytRQQom3YhBL/tOIC7ROL0Zh01Av+
+	 YvQGBBoECn7gvUMmSlO7wYIRs1uTxcGwUggNNe+O1pvn7swr505cKNUNpcfHwlCOQAw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793081373;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793096099;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=fB6Whtak24taZDZv6ZtTz72XfGauaIchm99YUmKfUiw=;
-	b=TAKirdJ62cqcR2Sr1OyNe/FI8X0GaVjViYHiG3MleAIaNFPTuRr4AfJgWDnjrhS/0kgA
-	 HS+KXM2WRU7ay2B4Tz11gc92i/d980wfCxGMAUC5HnVV3fKfsz1GIe1AK2j5N2G/AcbBl
-	 2+qIfhisPl9luYQwF9HHCPdbmndN3k4hnIYiB+vsd+q9yuxhmLiQpWXDVws3GfxTlI33I
-	 fgw/tR33NphnK5+ixTWfLxsYoPET+vbCuVsFEuh9JQM62+URJzjeTV3Y5EDNwsxuw9CP5
-	 9I0zTUdXz6MXQNSlyNRXlipylSc73VPlQOxTX3dnDkyClmgf8lQ3LiU0qgusLIWEeZg==
+	bh=kXnEM/aIQaVbmZP7KIZddh/r+yaXnXz850o6sIwpdkQ=;
+	b=fzPlXyioSePZdS48LCBxO2FTnkgrfZox6J8CVEfe+tziG/zGaiqiV+6B2haXlTmqy/2T
+	 sUox/XD4uMJhnD3jdM3tbXGWt6SiatM9EWg3bgS9df5Jj0mIxZtjn/VTLsZUV7F3iTiKw
+	 FwbBliMQi/ayG4hQkQClS43ziBshScuQoLeY5brZN77+uoyGIBjgdl3NkVGCstnHPdVjk
+	 tNmoXkwNHauAile+av+V5TWm6xtMtrZncokrmSkOodT8bQ34c8XLZ7QzrQyWHieycgtfg
+	 L23PHfGdZfiQ87Eo/RyBcDZ2qjjvLKS6V4u89FgoovYU1lmHxMONIdTVo8z7EE/9+Hw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=hahAfBza;
-	arc=none smtp.remote-ip=209.85.216.44
-Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com [209.85.216.44])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=px7sPsn2;
+	arc=none smtp.remote-ip=209.85.216.46
+Received: from mail-pj1-f46.google.com (mail-pj1-f46.google.com [209.85.216.46])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AB62C606A31A
-	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Oct 2026 06:09:32 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org AB62C606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id BECEE606A31A
+	for <ocfs2-devel@lists.linux.dev>; Tue, 27 Oct 2026 10:14:58 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org BECEE606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=hahAfBza
-Received: by mail-pj1-f44.google.com with SMTP id 98e67ed59e1d1-3ad787e0593so1610089a91.3
-        for <ocfs2-devel@lists.linux.dev>; Mon, 26 Oct 2026 23:09:32 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20251104 header.b=px7sPsn2
+Received: by mail-pj1-f46.google.com with SMTP id 98e67ed59e1d1-3ae1d0caaedso755156a91.2
+        for <ocfs2-devel@lists.linux.dev>; Tue, 27 Oct 2026 03:14:58 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20251104; t=1793081372; x=1793686172; darn=lists.linux.dev;
+        d=gmail.com; s=20251104; t=1793096098; x=1793700898; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=fB6Whtak24taZDZv6ZtTz72XfGauaIchm99YUmKfUiw=;
-        b=hahAfBzalbZDs6OccELZLxiSB6AKjJtWIzTfQtEtJDylcyWHnRRwQCrdfFnTwpP0zk
-         I6OHU60fVOPQvsjZphco98TEiVI22BmXD1AFFi3AXSYQyy/MGCw8TG9Bpd2uoZPyBtcb
-         /aWKKg0B9w72ihY8smMhHXie4t3jDuxVVniGj1GGI50D3VwhV4S3hJx+l+wMDuYXeBqj
-         zWRQsE4wEe86n9/2eDYKyQyotK2Vo7RU/h9OjIP3K76ARNS1hWfYBW+BTkz7Fk0D3P/n
-         JMHTVYFbHlz8m7b/2Ky/VRlfYwxzUszQ+rfa7Af7aKnjWnKNW08qVduqLBjFLNrPZ564
-         vEJA==
+        bh=kXnEM/aIQaVbmZP7KIZddh/r+yaXnXz850o6sIwpdkQ=;
+        b=px7sPsn2xkB76er8I6yp29mH9DdAk53uTq0VEBXtXm++jmY6XRPQv1U9VtewOIfnzw
+         57iDIcEJbQ/2Bx88rSP7GPnmpDP2fysdK0e32Bt1pLxsaK14XgozL7Lkk4bEMp92R8k2
+         LSEIdvl8Td3CJqHtxfDWtbqqms/VQrJm0NgClrtiL/2/FtFgHM1A2NawXSCigFfS132P
+         BzYs6cBilMrOoxtt4Z+Bn5/qx7FfVWAp8cazzdqWt68f8uJ7B0/K++y4+IySIUSr1o/H
+         XYFvuS6ylC3yIhO1Tdz1ja6ao1pFJIi9bJOy8CT1QtwRcPjHasTtNYnnYfyyLr2jX5i3
+         vyzg==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793081372; x=1793686172;
+        d=1e100.net; s=20260707; t=1793096098; x=1793700898;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=fB6Whtak24taZDZv6ZtTz72XfGauaIchm99YUmKfUiw=;
-        b=feO/4XUaipQwdYC/ffr+ouypR7hPS9yhWHBRvJ065OLvShSRop8pvYAvvkAYYBhH9T
-         ZJeeTTCI5KwolGg+wX4dQHHMpEtA4iIJksjm0WV73WW8VG/9kNWToCp60je7cuVBXzge
-         4ZutdqoTKzIiSOTMxxo0F1aUxh8GrkUbYRSkypErQbbHEjBA2JMY/zFPWD+qwXIX35sO
-         ZgPZNzVhSl+IaBaQTDnwCbMSfHBF3xxkMFbemh7CBLZnGpNw4vLYlWSTguHcsRcVxtC8
-         dZ5KWBTFPnQNUIDG5VOOHjP3sQVFJgaPOuD6E13dEshGNXmk059UoESnAghFcIu1SO3v
-         wL4A==
-X-Forwarded-Encrypted: i=1; AKwUvBx1kNogaj3jy6ZyGRSOG7cpcBDuMEzvkvquvjvIeI7hRZeXU2RgLss5vVft8+mRgj8UTaJhWDKWun4UZw==@lists.linux.dev
-X-Gm-Message-State: AFq9FYK7tsFem9usavC9ZBNX9nMOq3wYbX1d8jqeTXZ7luizCSJZEubh
-	CjJpHHQoievW9tXUF9UKQPr5+Kd9K4MLFtLLZKfM48YpGGgCqrcrUnM1RM8gkDo1VnAMNg==
-X-Gm-Gg: AYBFou0C4kIrTAZIxC1atp4P8suPzNMz52ojJ2a1Bs5UwXm4DuGl5+QyWRf0J81rRxZ
-	ABrTLnOmXmJmZ27v7sR6xemHW5VnOKsaWm+6h0eaQ39eHf9pp+xfmSfumd9W1ZQABJU6mg9jVHB
-	La2e7z0ZXzuwtxSpvaPlm6vV2/UzR2plG2f55xZO2NvCGIYUrvFB0Zec67JoLuzhc5C/Y/r0qzP
-	NCJlDaLLP1kuzBrFwJu5VUZS5vruxQBneVhrdSHYqh61TGizvHG0U2XBqNZ/NuN6az2gns39G35
-	KE61unDEYjz3M5NqY598yp0IJ9Gd0qiycQWq4d555MgfAFWjR/IITZMs6DCbCBvK0pRkUMn8i45
-	0sNuWGhVR0KnPShxBZFCS5varONcEwvrhrsoUlGnM7sgGGZLt+yt3PepW2kMZTDnI2zOhKrnAYF
-	VaRf2Jd+/AA6UFzJtcHXEGil3u49Y4Wv2cWrDsvTvO3HacOXfKk1jhdPtFyg0q8S7LQbJAPnuRY
-	WoqtYe9Gt/HmDgOYrG0yi2lBxns5o05+VbHcvGeP0amZPBehQTetN1WIAPjC35uuDzp7gUOGPlx
-	fYwhlof/j2LKWGFVQhSPU/Es96wKEDkcDmWFgjonWswHMg==
-X-Received: by 2002:a17:90b:1d09:b0:3ac:8dfe:8ec9 with SMTP id 98e67ed59e1d1-3adeb0fbe41mr6633907a91.47.1793081371921;
-        Mon, 26 Oct 2026 23:09:31 -0700 (PDT)
+        bh=kXnEM/aIQaVbmZP7KIZddh/r+yaXnXz850o6sIwpdkQ=;
+        b=UJuJtszREZIYfCFoaNdKIhuBVKHX7MCeLStKjZse1XmCoEtkVL5CMuR0IP8HCwzwJ9
+         WVh1IA+QZRxCTSNbDkqDZsEmn23y2MNk7fofXBlycw1hQFA7o2csTm5xUitWd0s3TQES
+         UEkPJFVNireKuiDBZWkS9YX+K6AatztfWPdS6Unq76/kvG2ZXrvsCB61B643bN0M7awo
+         v9U4s1J+7BVzpgdkZPF9GYazMYQiFHgAyJ8rsnKgX337OMJ5SdqQ+xpu0boRbEaWNghf
+         ddxs/6H6feyqd9zhK74DaFMBdC2mZJ341MSHI0XAAICzU355UBwLSm6AyQAE8UB1o0yh
+         F/9w==
+X-Forwarded-Encrypted: i=1; AKwUvBxcCRRFCvHEu2GD0iz7mBCFSbMZT6EbP2R/i1YMtWf3Rw88udwHWbTsPqk9gZwnotTgYEpgggrcKobz5A==@lists.linux.dev
+X-Gm-Message-State: AFq9FYLnsq2SdAnOvJqzZosqlvucsImHbjZSTMDGOAldhmgFmMEhGJkx
+	bUPEachXLQjrkGixdd0cmDtAzVNEsuMznxjoaeJnstjcSTAXT+cnGZHe
+X-Gm-Gg: AYBFou0w0uaUCVxteH/QA4X5A/+Y5B5k+VVUnLv6i7WWvKSR+pFcODewTvjzIr8hzxz
+	7Z5Aboh2K88nnekwvm45l5g+GUQQLuey0VbCTmTQNt2IfZXAH7X7MDmToizkZvIbSRMyL4gSwbZ
+	uGTDh0/IIk3KCiAC/IjNWtwrPObzfNBfbcoSLafavQZ5dMxTW/4h27yDi1qMaTKfLNZHbGj6Azk
+	WeISGs5MEfPypCFz0fWsmEfCB1jNLejpffQpTubq6i+JHaxHT99ksrbigkcHyyNEE5qBp3r2zni
+	Kryoxl4yp3bW1iFWkViWtJ2A4oSxVks8SaCoOp7dzJAXTepUbWljzXUtvBA72au3/K0j48Owymn
+	ksMP7ublVBh+iGYpCiN9q2sVw9EPJziKKLyz04lyc/HZ0XOU9ILpzFtVJAOBa119sqGlBIKWZCu
+	BnyiI+i173HehX0/1ceY1Ap7UA5jnarXGe6K7OJORwjmq8KwOAB2YYxPk/SvPyBNRoUNeKMRbuA
+	isBZqMq+v0VHkZEA7Q3e36CHgozkEv6Y58hvtCkULLkB8GNhoU=
+X-Received: by 2002:a17:90b:2e8c:b0:3ac:8897:7b9f with SMTP id 98e67ed59e1d1-3adeae77a16mr7444135a91.43.1793096097910;
+        Tue, 27 Oct 2026 03:14:57 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ae4041fafcsm2798694a91.0.2026.10.26.23.09.27
+        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ae404274b2sm3188284a91.5.2026.10.27.03.14.54
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Mon, 26 Oct 2026 23:09:31 -0700 (PDT)
+        Tue, 27 Oct 2026 03:14:57 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
@@ -88,9 +87,9 @@ Cc: heming.zhao@suse.com,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com,
 	zzzccc427@gmail.com
-Subject: [PATCH v3] ocfs2/dlm: serialize migration MLE cleanup on failure
-Date: Tue, 27 Oct 2026 14:09:23 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0038-v7-7a0bd8f07ba98784f6b7@gmail.com>
+Subject: [PATCH v4] ocfs2/dlm: serialize migration MLE cleanup on failure
+Date: Tue, 27 Oct 2026 18:14:49 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0038-v9-659f247ea980d5f3fbeb@gmail.com>
 X-Mailer: git-send-email 2.34.1
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -109,9 +108,10 @@ consumes the base reference, but migration failure drops it again
 without checking whether the assertion already consumed it.
 
 The target queues its migration worker before it acknowledges the
-ALL_DONE packet, so its finishing assertion can arrive while the sender
-still waits for the status, or after dlm_send_one_lockres() has
-returned a connection error for that very packet:
+ALL_DONE packet, so its finishing assertion can be handled while the
+sender still waits for the status. If the connection fails before the
+status arrives, dlm_send_one_lockres() returns an error for a migration
+that the target has already completed:
 
   Old-master sender                  Finishing assertion
   -----------------                  -------------------
@@ -131,38 +131,33 @@ assertion consumed the base reference, so drop only the sender's in-use
 reference. Otherwise unlink it before consuming the base reference so a
 later assertion no longer finds it.
 
-An assertion that got there first has also made the target the owner.
-Treating the attempt as failed at that point would leave the lockres
-owned by the target while this node still holds the other nodes' locks
-and refmap bits, so it could neither be purged nor migrated again, and
-recovery of the target would send those locks to its recovery master.
-The same half handed-over state exists for a moment in the normal
-completion, where the handler switches the owner and the sender drops
-the locks later under a second spinlock section.
-
-Hand the lockres over in one res->spinlock section instead: the handler
-drops the other nodes' locks and refmap bits together with the owner
-switch, and the sender only does the same if the handler has not reached
-that point yet. Recovery takes res->spinlock before it looks at the
-owner, so it sees either the old master with every lock or the new
-master with only our own locks. An attempt that failed after the
-assertion then has nothing left to do but recalculate the usage.
-
-Ignore a finishing assertion from a node that is no longer in the domain
-map. Recovery has already cleaned the lockres up with this node as the
-owner, and the sender fails the attempt once it sees the death; handing
-the lockres over to a dead node would leave it unowned forever.
-
-For a send that failed with a connection error, wait for the target to
-die before deciding, while the MLE is still published. The target may
-have received the packet and may still assert; an assertion that finds
-no MLE for a lockres we still own is fatal in the handler. The wait is
-bounded as before, and an assertion that arrives even later meets that
-check as it did before this change.
+An assertion that got there first has also made the target the owner
+and cleared DLM_LOCK_RES_MIGRATING. Treating the attempt as failed at
+that point would leave the lockres owned by the target while this node
+still holds the other nodes' locks and refmap bits, so it could neither
+be purged nor migrated again. Finish our side as a completed migration
+does instead: drop those locks under res->spinlock if the target still
+owns the lockres, and recalculate its usage.
 
 Use the same cleanup for the pre-send failure, the send failure and the
 target-death failure paths. The sender's in-use reference keeps the MLE
-alive until its final put outside the nested locks.
+alive until its final put outside the nested locks. Successful
+migration retains its existing in-use-only put.
+
+A target that has died cannot assert after the sender has seen its
+death. The o2net node-down callback runs before the DLM one; it
+disconnects the node and flushes the workqueue that runs the message
+handlers, so an assertion already received has been handled by the time
+the DLM removes the node from the domain map. A node that leaves the
+domain cleanly sends its exit message only after its assertions have
+been answered.
+
+Two windows of the hand-over itself are left as they are: the handler
+switches the owner and the sender drops the other nodes' locks moments
+later, and an assertion from a live target that arrives after the
+sender has given up still meets the owner check in the handler. Waiting
+for the target before giving up would only stretch the first window
+into the time in which recovery of the target can observe it.
 
 KASAN report, only the relevant frames are kept:
 
@@ -217,6 +212,21 @@ Cc: stable@vger.kernel.org
 Assisted-by: LLM
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 ---
+Changes in v4:
+- Drop the v3 hand-over in dlm_assert_master_handler(): removing the other
+  nodes' locks there races with dlm_send_one_lockres() still walking the
+  lock lists when the last message was sent from inside the loop. The sender
+  drops the locks as before, right away when the assertion got there first
+  (Sashiko review).
+- Drop the v2 wait for the target's death before the MLE is dropped; it
+  stretched the half handed-over window that recovery of the target can
+  observe. The failure paths decide right away as before (Sashiko review).
+- Drop the v3 domain map check on finishing assertions. The o2net node-down
+  callback runs before the DLM one and flushes the message handlers, so an
+  assertion from the target is always handled before the node leaves the
+  domain map and the late assertion from a dead target asked about in the
+  Sashiko review cannot occur.
+
 Changes in v3:
 - Hand the lockres over in one res->spinlock section:
   dlm_assert_master_handler() drops the other nodes' locks and refmap bits
@@ -239,50 +249,16 @@ Changes in v2:
 
 Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0038-v5-5e414ac0c701d2ccd4b3@gmail.com
 Link to v2: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0038-v6-44416f9847751914bacc@gmail.com
+Link to v3: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0038-v7-7a0bd8f07ba98784f6b7@gmail.com
 
- fs/ocfs2/dlm/dlmmaster.c | 98 +++++++++++++++++++++++++++++++++-------
- 1 file changed, 82 insertions(+), 16 deletions(-)
+ fs/ocfs2/dlm/dlmmaster.c | 70 ++++++++++++++++++++++++++++++++++------
+ 1 file changed, 61 insertions(+), 9 deletions(-)
 
 diff --git a/fs/ocfs2/dlm/dlmmaster.c b/fs/ocfs2/dlm/dlmmaster.c
-index 612969867ff9..94ebae4a450a 100644
+index 612969867ff9..ea48c013f7fb 100644
 --- a/fs/ocfs2/dlm/dlmmaster.c
 +++ b/fs/ocfs2/dlm/dlmmaster.c
-@@ -1823,6 +1823,20 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
- 				spin_unlock(&dlm->master_lock);
- 				spin_unlock(&dlm->spinlock);
- 				goto done;
-+			} else if (!test_bit(assert->node_idx, dlm->domain_map)) {
-+				/*
-+				 * The target died after sending this. Recovery
-+				 * has cleaned the lockres up with us as the
-+				 * owner and the sender fails the attempt once
-+				 * it sees the death; do not hand the lockres
-+				 * over to a dead node.
-+				 */
-+				mlog(0, "%s:%.*s: finishing assert from dead node %u, ignoring\n",
-+				     dlm->name, namelen, name, assert->node_idx);
-+				__dlm_put_mle(mle);
-+				spin_unlock(&dlm->master_lock);
-+				spin_unlock(&dlm->spinlock);
-+				goto done;
- 			}
- 		}
- 	}
-@@ -1924,6 +1938,13 @@ int dlm_assert_master_handler(struct o2net_msg *msg, u32 len, void *data,
- 				wake = 1;
- 				dlm_change_lockres_owner(dlm, res, mle->new_master);
- 				BUG_ON(res->state & DLM_LOCK_RES_DIRTY);
-+				/*
-+				 * Hand the lockres over completely while the
-+				 * spinlock is held: recovery must never find
-+				 * the other nodes' locks or refmap bits on a
-+				 * lockres that the target owns.
-+				 */
-+				dlm_remove_nonlocal_locks(dlm, res);
- 			} else {
- 				dlm_change_lockres_owner(dlm, res, mle->master);
- 			}
-@@ -2525,6 +2546,34 @@ static int dlm_is_lockres_migratable(struct dlm_ctxt *dlm,
+@@ -2525,6 +2525,52 @@ static int dlm_is_lockres_migratable(struct dlm_ctxt *dlm,
   */
  
  
@@ -291,8 +267,8 @@ index 612969867ff9..94ebae4a450a 100644
 + * failed. The finishing assert from the target may already have unlinked
 + * the MLE and consumed its base reference; decide under the locks the
 + * assert handler holds, and only drop the base reference while the MLE is
-+ * still hashed. Returns true when the assert got there first: it has handed
-+ * the lockres over to the target, so the attempt must not count as failed.
++ * still hashed. Returns true when the assert got there first: the target
++ * has become the master, so the caller must complete the migration.
 + */
 +static bool dlm_put_migration_mle(struct dlm_ctxt *dlm,
 +				  struct dlm_master_list_entry *mle)
@@ -314,10 +290,28 @@ index 612969867ff9..94ebae4a450a 100644
 +	return asserted;
 +}
 +
++/*
++ * The finishing assert got there first: it switched the owner to the
++ * target and cleared DLM_LOCK_RES_MIGRATING. Drop the other nodes' locks
++ * as a completed migration does, unless recovery has taken the lockres
++ * over since, and let the usage be recalculated.
++ */
++static void dlm_migrate_lockres_asserted(struct dlm_ctxt *dlm,
++					 struct dlm_lock_resource *res,
++					 u8 target)
++{
++	spin_lock(&res->spinlock);
++	if (res->owner == target)
++		dlm_remove_nonlocal_locks(dlm, res);
++	spin_unlock(&res->spinlock);
++
++	dlm_lockres_calc_usage(dlm, res);
++}
++
  static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
  			       struct dlm_lock_resource *res, u8 target)
  {
-@@ -2609,9 +2658,10 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+@@ -2609,9 +2655,10 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
  
  	if (ret < 0) {
  		if (mle_added) {
@@ -325,45 +319,28 @@ index 612969867ff9..94ebae4a450a 100644
 -			dlm_put_mle(mle);
 -			dlm_put_mle_inuse(mle);
 +			if (dlm_put_migration_mle(dlm, mle)) {
-+				dlm_lockres_calc_usage(dlm, res);
++				dlm_migrate_lockres_asserted(dlm, res, target);
 +				ret = 0;
 +			}
  		} else if (mle) {
  			kmem_cache_free(dlm_mle_cache, mle);
  			mle = NULL;
-@@ -2639,17 +2689,25 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
- 	if (ret < 0) {
+@@ -2640,9 +2687,11 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
  		mlog(0, "migration to node %u failed with %d\n",
  		     target, ret);
-+		/*
-+		 * The target may still have received everything and may
-+		 * finish the migration. Give it the chance to assert, or
-+		 * to die, while the MLE is still published, so that a late
-+		 * assert finds the MLE instead of a lockres we still own.
-+		 */
-+		if (dlm_is_host_down(ret))
-+			dlm_wait_for_node_death(dlm, target,
-+						DLM_NODE_DEATH_WAIT_MAX);
  		/* migration failed, detach and clean up mle */
 -		dlm_mle_detach_hb_events(dlm, mle);
 -		dlm_put_mle(mle);
 -		dlm_put_mle_inuse(mle);
 +		if (dlm_put_migration_mle(dlm, mle)) {
-+			dlm_lockres_calc_usage(dlm, res);
++			dlm_migrate_lockres_asserted(dlm, res, target);
 +			ret = 0;
 +			goto leave;
 +		}
  		spin_lock(&res->spinlock);
  		res->state &= ~DLM_LOCK_RES_MIGRATING;
  		wake = 1;
- 		spin_unlock(&res->spinlock);
--		if (dlm_is_host_down(ret))
--			dlm_wait_for_node_death(dlm, target,
--						DLM_NODE_DEATH_WAIT_MAX);
- 		goto leave;
- 	}
- 
-@@ -2686,9 +2744,11 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
+@@ -2686,9 +2735,12 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
  				     res->lockname.name, target);
  				ret = -EINVAL;
  				/* migration failed, detach and clean up mle */
@@ -371,32 +348,11 @@ index 612969867ff9..94ebae4a450a 100644
 -				dlm_put_mle(mle);
 -				dlm_put_mle_inuse(mle);
 +				if (dlm_put_migration_mle(dlm, mle)) {
-+					dlm_lockres_calc_usage(dlm, res);
++					dlm_migrate_lockres_asserted(dlm, res,
++								     target);
 +					ret = 0;
 +					goto leave;
 +				}
  				spin_lock(&res->spinlock);
  				res->state &= ~DLM_LOCK_RES_MIGRATING;
  				wake = 1;
-@@ -2700,11 +2760,17 @@ static int dlm_migrate_lockres(struct dlm_ctxt *dlm,
- 			     dlm->name, res->lockname.len, res->lockname.name);
- 	}
- 
--	/* all done, set the owner, clear the flag */
-+	/*
-+	 * All done. The finishing assert hands the lockres over under
-+	 * res->spinlock; if it has not reached that point yet, do it here
-+	 * in the same way, so the lockres is never left half handed over.
-+	 */
- 	spin_lock(&res->spinlock);
--	dlm_set_lockres_owner(dlm, res, target);
--	res->state &= ~DLM_LOCK_RES_MIGRATING;
--	dlm_remove_nonlocal_locks(dlm, res);
-+	if (res->state & DLM_LOCK_RES_MIGRATING) {
-+		dlm_set_lockres_owner(dlm, res, target);
-+		res->state &= ~DLM_LOCK_RES_MIGRATING;
-+		dlm_remove_nonlocal_locks(dlm, res);
-+	}
- 	spin_unlock(&res->spinlock);
- 	wake_up(&res->wq);
- 
