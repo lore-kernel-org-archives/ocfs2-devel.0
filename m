@@ -1,60 +1,62 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=220.197.31.5
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=220.197.31.2
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793163774;
-	b=qUYvMvW+pSJ+zfg52V/TgaS1el7YOBbdiol3/sr69fduomxHIvCwIh8NpoAvBlRss6gb
-	 pJmloDUGLwzR7+xZ4sm6P+ipqf4HYNZEk/mHNJx2kMfzLcK230KI9SypWq6HDZpaddzf9
-	 tEfHLxNz3TgPA8rzJyQBLjxxwTw8y9Xwn9ELnRZcbONV/gRTBbGhq5c7DScGbWw4GNffn
-	 UoFe/DudXiN+BZxfF/oJfW1nzLaGZTySvZHny+XXEISvOZnu8gLUCZ0dWoNhLf45NmhO9
-	 TQ9S9Jm7B5/MUAELp2oreU6DdN/Ezo6Pbd6L+ONfNeZocFWIPiOltBZIpheJLjcImAQ==
+	t=1793174315;
+	b=M+1niSxetgplJZeInKxDEg+9OJImAxtTXvRkvPW4wf6dcX3J2LwQDt3JEd+Uk1SE3AlY
+	 87BHXdPEQ5uDjNahNi571BV2z+ejm67GhMPN/U8MEHXR0AnLPFG/BBxOcTD8my7eR923x
+	 34Uv4xKmLblJJ8+SyyO3f+vfY15aHlU9yWu6bNZofXqviRKzKIlgquKvt9W6QQgz2nBvy
+	 d+KlH8siybw3RIebtm69c9UmlKqnC9fPCSSXtSBRFMS9OePRHlNeVI4JH/mf+cGo+HEHi
+	 wO5aLMCIOfYmm8CQjzcP0801N3k6jIzITh9YiqrvwQ1+xWS+0YawQMMam0Mq0e0v0FQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793163774;
-	h=DMARC-Filter:DKIM-Signature:Received:From:To:Cc:Subject:Date:
-	 Message-Id:X-Mailer:MIME-Version:Content-Transfer-Encoding:
-	 X-CM-TRANSID:X-Coremail-Antispam:X-CM-SenderInfo;
-	bh=Rr2WJEdTQgGpHBcJecdClBEvFz4TlW63veoXIe5tkYM=;
-	b=WNdv0TMpevdqTMFo1ZNBEyZxoz+3FlN5ZyshxU4FqUQAO62j0Ra0ldw1WMds3kcmxJqz
-	 NHwKUKpJB0eslWWTGpzZKH7HmsbzfYTp1ikblLonM1Mvt3dTlWaX2WrCp5fKuwiMMYPpo
-	 //raG5Tr1NRpofJetfaeoOHlKWQVaBkckYFrcZliur8TjVE8l2TQ7j87kVCiu8NGbXakf
-	 egzk88pNpvfg0Fp/wlNn33xoStiHBjE1IgIbRihX7ePf3Oo1lkZhPaLPF/YW25zlZy8gS
-	 QsOYmU5T4RDTTf+iChduP4xhlMJ/rCQjzZYbnBYCmZsvrpn+q6gWb+MTlscVR9NSumg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793174315;
+	h=DMARC-Filter:DKIM-Signature:Date:From:To:Cc:Subject:X-Priority:
+	 X-Mailer:In-Reply-To:References:X-NTES-SC:Content-Transfer-Encoding:
+	 Content-Type:MIME-Version:Message-ID:X-Coremail-Locale:X-CM-TRANSID:
+	 X-CM-SenderInfo:X-Coremail-Antispam;
+	bh=pfvOzJiKiMTkA3fPMLFus5H6cgFa0Z/8HwHoWTyu4R0=;
+	b=ugOmyV581KQj6mDwkIa3yr5hZNHb5KALI+NbHFj405R/t9kVRG2E1l7hCNltLiFQnkrr
+	 WFT21bPHKLb5NlvvvH6nt6psLnPQDGPD3ZnlcP/0hhk65Dtrv7lNuwOy5ZzzTSEmYBa1F
+	 Ci+s/s+8kHP4OmteoeUImEnBkJhH7sjRIztPPlQH7G4TxIMB1F2n87JXSt2vPNMo3WhAi
+	 UCgERacl5e4ONvSTf7/hUws2WDOGS+mMH8P5VVonuahIG66GdJmX0iV2J4+1FnOW/V/TV
+	 CMhGklHRL6EzE3b/wN6i8WjONLSNcG1lA+IBkb3vnqHX7ClXcx0+Cv06i6sEyBMi3gA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=163.com;
 	spf=pass smtp.mailfrom=163.com;
-	dkim=pass header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=pnl+6fb3;
-	arc=none smtp.remote-ip=220.197.31.5
-Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
+	dkim=pass header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=br5gLx4F;
+	arc=none smtp.remote-ip=220.197.31.2
+Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.2])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 084A9606A31A
-	for <ocfs2-devel@lists.linux.dev>; Wed, 28 Oct 2026 05:02:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 084A9606A31A
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9DC89606A31A
+	for <ocfs2-devel@lists.linux.dev>; Wed, 28 Oct 2026 07:58:33 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9DC89606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=pnl+6fb3
+	dkim=pass (1024-bit key, unprotected) header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=br5gLx4F
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=Rr
-	2WJEdTQgGpHBcJecdClBEvFz4TlW63veoXIe5tkYM=; b=pnl+6fb30MpIyxA1Sp
-	Ex3BZx9q/aUuK7RfxEeU+1xvF3xNi8bwVU3lxenLeXgnun+1GDz8Inm75sebK4r8
-	HzPh4RtI1TItQMbjda5XbeWbzRhjbrGttNbcJQajw/QmTHd9eqOQVjM1stNDNHJT
-	Zkr67TD+SR9uqR/54vJiEeeZ8=
-Received: from pc.localdomain (unknown [])
-	by gzga-smtp-mtada-g0-2 (Coremail) with SMTP id _____wD3X6XmgeFqS1hoDQ--.3415S2;
-	Wed, 28 Oct 2026 13:02:31 +0800 (CST)
-From: Jiale Yao <yaojiale02@163.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Heming Zhao <heming.zhao@suse.com>,
-	Tao Ma <tao.ma@oracle.com>,
-	ocfs2-devel@lists.linux.dev,
+	s=s110527; h=Date:From:To:Subject:Content-Type:MIME-Version:
+	Message-ID; bh=pfvOzJiKiMTkA3fPMLFus5H6cgFa0Z/8HwHoWTyu4R0=; b=b
+	r5gLx4FvlPG9DP59OGY6XmK9liaSauQ1etD+DNWB3a4RFCwiKuUydD5U1jh2hoYz
+	0EOkYwMMxmo12mIgInculj3Wp0yVdISJk3Obn/BHWKkikLRdkakLowo4xHMpHtbh
+	5QvXsQiho3LqYGpdNV+meFORiPReZNg/sEjcKjHf2s=
+Date: Wed, 28 Oct 2026 15:57:42 +0800 (CST)
+From: "jiale yao" <19888972804@163.com>
+To: "Mark Fasheh" <mark@fasheh.com>, "Joel Becker" <jlbec@evilplan.org>,
+	"Joseph Qi" <joseph.qi@linux.alibaba.com>,
+	"Heming Zhao" <heming.zhao@suse.com>, ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Cc: stable@vger.kernel.org
-Subject: [PATCH] ocfs2: validate xattr bucket count against extent size
-Date: Wed, 28 Oct 2026 13:02:29 +0800
-Message-Id: <20261028050229.124718-1-yaojiale02@163.com>
-X-Mailer: git-send-email 2.34.1
+Cc: "Andrew Morton" <akpm@linux-foundation.org>
+Subject: Re:[PATCH] ocfs2: validate the xattr tree root of an indexed xattr
+ block
+X-Priority: 3
+X-Mailer: Coremail Webmail Server Version 2023.4-cmXT build
+ 20260511(2e539873) Copyright (c) 2002-2026 www.mailtech.cn 163com
+In-Reply-To: <20261028050210.123904-1-yaojiale02@163.com>
+References: <20261028050210.123904-1-yaojiale02@163.com>
+X-NTES-SC: AL_Qu2SAf2cu0ot5CicZ+kcn08ShO49XMOyvfoi2YFTc94Fqir85SIvQXNgDVju1M+/CzuxvjK0Szhn5uh3cY9/LyvFi1xa3zRA4sk7TAD0+Q==
+Content-Transfer-Encoding: base64
+Content-Type: text/plain; charset=GBK
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -64,93 +66,71 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:_____wD3X6XmgeFqS1hoDQ--.3415S2
-X-Coremail-Antispam: 1Uf129KBjvJXoWxCw1UAw43WF4fAryktw1UWrg_yoW5AFy8pF
-	4UKF15tr18t3Z7uF93Ar1DZw1Skr48XF4DXry3tw1avF1DJw1SqFy0qwn0kF1rXryrWrsI
-	gF4Ykw1UCa43XaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x07joKZAUUUUU=
-X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzQes5mrhgeejTgAA3A
+Message-ID: <132d1ac9.6641.1a18183d445.Coremail.19888972804@163.com>
+X-Coremail-Locale: zh_CN
+X-CM-TRANSID:jCgvCgD3_9L3quFqSSBiAA--.561W
+X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzRf6NWrhqvcKOAAA3x
+X-Coremail-Antispam: 1U5529EdanIXcx71UUUUU7vcSsGvfC2KfnxnUU==
 
-The first xattr bucket stores the number of valid buckets in its extent.
-Lookup and iteration trust this on-disk value even when it exceeds the
-number of buckets covered by the extent record. A corrupted value can
-therefore make them read blocks beyond the extent.
-
-Validate the count against the extent cluster count before using it.
-Reject zero as well because every xattr extent contains at least its first
-bucket.
-
-Fixes: 589dc2602f2a ("ocfs2: Add xattr lookup code xattr btrees")
-Cc: stable@vger.kernel.org
-Signed-off-by: Jiale Yao <yaojiale02@163.com>
----
- fs/ocfs2/xattr.c | 31 +++++++++++++++++++++++++++++--
- 1 file changed, 29 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index b2bd06083a14..6b2fc8337c51 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -328,6 +328,22 @@ static inline u16 ocfs2_blocks_per_xattr_bucket(struct super_block *sb)
- 	return OCFS2_XATTR_BUCKET_SIZE / (1 << sb->s_blocksize_bits);
- }
- 
-+static int ocfs2_validate_xattr_bucket_count(struct inode *inode,
-+					     struct ocfs2_xattr_header *xh,
-+					     u32 num_clusters)
-+{
-+	u32 num_buckets = le16_to_cpu(xh->xh_num_buckets);
-+	u32 max_buckets = num_clusters *
-+		ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb));
-+
-+	if (!num_buckets || num_buckets > max_buckets)
-+		return ocfs2_error(inode->i_sb,
-+				   "Inode %llu has invalid xattr bucket count %u (max %u)\n",
-+				   inode->i_ino, num_buckets, max_buckets);
-+
-+	return 0;
-+}
-+
- #define bucket_blkno(_b) ((_b)->bu_bhs[0]->b_blocknr)
- #define bucket_block(_b, _n) ((_b)->bu_bhs[(_n)]->b_data)
- #define bucket_xh(_b) ((struct ocfs2_xattr_header *)bucket_block((_b), 0))
-@@ -4295,6 +4311,10 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
- 	}
- 
- 	xh = bucket_xh(search);
-+	ret = ocfs2_validate_xattr_bucket_count(inode, xh, num_clusters);
-+	if (ret)
-+		goto out;
-+
- 	high_bucket = le16_to_cpu(xh->xh_num_buckets) - 1;
- 	while (low_bucket <= high_bucket) {
- 		ocfs2_xattr_bucket_relse(search);
-@@ -4480,6 +4500,7 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
- 	int i, ret = 0;
- 	u32 bpc = ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb));
- 	u32 num_buckets = clusters * bpc;
-+	struct ocfs2_xattr_header *xh;
- 	struct ocfs2_xattr_bucket *bucket;
- 
- 	bucket = ocfs2_xattr_bucket_new(inode);
-@@ -4503,8 +4524,14 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
- 		 * The real bucket num in this series of blocks is stored
- 		 * in the 1st bucket.
- 		 */
--		if (i == 0)
--			num_buckets = le16_to_cpu(bucket_xh(bucket)->xh_num_buckets);
-+		if (i == 0) {
-+			xh = bucket_xh(bucket);
-+			ret = ocfs2_validate_xattr_bucket_count(inode, xh, clusters);
-+			if (ret)
-+				break;
-+
-+			num_buckets = le16_to_cpu(xh->xh_num_buckets);
-+		}
- 
- 		trace_ocfs2_iterate_xattr_bucket((unsigned long long)blkno,
- 		     le32_to_cpu(bucket_xh(bucket)->xh_entries[0].xe_name_hash));
--- 
-2.34.1
-
+QXQgMjAyNi0xMC0yOCAxMzowMjoxMCwgIkppYWxlIFlhbyIgPHlhb2ppYWxlMDJAMTYzLmNvbT4g
+d3JvdGU6Cj5Gcm9tOiBKb3NlcGggUWkgPGpvc2VwaC5xaUBsaW51eC5hbGliYWJhLmNvbT4KPgo+
+b2NmczJfdmFsaWRhdGVfeGF0dHJfYmxvY2soKSBjaGVja3MgYW4geGF0dHIgYmxvY2sncyBzaWdu
+YXR1cmUsIGJsa25vLAo+Z2VuZXJhdGlvbiBhbmQgc3ViYWxsb2NhdG9yIGZpZWxkcywgYW5kIGZv
+ciBhIG5vbi1pbmRleGVkIGJsb2NrIHRoZSBlbnRyeQo+YXJyYXkgaXQgY2Fycmllcy4gIEFuIGlu
+ZGV4ZWQgYmxvY2sgaXMgcGFzc2VkIHN0cmFpZ2h0IHRocm91Z2gsIHNvIHRoZQo+ZXh0ZW50IGxp
+c3QgaW4gaXRzIHhhdHRyIHRyZWUgcm9vdCBpcyBuZXZlciBsb29rZWQgYXQuCj4KPkJvdGggZmll
+bGRzIHRoYXQgZGVzY3JpYmUgdGhlIGxpc3QgYXJlIGJvdW5kZWQuICBUaGUgdHdvIHBsYWNlcyB0
+aGF0Cj5jcmVhdGUgYSByb290IHNldCBsX2NvdW50IGZyb20gb2NmczJfeGF0dHJfcmVjc19wZXJf
+eGIoKSBhbmQgbm90aGluZwo+cmV3cml0ZXMgaXQsIGFuZCB0aGUgaW5zZXJ0IHBhdGggYXNzZXJ0
+cyBpbiBvY2ZzMl9yb3RhdGVfbGVhZigpIHRoYXQKPmxfbmV4dF9mcmVlX3JlYyBzdGF5cyB3aXRo
+aW4gbF9jb3VudC4gIENoZWNrIGJvdGggd2hlbiB0aGUgYmxvY2sgaXMKPmZpcnN0IHJlYWQsIHNv
+IGEgcm9vdCB0aGF0IGRpc2FncmVlcyB3aXRoIHRoZSBibG9jayBzaXplLCBvciBjbGFpbXMgbW9y
+ZQo+cmVjb3JkcyB0aGFuIGl0IGhhcyByb29tIGZvciwgaXMgY2F1Z2h0IGJlZm9yZSBhbnl0aGlu
+ZyBpbmRleGVzIGludG8KPmxfcmVjc1tdLgo+Cj5BbiBlbXB0eSByb290IGlzIGRlbGliZXJhdGVs
+eSBub3QgcmVqZWN0ZWQuICBFbXB0eWluZyB0aGUgdHJlZSBsZWF2ZXMgaXQKPnRoYXQgd2F5OiBv
+Y2ZzMl9ybV94YXR0cl9jbHVzdGVyKCkgcmVtb3ZlcyBvbmUgZXh0ZW50IHBlciB0cmFuc2FjdGlv
+biwKPmFuZCB0aGUgbGFzdCBvbmUgZW5kcyBpbiBvY2ZzMl90cnVuY2F0ZV9yZWMoKSwgd2hvc2Ug
+Y2xvc2luZwo+b2NmczJfcm90YXRlX3RyZWVfbGVmdCgpIHJlYWNoZXMgb2NmczJfcmVtb3ZlX2Vt
+cHR5X2V4dGVudCgpIG9uIHRoZQo+ZGVwdGgtemVybyByb290IGFuZCB0YWtlcyBsX25leHRfZnJl
+ZV9yZWMgdG8gemVyby4gIFRoYXQgdHJhbnNhY3Rpb24KPmNvbW1pdHMgYmVmb3JlIG9jZnMyX3hh
+dHRyX2ZyZWVfYmxvY2soKSBmcmVlcyB0aGUgYmxvY2ssIGFuZCBiZWZvcmUKPm9jZnMyX3hhdHRy
+X3JlbW92ZSgpIGNsZWFycyBpX3hhdHRyX2xvYywgaW4gdHdvIGxhdGVyIHRyYW5zYWN0aW9ucywg
+c28gYQo+Y3Jhc2ggaW4gYmV0d2VlbiBsZWF2ZXMgYW4gb3JwaGFuIGlub2RlIHBvaW50aW5nIGF0
+IGFuIHhhdHRyIGJsb2NrIHdob3NlCj5yb290IGhhcyBubyBleHRlbnRzLiAgQm90aCByZWFkZXJz
+IGFscmVhZHkgY29wZSB3aXRoIGl0Ogo+X19vY2ZzMl94YXR0cl9pbmRleF9ibG9ja19maW5kKCkg
+YW5zd2VycyAtRU5PREFUQSwgYW5kCj5vY2ZzMl9pdGVyYXRlX3hhdHRyX2luZGV4X2Jsb2NrKCkg
+cmV0dXJucyB3aXRob3V0IGl0ZXJhdGluZy4KPgo+TGluazogaHR0cHM6Ly9sb3JlLmtlcm5lbC5v
+cmcvMjAyNjEwMTQxMDU4NTYuMjkwOTc3Ny0xLWpvc2VwaC5xaUBsaW51eC5hbGliYWJhLmNvbQo+
+U2lnbmVkLW9mZi1ieTogSm9zZXBoIFFpIDxqb3NlcGgucWlAbGludXguYWxpYmFiYS5jb20+Cj5T
+aWduZWQtb2ZmLWJ5OiBBbmRyZXcgTW9ydG9uIDxha3BtQGxpbnV4LWZvdW5kYXRpb24ub3JnPgo+
+UmV2aWV3ZWQtYnk6IEhlbWluZyBaaGFvIDxoZW1pbmcuemhhb0BzdXNlLmNvbT4KPkNjOiBNYXJr
+IEZhc2hlaCA8bWFya0BmYXNoZWguY29tPgo+Q2M6IEpvZWwgQmVja2VyIDxqbGJlY0BldmlscGxh
+bi5vcmc+Cj4tLS0KPiBmcy9vY2ZzMi94YXR0ci5jIHwgMjUgKysrKysrKysrKysrKysrKysrKysr
+KysrKwo+IDEgZmlsZSBjaGFuZ2VkLCAyNSBpbnNlcnRpb25zKCspCj4KPmRpZmYgLS1naXQgYS9m
+cy9vY2ZzMi94YXR0ci5jIGIvZnMvb2NmczIveGF0dHIuYwo+aW5kZXggNTJlNDZkMWI4NzYzLi44
+YjdhMzgyZGMyZmYgMTAwNjQ0Cj4tLS0gYS9mcy9vY2ZzMi94YXR0ci5jCj4rKysgYi9mcy9vY2Zz
+Mi94YXR0ci5jCj5AQCAtNDkxLDYgKzQ5MSw3IEBAIHN0YXRpYyBpbnQgb2NmczJfdmFsaWRhdGVf
+eGF0dHJfYmxvY2soc3RydWN0IHN1cGVyX2Jsb2NrICpzYiwKPiAJCQkJICAgICAgc3RydWN0IGJ1
+ZmZlcl9oZWFkICpiaCkKPiB7Cj4gCWludCByYzsKPisJc3RydWN0IG9jZnMyX2V4dGVudF9saXN0
+ICplbDsKPiAJc3RydWN0IG9jZnMyX3hhdHRyX2Jsb2NrICp4YiA9Cj4gCQkoc3RydWN0IG9jZnMy
+X3hhdHRyX2Jsb2NrICopYmgtPmJfZGF0YTsKPiAKPkBAIC01NzMsNiArNTc0LDMwIEBAIHN0YXRp
+YyBpbnQgb2NmczJfdmFsaWRhdGVfeGF0dHJfYmxvY2soc3RydWN0IHN1cGVyX2Jsb2NrICpzYiwK
+PiAJCQkJCQkJIHJlZ2lvbl9vZmZzZXQpOwo+IAl9Cj4gCj4rCS8qCj4rCSAqIEFuIGluZGV4ZWQg
+eGF0dHIgYmxvY2sgY2FycmllcyB0aGUgcm9vdCBvZiB0aGUgeGF0dHIgdHJlZS4gIEl0cwo+Kwkg
+KiByZWNvcmQgY291bnQgaXMgZml4ZWQgYnkgdGhlIGJsb2NrIHNpemUgYW5kIGxfbmV4dF9mcmVl
+X3JlYyBuZXZlcgo+KwkgKiBleGNlZWRzIGl0LiAgQSB6ZXJvIGxfbmV4dF9mcmVlX3JlYyBpcyB2
+YWxpZDogZW1wdHlpbmcgdGhlIHRyZWUgb24KPisJICogdGhlIGlub2RlIGRlbGV0aW9uIHBhdGgg
+bGVhdmVzIHRoZSByb290IHdpdGggbm8gZXh0ZW50cy4KPisJICovCj4rCWVsID0gJnhiLT54Yl9h
+dHRycy54Yl9yb290Lnh0X2xpc3Q7Cj4rCj4rCWlmIChsZTE2X3RvX2NwdShlbC0+bF9jb3VudCkg
+IT0gb2NmczJfeGF0dHJfcmVjc19wZXJfeGIoc2IpKSB7Cj4rCQlyZXR1cm4gb2NmczJfZXJyb3Io
+c2IsCj4rCQkJCSAgICJYYXR0ciB0cmVlIHJvb3QgIyVsbHUgaGFzIGludmFsaWQgbF9jb3VudCAl
+dSAoZXhwZWN0ZWQgJXUpXG4iLAo+KwkJCQkgICAodW5zaWduZWQgbG9uZyBsb25nKWJoLT5iX2Js
+b2NrbnIsCj4rCQkJCSAgIGxlMTZfdG9fY3B1KGVsLT5sX2NvdW50KSwKPisJCQkJICAgb2NmczJf
+eGF0dHJfcmVjc19wZXJfeGIoc2IpKTsKPisJfQo+Kwo+KwlpZiAobGUxNl90b19jcHUoZWwtPmxf
+bmV4dF9mcmVlX3JlYykgPiBsZTE2X3RvX2NwdShlbC0+bF9jb3VudCkpIHsKPisJCXJldHVybiBv
+Y2ZzMl9lcnJvcihzYiwKPisJCQkJICAgIlhhdHRyIHRyZWUgcm9vdCAjJWxsdSBoYXMgbF9uZXh0
+X2ZyZWVfcmVjICV1IHBhc3QgdGhlIGVuZCBvZiBpdHMgbGlzdCAobF9jb3VudCAldSlcbiIsCj4r
+CQkJCSAgICh1bnNpZ25lZCBsb25nIGxvbmcpYmgtPmJfYmxvY2tuciwKPisJCQkJICAgbGUxNl90
+b19jcHUoZWwtPmxfbmV4dF9mcmVlX3JlYyksCj4rCQkJCSAgIGxlMTZfdG9fY3B1KGVsLT5sX2Nv
+dW50KSk7Cj4rCX0KPisKPiAJcmV0dXJuIDA7Cj4gfQo+IAo+LS0gCj4yLjM0LjEKCgpJZ25vcmUg
+dGhpcyBwbHosIEkgbWFkZSBhIG1pc3N0YWtlLg==
