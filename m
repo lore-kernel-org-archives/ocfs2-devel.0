@@ -1,58 +1,59 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=117.135.210.5
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=220.197.31.5
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
 	t=1793163774;
-	b=JKsp0iHOhBT5mKBrxN2vi5Ym/G6aCUQO7ldwZ6U5R/1rzozQpZnjYhOND9Nw9ZTYkfbq
-	 W5i+YuByZTzGWxOO8DiKU3v65RYNRr1UnQ4Qu7bc3CrRYfYp1OStGIF6M73sclYI21OiG
-	 TNBj1ZlHEAq/ZAjMp2InjZJ4kyCVvL7ZYI0BIB1rWItMjF/HXuCtdCJNDFP+F4zhkA9a9
-	 MFgRMK7U8u0GP3kjxvgY8Lw0dwogFmjIqCslRGAFPJCKJReSqN8Jn0JZWpS49qLd1Zy6K
-	 uPTwJXdMcKxEEBqjG0jLd45hC9DrzqpJgE9LzVxCGi2LOCirfZXdDs0ez1Tu+gQtbAA==
+	b=qUYvMvW+pSJ+zfg52V/TgaS1el7YOBbdiol3/sr69fduomxHIvCwIh8NpoAvBlRss6gb
+	 pJmloDUGLwzR7+xZ4sm6P+ipqf4HYNZEk/mHNJx2kMfzLcK230KI9SypWq6HDZpaddzf9
+	 tEfHLxNz3TgPA8rzJyQBLjxxwTw8y9Xwn9ELnRZcbONV/gRTBbGhq5c7DScGbWw4GNffn
+	 UoFe/DudXiN+BZxfF/oJfW1nzLaGZTySvZHny+XXEISvOZnu8gLUCZ0dWoNhLf45NmhO9
+	 TQ9S9Jm7B5/MUAELp2oreU6DdN/Ezo6Pbd6L+ONfNeZocFWIPiOltBZIpheJLjcImAQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
 	a=rsa-sha256; c=relaxed/relaxed; t=1793163774;
 	h=DMARC-Filter:DKIM-Signature:Received:From:To:Cc:Subject:Date:
 	 Message-Id:X-Mailer:MIME-Version:Content-Transfer-Encoding:
 	 X-CM-TRANSID:X-Coremail-Antispam:X-CM-SenderInfo;
-	bh=IzFdRn+VOrybJgWWFDYuFapdxaKrHzcUaO5PvHVqwZk=;
-	b=iuq1ZjRSZ8xUH3KHpXsTpe5uyym0oBEYTBZ3ZXryfW6s9ECZCBn7JMPN3CqZtaYxXiz1
-	 guZ7KzgI7cYISCi2NiKB7ne/bxucYvaP5vndmt3h9Xyh5csoB9uKxn54qFcxTEr6gu4So
-	 9QUhXCgXJUIwnpGwYU2OKa3U+7NGleDp+8W2pOpPeqnZKn15pLn9rEuUnfplglHEucmEd
-	 k+pNxbbMllQu/fEJevwrllOMLRGJXK1XGIWw7o7S8N0rcLdJGz49uT0AZFGX4hyQB05Tl
-	 dr9MEc62jkpDg2GtubIe1y/7d1Y4zR01iiWSsxH3rKV3z7c6opmQzBdv5xdE2LXhDUA==
+	bh=Rr2WJEdTQgGpHBcJecdClBEvFz4TlW63veoXIe5tkYM=;
+	b=WNdv0TMpevdqTMFo1ZNBEyZxoz+3FlN5ZyshxU4FqUQAO62j0Ra0ldw1WMds3kcmxJqz
+	 NHwKUKpJB0eslWWTGpzZKH7HmsbzfYTp1ikblLonM1Mvt3dTlWaX2WrCp5fKuwiMMYPpo
+	 //raG5Tr1NRpofJetfaeoOHlKWQVaBkckYFrcZliur8TjVE8l2TQ7j87kVCiu8NGbXakf
+	 egzk88pNpvfg0Fp/wlNn33xoStiHBjE1IgIbRihX7ePf3Oo1lkZhPaLPF/YW25zlZy8gS
+	 QsOYmU5T4RDTTf+iChduP4xhlMJ/rCQjzZYbnBYCmZsvrpn+q6gWb+MTlscVR9NSumg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=163.com;
 	spf=pass smtp.mailfrom=163.com;
-	dkim=pass header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=dKdpHICL;
-	arc=none smtp.remote-ip=117.135.210.5
-Received: from m16.mail.163.com (m16.mail.163.com [117.135.210.5])
+	dkim=pass header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=pnl+6fb3;
+	arc=none smtp.remote-ip=220.197.31.5
+Received: from m16.mail.163.com (m16.mail.163.com [220.197.31.5])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2BDE6606A31D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 084A9606A31A
 	for <ocfs2-devel@lists.linux.dev>; Wed, 28 Oct 2026 05:02:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2BDE6606A31D
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 084A9606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=163.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=163.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=dKdpHICL
+	dkim=pass (1024-bit key, unprotected) header.d=163.com header.i=@163.com header.a=rsa-sha256 header.s=s110527 header.b=pnl+6fb3
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=163.com;
-	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=Iz
-	FdRn+VOrybJgWWFDYuFapdxaKrHzcUaO5PvHVqwZk=; b=dKdpHICLW5v4MJxocm
-	ZRQy2kT3QnLqf923RYGRzbTStMOP2aOfEeKg61ucQ/pK6M6jx3wcyQDLh6+5mPTB
-	hD86Ji/mjlaHGGO+wRtbGnjcdY+zRtVX6YytcvtLiquBs0XrUMbfV/BQzkv0yleY
-	zbb42XM/ip5GwtHHV/E8IYeeE=
+	s=s110527; h=From:To:Subject:Date:Message-Id:MIME-Version; bh=Rr
+	2WJEdTQgGpHBcJecdClBEvFz4TlW63veoXIe5tkYM=; b=pnl+6fb30MpIyxA1Sp
+	Ex3BZx9q/aUuK7RfxEeU+1xvF3xNi8bwVU3lxenLeXgnun+1GDz8Inm75sebK4r8
+	HzPh4RtI1TItQMbjda5XbeWbzRhjbrGttNbcJQajw/QmTHd9eqOQVjM1stNDNHJT
+	Zkr67TD+SR9uqR/54vJiEeeZ8=
 Received: from pc.localdomain (unknown [])
-	by gzga-smtp-mtada-g0-4 (Coremail) with SMTP id _____wDX35fTgeFqLgVkDg--.10775S2;
-	Wed, 28 Oct 2026 13:02:12 +0800 (CST)
+	by gzga-smtp-mtada-g0-2 (Coremail) with SMTP id _____wD3X6XmgeFqS1hoDQ--.3415S2;
+	Wed, 28 Oct 2026 13:02:31 +0800 (CST)
 From: Jiale Yao <yaojiale02@163.com>
 To: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
 	Joseph Qi <joseph.qi@linux.alibaba.com>,
 	Heming Zhao <heming.zhao@suse.com>,
+	Tao Ma <tao.ma@oracle.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Cc: Andrew Morton <akpm@linux-foundation.org>
-Subject: [PATCH] ocfs2: validate the xattr tree root of an indexed xattr block
-Date: Wed, 28 Oct 2026 13:02:10 +0800
-Message-Id: <20261028050210.123904-1-yaojiale02@163.com>
+Cc: stable@vger.kernel.org
+Subject: [PATCH] ocfs2: validate xattr bucket count against extent size
+Date: Wed, 28 Oct 2026 13:02:29 +0800
+Message-Id: <20261028050229.124718-1-yaojiale02@163.com>
 X-Mailer: git-send-email 2.34.1
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -64,93 +65,92 @@ List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
-X-CM-TRANSID:_____wDX35fTgeFqLgVkDg--.10775S2
-X-Coremail-Antispam: 1Uf129KBjvJXoWxCFW8GrWDCF1DCFy8ZFW7XFb_yoW5uw4xpF
-	nrCw1rtr4UGr1xur9xA34UWw1F9ws8GFnrJryxJr9xZFW7J3WIvr9Iv3WY9Fn09rZ3JrnI
-	qF45Kr1UCa43ua7anT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
-	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x07jwdb8UUUUU=
-X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbC8BSo4mrhgdReNwAA3Z
+X-CM-TRANSID:_____wD3X6XmgeFqS1hoDQ--.3415S2
+X-Coremail-Antispam: 1Uf129KBjvJXoWxCw1UAw43WF4fAryktw1UWrg_yoW5AFy8pF
+	4UKF15tr18t3Z7uF93Ar1DZw1Skr48XF4DXry3tw1avF1DJw1SqFy0qwn0kF1rXryrWrsI
+	gF4Ykw1UCa43XaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDUYxBIdaVFxhVjvjDU0xZFpf9x07joKZAUUUUU=
+X-CM-SenderInfo: x1dryxhdohiji6rwjhhfrp/xtbCzQes5mrhgeejTgAA3A
 
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
+The first xattr bucket stores the number of valid buckets in its extent.
+Lookup and iteration trust this on-disk value even when it exceeds the
+number of buckets covered by the extent record. A corrupted value can
+therefore make them read blocks beyond the extent.
 
-ocfs2_validate_xattr_block() checks an xattr block's signature, blkno,
-generation and suballocator fields, and for a non-indexed block the entry
-array it carries.  An indexed block is passed straight through, so the
-extent list in its xattr tree root is never looked at.
+Validate the count against the extent cluster count before using it.
+Reject zero as well because every xattr extent contains at least its first
+bucket.
 
-Both fields that describe the list are bounded.  The two places that
-create a root set l_count from ocfs2_xattr_recs_per_xb() and nothing
-rewrites it, and the insert path asserts in ocfs2_rotate_leaf() that
-l_next_free_rec stays within l_count.  Check both when the block is
-first read, so a root that disagrees with the block size, or claims more
-records than it has room for, is caught before anything indexes into
-l_recs[].
-
-An empty root is deliberately not rejected.  Emptying the tree leaves it
-that way: ocfs2_rm_xattr_cluster() removes one extent per transaction,
-and the last one ends in ocfs2_truncate_rec(), whose closing
-ocfs2_rotate_tree_left() reaches ocfs2_remove_empty_extent() on the
-depth-zero root and takes l_next_free_rec to zero.  That transaction
-commits before ocfs2_xattr_free_block() frees the block, and before
-ocfs2_xattr_remove() clears i_xattr_loc, in two later transactions, so a
-crash in between leaves an orphan inode pointing at an xattr block whose
-root has no extents.  Both readers already cope with it:
-__ocfs2_xattr_index_block_find() answers -ENODATA, and
-ocfs2_iterate_xattr_index_block() returns without iterating.
-
-Link: https://lore.kernel.org/20261014105856.2909777-1-joseph.qi@linux.alibaba.com
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-Reviewed-by: Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>
-Cc: Joel Becker <jlbec@evilplan.org>
+Fixes: 589dc2602f2a ("ocfs2: Add xattr lookup code xattr btrees")
+Cc: stable@vger.kernel.org
+Signed-off-by: Jiale Yao <yaojiale02@163.com>
 ---
- fs/ocfs2/xattr.c | 25 +++++++++++++++++++++++++
- 1 file changed, 25 insertions(+)
+ fs/ocfs2/xattr.c | 31 +++++++++++++++++++++++++++++--
+ 1 file changed, 29 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 52e46d1b8763..8b7a382dc2ff 100644
+index b2bd06083a14..6b2fc8337c51 100644
 --- a/fs/ocfs2/xattr.c
 +++ b/fs/ocfs2/xattr.c
-@@ -491,6 +491,7 @@ static int ocfs2_validate_xattr_block(struct super_block *sb,
- 				      struct buffer_head *bh)
- {
- 	int rc;
-+	struct ocfs2_extent_list *el;
- 	struct ocfs2_xattr_block *xb =
- 		(struct ocfs2_xattr_block *)bh->b_data;
- 
-@@ -573,6 +574,30 @@ static int ocfs2_validate_xattr_block(struct super_block *sb,
- 							 region_offset);
- 	}
- 
-+	/*
-+	 * An indexed xattr block carries the root of the xattr tree.  Its
-+	 * record count is fixed by the block size and l_next_free_rec never
-+	 * exceeds it.  A zero l_next_free_rec is valid: emptying the tree on
-+	 * the inode deletion path leaves the root with no extents.
-+	 */
-+	el = &xb->xb_attrs.xb_root.xt_list;
-+
-+	if (le16_to_cpu(el->l_count) != ocfs2_xattr_recs_per_xb(sb)) {
-+		return ocfs2_error(sb,
-+				   "Xattr tree root #%llu has invalid l_count %u (expected %u)\n",
-+				   (unsigned long long)bh->b_blocknr,
-+				   le16_to_cpu(el->l_count),
-+				   ocfs2_xattr_recs_per_xb(sb));
-+	}
-+
-+	if (le16_to_cpu(el->l_next_free_rec) > le16_to_cpu(el->l_count)) {
-+		return ocfs2_error(sb,
-+				   "Xattr tree root #%llu has l_next_free_rec %u past the end of its list (l_count %u)\n",
-+				   (unsigned long long)bh->b_blocknr,
-+				   le16_to_cpu(el->l_next_free_rec),
-+				   le16_to_cpu(el->l_count));
-+	}
-+
- 	return 0;
+@@ -328,6 +328,22 @@ static inline u16 ocfs2_blocks_per_xattr_bucket(struct super_block *sb)
+ 	return OCFS2_XATTR_BUCKET_SIZE / (1 << sb->s_blocksize_bits);
  }
  
++static int ocfs2_validate_xattr_bucket_count(struct inode *inode,
++					     struct ocfs2_xattr_header *xh,
++					     u32 num_clusters)
++{
++	u32 num_buckets = le16_to_cpu(xh->xh_num_buckets);
++	u32 max_buckets = num_clusters *
++		ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb));
++
++	if (!num_buckets || num_buckets > max_buckets)
++		return ocfs2_error(inode->i_sb,
++				   "Inode %llu has invalid xattr bucket count %u (max %u)\n",
++				   inode->i_ino, num_buckets, max_buckets);
++
++	return 0;
++}
++
+ #define bucket_blkno(_b) ((_b)->bu_bhs[0]->b_blocknr)
+ #define bucket_block(_b, _n) ((_b)->bu_bhs[(_n)]->b_data)
+ #define bucket_xh(_b) ((struct ocfs2_xattr_header *)bucket_block((_b), 0))
+@@ -4295,6 +4311,10 @@ static int ocfs2_xattr_bucket_find(struct inode *inode,
+ 	}
+ 
+ 	xh = bucket_xh(search);
++	ret = ocfs2_validate_xattr_bucket_count(inode, xh, num_clusters);
++	if (ret)
++		goto out;
++
+ 	high_bucket = le16_to_cpu(xh->xh_num_buckets) - 1;
+ 	while (low_bucket <= high_bucket) {
+ 		ocfs2_xattr_bucket_relse(search);
+@@ -4480,6 +4500,7 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 	int i, ret = 0;
+ 	u32 bpc = ocfs2_xattr_buckets_per_cluster(OCFS2_SB(inode->i_sb));
+ 	u32 num_buckets = clusters * bpc;
++	struct ocfs2_xattr_header *xh;
+ 	struct ocfs2_xattr_bucket *bucket;
+ 
+ 	bucket = ocfs2_xattr_bucket_new(inode);
+@@ -4503,8 +4524,14 @@ static int ocfs2_iterate_xattr_buckets(struct inode *inode,
+ 		 * The real bucket num in this series of blocks is stored
+ 		 * in the 1st bucket.
+ 		 */
+-		if (i == 0)
+-			num_buckets = le16_to_cpu(bucket_xh(bucket)->xh_num_buckets);
++		if (i == 0) {
++			xh = bucket_xh(bucket);
++			ret = ocfs2_validate_xattr_bucket_count(inode, xh, clusters);
++			if (ret)
++				break;
++
++			num_buckets = le16_to_cpu(xh->xh_num_buckets);
++		}
+ 
+ 		trace_ocfs2_iterate_xattr_bucket((unsigned long long)blkno,
+ 		     le32_to_cpu(bucket_xh(bucket)->xh_entries[0].xe_name_hash));
 -- 
 2.34.1
 
