@@ -1,48 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793290059;
-	b=Xm7yKQecN9mi203xA5fneyzPMQSD1NxvmlD3Ro1RV+7s39JwJTOgOGerWuHjA6w84F77
-	 APu3x2W9UeT4/bBfAjfdJM5nV7/1sXbMjYYapzgyR95D2utSnmJcr8aHDTqjSwcvfk7hz
-	 In1xINM8U1SJT5ikdSyWJY8KvJkDgQvUn5ihadg8E0mJtxb3h+PM0mJIw3u7EjCBayfUj
-	 Bl1nxvthIZLVylK5gp5Vky2M67siUic4zWp/zP6TuPswvsL+YCMoD7jZlmodx1Y7bzXhz
-	 s1HwIkH5oS2jqzt3G/ExNaMxEF2lDIDrQmtoqDIIxW7Rsa3cKKSg/4/ohB5ob8z++Yw==
+	t=1793290067;
+	b=zBLE+3zM4rB6WKauAvdNZNfPPg8Jx1ymxtOi/vBS0f5KO9h2AKH8OxHQpqxAXJ7ukvMS
+	 JA7ZgNpfr+lp0SHgWcTnvuwTQ740x6Q3/zp9xEgJJW4AbTzRv8TZ2Owlsgzy0IN3LZs0o
+	 ijffrPBiZzHdEn9V4fkuB0cgMnhlPBCmzuMnAuWRAvPMwM0Sba8pm2IcQxMdjxSQTgoRQ
+	 qkKl+p/188cYqkh3h7Q1b6OvL7z0q0hZ/CVhkTnrorUXbSgg0JhQ1l++FnWRnWcRf3Hti
+	 CoUbO2v/j3qUF1qY7Rr/evu+KvoL2x0nSQOKGZFsrz73SVIOIxxbDVQ6rRFtk9krupQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793290059;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793290067;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=xNgZk8sqL0pi/BgMC10+2IZal4rVk0LbmvrvuXhJ2Dk=;
-	b=dcKWOwdxgXjfAr7r4/03PLelooPvmjfxaRryQLnhDB4aT67DHVPsQBs7dim992ABxsyk
-	 emKIgpbLEuwn1kqtF8M4L4UH7S88J0yIjqnFOQHbFtBf3QGTKDPrzXsWC/4QBn8h7f320
-	 4sjC9auEfq/Al9l5yAmt3VXJJ/QCj6GNxXYjYBldnkywFJehTh3ClwjFz5vtBqWM99NIm
-	 QnuYgaXcVX91RqBs4GETyjJmZo/YjsrnSyaxYbp35fHklfiu4+/kCsVNEJDncBHdeM10R
-	 MprIWmFwrfWE3WES2mN9N5bRh03Ovkc9Oywp5IeMGeddStTT8x+pszvVWIYvMRexUDw==
+	bh=kveNn4j/GWeYrnti6f44EeqZoatALymzZ1v9ov541sk=;
+	b=s1p4vC2nANz9DxiZ0zGN1tW6xjAZ0sCQDmL0Qhm13JaMaC5RXXumAWgO3QI923wgYgxu
+	 ZvM2/rnP/r0nhobbISkLCoALsyO6fMkzZGjiaUjBYn4xuEq8o3i52HPxmzAS5cEUHJb1M
+	 8NxZ+AS/GmRKVxS4+M+QdalVGAXDddVMK8Pdh5XGg9qxezSh0lv30YCbNnQdGT0BpOto2
+	 0lb5CFNokjHbQ0rFgPpmkUbhcPc6vJzb9w29aJETXkcNAF8uqpZX/HFgOByqS68/LN820
+	 PoinlxLDAyLTNaSnDlmgwrq5epTJx7Q2IQuX3f5A66CRQnLRPAqNf5PQtaBQdiaB5gw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=AlRagrjY;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=RlUquBNs;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0ECE606A31A;
-	Thu, 29 Oct 2026 16:07:38 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 72972606A323;
+	Thu, 29 Oct 2026 16:07:47 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=AlRagrjY
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 805901F01826;
-	Thu, 29 Oct 2026 16:07:34 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=RlUquBNs
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 336A81F01824;
+	Thu, 29 Oct 2026 16:07:43 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793290058;
-	bh=xNgZk8sqL0pi/BgMC10+2IZal4rVk0LbmvrvuXhJ2Dk=;
+	s=k20260515; t=1793290067;
+	bh=kveNn4j/GWeYrnti6f44EeqZoatALymzZ1v9ov541sk=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=AlRagrjY6o1gWRJCJgnfCv2vf7Bcfac+CV9YW1vTP2WwuW9tEuQHBhevP5ePYv6wU
-	 tZm/UfOxlRJO5sw/a2Nplq+A8PWYDB8BkatYa8/unWums0YZOd7jiODkUS1bQuoXDc
-	 2r237CVoc0X/eY5Af46WpEvX1ZVjahYsPaB2Gk6AXIVz2nlCClJI5khPlYaE7iT7p/
-	 XDhxiJCpt5DJKGR+EHHl4F0uT78HBaolBZCT7M33rjZhbbhgAo2PcjBtaKm9eZkw6X
-	 NWXJ/Hi6PIE9ox1qUK/7i9IAhFrGTWMyjol5owtz516sIM6RN//r2rt7z0U4U/YYMu
-	 YskLTlKankV9Q==
+	b=RlUquBNsrDtCLKwUecn0DUBR3oLX6ZESdpaf9Opt7wiIWS8/pl5OntDis/ohpLEQn
+	 ac1QSgTsOFGUli+GKpPs6xCnCfWvi+teA+SNSCS2kOvnin52DOt5Em9yQUW60ZrjaN
+	 3U8bn+V4DACQt7S5AbipkHLgaqfYdWYncJlNn7/0AYDp4JC/A/N0NSl1aNcMIwCYdy
+	 Rc1zYGC63tTSjSsdEPFep919+IgPu/2MtMmQCB6KKa9IPcymjviK3oe7TE61Tuwfmb
+	 tZ1kKNdkOHidWMF5CGY0lyua9UTdiYBArCY6XkRrwNfU4zXesisyu5gnoEZ8+2yOz7
+	 B896S6Y7N5VLw==
 From: Christian Brauner <brauner@kernel.org>
-Date: Thu, 29 Oct 2026 17:06:55 +0100
-Subject: [PATCH v2 04/34] ext2: don't set SB_RDONLY after filesystem errors
+Date: Thu, 29 Oct 2026 17:06:57 +0100
+Subject: [PATCH v2 06/34] nilfs2: don't set SB_RDONLY after filesystem
+ errors
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,7 +55,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261029-work-fs-sb_rdonly-v2-4-2f44f64f0b66@kernel.org>
+Message-Id: <20261029-work-fs-sb_rdonly-v2-6-2f44f64f0b66@kernel.org>
 References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
 In-Reply-To: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
 To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
@@ -66,216 +67,299 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
  linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
  linux-xfs@vger.kernel.org, 
  "Christian Brauner (Amutable)" <brauner@kernel.org>, 
- Karl Mehltretter <kmehltretter@gmail.com>
+ Karl Mehltretter <kmehltretter@gmail.com>, 
+ Ryusuke Konishi <konishi.ryusuke@gmail.com>
 X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=7123; i=brauner@kernel.org;
- h=from:subject:message-id; bh=5u6R9zyuZJuhy+aULhR8Qmnz6ME9R6gfqmURw2sS7bQ=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ9ztdTcqkry2sNm/UkdlqstlmLZfOJPyXf/Zv1Gi4ds
- vu446ZZRykLgxgXg6yYIotDu0m43HKeis1GmRowc1iZQIYwcHEKwETmbWBk6NSRkMm8L+79MOZB
- ilh2q/3C3Y21/O3N07TCL2Uniy54yPA/osBzTguz6qL/+QvZjD99OlhX/nB9ZZQO+13e3VnnFGa
- wAQA=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=9921; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=csUy0jt26u0t2G96OWe0GxhGfzrZOn8y/Ie4DWlh7UA=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ9ztfPUb6wYBbvydk2Tr3bvdeL3zA68LM+kVfs1v1Q1
+ 40sHbsXdpSyMIhxMciKKbI4tJuEyy3nqdhslKkBM4eVCWQIAxenAEykj5ORYYliuqGd+Bch46X5
+ YfEnzdJcfLYqbGI9dCnv8S2VNS6OUxkZ2n722uW2nZi2wuTTrknSe7MOTP8Xw7Mmq+SNAA/r5eS
+ rDAA=
 X-Developer-Key: i=brauner@kernel.org; a=openpgp;
  fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-With errors=remount-ro ext2_error() sets SB_RDONLY from whatever context
-hit the error and without holding s_umount. That races with everyone
-else changing sb->s_flags and it breaks freezing. If it happens while
-the filesystem is frozen thaw_super() sees a read-only superblock and
-leaves the s_writers rwsems locked so every writer hangs. A lookup in a
-corrupted directory is enough. Karl proposed teaching thaw_super() about
-it but Jan preferred fixing the filesystems (cf. [1]) like ext4 and f2fs
-already did.
+With errors=remount-ro, the nilfs2 default, __nilfs_error() sets
+SB_RDONLY from whatever context hit the error and without holding
+s_umount. If that happens while the filesystem is frozen thaw_super()
+sees a read-only superblock and leaves the s_writers rwsems locked so
+every writer hangs.
 
-So call sb_set_emergency_ro() instead and let the VFS refuse
-modifications. ext2 still refuses allocations, ext2_write_inode(),
-ext2_sync_fs() and ext2_xattr_set() itself. The superblock isn't written
-after the error is recorded and unlinked inodes are left to e2fsck.
-ext2_handle_dirsync() treats EROFS as success in that state because the
-entry was already changed.
+nilfs2 already treats a runtime SB_RDONLY as "degraded because of
+corruption" in a lot of places and that can stay. So call
+sb_set_emergency_ro() instead and add nilfs_sb_rdonly() which is true
+for a read-only mount and for the emergency state. Use it for every
+sb_rdonly() check that guards a write. FITRIM is refused and
+nilfs_sync_fs() and a remount to read-only don't write anything anymore.
 
-A remount to read-write fails until umount and writes through file
-descriptors opened before the error fail with EROFS.
-
-[1]: https://lore.kernel.org/r/hyhuckyohsabx2suvq3z7uy3pbgmihva6wgzxr3op7pzcrlu33@p7zzlgp2ehjf
+nilfs2 explicitly supported "mount -o remount,rw" after an error so far.
+Now the state lasts until umount like on ext4. That includes a mount
+that reconfigures a superblock only snapshots kept alive.
+nilfs_get_tree() does that without reconfigure_super() so
+nilfs_reconfigure() refuses going read-write itself. Writes through file
+descriptors opened before the error fail with EROFS now instead of being
+dropped.
 
 Reported-by: Karl Mehltretter <kmehltretter@gmail.com>
 Link: https://lore.kernel.org/r/20260903060855.4610-1-kmehltretter@gmail.com
+Acked-by: Ryusuke Konishi <konishi.ryusuke@gmail.com>
 Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 ---
- fs/ext2/balloc.c |  5 +++++
- fs/ext2/dir.c    |  3 +++
- fs/ext2/ialloc.c |  2 ++
- fs/ext2/inode.c  | 10 ++++++++--
- fs/ext2/super.c  | 24 ++++++++++++++++++------
- fs/ext2/xattr.c  |  2 ++
- 6 files changed, 38 insertions(+), 8 deletions(-)
+ fs/nilfs2/inode.c     |  4 ++--
+ fs/nilfs2/ioctl.c     |  4 ++++
+ fs/nilfs2/mdt.c       |  2 +-
+ fs/nilfs2/page.c      |  2 +-
+ fs/nilfs2/segment.c   | 13 ++++++-------
+ fs/nilfs2/sufile.h    |  2 +-
+ fs/nilfs2/super.c     | 29 ++++++++++++++++++++++-------
+ fs/nilfs2/the_nilfs.h |  6 ++++++
+ 8 files changed, 43 insertions(+), 19 deletions(-)
 
-diff --git a/fs/ext2/balloc.c b/fs/ext2/balloc.c
-index 80acc1e19387..77f2ed5a76a2 100644
---- a/fs/ext2/balloc.c
-+++ b/fs/ext2/balloc.c
-@@ -1236,6 +1236,11 @@ ext2_fsblk_t ext2_new_blocks(struct inode *inode, ext2_fsblk_t goal,
- 	*errp = -ENOSPC;
- 	sb = inode->i_sb;
- 
-+	if (sb_emergency_ro(sb)) {
-+		*errp = -EROFS;
-+		return 0;
-+	}
-+
- 	/*
- 	 * Check quota for allocation of this block.
- 	 */
-diff --git a/fs/ext2/dir.c b/fs/ext2/dir.c
-index e17bbc7598c1..c2c9fc2d0b27 100644
---- a/fs/ext2/dir.c
-+++ b/fs/ext2/dir.c
-@@ -445,6 +445,9 @@ static int ext2_handle_dirsync(struct inode *dir)
- 	err = filemap_write_and_wait(dir->i_mapping);
- 	if (!err)
- 		err = sync_inode_metadata(dir, 1);
-+	/* The change is done, an error made us read-only in the meantime. */
-+	if (err == -EROFS && sb_emergency_ro(dir->i_sb))
-+		err = 0;
- 	return err;
- }
- 
-diff --git a/fs/ext2/ialloc.c b/fs/ext2/ialloc.c
-index bf21b57cf98c..2741ecd2b94f 100644
---- a/fs/ext2/ialloc.c
-+++ b/fs/ext2/ialloc.c
-@@ -433,6 +433,8 @@ struct inode *ext2_new_inode(struct inode *dir, umode_t mode,
- 	int err;
- 
- 	sb = dir->i_sb;
-+	if (sb_emergency_ro(sb))
-+		return ERR_PTR(-EROFS);
- 	inode = new_inode(sb);
- 	if (!inode)
- 		return ERR_PTR(-ENOMEM);
-diff --git a/fs/ext2/inode.c b/fs/ext2/inode.c
-index 12ac4cfe1500..5c4831f8f45d 100644
---- a/fs/ext2/inode.c
-+++ b/fs/ext2/inode.c
-@@ -71,7 +71,9 @@ void ext2_evict_inode(struct inode * inode)
- 	struct ext2_block_alloc_info *rsv;
- 	int want_delete = 0;
- 
--	if (!inode->i_nlink && !is_bad_inode(inode)) {
-+	/* After an error made us read-only the inode is left to e2fsck. */
-+	if (!inode->i_nlink && !is_bad_inode(inode) &&
-+	    !sb_emergency_ro(inode->i_sb)) {
- 		want_delete = 1;
- 		dquot_initialize(inode);
- 	} else {
-@@ -1481,10 +1483,14 @@ int ext2_write_inode(struct inode *inode, struct writeback_control *wbc)
- 	uid_t uid = i_uid_read(inode);
- 	gid_t gid = i_gid_read(inode);
- 	struct buffer_head * bh;
--	struct ext2_inode * raw_inode = ext2_get_inode(sb, ino, &bh);
-+	struct ext2_inode *raw_inode;
- 	int n;
+diff --git a/fs/nilfs2/inode.c b/fs/nilfs2/inode.c
+index a99a69e9f91b..0d4995a08b78 100644
+--- a/fs/nilfs2/inode.c
++++ b/fs/nilfs2/inode.c
+@@ -162,7 +162,7 @@ static int nilfs_writepages(struct address_space *mapping,
+ 	struct inode *inode = mapping->host;
  	int err = 0;
  
-+	if (sb_emergency_ro(sb))
+-	if (sb_rdonly(inode->i_sb)) {
++	if (nilfs_sb_rdonly(inode->i_sb)) {
+ 		nilfs_clear_dirty_pages(mapping, false);
+ 		return -EROFS;
+ 	}
+@@ -848,7 +848,7 @@ void nilfs_evict_inode(struct inode *inode)
+ 	truncate_inode_pages_final(&inode->i_data);
+ 
+ 	nilfs = sb->s_fs_info;
+-	if (unlikely(sb_rdonly(sb) || !nilfs->ns_writer)) {
++	if (unlikely(nilfs_sb_rdonly(sb) || !nilfs->ns_writer)) {
+ 		/*
+ 		 * If this inode is about to be disposed after the file system
+ 		 * has been degraded to read-only due to file system corruption
+diff --git a/fs/nilfs2/ioctl.c b/fs/nilfs2/ioctl.c
+index 686ac53498bc..42848601b394 100644
+--- a/fs/nilfs2/ioctl.c
++++ b/fs/nilfs2/ioctl.c
+@@ -1050,6 +1050,10 @@ static int nilfs_ioctl_trim_fs(struct inode *inode, void __user *argp)
+ 	if (!capable(CAP_SYS_ADMIN))
+ 		return -EPERM;
+ 
++	/* Don't trust the segment usage after an error. */
++	if (sb_emergency_ro(inode->i_sb))
 +		return -EROFS;
 +
-+	raw_inode = ext2_get_inode(sb, ino, &bh);
- 	if (IS_ERR(raw_inode))
-  		return -EIO;
+ 	if (!bdev_max_discard_sectors(nilfs->ns_bdev))
+ 		return -EOPNOTSUPP;
  
-diff --git a/fs/ext2/super.c b/fs/ext2/super.c
-index fb217ef2d69f..804a7224066d 100644
---- a/fs/ext2/super.c
-+++ b/fs/ext2/super.c
-@@ -53,7 +53,7 @@ void ext2_error(struct super_block *sb, const char *function,
- 	struct ext2_sb_info *sbi = EXT2_SB(sb);
- 	struct ext2_super_block *es = sbi->s_es;
+diff --git a/fs/nilfs2/mdt.c b/fs/nilfs2/mdt.c
+index 77dc2be2ce65..3679a21dcb29 100644
+--- a/fs/nilfs2/mdt.c
++++ b/fs/nilfs2/mdt.c
+@@ -400,7 +400,7 @@ static int nilfs_mdt_writeback(struct address_space *mapping,
+ 	if (!inode)
+ 		return 0;
  
--	if (!sb_rdonly(sb)) {
-+	if (!sb_rdonly(sb) && !sb_emergency_ro(sb)) {
- 		spin_lock(&sbi->s_lock);
- 		sbi->s_mount_state |= EXT2_ERROR_FS;
- 		es->s_state |= cpu_to_le16(EXT2_ERROR_FS);
-@@ -73,11 +73,11 @@ void ext2_error(struct super_block *sb, const char *function,
+-	if (sb_rdonly(inode->i_sb)) {
++	if (nilfs_sb_rdonly(inode->i_sb)) {
+ 		/*
+ 		 * It means that filesystem was remounted in read-only
+ 		 * mode because of error or metadata corruption. But we
+diff --git a/fs/nilfs2/page.c b/fs/nilfs2/page.c
+index 857926da9f21..c71b82244f9d 100644
+--- a/fs/nilfs2/page.c
++++ b/fs/nilfs2/page.c
+@@ -259,7 +259,7 @@ int nilfs_copy_dirty_pages(struct address_space *dmap,
  
- 	if (test_opt(sb, ERRORS_PANIC))
- 		panic("EXT2-fs: panic from previous error\n");
--	if (!sb_rdonly(sb) && test_opt(sb, ERRORS_RO)) {
-+	/* SB_RDONLY needs s_umount, see sb_set_emergency_ro(). */
-+	if (!sb_rdonly(sb) && test_opt(sb, ERRORS_RO) &&
-+	    sb_set_emergency_ro(sb))
- 		ext2_msg(sb, KERN_CRIT,
- 			     "error: remounting filesystem read-only");
--		sb->s_flags |= SB_RDONLY;
--	}
- }
+ 		folio_lock(folio);
+ 		if (unlikely(!folio_test_dirty(folio))) {
+-			if (WARN_ONCE(!sb_rdonly(smap_inode->i_sb),
++			if (WARN_ONCE(!nilfs_sb_rdonly(smap_inode->i_sb),
+ 					"inconsistent dirty state\n"))
+ 				goto unlock_folio;
  
- static void ext2_msg_fc(struct fs_context *fc, const char *prefix,
-@@ -179,7 +179,7 @@ static void ext2_put_super (struct super_block * sb)
- 	ext2_xattr_destroy_cache(sbi->s_ea_block_cache);
- 	sbi->s_ea_block_cache = NULL;
+diff --git a/fs/nilfs2/segment.c b/fs/nilfs2/segment.c
+index af0c3560444f..24b6e9597d5d 100644
+--- a/fs/nilfs2/segment.c
++++ b/fs/nilfs2/segment.c
+@@ -317,7 +317,7 @@ void nilfs_relax_pressure_in_lock(struct super_block *sb)
+ 	struct the_nilfs *nilfs = sb->s_fs_info;
+ 	struct nilfs_sc_info *sci = nilfs->ns_writer;
  
--	if (!sb_rdonly(sb)) {
-+	if (!sb_rdonly(sb) && !sb_emergency_ro(sb)) {
- 		struct ext2_super_block *es = sbi->s_es;
+-	if (sb_rdonly(sb) || unlikely(!sci) || !sci->sc_flush_request)
++	if (nilfs_sb_rdonly(sb) || unlikely(!sci) || !sci->sc_flush_request)
+ 		return;
  
- 		spin_lock(&sbi->s_lock);
-@@ -1287,6 +1287,10 @@ static int ext2_sync_fs(struct super_block *sb, int wait)
- 	struct ext2_sb_info *sbi = EXT2_SB(sb);
- 	struct ext2_super_block *es = EXT2_SB(sb)->s_es;
- 
-+	/* Nothing may be written after an error made us read-only. */
-+	if (sb_emergency_ro(sb))
-+		return 0;
-+
- 	/*
- 	 * Write quota structures to quota file, sync_blockdev() will write
- 	 * them to disk later
-@@ -1307,6 +1311,9 @@ static int ext2_freeze(struct super_block *sb)
- {
- 	struct ext2_sb_info *sbi = EXT2_SB(sb);
- 
-+	if (sb_emergency_ro(sb))
-+		return 0;
-+
- 	/*
- 	 * Open but unlinked files present? Keep EXT2_VALID_FS flag cleared
- 	 * because we have unattached inodes and thus filesystem is not fully
-@@ -1349,7 +1356,9 @@ static int ext2_reconfigure(struct fs_context *fc)
- 	int flags = fc->sb_flags;
+ 	set_bit(NILFS_SC_PRIOR_FLUSH, &sci->sc_flags);
+@@ -2099,7 +2099,7 @@ static int nilfs_segctor_do_construct(struct nilfs_sc_info *sci, int mode)
+ 	struct the_nilfs *nilfs = sci->sc_super->s_fs_info;
  	int err;
  
--	sync_filesystem(sb);
-+	/* Nothing may be written after an error made us read-only. */
-+	if (!sb_emergency_ro(sb))
-+		sync_filesystem(sb);
+-	if (sb_rdonly(sci->sc_super))
++	if (nilfs_sb_rdonly(sci->sc_super))
+ 		return -EROFS;
  
- 	new_opts.s_mount_opt = ctx->vals_s_mount_opt;
- 	new_opts.s_resuid = ctx->s_resuid;
-@@ -1360,6 +1369,9 @@ static int ext2_reconfigure(struct fs_context *fc)
- 	if ((bool)(flags & SB_RDONLY) == sb_rdonly(sb))
- 		goto out_set;
- 	if (flags & SB_RDONLY) {
+ 	nilfs_sc_cstage_set(sci, NILFS_ST_INIT);
+@@ -2323,7 +2323,7 @@ int nilfs_construct_segment(struct super_block *sb)
+ 	struct nilfs_sc_info *sci = nilfs->ns_writer;
+ 	struct nilfs_transaction_info *ti;
+ 
+-	if (sb_rdonly(sb) || unlikely(!sci))
++	if (nilfs_sb_rdonly(sb) || unlikely(!sci))
+ 		return -EROFS;
+ 
+ 	/* A call inside transactions causes a deadlock. */
+@@ -2356,7 +2356,7 @@ int nilfs_construct_dsync_segment(struct super_block *sb, struct inode *inode,
+ 	struct nilfs_transaction_info ti;
+ 	int err = 0;
+ 
+-	if (sb_rdonly(sb) || unlikely(!sci))
++	if (nilfs_sb_rdonly(sb) || unlikely(!sci))
+ 		return -EROFS;
+ 
+ 	nilfs_transaction_lock(sb, &ti, 0);
+@@ -2870,9 +2870,8 @@ int nilfs_attach_log_writer(struct super_block *sb, struct nilfs_root *root)
+ 
+ 	if (nilfs->ns_writer) {
+ 		/*
+-		 * This happens if the filesystem is made read-only by
+-		 * __nilfs_error or nilfs_remount and then remounted
+-		 * read/write.  In these cases, reuse the existing
++		 * This happens if the filesystem is remounted read-only and
++		 * then read/write again.  In this case, reuse the existing
+ 		 * writer.
+ 		 */
+ 		return 0;
+diff --git a/fs/nilfs2/sufile.h b/fs/nilfs2/sufile.h
+index 5888ed479c8b..d5e7598e36b3 100644
+--- a/fs/nilfs2/sufile.h
++++ b/fs/nilfs2/sufile.h
+@@ -76,7 +76,7 @@ int nilfs_sufile_trim_fs(struct inode *sufile, struct fstrim_range *range);
+ 		int _err = (err);					\
+ 									\
+ 		if (unlikely(_err))					\
+-			_err = WARN_ONCE(!sb_rdonly((sufile)->i_sb),	\
++			_err = WARN_ONCE(!nilfs_sb_rdonly((sufile)->i_sb), \
+ 				"unexpected sufile error %d\n", _err) ? \
+ 				-EIO : -EROFS;				\
+ 		_err;							\
+diff --git a/fs/nilfs2/super.c b/fs/nilfs2/super.c
+index 2e3b591c117c..edb7d379ecbd 100644
+--- a/fs/nilfs2/super.c
++++ b/fs/nilfs2/super.c
+@@ -137,12 +137,13 @@ void __nilfs_error(struct super_block *sb, const char *function,
+ 
+ 	va_end(args);
+ 
+-	if (!sb_rdonly(sb)) {
++	if (!nilfs_sb_rdonly(sb)) {
+ 		nilfs_set_error(sb);
+ 
+ 		if (nilfs_test_opt(nilfs, ERRORS_RO)) {
+ 			printk(KERN_CRIT "Remounting filesystem read-only\n");
+-			sb->s_flags |= SB_RDONLY;
++			/* SB_RDONLY needs s_umount, see sb_set_emergency_ro(). */
++			sb_set_emergency_ro(sb);
+ 		}
+ 	}
+ 
+@@ -508,7 +509,7 @@ static void nilfs_put_super(struct super_block *sb)
+ 
+ 	nilfs_detach_log_writer(sb);
+ 
+-	if (!sb_rdonly(sb)) {
++	if (!nilfs_sb_rdonly(sb)) {
+ 		down_write(&nilfs->ns_sem);
+ 		nilfs_cleanup_super(sb);
+ 		up_write(&nilfs->ns_sem);
+@@ -529,6 +530,10 @@ static int nilfs_sync_fs(struct super_block *sb, int wait)
+ 	struct nilfs_super_block **sbp;
+ 	int err = 0;
+ 
++	/* Nothing may be written after an error made us read-only. */
++	if (sb_emergency_ro(sb))
++		return 0;
++
+ 	/* This function is called when super block should be written back */
+ 	if (wait)
+ 		err = nilfs_construct_segment(sb);
+@@ -588,7 +593,7 @@ static int nilfs_freeze(struct super_block *sb)
+ 	struct the_nilfs *nilfs = sb->s_fs_info;
+ 	int err;
+ 
+-	if (sb_rdonly(sb))
++	if (nilfs_sb_rdonly(sb))
+ 		return 0;
+ 
+ 	/* Mark super block clean */
+@@ -602,7 +607,7 @@ static int nilfs_unfreeze(struct super_block *sb)
+ {
+ 	struct the_nilfs *nilfs = sb->s_fs_info;
+ 
+-	if (sb_rdonly(sb))
++	if (nilfs_sb_rdonly(sb))
+ 		return 0;
+ 
+ 	down_write(&nilfs->ns_sem);
+@@ -1083,7 +1088,7 @@ nilfs_fill_super(struct super_block *sb, struct fs_context *fc)
+ 		goto failed_unload;
+ 	}
+ 
+-	if (!sb_rdonly(sb)) {
++	if (!nilfs_sb_rdonly(sb)) {
+ 		err = nilfs_attach_log_writer(sb, fsroot);
+ 		if (err)
+ 			goto failed_checkpoint;
+@@ -1095,7 +1100,7 @@ nilfs_fill_super(struct super_block *sb, struct fs_context *fc)
+ 
+ 	nilfs_put_root(fsroot);
+ 
+-	if (!sb_rdonly(sb)) {
++	if (!nilfs_sb_rdonly(sb)) {
+ 		down_write(&nilfs->ns_sem);
+ 		nilfs_setup_super(sb, true);
+ 		up_write(&nilfs->ns_sem);
+@@ -1141,6 +1146,10 @@ static int nilfs_reconfigure(struct fs_context *fc)
+ 	if (fc->sb_flags & SB_RDONLY) {
+ 		sb->s_flags |= SB_RDONLY;
+ 
 +		/* After an error nothing may be written, just go read-only. */
 +		if (sb_emergency_ro(sb))
-+			goto out_set;
- 		if (le16_to_cpu(es->s_state) & EXT2_VALID_FS ||
- 		    !(sbi->s_mount_state & EXT2_VALID_FS))
- 			goto out_set;
-diff --git a/fs/ext2/xattr.c b/fs/ext2/xattr.c
-index 8f608930a48c..12dfffff189c 100644
---- a/fs/ext2/xattr.c
-+++ b/fs/ext2/xattr.c
-@@ -429,6 +429,8 @@ ext2_xattr_set(struct inode *inode, int name_index, const char *name,
- 	ea_idebug(inode, "name=%d.%s, value=%p, value_len=%ld",
- 		  name_index, name, value, (long)value_len);
++			goto out;
++
+ 		/*
+ 		 * Remounting a valid RW partition RDONLY, so set
+ 		 * the RDONLY flag and then mark the partition as valid again.
+@@ -1152,6 +1161,12 @@ static int nilfs_reconfigure(struct fs_context *fc)
+ 		__u64 features;
+ 		struct nilfs_root *root;
  
-+	if (sb_emergency_ro(sb))
-+		return -EROFS;
- 	if (value == NULL)
- 		value_len = 0;
- 	if (name == NULL)
++		/* The VFS doesn't refuse this when nilfs_get_tree() calls us. */
++		if (sb_emergency_ro(sb)) {
++			err = -EROFS;
++			goto ignore_opts;
++		}
++
+ 		/*
+ 		 * Mounting a RDONLY partition read-write, so reread and
+ 		 * store the current valid flag.  (It may have been changed
+diff --git a/fs/nilfs2/the_nilfs.h b/fs/nilfs2/the_nilfs.h
+index 4776a70f01ae..f90d5bd6e7d3 100644
+--- a/fs/nilfs2/the_nilfs.h
++++ b/fs/nilfs2/the_nilfs.h
+@@ -205,6 +205,12 @@ THE_NILFS_FNS(GC_RUNNING, gc_running)
+ THE_NILFS_FNS(SB_DIRTY, sb_dirty)
+ THE_NILFS_FNS(PURGING, purging)
+ 
++/* Mounted read-only or read-only after an error. */
++static inline bool nilfs_sb_rdonly(struct super_block *sb)
++{
++	return sb_rdonly(sb) || sb_emergency_ro(sb);
++}
++
+ /*
+  * Mount option operations
+  */
 
 -- 
 2.53.0
