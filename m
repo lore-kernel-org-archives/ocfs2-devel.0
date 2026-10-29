@@ -1,48 +1,48 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793290152;
-	b=Y9Ja88Uu+H0IxFwii5EBKFY9jJ8UHSauelvfsbk2VIoYuE70iz2OSIZ8Eqtat8cSaDLn
-	 1fAjSNPzXzwjsjL074kwc6FKsqmOEtdL1y+49e1k1tBOOGdx+5cbRVamBjW6OPDkdfjPL
-	 nRiKVDQc3kAtbjR5xeRO5FLNkvONj6DPqYsmNvxsvk2AFTHkcNt/GseLsSFwdZzss2LIz
-	 TvdPTXD4sy0/Zeb3mGLZYjmd2TVxwQIE6NXHphsQYvMzUxEXYPjuIgUffwe4U3b7txAZO
-	 72sHezRhm79FI7hcci820hlpjBVPakR71t6SedlruVql2sjV/JOPH4iwm9QIcffgYdg==
+	t=1793290161;
+	b=PDqKztAdoe2qw8arVZEMcX+hOftv5baPrp7Cr0doo9rVqpk3vNTtEIcWEUhw0Z/RUOZv
+	 lrkpaxr9Slo12qPdBlz5/iWqV9cvRTj9MpDYzrdjdAUaGeieub4Drvg8wly7TGLWwHErU
+	 XHm5NW4cVR6vC8J1d7npBtF8Hu0A8YxVc9o9Cdq+v0G34q6/g7qt0wa7yVBUtFBAvEFgL
+	 6Ke1pb5wFAI0mnDXM2bamv4VaIbiCUciMiG58ESSayp/mHTuzrC8uY6Sa40zwUHbD+pjw
+	 d6/mEyoAMeYF2QeFSUhOq1nwA/LVWjnMwUU6d/5gdORNShS8Q3a/XCQT4AAUNAi9lqA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793290152;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793290161;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=16Wgozw7LT1A5dnMoJk9SHvNZZAzQHZiP5/cR8RnnG0=;
-	b=AkBTruWq1C0To8dxr+xA8Y1++eg7YkjYHKhrgzrHzRJFBGkavUwcuVuKXuNuXXVOUklS
-	 PxnBzpSbf1Z43nOm+ku3zYAjBaw4OrZYpAfbzObY8xWKWZblEvBP3BiKCsjMl2ZgEiLJ0
-	 WZxRyjeByS8YkjiealZe3L5zQOwJsNuaLl48tarhc0twZ/04gsHRF5j6EXdccbUW9dzKL
-	 TkX1jPPvaSgsu+NJqTvt0qRKGUY8UmBS6aiouXc6A2qZm1zPqoHpgBpCRf51V4zY57d75
-	 JI+jcJeKlw2Q6IwAuMmLxcaqwwSkPD5G1Ni02jvepEYH6kWS94MsmszAlYSFD72d/Lw==
+	bh=eQCxXsTbwof9FUg6Ix787w22LF6YubBqqIH8KJ6MCDE=;
+	b=vkvi3GiFlMboLARAuSKWJr4dkG7U1fHz5rjKk4jwkZ/dawwpk8bt0Dy9XDCcGIzMVzw9
+	 krTAUpH3kBa3mBptTcwih5Ozc+58zEkX5x79GuegrFdfXCwRPjc8HJRj1t6FjTYH2j89H
+	 w5zVMQs4fTpR6UPyDwdU5gXYgWnQMuIy9fFwKG07AZxFIrcgsA4ybvLl0BorxcWFXMmjr
+	 jM3I3J0Dz6dj0BTBta5R4oy7G1yc5cFJEQWtOhVWO+oHw27awKEbI/3tunPmB+rV2YeFz
+	 mw/YL34Z2i1LWSGOCWMICkkNis5eM7I+MyKXSIqmz0WtA3x79sYIVGFTpWZtQvcs0ew==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=S1VrcVdR;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JPzI4b+4;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 512BC606A33B;
-	Thu, 29 Oct 2026 16:09:12 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B0AA660A2607;
+	Thu, 29 Oct 2026 16:09:20 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=S1VrcVdR
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 56DD91F031E1;
-	Thu, 29 Oct 2026 16:09:08 +0000 (UTC)
+	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JPzI4b+4
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id F13B41F01824;
+	Thu, 29 Oct 2026 16:09:16 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793290152;
-	bh=16Wgozw7LT1A5dnMoJk9SHvNZZAzQHZiP5/cR8RnnG0=;
+	s=k20260515; t=1793290160;
+	bh=eQCxXsTbwof9FUg6Ix787w22LF6YubBqqIH8KJ6MCDE=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=S1VrcVdRnOvjP4guVATOUYSh2lSw7KvpmtRZJkenH5WiiCzWXOMSugsIQ6KKG9ruY
-	 zQp8jE3B0+Uq23U/Ke7WU85HbFvw+Zb4NvrwlZnKgVYSwJ44OALdo0VacN9o6XWAyY
-	 rODHyJbrdd7wMxHesIuwViARaA8X3D0GGo0NsDvwe53p+vre+zuUNphRHyenQrHCJT
-	 mZJvMH77+58E/EqBVgo3e/Le0z7pZqJYjfvT/7NXGOZ9aVpjuppQvc2tvW7HdnijBR
-	 xJVQk2g5Z12Jn6bLsmqmSM0vFsTSdC4FrxF6im6ITyi8u1ViGKwnEjkfEUhnpJrPkF
-	 +1u4PBKBdrdtw==
+	b=JPzI4b+44MGHLq4Jf1Gd4otwA/YDDR9WxZIZKcBtPYvVLxg/NVjj0FSUl04NGD2UF
+	 jW+QM9NGcJ8xak2TPxWrHzDPZWsqhQZpmf3e7baLAZcqmOEyqRQFv51S7CZqCBb4ac
+	 L6XwWdAsCey9Ual2ko+9VwDzSQk3VqQaRkiLecBFhzzuVikzgtCdezSfjS6hRkvMLH
+	 U/N7Ctvgg+K8gvHTFhjxufgGW2WB29OW4MRVU6GRO17sWpTay79NvLRfX8CghFCIEC
+	 HxFOPT2Ot/wN3eHNjYIeDLuWrUzgbMFq3kzaw8rT4HrXFXsFEIClPDfvwd6J1cAeEm
+	 8E2KYC0d+8GfA==
 From: Christian Brauner <brauner@kernel.org>
-Date: Thu, 29 Oct 2026 17:07:17 +0100
-Subject: [PATCH v2 26/34] gfs2: don't set SB_RDONLY on withdraw
+Date: Thu, 29 Oct 2026 17:07:19 +0100
+Subject: [PATCH v2 28/34] ubifs: don't set SB_RDONLY after errors
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,7 +54,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261029-work-fs-sb_rdonly-v2-26-2f44f64f0b66@kernel.org>
+Message-Id: <20261029-work-fs-sb_rdonly-v2-28-2f44f64f0b66@kernel.org>
 References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
 In-Reply-To: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
 To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
@@ -65,145 +65,102 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, 
  linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
  linux-xfs@vger.kernel.org, 
- "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org
+ "Christian Brauner (Amutable)" <brauner@kernel.org>
 X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=4731; i=brauner@kernel.org;
- h=from:subject:message-id; bh=KWX2HXFYLWOE6OyGqLY2drCdSkcUPo4c9Q5+N17QpVI=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ9zjcQu27C9P4ik4DW6xNqGsUX+Lx2fJEUnPPhla/hF
- jYNfcUHHaUsDGJcDLJiiiwO7Sbhcst5KjYbZWrAzGFlAhnCwMUpABPpfsPIsETt1cbFfxv2XNc9
- 2r3/akT6ueTH5/Kd1LV0RLKarokkfmb47yJw4KrX53/3BaZMyXzMK9aiOiPL3/CVPpv5d7OY5md
- SjAA=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2955; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=/l/eYRwD7NiCvHpR0M4Ent49C5EEBbats3rfxEZnvhM=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ9zjc437ZtHl/b8osXnrN8PqroI20dtn0u773jdfe+R
+ in93ha3vaOUhUGMi0FWTJHFod0kXG45T8Vmo0wNmDmsTCBDGLg4BWAiqx8y/I8+fdTck0/0T9Sm
+ R2ZFJzZ1leZviTm5Wqdaa8P/dzYRjCYM/9RevWHu7F/ra+K9+1tjgk3Rmwynj2dXLHg2QdjwwLR
+ FJUwA
 X-Developer-Key: i=brauner@kernel.org; a=openpgp;
  fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-do_withdraw() sets SB_RDONLY from the withdraw work without holding
-s_umount, also on a frozen filesystem. FITHAW then fails because a
-withdrawn filesystem can't take the freeze glock. Emergency thaw and the
-gfs2 "freeze" sysfs file see SB_RDONLY and leave the s_writers rwsems
-locked. Writers hang and umount warns. And freezing after a withdraw
-fails and leaves the superblock frozen.
+ubifs_ro_mode() sets c->ro_error and SB_RDONLY from whatever context hit
+the error, e.g. a failing write, and without holding s_umount. UBIFS
+can't be frozen but that still races with everyone else changing
+sb->s_flags. And c->ro_error alone already makes every write fail with
+EROFS.
 
-SDF_WITHDRAWN already stops all modifications, so stop setting
-SB_RDONLY. A few things have to come with that:
+So only set SB_RDONLY while the filesystem is still being mounted and
+call sb_set_emergency_ro() after that. The xattr setters check
+c->ro_error as well because ecryptfs calls them without write access on
+the lower mount and they change the inode in memory first.
 
-(1) gfs2_evict_inode() and gfs2_quota_sync() check gfs2_withdrawn()
-    next to sb_rdonly().
-(2) gfs2_write_inode() returns EIO once withdrawn because sync and
-    umount don't skip writeback for a read-only superblock anymore.
-(3) gfs2_do_thaw() thaws even if the freeze glock can't be taken again.
-(4) gfs2_freeze_super() refuses a withdrawn filesystem with EIO and
-    thaws the superblock itself if the withdraw happens while it tries
-    to freeze.
+So far a remount to read-only after an error was refused and a remount
+to read-write went through and cleared SB_RDONLY again because
+c->ro_mount was never set. Now going read-only works and its writes fail
+with EROFS before any I/O, and going read-write is refused by the VFS.
+fsync() fails with EROFS instead of taking ubifs_fsync()'s read-only
+shortcut.
 
-This can't be split up. With only (3) FITHAW leaks the rwsems of the
-read-only superblock. With only the SB_RDONLY change FITHAW can't
-release the rwsems a freeze took after a withdraw.
-
-A remount to read-only writes nothing once do_withdraw() ran and waits
-for it since the previous patch, so sysrq u works on a withdrawn gfs2.
-Going read-write still fails with EIO. A withdrawn filesystem stays "rw"
-in /proc/mounts and statfs() doesn't report ST_RDONLY anymore. The
-withdraw file in sysfs still shows it.
-
-Fixes: 601ef0d52e96 ("gfs2: Force withdraw to replay journals and wait for it to finish")
-Fixes: b77b4a4815a9 ("gfs2: Rework freeze / thaw logic")
-Cc: stable@vger.kernel.org
 Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 ---
- fs/gfs2/quota.c |  2 +-
- fs/gfs2/super.c | 20 ++++++++++++++++++--
- fs/gfs2/util.c  |  5 +++--
- 3 files changed, 22 insertions(+), 5 deletions(-)
+ fs/ubifs/io.c    | 9 ++++++++-
+ fs/ubifs/super.c | 5 +----
+ fs/ubifs/xattr.c | 6 ++++++
+ 3 files changed, 15 insertions(+), 5 deletions(-)
 
-diff --git a/fs/gfs2/quota.c b/fs/gfs2/quota.c
-index b2984fb7b35c..affe4c3451f5 100644
---- a/fs/gfs2/quota.c
-+++ b/fs/gfs2/quota.c
-@@ -1335,7 +1335,7 @@ int gfs2_quota_sync(struct super_block *sb, int type)
- 	u64 sync_gen;
- 	int error = 0;
- 
--	if (sb_rdonly(sdp->sd_vfs))
-+	if (sb_rdonly(sdp->sd_vfs) || gfs2_withdrawn(sdp))
- 		return 0;
- 
- 	qda = kzalloc_objs(struct gfs2_quota_data *, max_qd);
-diff --git a/fs/gfs2/super.c b/fs/gfs2/super.c
-index f61c309368ef..82f9d90f3578 100644
---- a/fs/gfs2/super.c
-+++ b/fs/gfs2/super.c
-@@ -455,6 +455,9 @@ static int gfs2_write_inode(struct inode *inode, struct writeback_control *wbc)
- 	int ret = 0;
- 	bool flush_all = (wbc->sync_mode == WB_SYNC_ALL || gfs2_is_jdata(ip));
- 
-+	if (gfs2_withdrawn(sdp))
-+		return -EIO;
-+
- 	if (flush_all)
- 		gfs2_log_flush(GFS2_SB(inode), gl,
- 			       GFS2_LOG_HEAD_FLUSH_NORMAL |
-@@ -686,7 +689,8 @@ static int gfs2_do_thaw(struct gfs2_sbd *sdp, enum freeze_holder who, const void
- 	int error;
- 
- 	error = gfs2_freeze_lock_shared(sdp);
--	if (error)
-+	/* A withdrawn filesystem can't get the freeze glock back, thaw anyway. */
-+	if (error && !gfs2_withdrawn(sdp))
- 		goto fail;
- 	error = thaw_super(sb, who, freeze_owner);
- 	if (!error)
-@@ -751,6 +755,11 @@ static int gfs2_freeze_super(struct super_block *sb, enum freeze_holder who,
- 		mutex_unlock(&sdp->sd_freeze_mutex);
- 		return -EBUSY;
+diff --git a/fs/ubifs/io.c b/fs/ubifs/io.c
+index 6c6d68242779..7a59aa1ea5ce 100644
+--- a/fs/ubifs/io.c
++++ b/fs/ubifs/io.c
+@@ -72,7 +72,14 @@ void ubifs_ro_mode(struct ubifs_info *c, int err)
+ 	if (!c->ro_error) {
+ 		c->ro_error = 1;
+ 		c->no_chk_data_crc = 0;
+-		c->vfs_sb->s_flags |= SB_RDONLY;
++		/*
++		 * Before SB_BORN the mounter holds s_umount, later see
++		 * sb_set_emergency_ro().
++		 */
++		if (!(c->vfs_sb->s_flags & SB_BORN))
++			c->vfs_sb->s_flags |= SB_RDONLY;
++		else
++			sb_set_emergency_ro(c->vfs_sb);
+ 		ubifs_warn(c, "switched to read-only mode, error %d", err);
+ 		dump_stack();
  	}
-+	/* A withdrawn filesystem can't take the freeze glock anymore. */
-+	if (gfs2_withdrawn(sdp)) {
-+		mutex_unlock(&sdp->sd_freeze_mutex);
-+		return -EIO;
-+	}
+diff --git a/fs/ubifs/super.c b/fs/ubifs/super.c
+index 38972786817e..ef39da4e780b 100644
+--- a/fs/ubifs/super.c
++++ b/fs/ubifs/super.c
+@@ -1977,10 +1977,7 @@ static int ubifs_reconfigure(struct fs_context *fc)
+ 		if (err)
+ 			return err;
+ 	} else if (!c->ro_mount && (fc->sb_flags & SB_RDONLY)) {
+-		if (c->ro_error) {
+-			ubifs_msg(c, "cannot re-mount R/O due to prior errors");
+-			return -EROFS;
+-		}
++		/* After an error ubifs_remount_ro() can't write but still works. */
+ 		ubifs_remount_ro(c);
+ 	}
  
- 	for (;;) {
- 		error = freeze_super(sb, who, freeze_owner);
-@@ -767,6 +776,13 @@ static int gfs2_freeze_super(struct super_block *sb, enum freeze_holder who,
- 			break;
- 		}
+diff --git a/fs/ubifs/xattr.c b/fs/ubifs/xattr.c
+index 3b0e8a270f59..572f6f3e52ad 100644
+--- a/fs/ubifs/xattr.c
++++ b/fs/ubifs/xattr.c
+@@ -260,6 +260,9 @@ int ubifs_xattr_set(struct inode *host, const char *name, const void *value,
+ 	if (check_lock)
+ 		ubifs_assert(c, inode_is_locked(host));
  
-+		/* Withdrawn meanwhile, don't take the freeze glock again. */
-+		if (gfs2_withdrawn(sdp)) {
-+			(void)thaw_super(sb, who, freeze_owner);
-+			error = -EIO;
-+			goto out;
-+		}
++	if (c->ro_error)
++		return -EROFS;
 +
- 		(void)gfs2_do_thaw(sdp, who, freeze_owner);
+ 	if (size > UBIFS_MAX_INO_DATA)
+ 		return -ERANGE;
  
- 		if (error == -EBUSY)
-@@ -1488,7 +1504,7 @@ static void gfs2_evict_inode(struct inode *inode)
- 	int ret;
+@@ -564,6 +567,9 @@ static int ubifs_xattr_remove(struct inode *host, const char *name)
  
- 	gfs2_holder_mark_uninitialized(&gh);
--	if (sb_rdonly(sb) || !ip->i_no_addr || !gl)
-+	if (sb_rdonly(sb) || gfs2_withdrawn(sdp) || !ip->i_no_addr || !gl)
- 		goto out;
+ 	ubifs_assert(c, inode_is_locked(host));
  
- 	/*
-diff --git a/fs/gfs2/util.c b/fs/gfs2/util.c
-index 888e0d6bf512..e720f73b7b24 100644
---- a/fs/gfs2/util.c
-+++ b/fs/gfs2/util.c
-@@ -132,9 +132,10 @@ static void do_withdraw(struct gfs2_sbd *sdp)
- 			   gfs2_log_is_empty(sdp),
- 			   HZ * 5);
++	if (c->ro_error)
++		return -EROFS;
++
+ 	if (fname_len(&nm) > UBIFS_MAX_NLEN)
+ 		return -ENAMETOOLONG;
  
--	sdp->sd_vfs->s_flags |= SB_RDONLY;
--
- 	/*
-+	 * No SB_RDONLY, that needs s_umount. SDF_WITHDRAWN already stops all
-+	 * modifications.
-+	 *
- 	 * Dequeue any pending non-system glock holders that can no
- 	 * longer be granted because the file system is withdrawn.
- 	 */
 
 -- 
 2.53.0
