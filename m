@@ -1,49 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.132
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.110
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793329331;
-	b=gSvwMRafyP/pCXZaWShbusYS/5RMt+rbD/h/4MN6dOMUCirtpvznO9UFOAeW2clIO6HQ
-	 xFibDWF9ag/fs0WAigmmmTNyF14JnB4o3n+eimPnqYWAZTqg0dZl70gTo+ofMwjtZaLBP
-	 a5AEqvq8kazGTVcI/7NnWGGg/n++8EXebWY5IKqsm6CHEvergcELNBRgnIGu+uImjbZ/R
-	 ydqW2/El+FFxRfSLljzx4lCgaDJtKUvxCvbxzAVmNNX/ocUXnkHstst57L6/qP4ok4x35
-	 FKUAWUguvqkXAWM9FuSzxLJVzVjdW0KkOaAxG2RcPcEx3nXHY+8W4s/h04IESINtSZg==
+	t=1793330832;
+	b=eg9PmSLR/1WuI02yBt2MAA69gqLJNHQHGTPGoMLI2N0yk1Cfzl1fB1GFMHSCknobDQ5O
+	 j4LN6SDMg2AK5uC3ts6H4qHvnRvfsFLUjm5mhgMMdzocEBTQCmMQwDtDd7xVfm+BRrOR5
+	 vlJXldZnThuzhxnqZm8Z0tRXYodr9FP2IAyeoJ5Sg2leHz60KvgzxdsFYmUOiIDVBbtDz
+	 EU0JxpeaeInKo2Ry95j06FmLSdscVlMlKhuFMDMINW3jdgM5iok4Peu5vae/rIYKdRW8h
+	 +Xo2OouVX9N4e3/pVx9SF7qCCCYBW5uFyXVjwawLQ0E941zjJTO1xVek/4JUt/6dxkg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793329331;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793330832;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
 	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=CHLQ7b2LcR7am1RKbZkh1e8kwZYbJ2OrwqImdsIBbbw=;
-	b=MccK9KeiTk/bPxR4ICNZVqMWRL5kQ2GrTRpvSyTCV5ToG3qIJyyzmyZOIOfNrE7hcMgT
-	 KPcXNz6lSYjW3hq2yOG1mDRYSmV9HR0Egnk/Yh6EmApydbm6XjCPenDQQx60oUjDAVycr
-	 vV3pa9o9qIBE02yJB8N2NSxoQjz3OtH3T+sR9ztSUBn786jmVbk8k3YRmppSKI9HfYO7p
-	 PSJjHD/yANVZkAtQAlFLVG989+g+HKk3HAPbN+fdmN45wXe5xpYJeQv9UAoMaEb0gkSm5
-	 fGniMGtb5KhhLcJEkx3FEJKrRQD82a2GXpJ/pEG88DmonTLoB27jej7oWEZTE1mQg7A==
+	bh=1rPszPa95omO2WaIpFWNNT2Z1Vf6DPM6xcYumF3O7YY=;
+	b=t4sixebzlYRO7KoGP1v2M7OxtrwWHLot+NfV5Z2YUUHANLXGUl6pNNIDOnBxnD92RmV4
+	 HVp3RWfTmVfyV1/lrkoxCk131gfQcWfJnEJTw/rc/IapvQpIY25WQOXczUfQzDy8Z/CeX
+	 AZ6hLDq+t/H1NB4NosEjuM9dhafpCe09ZYMOvqMgZXGt8CBBfPb9ZV3X8wFYYJqLeWK1J
+	 /EGOYfU+Qx95Qd7GoioknBH9N58cbXpGl85qpDadQgDQ58GdmtiOYIj3dhAZA9u1Txt2y
+	 kK8wCrgsA2C3+txTO5OZpYXzskvGjofdB7Rq+oyXXmxy7mRw7Rrzos+QKI321mqpxAw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=P3EUpEDX;
-	arc=none smtp.remote-ip=115.124.30.132
-Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b="ZoErqQp/";
+	arc=none smtp.remote-ip=115.124.30.110
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 18A9E606A31D;
-	Fri, 30 Oct 2026 03:02:08 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 18A9E606A31D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7C38B606A31C
+	for <ocfs2-devel@lists.linux.dev>; Fri, 30 Oct 2026 03:27:10 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 7C38B606A31C
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=P3EUpEDX
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=ZoErqQp/
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793329320; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=CHLQ7b2LcR7am1RKbZkh1e8kwZYbJ2OrwqImdsIBbbw=;
-	b=P3EUpEDXjFYc7t9vYYRCz1pheQWh2OCsVgQHajoLYY7mar314/KyFODZ1m/Bx3732YPlUX/9mgkhkxHtZvlKaP/r8tG5iUFYR6RjeVEzRHEvZlb44qO001lYjE8WqGw+itEsYWrea5uNPR7AtSB9r2wsmY6F8l5pa5OuFFW0k30=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R531e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=17;SR=0;TI=SMTPD_---0XDkxfAa_1793329318;
-Received: from 30.221.129.214(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDkxfAa_1793329318 cluster:ay36)
+	t=1793330828; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=1rPszPa95omO2WaIpFWNNT2Z1Vf6DPM6xcYumF3O7YY=;
+	b=ZoErqQp/9EAano3BCbP5r3KeRQipLetUE9A0oIPNmiJHfLBdaypTrzKeqL/jHy2c4hd6tVEcuqJW0InuEgXQZfNuMCOu3JjqMbKTHOUZlmfj407v3mvDYjIPXHbkUEiiQeJvddpLx3bNvjBZeKMH4xRY6Gei7UHob6CbUKMnsTo=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R531e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XDkvBnT_1793330826;
+Received: from 30.221.129.214(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDkvBnT_1793330826 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 30 Oct 2026 11:01:59 +0800
-Message-ID: <736cc238-0af8-417b-bf3f-5e8b002badaf@linux.alibaba.com>
-Date: Fri, 30 Oct 2026 11:01:58 +0800
+          Fri, 30 Oct 2026 11:27:07 +0800
+Message-ID: <f80554e4-fde7-4811-9c2e-ae9407793bf7@linux.alibaba.com>
+Date: Fri, 30 Oct 2026 11:27:06 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,54 +54,129 @@ List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 20/34] ocfs2: don't set SB_RDONLY after filesystem
- errors
-To: Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org,
- Jan Kara <jack@suse.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
- linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
- linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, linux-mm@kvack.org,
- ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev,
- linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev,
- linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org,
- linux-xfs@vger.kernel.org
-References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
- <20261029-work-fs-sb_rdonly-v2-20-2f44f64f0b66@kernel.org>
+Subject: Re: [PATCH v4] ocfs2/dlm: serialize migration MLE cleanup on failure
+To: Cen Zhang <zzzccc427@gmail.com>, Andrew Morton <akpm@linux-foundation.org>
+Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
+ ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org,
+ stable@vger.kernel.org, baijiaju1990@gmail.com, jjzuming@gmail.com
+References: <pm-ocfs2-objects-candidate-0038-v9-659f247ea980d5f3fbeb@gmail.com>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20261029-work-fs-sb_rdonly-v2-20-2f44f64f0b66@kernel.org>
+In-Reply-To: <pm-ocfs2-objects-candidate-0038-v9-659f247ea980d5f3fbeb@gmail.com>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 10/30/26 12:07 AM, Christian Brauner wrote:
-> With errors=remount-ro, the default, ocfs2_handle_error() sets SB_RDONLY
-> without holding s_umount. If that happens while the filesystem is frozen
-> through bdev_freeze() thaw_super() leaves the s_writers rwsems locked.
-> Writers hang and so does umount because ocfs2_shutdown_local_alloc()
-> needs sb_start_intwrite().
+On 10/27/26 6:14 PM, Cen Zhang wrote:
+> A migration MLE has a base reference for the mastering answer and an
+> in-use reference held by dlm_migrate_lockres(). The finishing assertion
+> consumes the base reference, but migration failure drops it again
+> without checking whether the assertion already consumed it.
 > 
-> The soft read-only state doesn't stop modifications on its own. Every
-> read-only mount sets it and those still need transactions for recovery,
-> the local alloc and the truncate log. Everything else was stopped by the
-> VFS because of SB_RDONLY. So call sb_set_emergency_ro() instead which
-> keeps it that way, and keep setting SOFT_RO for the existing
-> ocfs2_emergency_state() checks.
+> The target queues its migration worker before it acknowledges the
+> ALL_DONE packet, so its finishing assertion can be handled while the
+> sender still waits for the status. If the connection fails before the
+> status arrives, dlm_send_one_lockres() returns an error for a migration
+> that the target has already completed:
 > 
-> The xattr and ACL setters get a check of their own because ecryptfs
-> calls them without write access on the lower mount. It sits in the xattr
-> handlers and not in ocfs2_xattr_set() because chmod and setfacl store
-> the ACL through it after the new mode was already committed.
+>   Old-master sender                  Finishing assertion
+>   -----------------                  -------------------
+>   publish MLE; take in-use reference
+>   send ALL_DONE; wait for status
+>                                      take lookup reference
+>                                      unlink MLE
+>                                      put lookup and base references
+>   send returns a connection error
+>   put base reference again; free MLE
+>   put in-use reference; access freed MLE
 > 
-> Quotas aren't enabled at mount in the error state because that writes
-> the quota files. ocfs2_sync_fs() doesn't flush anything anymore and a
-> remount to read-only doesn't suspend quotas. Q_GETQUOTA, Q_GETNEXTQUOTA
-> and Q_SYNC can still start transactions. I've left that alone.
+> dlm_assert_master_handler() holds dlm->spinlock from the MLE lookup to
+> the final puts, and it takes dlm->master_lock around the unlink and the
+> puts. Decide under the same locks: if the MLE is already unhashed, the
+> assertion consumed the base reference, so drop only the sender's in-use
+> reference. Otherwise unlink it before consuming the base reference so a
+> later assertion no longer finds it.
 > 
-> Writes through file descriptors opened before the error fail with EROFS
-> and umount completes instead of hanging.
+> An assertion that got there first has also made the target the owner
+> and cleared DLM_LOCK_RES_MIGRATING. Treating the attempt as failed at
+> that point would leave the lockres owned by the target while this node
+> still holds the other nodes' locks and refmap bits, so it could neither
+> be purged nor migrated again. Finish our side as a completed migration
+> does instead: drop those locks under res->spinlock if the target still
+> owns the lockres, and recalculate its usage.
 > 
-> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
+> Use the same cleanup for the pre-send failure, the send failure and the
+> target-death failure paths. The sender's in-use reference keeps the MLE
+> alive until its final put outside the nested locks. Successful
+> migration retains its existing in-use-only put.
+> 
+> A target that has died cannot assert after the sender has seen its
+> death. The o2net node-down callback runs before the DLM one; it
+> disconnects the node and flushes the workqueue that runs the message
+> handlers, so an assertion already received has been handled by the time
+> the DLM removes the node from the domain map. A node that leaves the
+> domain cleanly sends its exit message only after its assertions have
+> been answered.
+> 
+> Two windows of the hand-over itself are left as they are: the handler
+> switches the owner and the sender drops the other nodes' locks moments
+> later, and an assertion from a live target that arrives after the
+> sender has given up still meets the owner check in the handler. Waiting
+> for the target before giving up would only stretch the first window
+> into the time in which recovery of the target can observe it.
+> 
+> KASAN report, only the relevant frames are kept:
+> 
+> BUG: KASAN: slab-use-after-free in dlm_put_mle_inuse+0xce/0xe0
+> Read of size 8 at addr ffff8881190e3c20 by task umount/593
+> 
+> Call Trace:
+>  <TASK>
+>  dlm_put_mle_inuse+0xce/0xe0
+>  dlm_migrate_lockres+0x16af/0x20d0
+>  dlm_empty_lockres+0x60a/0xbd0
+>  dlm_unregister_domain+0x53b/0x11d0
+>  o2cb_cluster_disconnect+0xa5/0x110
+>  ocfs2_cluster_disconnect+0x73/0xc0
+>  ocfs2_dlm_shutdown+0x311/0x440
+>  ocfs2_dismount_volume+0x696/0x940
+>  generic_shutdown_super+0x15f/0x490
+>  kill_block_super+0x40/0xa0
+>  deactivate_locked_super+0xae/0x120
+>  deactivate_super+0xa2/0xc0
+>  cleanup_mnt+0x217/0x450
+>  task_work_run+0x144/0x230
+>  </TASK>
+> 
+> Allocated by task 593:
+>  kmem_cache_alloc_noprof+0x20b/0x5c0
+>  dlm_migrate_lockres+0x20e/0x20d0
+>  dlm_empty_lockres+0x60a/0xbd0
+>  dlm_unregister_domain+0x53b/0x11d0
+>  o2cb_cluster_disconnect+0xa5/0x110
+>  ocfs2_cluster_disconnect+0x73/0xc0
+>  ocfs2_dlm_shutdown+0x311/0x440
+>  ocfs2_dismount_volume+0x696/0x940
+> 
+> Freed by task 593:
+>  kmem_cache_free+0x242/0x580
+>  __dlm_put_mle+0x4b2/0x660
+>  dlm_migrate_lockres+0x1690/0x20d0
+>  dlm_empty_lockres+0x60a/0xbd0
+>  dlm_unregister_domain+0x53b/0x11d0
+>  o2cb_cluster_disconnect+0xa5/0x110
+>  ocfs2_cluster_disconnect+0x73/0xc0
+>  ocfs2_dlm_shutdown+0x311/0x440
+> 
+> The buggy address belongs to the object at ffff8881190e3c00
+>  which belongs to the cache o2dlm_mle of size 480
+> The buggy address is located 32 bytes inside of
+>  freed 480-byte region [ffff8881190e3c00, ffff8881190e3de0)
+> 
+> Fixes: 6714d8e86bf4 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
+> Cc: stable@vger.kernel.org
+> Assisted-by: LLM
+> Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 
 Looks fine.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
