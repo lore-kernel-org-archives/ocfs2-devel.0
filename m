@@ -1,48 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.99
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793290183;
-	b=SOICikWdb5yOlI0UvCM7S1zLGnpz6YB1LepL3H13xIDfko8WVvw9V4ttcP82HeYlX4E6
-	 lb4FcO0jf3UGrhFzg4xafUPTf8zhu3aILyYbjH3dx9aImhLcns7NopcwhridG/zLf34H4
-	 KvA7qN8eETaxbGlNsOtgmx6cAWjsgZtdbxWFR8x35dq0ZdhkTaF01PQOspSozbXapP2N1
-	 lVAnTGdrThP6zocqq3uZIIGkMTY5fJ0OeXUzx/2pD5oc0wnMO8tH4tXpF4NNUxw8oLqAH
-	 +z8mOp3HhYMlDoG9ZONRPeO7oa0Qdh3yYDrMJ2+Z1aG/4+Sfqivc2tAOkm47ypvB5jA==
+	t=1793329145;
+	b=Z9T6i4haIjSUkd0BSdj6lJtyV9k1YoH34Y7NbQqkg/PyTZvO2J52ojpzJmKUjZTQOzWT
+	 aYjUNk8v68F6KUdOPXImywK5PFxmZstmI1x4UxvqNARpHBKzV9g27OpuOWA2vj2Xd+ntt
+	 a1Z4Z1Dt/ko2d0IR5jq53Wq3GyN0WqVQ34j2/VONcJ5MpQLa/tz5QyThk0BreOpMyXP9L
+	 /w/i/OY2SInedaMQUPPvIN9HUkrj65dZ5vcJWs89kJEOdbs674xw5nFtvhrDbm2CkhgdT
+	 dM2heiRivU/hzuu3XZDpGFAUVcLSy/DiqlnsUDqei3mIT3WUFrvQTcno1eF9LKa4H7w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793290183;
-	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
-	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=uu2WZyDd3RZlZWsibqonNb2mhu+3OgxLhhAg+SnBEig=;
-	b=O6WcFjG7oM7lZ4dBg9V3jZghcQKkONpx+pAE5F1pW8HYDmay0utRsktTTfNxJ087HE4w
-	 nyconZumXb2q9jXDO1bLkIOjP42kEqVSF/G2A9rRjW6jGtnn4kTVc8vUez1YDF2Kfb0VA
-	 up1SgmQD+WIjHw3XbmxxI/sw6bH+rwS/acshv6RE6aGQGfIT7Du6apbMOml1tjiUyu3Jm
-	 EF8UbAm3i11sutZCl8iNte1JV9tgj7WTTsyvSg/JRmwJNYRVoIxOyyICAAGhUhVUtXvv1
-	 4+eoiJuePIa19O5z9/76ARwxe+Y69lUQm3CGuwzSJvhuasuPErMEqF9pROcOXZF8GXw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793329145;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=w/Jd2p/prMhPtETNelJfTcFSgzTHlHRnVEoen9y0JaA=;
+	b=mPrEm5xpBnXg7uvPdBUpnJNx5J5mTi9aYeBh4Gh357QubdCnhtBobh3UqdL3g9p+9vNt
+	 Mxz5i2t4ao0I1eYTJumlpQMT+NRJ+VULxHd0l4RlM0g+KtouBoD2zvO2Wvu7hYaw5WtZn
+	 fVSWt9gGGag7k+l9DWULNOUnXC/FFJXq2M0qdmDKX5PGxFpW0VLKEDyKLAQjZsRYr/qtb
+	 cDMP1C2wOgpMduotwWXtY5zD3BBFvAitubMDqI2uqyMhGeRAWWm4JOuJuH8QajTaNgCIb
+	 oyiT4VFQjvtm85Mv5X9dFwznzO8fcemKs3kgUWxL4xGT/Xb4BD34l8gD5gtoKfDv0GA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="nMjZ/AQE";
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=hSHEsgsY;
+	arc=none smtp.remote-ip=115.124.30.99
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B90C5606A32C;
-	Thu, 29 Oct 2026 16:09:42 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DC2C606A31E;
+	Fri, 30 Oct 2026 02:59:02 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2DC2C606A31E
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=nMjZ/AQE
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0168F1F01825;
-	Thu, 29 Oct 2026 16:09:37 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1793290182;
-	bh=uu2WZyDd3RZlZWsibqonNb2mhu+3OgxLhhAg+SnBEig=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=nMjZ/AQEmAxledocQ9n+3ExKHoDEzHnf0mT+qoruM99B/d+FhxzlfdtRVlmt3+iCx
-	 IwzpcFh7kugD3gwuTS9UxbnfonMQCdfrr7oKzA5E2T6EDI4rTB2cqtcAhGMSbw02M8
-	 Ln8vA1wzgrdhCfq0EYl+yLzfRhyU+o6Q5p4s7vDMU87X5a0cSuKZK5rMcwWp/RsBiv
-	 zOYeZQh+1uCd9Epg2VMVj8Uq3/P68Qlf9ffbS13vOiEfBVGe4T2BFmNIWQv6L26HUN
-	 km/Kayv7uhrohDU0JU7L+XvpBIeVqCAiK+BrnCuylApb6wPnkl3/BQXRf/EMaxfyXp
-	 VDORzaitoD+bQ==
-From: Christian Brauner <brauner@kernel.org>
-Date: Thu, 29 Oct 2026 17:07:24 +0100
-Subject: [PATCH v2 33/34] xfs: allow remounting read-only after a shutdown
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=hSHEsgsY
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1793329134; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=w/Jd2p/prMhPtETNelJfTcFSgzTHlHRnVEoen9y0JaA=;
+	b=hSHEsgsYOl/knZoiaKmOo9/szTsdb243LBtAHNpX/8InfeQ+O8kqyPkUuu0Awv2qPGL1dtHu80lxiinShoX3C//q9xO3uJS7nJ9pA7n/Uvoqx9PjlbXVT4MQjJDtbupw0uuaN9Pd4ZUnz3XFWW920V7V0LBApZUCRivWHHA722Q=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R961e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=17;SR=0;TI=SMTPD_---0XDkufcn_1793329132;
+Received: from 30.221.129.214(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDkufcn_1793329132 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Fri, 30 Oct 2026 10:58:53 +0800
+Message-ID: <0a8576a4-e397-4a49-ab0e-8f0f32bf2642@linux.alibaba.com>
+Date: Fri, 30 Oct 2026 10:58:52 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -52,93 +53,96 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20261029-work-fs-sb_rdonly-v2-33-2f44f64f0b66@kernel.org>
+User-Agent: Mozilla Thunderbird
+Subject: Re: [PATCH v2 19/34] ocfs2: keep the current mount options on remount
+To: Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org,
+ Jan Kara <jack@suse.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
+ linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
+ linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, linux-mm@kvack.org,
+ ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev,
+ linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev,
+ linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org,
+ linux-xfs@vger.kernel.org
 References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
-In-Reply-To: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
-To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, 
- linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
- linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, linux-mm@kvack.org, 
- ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
- linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, 
- linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
- linux-xfs@vger.kernel.org, 
- "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org, 
- Christoph Hellwig <hch@lst.de>
-X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2140; i=brauner@kernel.org;
- h=from:subject:message-id; bh=3Kb6qOKbZ504nrKdu5KYQnNbjYN4iHgbKmRWzuk322Q=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWQ9zjdInCYZ5rLtdpyYVoEzQ3Vh8D/eS8sNopf0/lyTd
- cnA+ndKRykLgxgXg6yYIotDu0m43HKeis1GmRowc1iZQIYwcHEKwEQuqzD8L479erR1WmD8TYYZ
- bb8fbl/56OjM+fXX/jcfVVvPeGrejXCGv/JtQZsquVR7XNepyVmqvg1ufriNmz+MdVKf2vWSC6s
- YOQE=
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
+ <20261029-work-fs-sb_rdonly-v2-19-2f44f64f0b66@kernel.org>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <20261029-work-fs-sb_rdonly-v2-19-2f44f64f0b66@kernel.org>
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
 
-xfs_remount_ro() starts with sync_filesystem() which fails with EIO
-after a shutdown. So a shut down xfs can't be remounted read-only and
-emergency remount (sysrq u) WARNs in reconfigure_super(), a panic with
-panic_on_warn:
 
-  forced remount of a xfs fs returned -5
 
-Going read-only doesn't need to write anything. So ignore the errors
-from flushing and from freeing the COW and post-EOF blocks once xfs is
-shut down, also if the flush shut it down itself. The rest of
-xfs_remount_ro() copes with a shutdown like unmount does. And refuse
-going back to read-write with EIO, xfs_remount_rw() didn't check for a
-shutdown at all.
+On 10/30/26 12:07 AM, Christian Brauner wrote:
+> ocfs2_init_fs_context() doesn't inherit the current mount options for a
+> reconfigure. But ocfs2_check_set_options() insists on exactly one
+> heartbeat mode and ocfs2_reconfigure() refuses to change the data mode.
+> So every remount without heartbeat= fails with EINVAL, including
+> emergency remount (sysrq u) which passes no options at all, and that
+> WARNs for every ocfs2 mounted read-write. A remount that does pass
+> heartbeat= silently resets every option it doesn't repeat, e.g. noacl,
+> errors=, barrier= and preferred_slot=.
+> 
+> So start a reconfigure from the current options like exfat and gfs2 do.
+> Asking for a different data or heartbeat mode still fails with EINVAL.
+> 
+> The next patch stops ocfs2 from setting SB_RDONLY after errors. An
+> errored ocfs2 then stays read-write and emergency remount would run into
+> this as well.
+> 
+> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
+> ---
+>  fs/ocfs2/super.c | 13 +++++++++++++
+>  1 file changed, 13 insertions(+)
+> 
+> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
+> index 0af2245ae303..67283244426e 100644
+> --- a/fs/ocfs2/super.c
+> +++ b/fs/ocfs2/super.c
+> @@ -1222,6 +1222,19 @@ static int ocfs2_init_fs_context(struct fs_context *fc)
+>  	mopt->resv_level = OCFS2_DEFAULT_RESV_LEVEL;
+>  	mopt->dir_resv_level = -1;
+>  
+> +	/*
+> +	 * Start from the current options so a remount only changes what it
+> +	 * specifies, emergency remount passes none at all.
+> +	 */
+> +	if (fc->purpose == FS_CONTEXT_FOR_RECONFIGURE) {
+> +		struct ocfs2_super *osb = OCFS2_SB(fc->root->d_sb);
+> +
+> +		mopt->mount_opt = osb->s_mount_opt;
+> +		mopt->atime_quantum = osb->s_atime_quantum;
+> +		mopt->slot = osb->preferred_slot;
+> +		mopt->user_stack = ocfs2_userspace_stack(osb);
+> +	}
 
-Fixes: b97cca3ba909 ("xfs: only bother with sync_filesystem during readonly remount")
-Cc: stable@vger.kernel.org
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
----
- fs/xfs/xfs_super.c | 13 ++++++++++---
- 1 file changed, 10 insertions(+), 3 deletions(-)
+ocfs2_reconfigure() decides the transition from fc->sb_flags alone without
+sb_flags_mask test, unlike reconfigure_super(). And fspick() passes
+fs_context_for_reconfigure(target.dentry, 0, 0). So on a read-only mount:
 
-diff --git a/fs/xfs/xfs_super.c b/fs/xfs/xfs_super.c
-index 5a06132aa384..59c83438d402 100644
---- a/fs/xfs/xfs_super.c
-+++ b/fs/xfs/xfs_super.c
-@@ -2041,6 +2041,10 @@ xfs_remount_rw(
- 	struct xfs_sb		*sbp = &mp->m_sb;
- 	int error;
- 
-+	/* Nothing can be written anymore after a shutdown. */
-+	if (xfs_is_shutdown(mp))
-+		return -EIO;
-+
- 	if (mp->m_logdev_targp && mp->m_logdev_targp != mp->m_ddev_targp &&
- 	    xfs_readonly_buftarg(mp->m_logdev_targp)) {
- 		xfs_warn(mp,
-@@ -2115,9 +2119,12 @@ xfs_remount_ro(
- 	};
- 	int			error;
- 
--	/* Flush all the dirty data to disk. */
-+	/*
-+	 * Flush all the dirty data to disk. That fails after a shutdown, also
-+	 * one the flush itself caused, but going read-only still has to work.
-+	 */
- 	error = sync_filesystem(mp->m_super);
--	if (error)
-+	if (error && !xfs_is_shutdown(mp))
- 		return error;
- 
- 	/*
-@@ -2133,7 +2140,7 @@ xfs_remount_ro(
- 	 * cached inode, so this requires a synchronous cache scan.
- 	 */
- 	error = xfs_blockgc_free_space(mp, &icw);
--	if (error) {
-+	if (error && !xfs_is_shutdown(mp)) {
- 		xfs_force_shutdown(mp, SHUTDOWN_CORRUPT_INCORE);
- 		return error;
- 	}
+  fspick(AT_FDCWD, "/mnt", 0)        sb_flags 0, sb_flags_mask 0
+  fsconfig(fd, FSCONFIG_SET_STRING, "atime_quantum", "30", 0)
+  fsconfig(fd, FSCONFIG_CMD_RECONFIGURE)
+    reconfigure_super()
+      ocfs2_reconfigure()
+        (bool)(0 & SB_RDONLY) != sb_rdonly(sb)  -> 0 != 1, enters
+        fc->sb_flags & SB_RDONLY                -> 0, takes the rw branch
+        sb->s_flags &= ~SB_RDONLY
+        osb->osb_flags &= ~OCFS2_OSB_SOFT_RO
+        ocfs2_enable_quotas(osb)                -> writes the quota files
 
--- 
-2.53.0
+The final WRITE_ONCE(sb->s_flags, ...) in reconfigure_super() then
+leaves it cleared, because SB_RDONLY is not in sb_flags_mask. The same
+falls out of a legacy remount whose flags omit MS_RDONLY.
+
+So it seems we should test sb_flags_mask as well?
+
+Thanks,
+Joseph
+
+> +
+>  	fc->fs_private = mopt;
+>  	fc->ops = &ocfs2_context_ops;
+>  
+> 
 
