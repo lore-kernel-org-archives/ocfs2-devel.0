@@ -1,82 +1,82 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.176
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.214.179
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793335744;
-	b=EMn+QjZzlHUj/D19bjaOA0HRlqPh21u9vZnQ1r+FZJkhqV9mO9JCR8QTDE59PRnpxc0d
-	 fkAdCQWuefq8aoVC72H7kTnRgvlaW2/eBQ3MGzmmvC+4+mt5ccofzZF0clNDFR76hr6o7
-	 4+ivDjZoRvBpQoyXItIZ6pLBJCfYAX6zbpwG1UtKL6T5ck70chN718EiL+NmlYzVRINCm
-	 Hy3tzCKGkO4VUrm2eELgpkpixgdt80KOU119WNWqEeTjaioZYGCl5iouaE0ATNESY391j
-	 i8cG8l7PgMmNTC03rtJcfVG8jik3gmVUc+AoOUTOCRZnN2xqYr56ytepk93BsFfl+xg==
+	t=1793337908;
+	b=BCXKjx77wS1045shbejCCBE5DncJKxY3vgygIrk/mG/Vtx61odwxFSGc4ck8abFQ2k0F
+	 m6qIs2k8LG2s//aWNZ8nCnZFVNUL/njD9mF4ldTnNCWg1C9aOemjBiD9F23ej2Xog74eG
+	 qycjtEuocqXJ0Cenqhiu32/h9FGOVoqJ4A2n+RfI6rElMom0uHwqVW4gFAIibQRywtjJ5
+	 JlsNwBY8IPmQEvTrwpvrDLG295ZvpxxKyLpLMnGDs0byordjEQ5kPtxCrgCeVHqRE8BZF
+	 MpXYBmDHFIEKJ4wLQCyI3E9YSIohFyM14Vl4CvY+scYqIPMrpX7Sk0m1+8dLrBAII0Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793335744;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793337908;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=5ScpKk3+kXujkn6wVk24CT0rKh32pGHFS5vp8ScT+Uo=;
-	b=gkzljHU7g39n0OMVAIa2/yUrRv4SA/zfNK0CvnlcUBHxh+OqcnglBMd+ugyLaaI0nXo4
-	 7vVNsB4TJZ2ULPxog+TqI6bXK+Ph91m3lMCPtNkbyy2/9IhQe4Dm10BWlGlipvoYsNG+Y
-	 4WAk+ntuVNqz+zZ5M8Lql/m7nkU7GZFNtOCIMy/w8ddbaWgfPbjmih+JrGJn0SMDXkbAn
-	 KpDdQGEeEW8OBelji5Rmf0RLUGu1fJULXMxW9ihlbwyFDJRM/Oajc/b9LqVkp44VdyixH
-	 d1fdc+2HT3YGrl+V2+YVGqij/ovR2NqW20rzC/wWGeryj05fv/V46Oi/DmQ+pYOEcmA==
+	bh=Mck7iiQBTW9TKhdP7RVb/9jfgo9mu8qffyanjI2fNnM=;
+	b=CCOQjgJl9jmo2UB+CW68uuYaAtdq4NHW61efQsnV3sjRd4o16y4YoVnVkTbq/iyAN/LH
+	 J1FvUY5WxsAK7UoscoaG/V1kzy/Zp6pKOZB/4BYP9/IgOEi+mluiekRj4PdyaqwZJbXF/
+	 t7zRIYkSzXz0DXb0I828cIhrh+6wTSeEgMdEsayVEirVdplBzQhE7och/JmuAxFvPDLMU
+	 0zI5XpB/kZy3XtbDLwbFfn1H6e+MaVk4PN64VNrFOoeXLPGjDCKy0lmmx29PrjstqXWAx
+	 BCQYNLXl3HewJ7R+ysTkjuXYEabGCSKzwYw/R/GalTDXAMMaygEhd2BDdH7R1tjm7pQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=gmail.com;
 	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b="0ImPe/Ld";
-	arc=none smtp.remote-ip=209.85.214.176
-Received: from mail-pl1-f176.google.com (mail-pl1-f176.google.com [209.85.214.176])
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=lEEbF8TA;
+	arc=none smtp.remote-ip=209.85.214.179
+Received: from mail-pl1-f179.google.com (mail-pl1-f179.google.com [209.85.214.179])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 9E64F606A329
-	for <ocfs2-devel@lists.linux.dev>; Fri, 30 Oct 2026 04:49:03 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 9E64F606A329
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 44086606A323
+	for <ocfs2-devel@lists.linux.dev>; Fri, 30 Oct 2026 05:25:07 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 44086606A323
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=0ImPe/Ld
-Received: by mail-pl1-f176.google.com with SMTP id d9443c01a7336-2e977109392so2055175ad.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 29 Oct 2026 21:49:03 -0700 (PDT)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=lEEbF8TA
+Received: by mail-pl1-f179.google.com with SMTP id d9443c01a7336-2e985106c0cso3272035ad.2
+        for <ocfs2-devel@lists.linux.dev>; Thu, 29 Oct 2026 22:25:07 -0700 (PDT)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793335743; x=1793940543; darn=lists.linux.dev;
+        d=gmail.com; s=20260707; t=1793337907; x=1793942707; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=5ScpKk3+kXujkn6wVk24CT0rKh32pGHFS5vp8ScT+Uo=;
-        b=0ImPe/Ld3NGqvRYQSL/wuhQaLvsphtsbN3eBR8NQ/FZz3NhluOU6+Ianpnd20SHSdN
-         6UZSnTXsNC8IkuxaWRRn5D6rTAWfYxX7oSimZbNiHCr7VRTyFA9FgXaceWN0ZR7ZbvtT
-         PJNBmU3QaXqyrKq/Ol0BY/i0Izu5Hec2vNhjRl+Yl9WrQSlfcYy98n3jXKrh4WFU0vWm
-         OomET5iPgVSyzaTg0WxjrM1XaMYZY+AYyJhsJxMRtvGQWSDF8i7d0saJC5fXilcx3Suv
-         V85CHManhC+GGD4ZlyNqbYSlxY0sRDZNXX+mwNNE0iAcTxqqRAl+jdn/HyoMKl8VB10Z
-         TsWg==
+        bh=Mck7iiQBTW9TKhdP7RVb/9jfgo9mu8qffyanjI2fNnM=;
+        b=lEEbF8TAq39SRmnnqVuSxSC4+rcVukXL4tiZNtpbBfxzvg0MJIicH08tXIYuqH3l6v
+         9w5DyghX6f55LaExTfo9nLsFnzTDi26MmvQQ+tAB+JfS4sV8mBHdwsshFjjhumJGhJtK
+         D4jRhPr1iOvxAJphQcyAcg3N3WeYmeoSsg1FDb4PAKzr68SmUysD1odIedrfAHYEu0rq
+         GsABoDuRZHStzQObdt+55DJ6bQnazlSPLMDmBkyod1vU+P8XOGU3vvtPbazfCM/0EUhC
+         nudFqriRf2uGzUrXQxXG8gktZpJrUdaAigr8mZhtzw0jMZl8p47TruiQIY3ZDAw/e49U
+         oEXA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793335743; x=1793940543;
+        d=1e100.net; s=20260707; t=1793337907; x=1793942707;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=5ScpKk3+kXujkn6wVk24CT0rKh32pGHFS5vp8ScT+Uo=;
-        b=wVrdU1HbueOywBxsk63no38wVv9rb1bJ6tlI8UPU/P/sH1zAvAPMNzcgqD5u6I+O+E
-         vpNERgc6voD7zIQFWsufrf0PK7MQvFw/Z1h5rreKeq6MYtBjpVbrKMYvq0MbccwYzwRc
-         VPdiF6WHgszK6jz6cJ+PTlMmWGfIJPEHzZmxl1pM4uUTAkx9UXmK2BdYNHOnoZzER9gq
-         oFEqGiUHd3NBoSmO62rVCdEiAONkBTXOnwQr1ASXYFhnhy/vgycdE9+qDmqcR+UA7P4w
-         TjJA+uKoMYHTEnH5pCPHYZkaQ3qQFnjhyJPAXxCOomlqPwcbbJ2Ty8dejWoLzihbdc+D
-         k0Tg==
-X-Forwarded-Encrypted: i=1; AKwUvBwqQOLwHQVWfEj4rWy8dO02olVm08eFD3dX8QymB1xnWStnoV4yYNvPL9zH033sxzvwpoWOIcz2PourIw==@lists.linux.dev
-X-Gm-Message-State: AFq9FYI1KfseKUt0uWHfF6xEp1gyC6JSdfrFxAhlFyJClhf2zgxQajwp
-	nId2QCra7akGAdODo2Kg/f7RYLuOG2g0EIZUvXskSeE8/Emauz+kKzyJ
-X-Gm-Gg: AYBFou2Bs9cpd+lOOqe1SavYyjNez0/TJIgvFSXoGmm6OGtYv55PEeM9Pcz3sNCH1wG
-	ykNDAds1z9fH6LVTBtNTB5IRs8r3NpmDSEsoWt9CwJN/uiMrPi6sxUdFdKJ3zXUdDdnWgWnRbNl
-	oDkSlg0i+rpOUuly08PtzVJP4FITgA4IJ98/YQeM1cOX82ktytrEtl2az5TxGDiUeIdM/caWs0F
-	bnHf3OOfGpW8wZ76Vdx7xXp9XzSY9Aw/7B8bJmUCX1L5TAc8Eijos/GjZvN3+LJnlGnBkU4jzUH
-	wZBq/8vSeJAKDVusMA5iuBdaaa0B/y6w7AVYYl2VOUndCD+nbLwQk0ZJRejn98Xze/Av2cSLt/2
-	121Yjx8AYvd4ngp921/XWH+8ZB22jGsqETXe4yxMtKZIimlgllPhfcJUFI//Ru4vkJLk3fPPuIs
-	pLY5wY1bdch9TH6C6o19/+H2IBQYVHFM5wQN8t7p9dfT/hKrq0UCC/TACZesa1HnNB9xUfzbBn3
-	mNyUAvkRYhn4oFaEh1MTztG1BUQ8pk+5zL/nlOIPkZm3Ymb9Zc2MtaADcFPB3DqywMeSlG0L5tW
-	8lQujaAnXnKmviHUUMoT6HHO
-X-Received: by 2002:a17:902:f691:b0:2e2:d39f:182f with SMTP id d9443c01a7336-2eb3643d489mr14269675ad.28.1793335742769;
-        Thu, 29 Oct 2026 21:49:02 -0700 (PDT)
+        bh=Mck7iiQBTW9TKhdP7RVb/9jfgo9mu8qffyanjI2fNnM=;
+        b=AFjUUAXP8wHa8hhnv0AB5uSSnshpKfACyC53w+HuafEEnaaomlv3h6DjHvoF0JhMfZ
+         OSZTQZpaadEdeVpSxyXl4pAg9jSNPyCW4bUV8NHrzUM6GcWaA6pFbjXDzU+MdQVDv2Xk
+         52ePesRcDA4CKDcKfwiJO3CYTTHNEOl+HLU+Hs2xImttHmDHODki9KywApWSAcma4Z8v
+         GRreKzQW0xUhMilhp6Kievif+IN+hI43y1CCvbblb7g2kktGa+Va5bW2Yxpf5mZmqtk7
+         nUFe728SZMGkFlnLYMGomOVg97sVEQQMap/X8YoL59QxBMJzxtEkjVZThKkEAbsbJCO3
+         ssuQ==
+X-Forwarded-Encrypted: i=1; AKwUvBwhBaMk1exlJVGv/iKFSkp8BKeIVzCadVp05HvMkl2ePSCrDMBkEeeGNSO91ABjziUr73iRF6dU+mmDjA==@lists.linux.dev
+X-Gm-Message-State: AFq9FYLGsuCEL3C02A5tXEiNtFJy8oEFNkQC11xxyAUNXgDtgpNu1Pzp
+	uRbzR/6c4iZGHar3XIAHsoLTEbK4LZpj4JP8drwl7Rukn7xG1CrbZPOo
+X-Gm-Gg: AYBFou1+1UQlPZzZ6K7Gy7JcAJxGWsJ6aO75DcxhgWHCILbSI9o8MygK4WhnC7sJ8Pt
+	79+asNvj4nL4BtPIWrWaYu4Dj+xjPAgDNDbZQlc5+Y1k7a18aDP3xEA9NFre4/SVfYPCyvv8PrM
+	pzg/E+7CsGx3AhoCXpbeU7/sWG3JAiIG6orSSvmuG3hLWPNDYgDo8TI5NEHk9lMDBWj9VX40wiy
+	psSnXXqnAdEqR1PA5zCwte/2rsQucTxhfv53eY5HShgtAz8zVUyvxwryRBPO/avGkJ5pX23a29o
+	c4kydKY/JBq/56T8yL8vVNNxFF7VfeADJKFyJmkdH9n7v7BCl8oPsNeZP8YgtpeQ8wsjbBJNAY+
+	j4NpfajGTS5GtsNvkhmDV/P9MJBqEdXdEJyAJ05Vr7eBh23Jbms3rUFgXaN9XDT4WmkI8EvAcgn
+	8XP56ofj7DJumR3LakgcUu9kCNTWpyziT5a9Ajr0JaI9A0e3uIItLbXUivSc3y+l9TOaSGqmujZ
+	LRSSUIQOYNmNhiBzuvF9AVI9VOXKzWj02nDqkot71YpxAYvbW75vijERIse+L0hMwKcSjZpP7V7
+	+pmKUEwnzLrhrFf7uJT83jXE
+X-Received: by 2002:a17:903:18b:b0:2ea:825a:7f6d with SMTP id d9443c01a7336-2eb3649be2dmr14547155ad.13.1793337907342;
+        Thu, 29 Oct 2026 22:25:07 -0700 (PDT)
 Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2eb3927e856sm2117355ad.50.2026.10.29.21.48.58
+        by smtp.gmail.com with ESMTPSA id d9443c01a7336-2eb3929087csm2458675ad.57.2026.10.29.22.25.04
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Thu, 29 Oct 2026 21:49:02 -0700 (PDT)
+        Thu, 29 Oct 2026 22:25:06 -0700 (PDT)
 From: Cen Zhang <zzzccc427@gmail.com>
 To: mark@fasheh.com,
 	jlbec@evilplan.org,
@@ -88,9 +88,9 @@ Cc: heming.zhao@suse.com,
 	baijiaju1990@gmail.com,
 	jjzuming@gmail.com,
 	zzzccc427@gmail.com
-Subject: [PATCH] ocfs2: serialize inode journal access with shutdown
-Date: Fri, 30 Oct 2026 12:48:56 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0004-v8-dbcb8f80b8df476084d6@gmail.com>
+Subject: [PATCH] ocfs2: drain fs_state readers before journal teardown
+Date: Fri, 30 Oct 2026 13:25:01 +0800
+Message-Id: <pm-ocfs2-objects-candidate-0003-v6-2f69dbb7417fcd537be6@gmail.com>
 X-Mailer: git-send-email 2.34.1
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
@@ -103,304 +103,192 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The downconvert thread can run inode cleanup until ocfs2_dlm_shutdown()
-stops it, but unmount shuts down the journal earlier. A final dentry
-post-unlock put can therefore enter ocfs2_clear_inode() while the journal
-is being destroyed.
+The per-mount fs_state open callback formats journal fields through
+osb->journal. Its debugfs active-user guard protects the open callback,
+but does not keep the journal allocated after journal shutdown.
 
-ocfs2_ci_fully_checkpointed() loads osb->journal before taking
-trans_inc_lock. Journal shutdown neither takes that lock for removal
-nor waits for the downconvert thread before freeing the journal:
+Both unmount and the mount-error path in ocfs2_mount_volume() can free
+and clear the journal before the debugfs subtree is removed:
 
-  Downconvert thread                    Unmount
-  ------------------                    -------
-  dentry post-unlock; final iput()
-    ocfs2_checkpoint_inode()
+  fs_state reader                       Mount cleanup
+  ---------------                       -------------
+  enter ocfs2_osb_debug_open()
+    ocfs2_osb_dump()
       load osb->journal
                                         ocfs2_journal_shutdown()
                                           free journal; clear pointer
-      read the transaction ID
+      read journal fields
+  leave the open callback
+                                        remove the debugfs subtree
 
-The checkpoint wait queue is embedded in that journal, and the final
-jbd2_journal_release_jbd_inode() also needs its JBD2 journal to remain
-alive for the whole call. Protecting only the pointer load would leave
-those longer uses unprotected.
+Remove fs_state before cleanup releases its backing state in both
+callers of ocfs2_journal_shutdown(). Debugfs removal prevents new opens
+and waits for admitted open callbacks to finish. Later reads and release
+use only the per-open snapshot buffer, so they do not need the journal.
 
-Read and clear osb->journal under trans_inc_lock when checking checkpoint
-progress. Treat a removed journal as checkpointed. Move checkpoint
-waiters to the existing mount-owned checkpoint_event and wake it after
-checkpoint progress and journal removal, so the queue outlives the
-journal. The commit thread also waits there and rechecks its condition
-when woken.
-
-Serialize the final JBD2 inode release against JBD2 destruction and the
-journal free with a mount-owned rw_semaphore. Take the write side only
-after stopping the commit thread, and drop it before the journal inode's
-final iput(), whose cleanup can take the read side. Inode cleanup holds
-the read side only around the JBD2 release, outside checkpoint waits and
-DLM lock teardown.
+Keep removal in the caller paths while the per-mount debugfs parent is
+still present. The remaining debug files retain their teardown order.
 
 KASAN report as below:
 
-    Oops: general protection fault, probably for non-canonical address 0xdffffc000000000e: 0000 [#1] SMP KASAN NOPTI
-    KASAN: null-ptr-deref in range [0x0000000000000070-0x0000000000000077]
-    CPU: 0 UID: 0 PID: 587 Comm: ocfs2dc-33CAF04 Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy) 
+    BUG: KASAN: slab-use-after-free in ocfs2_osb_debug_open+0x967/0x15e0
+    Read of size 4 at addr ffff888116a56028 by task cat/502
+    
+    CPU: 3 UID: 0 PID: 502 Comm: cat Not tainted 7.3.0-rc4-next-20260921-pmb-ocfs2-functional-v1+ #1 PREEMPT(lazy) 
     Hardware name: QEMU Ubuntu 24.04 PC v2 (i440FX + PIIX, arch_caps fix, 1996), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
-    RIP: 0010:ocfs2_clear_inode+0x8ae/0x1630
-    Code: fc ff df 48 c1 ea 03 80 3c 02 00 0f 85 27 0c 00 00 49 8d 7d 70 48 8b 43 c8 48 ba 00 00 00 00 00 fc ff df 48 89 f9 48 c1 e9 03 <80> 3c 11 00 0f 85 f0 0b 00 00 49 3b 45 70 0f 88 62 03 00 00 e8 49
-    RSP: 0018:ffff888118d3f878 EFLAGS: 00010212
-    RAX: 0000000000000001 RBX: ffff88811a5edc60 RCX: 000000000000000e
-    RDX: dffffc0000000000 RSI: 0000000000000001 RDI: 0000000000000070
-    RBP: ffff888116134000 R08: 0000000000000001 R09: 0000000000000001
-    R10: ffffffff8965765f R11: 0000000000000001 R12: ffff88811a5ed400
-    R13: 0000000000000000 R14: ffff88811a5edbf8 R15: ffff88811a5ed408
-    FS:  0000000000000000(0000) GS:ffff8881fd4dc000(0000) knlGS:0000000000000000
-    CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
-    CR2: 00007ff35b66f2c0 CR3: 00000001092ae005 CR4: 0000000000770ef0
-    PKRU: 55555554
     Call Trace:
      <TASK>
-     ? __pfx_ocfs2_clear_inode+0x10/0x10
-     ? __pfx_ocfs2_inode_is_valid_to_delete+0x10/0x10
+     dump_stack_lvl+0x93/0xd0
+     print_report+0xce/0x630
+     ? ocfs2_osb_debug_open+0x967/0x15e0
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __lock_acquire+0x5a3/0x2140
-     ocfs2_evict_inode+0x1ed/0x11e0
-     ? inode_wait_for_writeback+0x14c/0x330
-     ? __pfx_ocfs2_evict_inode+0x10/0x10
-     ? lock_acquire+0x190/0x300
+     ? __virt_addr_valid+0x20e/0x420
+     ? ocfs2_osb_debug_open+0x967/0x15e0
+     kasan_report+0xe0/0x110
+     ? ocfs2_osb_debug_open+0x967/0x15e0
+     kasan_check_range+0x105/0x1b0
+     ocfs2_osb_debug_open+0x967/0x15e0
+     ? __pfx_ocfs2_osb_debug_open+0x10/0x10
+     full_proxy_open_regular+0x193/0x310
+     do_dentry_open+0x595/0x12d0
+     ? __pfx_full_proxy_open_regular+0x10/0x10
+     vfs_open_consume+0xd1/0x400
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ? find_held_lock+0x2b/0x80
-     ? evict+0x347/0x9f0
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_release+0xc8/0x290
+     path_openat+0x18d0/0x2020
+     ? __pfx_path_openat+0x10/0x10
+     do_file_open+0x21e/0x470
+     ? __pfx_do_file_open+0x10/0x10
      ? _raw_spin_unlock+0x23/0x40
-     ? __pfx_ocfs2_evict_inode+0x10/0x10
-     evict+0x38b/0x9f0
-     ? __pfx_evict+0x10/0x10
-     ? lock_acquire+0x190/0x300
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_release+0xc8/0x290
-     ? __pfx_inode_just_drop+0x10/0x10
-     iput+0x680/0xb80
-     ocfs2_dentry_lock_put+0xc2/0x110
-     ? __pfx_ocfs2_dentry_post_unlock+0x10/0x10
-     ocfs2_process_blocked_lock+0x1fb/0x420
-     ? __pfx_ocfs2_process_blocked_lock+0x10/0x10
-     ? __pfx_pmbd_probe_hit_cookie+0x10/0x10
-     ? lock_release+0xc8/0x290
+     ? alloc_fd+0x3a6/0x6b0
+     do_sys_openat2+0xf4/0x1b0
+     ? __pfx_do_sys_openat2+0x10/0x10
+     ? __pfx___do_sys_newfstat+0x10/0x10
+     __x64_sys_openat+0x136/0x1e0
+     ? __pfx___x64_sys_openat+0x10/0x10
+     ? irqentry_exit+0xbe/0x820
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lockdep_hardirqs_on_prepare+0xeb/0x1a0
+     ? trace_hardirqs_on_prepare+0x11d/0x150
      ? srso_alias_return_thunk+0x5/0xfbef5
-     ocfs2_downconvert_thread+0x32b/0x780
-     ? do_raw_spin_lock+0x130/0x270
-     ? __pfx_ocfs2_downconvert_thread+0x10/0x10
-     ? __kthread_parkme+0xc1/0x220
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? lock_release+0xc8/0x290
-     ? __pfx_autoremove_wake_function+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __kthread_parkme+0x177/0x220
-     ? __pfx_ocfs2_downconvert_thread+0x10/0x10
-     kthread+0x351/0x460
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __pfx_kthread+0x10/0x10
-     ret_from_fork+0x659/0x940
-     ? __pfx_ret_from_fork+0x10/0x10
-     ? srso_alias_return_thunk+0x5/0xfbef5
-     ? __switch_to+0x74f/0xf70
-     ? __pfx_kthread+0x10/0x10
-     ret_from_fork_asm+0x1a/0x30
+     do_syscall_64+0x114/0x620
+     entry_SYSCALL_64_after_hwframe+0x77/0x7f
+    RIP: 0033:0x7f7d444d6687
+    Code: 48 89 fa 4c 89 df e8 58 b3 00 00 8b 93 08 03 00 00 59 5e 48 83 f8 fc 74 1a 5b c3 0f 1f 84 00 00 00 00 00 48 8b 44 24 10 0f 05 <5b> c3 0f 1f 80 00 00 00 00 83 e2 39 83 fa 08 75 de e8 23 ff ff ff
+    RSP: 002b:00007fff1e988040 EFLAGS: 00000202 ORIG_RAX: 0000000000000101
+    RAX: ffffffffffffffda RBX: 00007f7d44444780 RCX: 00007f7d444d6687
+    RDX: 0000000000000000 RSI: 00007fff1e988df7 RDI: ffffffffffffff9c
+    RBP: 0000000000000001 R08: 0000000000000000 R09: 0000000000000000
+    R10: 0000000000000000 R11: 0000000000000202 R12: 0000560ae86f2a00
+    R13: 00007fff1e988380 R14: 0000000000000000 R15: 0000000000040000
      </TASK>
-    Modules linked in:
-    ---[ end trace 0000000000000000 ]---
+    
+    Allocated by task 495:
+     kasan_save_stack+0x33/0x60
+     kasan_save_track+0x14/0x30
+     __kasan_kmalloc+0xaa/0xb0
+     __kmalloc_cache_noprof+0x28d/0x610
+     ocfs2_journal_alloc+0x91/0x450
+     ocfs2_initialize_super.isra.0+0x11b8/0x3070
+     ocfs2_fill_super+0x801/0x38f0
+     get_tree_bdev_flags+0x35d/0x5f0
+     vfs_get_tree+0x93/0x320
+     fc_mount+0x1d/0x200
+     path_mount+0x592/0x1e00
+     __x64_sys_mount+0x24b/0x2d0
+     do_syscall_64+0x114/0x620
+     entry_SYSCALL_64_after_hwframe+0x77/0x7f
+    
+    Freed by task 504:
+     kasan_save_stack+0x33/0x60
+     kasan_save_track+0x14/0x30
+     kasan_save_free_info+0x3b/0x60
+     __kasan_slab_free+0x5f/0x80
+     kfree+0x308/0x580
+     ocfs2_journal_shutdown+0x10a/0xc20
+     ocfs2_dismount_volume+0x315/0x940
+     generic_shutdown_super+0x15f/0x490
+     kill_block_super+0x40/0xa0
+     deactivate_locked_super+0xae/0x120
+     deactivate_super+0xa2/0xc0
+     cleanup_mnt+0x217/0x450
+     task_work_run+0x144/0x230
+     exit_to_user_mode_loop+0x17d/0x570
+     do_syscall_64+0x4d1/0x620
+     entry_SYSCALL_64_after_hwframe+0x77/0x7f
+    
+    Last potentially related work creation:
+     kasan_save_stack+0x33/0x60
+     kasan_record_aux_stack+0xa7/0xc0
+     insert_work+0x37/0x210
+     __queue_work+0xb57/0x1600
+     queue_work_on+0xda/0xf0
+     ocfs2_queue_recovery_completion+0x301/0x480
+     ocfs2_complete_mount_recovery+0x10c/0x290
+     ocfs2_fill_super+0x2083/0x38f0
+     get_tree_bdev_flags+0x35d/0x5f0
+     vfs_get_tree+0x93/0x320
+     fc_mount+0x1d/0x200
+     path_mount+0x592/0x1e00
+     __x64_sys_mount+0x24b/0x2d0
+     do_syscall_64+0x114/0x620
+     entry_SYSCALL_64_after_hwframe+0x77/0x7f
+    
+    The buggy address belongs to the object at ffff888116a56000
+     which belongs to the cache kmalloc-512 of size 512
+    The buggy address is located 40 bytes inside of
+     freed 512-byte region [ffff888116a56000, ffff888116a56200)
+    
+    The buggy address belongs to the physical page:
+    page: refcount:0 mapcount:0 mapping:0000000000000000 index:0x0 pfn:0x116a54
+    head: order:2 mapcount:0 entire_mapcount:0 nr_pages_mapped:0 pincount:0
+    flags: 0x200000000000040(head|node=0|zone=2)
+    page_type: f5(slab)
+    raw: 0200000000000040 ffff888100042c80 dead000000000100 dead000000000122
+    raw: 0000000000000000 0000000000100010 00000000f5000000 0000000000000000
+    head: 0200000000000040 ffff888100042c80 dead000000000100 dead000000000122
+    head: 0000000000000000 0000000000100010 00000000f5000000 0000000000000000
+    head: 0200000000000002 ffffffffffffff01 00000000ffffffff 00000000ffffffff
+    head: 0000000000000000 0000000000000000 00000000ffffffff 0000000000000000
+    page dumped because: kasan: bad access detected
+    
+    Memory state around the buggy address:
+     ffff888116a55f00: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+     ffff888116a55f80: fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc fc
+    >ffff888116a56000: fa fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+                                      ^
+     ffff888116a56080: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+     ffff888116a56100: fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb fb
+    ==================================================================
 
 Fixes: da5e7c87827e ("ocfs2: cleanup journal init and shutdown")
 Cc: stable@vger.kernel.org
 Assisted-by: LLM
 Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 ---
- fs/ocfs2/inode.c   | 17 +++++++++--------
- fs/ocfs2/journal.c | 30 ++++++++++++++++++++++--------
- fs/ocfs2/journal.h | 17 +++++++++--------
- fs/ocfs2/ocfs2.h   |  1 +
- fs/ocfs2/super.c   |  1 +
- 5 files changed, 42 insertions(+), 24 deletions(-)
+ fs/ocfs2/super.c | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 80c36c60a8ce..e225a96d3753 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -1318,15 +1318,16 @@ static void ocfs2_clear_inode(struct inode *inode)
- 	oi->ip_blkno = 0ULL;
- 
- 	/*
--	 * ip_jinode is used to track txns against this inode. We ensure that
--	 * the journal is flushed before journal shutdown. Thus it is safe to
--	 * have inodes get cleaned up after journal shutdown.
-+	 * ip_jinode is used to track txns against this inode. The journal is
-+	 * flushed before it is shut down, so an inode cleaned up after that
-+	 * has nothing left to release. Hold the shutdown lock so a journal
-+	 * found here stays allocated until the release has finished.
- 	 */
--	if (!osb->journal)
--		return;
--
--	jbd2_journal_release_jbd_inode(osb->journal->j_journal,
--				       &oi->ip_jinode);
-+	down_read(&osb->journal_shutdown_sem);
-+	if (osb->journal)
-+		jbd2_journal_release_jbd_inode(osb->journal->j_journal,
-+					       &oi->ip_jinode);
-+	up_read(&osb->journal_shutdown_sem);
- }
- 
- void ocfs2_evict_inode(struct inode *inode)
-diff --git a/fs/ocfs2/journal.c b/fs/ocfs2/journal.c
-index cc60db6b9706..8486c5edc5da 100644
---- a/fs/ocfs2/journal.c
-+++ b/fs/ocfs2/journal.c
-@@ -343,7 +343,7 @@ static int ocfs2_commit_cache(struct ocfs2_super *osb)
- 	trace_ocfs2_commit_cache_end(journal->j_trans_id, flushed);
- 
- 	ocfs2_wake_downconvert_thread(osb);
--	wake_up(&journal->j_checkpointed);
-+	wake_up(&osb->checkpoint_event);
- finally:
- 	return status;
- }
-@@ -892,7 +892,6 @@ int ocfs2_journal_alloc(struct ocfs2_super *osb)
- 
- 	atomic_set(&journal->j_num_trans, 0);
- 	init_rwsem(&journal->j_trans_barrier);
--	init_waitqueue_head(&journal->j_checkpointed);
- 	spin_lock_init(&journal->j_lock);
- 	journal->j_trans_id = 1UL;
- 	INIT_LIST_HEAD(&journal->j_la_cleanups);
-@@ -1064,12 +1063,14 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 
- 	journal = osb->journal;
- 	if (!journal)
--		goto done;
-+		return;
- 
- 	inode = journal->j_inode;
- 
--	if (journal->j_state != OCFS2_JOURNAL_LOADED)
--		goto done;
-+	if (journal->j_state != OCFS2_JOURNAL_LOADED) {
-+		down_write(&osb->journal_shutdown_sem);
-+		goto free;
-+	}
- 
- 	/* need to inc inode use count - jbd2_journal_destroy will iput. */
- 	if (!igrab(inode))
-@@ -1105,6 +1106,12 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 			mlog_errno(status);
- 	}
- 
-+	/*
-+	 * Exclude the final JBD2 inode cleanup in ocfs2_clear_inode() while
-+	 * the journal is destroyed and freed.
-+	 */
-+	down_write(&osb->journal_shutdown_sem);
-+
- 	/* Shutdown the kernel journal system */
- 	if (!jbd2_journal_destroy(journal->j_journal) && !status) {
- 		/*
-@@ -1127,10 +1134,17 @@ void ocfs2_journal_shutdown(struct ocfs2_super *osb)
- 
- 	journal->j_state = OCFS2_JOURNAL_FREE;
- 
--done:
--	iput(inode);
--	kfree(journal);
-+free:
-+	/* Serialize the removal with ocfs2_ci_fully_checkpointed(). */
-+	spin_lock(&trans_inc_lock);
- 	osb->journal = NULL;
-+	spin_unlock(&trans_inc_lock);
-+	wake_up(&osb->checkpoint_event);
-+	kfree(journal);
-+	up_write(&osb->journal_shutdown_sem);
-+
-+	/* The journal inode's own cleanup takes the read side. */
-+	iput(inode);
- }
- 
- static void ocfs2_clear_journal_error(struct super_block *sb,
-diff --git a/fs/ocfs2/journal.h b/fs/ocfs2/journal.h
-index 19fc920d26b1..fe024ec5adcc 100644
---- a/fs/ocfs2/journal.h
-+++ b/fs/ocfs2/journal.h
-@@ -54,7 +54,6 @@ struct ocfs2_journal {
- 	spinlock_t                j_lock;
- 	unsigned long             j_trans_id;
- 	struct rw_semaphore       j_trans_barrier;
--	wait_queue_head_t         j_checkpointed;
- 
- 	/* both fields protected by j_lock*/
- 	struct list_head          j_la_cleanups;
-@@ -91,11 +90,15 @@ static inline void ocfs2_set_ci_lock_trans(struct ocfs2_journal *journal,
- static inline int ocfs2_ci_fully_checkpointed(struct ocfs2_caching_info *ci)
- {
- 	int ret;
--	struct ocfs2_journal *journal =
--		OCFS2_SB(ocfs2_metadata_cache_get_super(ci))->journal;
-+	struct ocfs2_super *osb =
-+		OCFS2_SB(ocfs2_metadata_cache_get_super(ci));
-+	struct ocfs2_journal *journal;
- 
- 	spin_lock(&trans_inc_lock);
--	ret = time_after(journal->j_trans_id, ci->ci_last_trans);
-+	journal = osb->journal;
-+	/* A NULL journal has already completed checkpointing. */
-+	ret = !journal ||
-+		time_after(journal->j_trans_id, ci->ci_last_trans);
- 	spin_unlock(&trans_inc_lock);
- 	return ret;
- }
-@@ -195,9 +198,6 @@ static inline void ocfs2_checkpoint_inode(struct inode *inode)
- 	if (ocfs2_mount_local(osb))
- 		return;
- 
--	if (!osb->journal)
--		return;
--
- 	if (!ocfs2_ci_fully_checkpointed(INODE_CACHE(inode))) {
- 		/* WARNING: This only kicks off a single
- 		 * checkpoint. If someone races you and adds more
-@@ -207,7 +207,8 @@ static inline void ocfs2_checkpoint_inode(struct inode *inode)
- 		 * OK. */
- 		ocfs2_start_checkpoint(osb);
- 
--		wait_event(osb->journal->j_checkpointed,
-+		/* The wait queue must outlive journal shutdown. */
-+		wait_event(osb->checkpoint_event,
- 			   ocfs2_ci_fully_checkpointed(INODE_CACHE(inode)));
- 	}
- }
-diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
-index e3bb3cc0b25a..8bee145e4888 100644
---- a/fs/ocfs2/ocfs2.h
-+++ b/fs/ocfs2/ocfs2.h
-@@ -388,6 +388,7 @@ struct ocfs2_super
- 	enum ocfs2_recovery_state recovery_state;
- 	wait_queue_head_t checkpoint_event;
- 	struct ocfs2_journal *journal;
-+	struct rw_semaphore journal_shutdown_sem;
- 	unsigned long osb_commit_interval;
- 
- 	/* Journal triggers for checksum */
 diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0af2245ae303..3ffe1143ea50 100644
+index 0af2245ae303..9f93ae9433c2 100644
 --- a/fs/ocfs2/super.c
 +++ b/fs/ocfs2/super.c
-@@ -2045,6 +2045,7 @@ static int ocfs2_initialize_super(struct super_block *sb,
- 	}
+@@ -1783,6 +1783,9 @@ static int ocfs2_mount_volume(struct super_block *sb)
+ 	return 0;
  
- 	init_waitqueue_head(&osb->checkpoint_event);
-+	init_rwsem(&osb->journal_shutdown_sem);
+ out_system_inodes:
++	/* Drain fs_state readers before releasing their backing state. */
++	debugfs_lookup_and_remove("fs_state", osb->osb_debug_root);
++
+ 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
+ 		ocfs2_shutdown_local_alloc(osb);
+ 	/* Drain pending suballoc reclaim work before the journal goes away */
+@@ -1810,6 +1813,9 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
  
- 	osb->s_atime_quantum = OCFS2_DEFAULT_ATIME_QUANTUM;
+ 	BUG_ON(!sb);
+ 	osb = OCFS2_SB(sb);
++
++	/* Drain fs_state readers before releasing their backing state. */
++	debugfs_lookup_and_remove("fs_state", osb->osb_debug_root);
+ 	BUG_ON(!osb);
  
+ 	/* Remove file check sysfs related directories/files,
