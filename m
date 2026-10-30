@@ -1,49 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.99
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.132
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793329145;
-	b=Z9T6i4haIjSUkd0BSdj6lJtyV9k1YoH34Y7NbQqkg/PyTZvO2J52ojpzJmKUjZTQOzWT
-	 aYjUNk8v68F6KUdOPXImywK5PFxmZstmI1x4UxvqNARpHBKzV9g27OpuOWA2vj2Xd+ntt
-	 a1Z4Z1Dt/ko2d0IR5jq53Wq3GyN0WqVQ34j2/VONcJ5MpQLa/tz5QyThk0BreOpMyXP9L
-	 /w/i/OY2SInedaMQUPPvIN9HUkrj65dZ5vcJWs89kJEOdbs674xw5nFtvhrDbm2CkhgdT
-	 dM2heiRivU/hzuu3XZDpGFAUVcLSy/DiqlnsUDqei3mIT3WUFrvQTcno1eF9LKa4H7w==
+	t=1793329331;
+	b=gSvwMRafyP/pCXZaWShbusYS/5RMt+rbD/h/4MN6dOMUCirtpvznO9UFOAeW2clIO6HQ
+	 xFibDWF9ag/fs0WAigmmmTNyF14JnB4o3n+eimPnqYWAZTqg0dZl70gTo+ofMwjtZaLBP
+	 a5AEqvq8kazGTVcI/7NnWGGg/n++8EXebWY5IKqsm6CHEvergcELNBRgnIGu+uImjbZ/R
+	 ydqW2/El+FFxRfSLljzx4lCgaDJtKUvxCvbxzAVmNNX/ocUXnkHstst57L6/qP4ok4x35
+	 FKUAWUguvqkXAWM9FuSzxLJVzVjdW0KkOaAxG2RcPcEx3nXHY+8W4s/h04IESINtSZg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793329145;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793329331;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
 	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=w/Jd2p/prMhPtETNelJfTcFSgzTHlHRnVEoen9y0JaA=;
-	b=mPrEm5xpBnXg7uvPdBUpnJNx5J5mTi9aYeBh4Gh357QubdCnhtBobh3UqdL3g9p+9vNt
-	 Mxz5i2t4ao0I1eYTJumlpQMT+NRJ+VULxHd0l4RlM0g+KtouBoD2zvO2Wvu7hYaw5WtZn
-	 fVSWt9gGGag7k+l9DWULNOUnXC/FFJXq2M0qdmDKX5PGxFpW0VLKEDyKLAQjZsRYr/qtb
-	 cDMP1C2wOgpMduotwWXtY5zD3BBFvAitubMDqI2uqyMhGeRAWWm4JOuJuH8QajTaNgCIb
-	 oyiT4VFQjvtm85Mv5X9dFwznzO8fcemKs3kgUWxL4xGT/Xb4BD34l8gD5gtoKfDv0GA==
+	bh=CHLQ7b2LcR7am1RKbZkh1e8kwZYbJ2OrwqImdsIBbbw=;
+	b=MccK9KeiTk/bPxR4ICNZVqMWRL5kQ2GrTRpvSyTCV5ToG3qIJyyzmyZOIOfNrE7hcMgT
+	 KPcXNz6lSYjW3hq2yOG1mDRYSmV9HR0Egnk/Yh6EmApydbm6XjCPenDQQx60oUjDAVycr
+	 vV3pa9o9qIBE02yJB8N2NSxoQjz3OtH3T+sR9ztSUBn786jmVbk8k3YRmppSKI9HfYO7p
+	 PSJjHD/yANVZkAtQAlFLVG989+g+HKk3HAPbN+fdmN45wXe5xpYJeQv9UAoMaEb0gkSm5
+	 fGniMGtb5KhhLcJEkx3FEJKrRQD82a2GXpJ/pEG88DmonTLoB27jej7oWEZTE1mQg7A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=hSHEsgsY;
-	arc=none smtp.remote-ip=115.124.30.99
-Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=P3EUpEDX;
+	arc=none smtp.remote-ip=115.124.30.132
+Received: from out30-132.freemail.mail.aliyun.com (out30-132.freemail.mail.aliyun.com [115.124.30.132])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2DC2C606A31E;
-	Fri, 30 Oct 2026 02:59:02 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2DC2C606A31E
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 18A9E606A31D;
+	Fri, 30 Oct 2026 03:02:08 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 18A9E606A31D
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=hSHEsgsY
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=P3EUpEDX
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793329134; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=w/Jd2p/prMhPtETNelJfTcFSgzTHlHRnVEoen9y0JaA=;
-	b=hSHEsgsYOl/knZoiaKmOo9/szTsdb243LBtAHNpX/8InfeQ+O8kqyPkUuu0Awv2qPGL1dtHu80lxiinShoX3C//q9xO3uJS7nJ9pA7n/Uvoqx9PjlbXVT4MQjJDtbupw0uuaN9Pd4ZUnz3XFWW920V7V0LBApZUCRivWHHA722Q=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R961e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=17;SR=0;TI=SMTPD_---0XDkufcn_1793329132;
-Received: from 30.221.129.214(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDkufcn_1793329132 cluster:ay36)
+	t=1793329320; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=CHLQ7b2LcR7am1RKbZkh1e8kwZYbJ2OrwqImdsIBbbw=;
+	b=P3EUpEDXjFYc7t9vYYRCz1pheQWh2OCsVgQHajoLYY7mar314/KyFODZ1m/Bx3732YPlUX/9mgkhkxHtZvlKaP/r8tG5iUFYR6RjeVEzRHEvZlb44qO001lYjE8WqGw+itEsYWrea5uNPR7AtSB9r2wsmY6F8l5pa5OuFFW0k30=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R531e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=17;SR=0;TI=SMTPD_---0XDkxfAa_1793329318;
+Received: from 30.221.129.214(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XDkxfAa_1793329318 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 30 Oct 2026 10:58:53 +0800
-Message-ID: <0a8576a4-e397-4a49-ab0e-8f0f32bf2642@linux.alibaba.com>
-Date: Fri, 30 Oct 2026 10:58:52 +0800
+          Fri, 30 Oct 2026 11:01:59 +0800
+Message-ID: <736cc238-0af8-417b-bf3f-5e8b002badaf@linux.alibaba.com>
+Date: Fri, 30 Oct 2026 11:01:58 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,7 +54,8 @@ List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH v2 19/34] ocfs2: keep the current mount options on remount
+Subject: Re: [PATCH v2 20/34] ocfs2: don't set SB_RDONLY after filesystem
+ errors
 To: Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org,
  Jan Kara <jack@suse.com>
 Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
@@ -65,84 +66,42 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
  linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org,
  linux-xfs@vger.kernel.org
 References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
- <20261029-work-fs-sb_rdonly-v2-19-2f44f64f0b66@kernel.org>
+ <20261029-work-fs-sb_rdonly-v2-20-2f44f64f0b66@kernel.org>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20261029-work-fs-sb_rdonly-v2-19-2f44f64f0b66@kernel.org>
+In-Reply-To: <20261029-work-fs-sb_rdonly-v2-20-2f44f64f0b66@kernel.org>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
 On 10/30/26 12:07 AM, Christian Brauner wrote:
-> ocfs2_init_fs_context() doesn't inherit the current mount options for a
-> reconfigure. But ocfs2_check_set_options() insists on exactly one
-> heartbeat mode and ocfs2_reconfigure() refuses to change the data mode.
-> So every remount without heartbeat= fails with EINVAL, including
-> emergency remount (sysrq u) which passes no options at all, and that
-> WARNs for every ocfs2 mounted read-write. A remount that does pass
-> heartbeat= silently resets every option it doesn't repeat, e.g. noacl,
-> errors=, barrier= and preferred_slot=.
+> With errors=remount-ro, the default, ocfs2_handle_error() sets SB_RDONLY
+> without holding s_umount. If that happens while the filesystem is frozen
+> through bdev_freeze() thaw_super() leaves the s_writers rwsems locked.
+> Writers hang and so does umount because ocfs2_shutdown_local_alloc()
+> needs sb_start_intwrite().
 > 
-> So start a reconfigure from the current options like exfat and gfs2 do.
-> Asking for a different data or heartbeat mode still fails with EINVAL.
+> The soft read-only state doesn't stop modifications on its own. Every
+> read-only mount sets it and those still need transactions for recovery,
+> the local alloc and the truncate log. Everything else was stopped by the
+> VFS because of SB_RDONLY. So call sb_set_emergency_ro() instead which
+> keeps it that way, and keep setting SOFT_RO for the existing
+> ocfs2_emergency_state() checks.
 > 
-> The next patch stops ocfs2 from setting SB_RDONLY after errors. An
-> errored ocfs2 then stays read-write and emergency remount would run into
-> this as well.
+> The xattr and ACL setters get a check of their own because ecryptfs
+> calls them without write access on the lower mount. It sits in the xattr
+> handlers and not in ocfs2_xattr_set() because chmod and setfacl store
+> the ACL through it after the new mode was already committed.
+> 
+> Quotas aren't enabled at mount in the error state because that writes
+> the quota files. ocfs2_sync_fs() doesn't flush anything anymore and a
+> remount to read-only doesn't suspend quotas. Q_GETQUOTA, Q_GETNEXTQUOTA
+> and Q_SYNC can still start transactions. I've left that alone.
+> 
+> Writes through file descriptors opened before the error fail with EROFS
+> and umount completes instead of hanging.
 > 
 > Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
-> ---
->  fs/ocfs2/super.c | 13 +++++++++++++
->  1 file changed, 13 insertions(+)
-> 
-> diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-> index 0af2245ae303..67283244426e 100644
-> --- a/fs/ocfs2/super.c
-> +++ b/fs/ocfs2/super.c
-> @@ -1222,6 +1222,19 @@ static int ocfs2_init_fs_context(struct fs_context *fc)
->  	mopt->resv_level = OCFS2_DEFAULT_RESV_LEVEL;
->  	mopt->dir_resv_level = -1;
->  
-> +	/*
-> +	 * Start from the current options so a remount only changes what it
-> +	 * specifies, emergency remount passes none at all.
-> +	 */
-> +	if (fc->purpose == FS_CONTEXT_FOR_RECONFIGURE) {
-> +		struct ocfs2_super *osb = OCFS2_SB(fc->root->d_sb);
-> +
-> +		mopt->mount_opt = osb->s_mount_opt;
-> +		mopt->atime_quantum = osb->s_atime_quantum;
-> +		mopt->slot = osb->preferred_slot;
-> +		mopt->user_stack = ocfs2_userspace_stack(osb);
-> +	}
 
-ocfs2_reconfigure() decides the transition from fc->sb_flags alone without
-sb_flags_mask test, unlike reconfigure_super(). And fspick() passes
-fs_context_for_reconfigure(target.dentry, 0, 0). So on a read-only mount:
-
-  fspick(AT_FDCWD, "/mnt", 0)        sb_flags 0, sb_flags_mask 0
-  fsconfig(fd, FSCONFIG_SET_STRING, "atime_quantum", "30", 0)
-  fsconfig(fd, FSCONFIG_CMD_RECONFIGURE)
-    reconfigure_super()
-      ocfs2_reconfigure()
-        (bool)(0 & SB_RDONLY) != sb_rdonly(sb)  -> 0 != 1, enters
-        fc->sb_flags & SB_RDONLY                -> 0, takes the rw branch
-        sb->s_flags &= ~SB_RDONLY
-        osb->osb_flags &= ~OCFS2_OSB_SOFT_RO
-        ocfs2_enable_quotas(osb)                -> writes the quota files
-
-The final WRITE_ONCE(sb->s_flags, ...) in reconfigure_super() then
-leaves it cleared, because SB_RDONLY is not in sb_flags_mask. The same
-falls out of a legacy remount whose flags omit MS_RDONLY.
-
-So it seems we should test sb_flags_mask as well?
-
-Thanks,
-Joseph
-
-> +
->  	fc->fs_private = mopt;
->  	fc->ops = &ocfs2_context_ops;
->  
-> 
-
+Looks fine.
+Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
