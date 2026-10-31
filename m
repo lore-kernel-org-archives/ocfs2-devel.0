@@ -1,97 +1,54 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.46
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.167.197
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793423623;
-	b=AoUf/PYa1cV0dGfOYkP1IKHMJv4Q6fDzGYTgbMEc7leXVEI3cv7erdDRYzSqxv8q+tIf
-	 8mVM8rzRAS5Qg6n6y7fhpG9NXRAvSJ2m+WicHOHkIAgMiJR0zNsjR4FQz6D+lkV34vOzO
-	 Uh8kVwnhLFGlSQw05eteP/Wi31+bnvv9qp+wzfvqqfhiZh6rdlcrcnyyAhVZa174rR70V
-	 sZ4avls+HapwLLefVeRenBdxH+IVGE2yn1SnQhKzAYh4fmj5xdnzjoR9cWz2keeRbojTq
-	 sZBWk1kcVrkfD41EM2+ViDc/7saCgr08Az7LLyOt1ce6tnpV2tNNlf/lgDxThGpkekQ==
+	t=1793445522;
+	b=VUt7cUaAUlmLjKi8lH7ZB1IT6kjQw4w0FjYEzugPpssRgTd/Ov+lUKLz+aiNvsamY/7/
+	 mkUi4mB4epcZrs7yAhpdJ7J/wn7bhRGkB0DVLYen73XSboDQ580COieuqftO/9GBQhGID
+	 yVokiYcXN10mxKh1tVr+ZV5PLcYbejEzYPECfc+e7RTuKuDP1oI0hkDSBAzHPKKu03YyY
+	 aHEmenjU1cp+fDsfREfj9UXqEcjbZnKvwedt7nkwtMJQtL+WEJRLhOh6iPqOwwEdYxnWU
+	 3hyjFA5DrtEWvcX3FkrjLpvO6eYQQ1E+mLAoiFRbSEpdkzvH8UlnKlm/E/Wrc3W7zbQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793423623;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-Id:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=xm9qK57iibUFwPkHb0+uEz3ll0FQuAb6bGI1ruSxhhE=;
-	b=EFDAHQuStCLNoUijvFndHFRp6+alClGTHA3u7BZ1fZUJ+KISLvvEsFPO8qHgFQXha8Xy
-	 wbB1mmB/e6Q4JXEUvKxEFy3vYPo6kTvLETd+ON1IXILVomV2wV570GfH4IkuOVIuWEY8b
-	 fSKi1f1ZRLQ9TD7cj3GLA4NUXDjoJvJy95ZiXnbCYJ1Epz8DNY2YrcYIy6nfYJ3rIXnwc
-	 eD/1j4jAwF/r781bgte3Cpz8Y+kyhQaBMzsWNeZPb4QoSMNqbOfWfX3H6+mulRZphjSgE
-	 /t94pSdjI+hD17MvLW2Ufr8NiyDQ94UzlfJTHtpmicJWVvCyhaYnBwK39EU8WySsbJg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793445522;
+	h=DMARC-Filter:Received:X-Google-DKIM-Signature:X-Forwarded-Encrypted:
+	 X-Gm-Message-State:MIME-Version:X-Received:Date:In-Reply-To:
+	 X-Google-Appengine-App-Id:X-Google-Appengine-App-Id-Alias:Message-ID:
+	 Subject:From:To:Content-Type;
+	bh=wc4KI4JX6N3tKx7PcXacfJ/6loXxDCQLw7+V+x9ydRc=;
+	b=hLqjXXR59nLZ5y/PXrPylFtUHqjOZVOUVVKWZrDcSnVnyexDU94MAxsJaaW6x3npBGlj
+	 dhphqcmKpOI/ZGPvfbAh8SMWjVyYxb8nj5tyzf3kZMMBVbqSyZbpVGjd/S0kmhFEB5J3v
+	 KAo2yThYoXI43tufypHawSoeZogzxYOl/tnCiwWELrqcR3SSM8+KFxa/soYAQcPmI7zwq
+	 KRTAenfPRHuhtttiCtFA/Ge5GBAhrACTAz1DMAFcDOj0LDKtwA4YBLRn3b6LwcDU5yc8V
+	 T4a/ggaV1qlg9+YAyWjs51dd7Uh/96orRi1lEoaHH5/7tXsYpwxFfGPKVC5/5VY7TTw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=Um7ZR4Ww;
-	arc=none smtp.remote-ip=209.85.216.46
-Received: from mail-pj1-f46.google.com (mail-pj1-f46.google.com [209.85.216.46])
+	dmarc=fail header.from=syzkaller.appspotmail.com;
+	spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com;
+	arc=none smtp.remote-ip=209.85.167.197
+Received: from mail-oi1-f197.google.com (mail-oi1-f197.google.com [209.85.167.197])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A320C606A31D
-	for <ocfs2-devel@lists.linux.dev>; Sat, 31 Oct 2026 05:13:42 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A320C606A31D
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=Um7ZR4Ww
-Received: by mail-pj1-f46.google.com with SMTP id 98e67ed59e1d1-3ab98332238so819895a91.3
-        for <ocfs2-devel@lists.linux.dev>; Fri, 30 Oct 2026 22:13:42 -0700 (PDT)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793423622; x=1794028422; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=xm9qK57iibUFwPkHb0+uEz3ll0FQuAb6bGI1ruSxhhE=;
-        b=Um7ZR4WwT7VFx0s/+Zcf1/jekW8/uTn6CTPpYQBxdbt9nUZWxHU53Gt3vF1PwzOD+W
-         O1LRtArbxz+10YHTif08dV75Jz/kIpS+xTLA+VK03wLzSORsXZMBw+dfNH1+NhWo/pCI
-         iaH/Oo6aiV+Ty7BCYvwnl+CER5QbLQ7QIIIfHVSElhlbKK0sKihJpj2h24vTLQ6A0b/5
-         BLFXoVUQQ1+RguWkFt8d555BCEJR0IwAIotyrBEsWbyMpnNE8QoVJQ5JZKctpTPYSq5l
-         K5SnNCqohXmrMMev2vRFt3ntHdPhhBgyXcPc6JPYjtSAiXS7Ali0J1njfRONwv/FVYQy
-         PS7g==
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2A101606A31C
+	for <ocfs2-devel@lists.linux.dev>; Sat, 31 Oct 2026 11:18:41 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2A101606A31C
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-oi1-f197.google.com with SMTP id 5614622812f47-4f8281066c4so2092026b6e.2
+        for <ocfs2-devel@lists.linux.dev>; Sat, 31 Oct 2026 04:18:41 -0700 (PDT)
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793423622; x=1794028422;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=xm9qK57iibUFwPkHb0+uEz3ll0FQuAb6bGI1ruSxhhE=;
-        b=GIW9dU2y2oMMW7pag10xaNLwuWE7F92ZtcH1rZtsUifv0d4kfMXP3+H/l6EOlmN8I+
-         Qa4vvgslhseKs9lwDN5+HDTfartLGtFxzBj+ubL6Yu/uXPQo4yJxsRl/JQ/FAJSCqQJY
-         r5RrOf48hJu4TzGKEPcJmDnspf0UUvMVr4Av+pGp8oWE/ssWHlQDtodMoFaMVRszZtjM
-         Tsiimo/8fQj2oVUgsw4ATKlsXHT7udMk6cEYgZg+26HUSZ8cyguQTDQmf/KpI2Rysqg4
-         OR9gSGs4lLh8CIPCE1N3z+9R5klQQs4bDxapb+QHyyXxWuAzykeFv+FXqgqzdm0bmfVd
-         6R3g==
-X-Forwarded-Encrypted: i=1; AKwUvBxDHJtbviiz/uePPQFequqsUow1nGjtbr+/BGNRlFMrfQqjYqTxLLXOEa195r8pex72gepC10/KGpgY1g==@lists.linux.dev
-X-Gm-Message-State: AFq9FYJ+uJwFv09/po7xVw82Yb+bIBRCHTKGPfVYmnGFvD/Zc0zbPOW4
-	miGIxi/poZjjRqhNwzVvhi3lHf7D6+1UM28vrQT4o+1AHJHXwwhZb7yJ
-X-Gm-Gg: AYBFou348khLu5OpDA0XGbdtDOSBotCAtDOvfZIIN7ftJ3+K1zmoBqfj47scXxb/EqR
-	s3GwINKzCacSLkDLtF+VVPjFXFl96dx4OAxH/m76xQRrseqRxKfT9axd1HQ0VbJUb2uD5Co17H+
-	6tEIRSTko84z5k2FzjEBVMhNn4Kw4dgUlOggyPdW+/AZG7ARN+DJyJCvSVV/K6FOIwWStXtOJTh
-	0laTz0FUXrTuFT/ePuukv5DgTcoM0B37K5eOVuidrYo6pMWveT+TmwQRRZjXY74lNMsIpI/97xv
-	TnL1eEq4ubFMxIA+bxhmmnsWM9aCFdvkyv9uLAVGVrMBYqgAeLQv0g5ogD7PaBCdsDZb8erwIUq
-	zvZTeFc1fjoO7a4vKKhQPKB0QSlD+YlmqGWU7LoxzkzZhrTfuNCzWEX0E3sU1fk9HpC+cDrB7rC
-	xKDI2f1tmrRngRGDjqkCEu+a2zPODxdZxSQpYJX/MBblN4qNan4cJm+L5RyuPRp1ewH9Al1r9V0
-	pSztZDjst/SC+vnqTXqfEcIX0q72qvwEUdJ+jueoPMVPzSp4mP5G+xnoFiWW4g6xbPgXffJcnbD
-	3dF92xYE9bc0IhBn7Zin+DOx
-X-Received: by 2002:a17:90b:3c08:b0:3ab:17b6:9a93 with SMTP id 98e67ed59e1d1-3ae897a64b7mr3802893a91.52.1793423621840;
-        Fri, 30 Oct 2026 22:13:41 -0700 (PDT)
-Received: from localhost ([111.228.63.84])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3ae87f5dcc3sm3229860a91.3.2026.10.30.22.13.38
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 30 Oct 2026 22:13:41 -0700 (PDT)
-From: Cen Zhang <zzzccc427@gmail.com>
-To: mark@fasheh.com,
-	jlbec@evilplan.org,
-	joseph.qi@linux.alibaba.com
-Cc: heming.zhao@suse.com,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	stable@vger.kernel.org,
-	baijiaju1990@gmail.com,
-	jjzuming@gmail.com,
-	zzzccc427@gmail.com
-Subject: [PATCH v2] ocfs2: drain fs_state readers before journal teardown
-Date: Sat, 31 Oct 2026 13:13:35 +0800
-Message-Id: <pm-ocfs2-objects-candidate-0003-v7-1522d068e5b943786c3e@gmail.com>
-X-Mailer: git-send-email 2.34.1
+        d=1e100.net; s=20260707; t=1793445521; x=1794050321;
+        h=content-type:to:from:subject:message-id:in-reply-to:date
+         :mime-version:x-gm-message-state:from:to:cc:subject:date:message-id
+         :reply-to:content-type;
+        bh=wc4KI4JX6N3tKx7PcXacfJ/6loXxDCQLw7+V+x9ydRc=;
+        b=WyN0yLpmrTSdOTk2XI8AvaxNDzQ7X14LuWCkG0FxGDMXQzI31NK2LQ6x6v3crYiXj/
+         FOtOsi88TyDcNSyvnekOLbLJEGZRVov/keKsK4+dKbb5XUemH32dlOSHXua03zMhCSJg
+         8L306iQL7PBiX5FEZJ1p906ltkMGezsxeK2NnDgcFu572ZMjwSUkTpCtLXG96CVpTvD4
+         N6YX0uZrKB5uWKgZmFAbDGDLYIkQvEdeL534eJ+9QQ/e4bd8NHAe0QxIfW/P2YyPOI8H
+         ZGLzL4cn5pyWwhqudMX0TW6VWwPuLKSQeyQwYaUNQX/Agliv3L7IlVB26JEQUM+Rm5r6
+         r3WA==
+X-Forwarded-Encrypted: i=1; AKwUvBxR3x6BbDfm7r5Gn0pMDpaPL2J6s59/d9sRQlVEv+r0kP5HHnhn3l0yImTz/f8AYJufDrcjQ1cLo7DNeQ==@lists.linux.dev
+X-Gm-Message-State: AFq9FYL8rnyofRpHacPKvi6OK3rVNP+LH6hJhRpjZdm8ZAtnsNLmz028
+	cAofjPldNcMA1stvA0pdcci3RAujv44sr1V/AkeMy7WAErwrqJ5JNLZKntrSFu49BrXS16vTX2h
+	RLy2UPakoX4ZY5W3BD70DmrSrfyi5trT4uoLSllI4XG3VQJgPbp0SJkSgVzQ=
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -101,136 +58,100 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Transfer-Encoding: 8bit
+X-Received: by 2002:a05:6808:6411:b0:4f3:890b:5fec with SMTP id
+ 5614622812f47-5640de4bed0mr3731564b6e.25.1793445521183; Sat, 31 Oct 2026
+ 04:18:41 -0700 (PDT)
+Date: Sat, 31 Oct 2026 04:18:41 -0700
+In-Reply-To: <6a13d9ca.050a0220.7dd1.0000.GAE@google.com>
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6ae5ce91.264039fe.1edcaa.0004.GAE@google.com>
+Subject: Re: [syzbot] [ocfs2?] kernel BUG in ocfs2_page_mkwrite (4)
+From: syzbot <syzbot+42984127d45ad96219de@syzkaller.appspotmail.com>
+To: heming.zhao@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-The per-mount fs_state open callback formats journal fields through
-osb->journal. Its debugfs active-user guard protects the open callback,
-but does not keep the journal allocated after journal shutdown.
+syzbot has found a reproducer for the following issue on:
 
-Both unmount and the mount-error path in ocfs2_mount_volume() can free
-and clear the journal before the debugfs subtree is removed:
+HEAD commit:    abf8c33470f7 Merge tag 'spi-fix-v7.4-merge-window' of git:..
+git tree:       upstream
+console output: https://syzkaller.appspot.com/x/log.txt?x=14bd94b1580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=4a49f7c2815c8df7
+dashboard link: https://syzkaller.appspot.com/bug?extid=42984127d45ad96219de
+compiler:       Debian clang version 22.1.8 (1~deb13u4), Debian LLD 22.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=16bd94b1580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=1170f04e580000
 
-  fs_state reader                       Mount cleanup
-  ---------------                       -------------
-  enter ocfs2_osb_debug_open()
-    ocfs2_osb_dump()
-      load osb->journal
-                                        ocfs2_journal_shutdown()
-                                          free journal; clear pointer
-      read journal fields
-  leave the open callback
-                                        remove the debugfs subtree
+Downloadable assets:
+disk image (non-bootable): https://storage.googleapis.com/syzbot-assets/d900f083ada3/non_bootable_disk-abf8c334.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/2fa6d9134089/vmlinux-abf8c334.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/17b6a19466ca/bzImage-abf8c334.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/afd449083684/mount_1.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=10bd94b1580000)
 
-Remove fs_state before cleanup releases its backing state in both
-callers of ocfs2_journal_shutdown(). Debugfs removal prevents new opens
-and waits for admitted open callbacks to finish. Later reads and release
-use only the per-open snapshot buffer, so they do not need the journal.
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+42984127d45ad96219de@syzkaller.appspotmail.com
 
-Keep removal in the caller paths while the per-mount debugfs parent is
-still present. The remaining debug files retain their teardown order.
+(syz.0.17,5578,0):__ocfs2_journal_access:730 ERROR: Error -30 getting 1 access to buffer!
+(syz.0.17,5578,0):ocfs2_write_end_nolock:1945 ERROR: status = -30
+------------[ cut here ]------------
+kernel BUG at fs/ocfs2/mmap.c:106!
+Oops: invalid opcode: 0000 [#1] SMP KASAN NOPTI
+CPU: 0 UID: 0 PID: 5578 Comm: syz.0.17 Not tainted syzkaller #0 PREEMPT(full) 
+Hardware name: QEMU Standard PC (Q35 + ICH9, 2009), BIOS 1.16.3-debian-1.16.3-2 04/01/2014
+RIP: 0010:__ocfs2_page_mkwrite fs/ocfs2/mmap.c:106 [inline]
+RIP: 0010:ocfs2_page_mkwrite+0xb59/0xb60 fs/ocfs2/mmap.c:143
+Code: 50 42 fe e9 27 fd ff ff e8 44 4d 07 08 e8 5f af c9 fd 4c 89 e7 48 c7 c6 40 21 77 8c e8 00 af 28 fd 90 0f 0b e8 48 af c9 fd 90 <0f> 0b cc cc cc cc cc 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+RSP: 0018:ffffc90001c3f960 EFLAGS: 00010293
+RAX: ffffffff83ff77b8 RBX: 00000000ffffffe2 RCX: ffff88803c8ea580
+RDX: 0000000000000000 RSI: 0000000000001000 RDI: 00000000ffffffe2
+RBP: ffffc90001c3faf0 R08: ffffffff91be13bf R09: 1ffffffff237c277
+R10: dffffc0000000000 R11: fffffbfff237c278 R12: dffffc0000000000
+R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000001000
+FS:  000055557db80500(0000) GS:ffff88808aa01000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00007f6af90e5440 CR3: 0000000040472000 CR4: 0000000000352ef0
+Call Trace:
+ <TASK>
+ do_page_mkwrite+0x147/0x310 mm/memory.c:3879
+ do_shared_fault mm/memory.c:6145 [inline]
+ do_fault mm/memory.c:6207 [inline]
+ do_pte_missing+0x70f/0x3570 mm/memory.c:4763
+ handle_pte_fault mm/memory.c:6627 [inline]
+ __handle_mm_fault mm/memory.c:6776 [inline]
+ handle_mm_fault+0x1a53/0x3750 mm/memory.c:6943
+ do_user_addr_fault+0x7f6/0x1480 arch/x86/mm/fault.c:1394
+ handle_page_fault arch/x86/mm/fault.c:1483 [inline]
+ exc_page_fault+0x6a/0xc0 arch/x86/mm/fault.c:1536
+ asm_exc_page_fault+0x26/0x30 arch/x86/include/asm/idtentry.h:595
+RIP: 0033:0x7f8bc2868b02
+Code: 30 48 8b 14 24 48 85 d2 74 17 8b 44 24 10 0f c8 89 c0 48 89 44 24 10 48 83 fa 01 0f 85 aa 02 00 00 48 8b 44 24 18 8b 74 24 10 <89> 30 e9 1e fe ff ff 48 8b 44 24 18 8b 10 48 8b 04 24 48 85 c0 0f
+RSP: 002b:00007ffe54034e30 EFLAGS: 00010246
+RAX: 0000200000000480 RBX: 0000000000000004 RCX: 0000000000000000
+RDX: 0000000000000000 RSI: 0000000000000004 RDI: 000055557db803d8
+RBP: 00007ffe54034f50 R08: 0000000000000000 R09: 0000000000000000
+R10: 0000000000000004 R11: 0000000000000000 R12: 0000000000000000
+R13: 00007f8bc2c25fac R14: 000000000001c34b R15: 00007f8bc2c25fa0
+ </TASK>
+Modules linked in:
+---[ end trace 0000000000000000 ]---
+RIP: 0010:__ocfs2_page_mkwrite fs/ocfs2/mmap.c:106 [inline]
+RIP: 0010:ocfs2_page_mkwrite+0xb59/0xb60 fs/ocfs2/mmap.c:143
+Code: 50 42 fe e9 27 fd ff ff e8 44 4d 07 08 e8 5f af c9 fd 4c 89 e7 48 c7 c6 40 21 77 8c e8 00 af 28 fd 90 0f 0b e8 48 af c9 fd 90 <0f> 0b cc cc cc cc cc 90 90 90 90 90 90 90 90 90 90 90 90 90 90 90
+RSP: 0018:ffffc90001c3f960 EFLAGS: 00010293
+RAX: ffffffff83ff77b8 RBX: 00000000ffffffe2 RCX: ffff88803c8ea580
+RDX: 0000000000000000 RSI: 0000000000001000 RDI: 00000000ffffffe2
+RBP: ffffc90001c3faf0 R08: ffffffff91be13bf R09: 1ffffffff237c277
+R10: dffffc0000000000 R11: fffffbfff237c278 R12: dffffc0000000000
+R13: 0000000000000000 R14: 0000000000000000 R15: 0000000000001000
+FS:  000055557db80500(0000) GS:ffff88808aa01000(0000) knlGS:0000000000000000
+CS:  0010 DS: 0000 ES: 0000 CR0: 0000000080050033
+CR2: 00005598dcb9a660 CR3: 0000000040472000 CR4: 0000000000352ef0
 
-KASAN report as below:
 
-    ==================================================================
-    BUG: KASAN: slab-use-after-free in ocfs2_osb_debug_open+0x967/0x15e0
-    Read of size 4 at addr ffff888116a56028 by task cat/502
-
-    Call Trace:
-     <TASK>
-     dump_stack_lvl+0x93/0xd0
-     print_report+0xce/0x630
-     kasan_report+0xe0/0x110
-     kasan_check_range+0x105/0x1b0
-     ocfs2_osb_debug_open+0x967/0x15e0
-     full_proxy_open_regular+0x193/0x310
-     do_dentry_open+0x595/0x12d0
-     vfs_open_consume+0xd1/0x400
-     path_openat+0x18d0/0x2020
-     do_file_open+0x21e/0x470
-     do_sys_openat2+0xf4/0x1b0
-     __x64_sys_openat+0x136/0x1e0
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-     </TASK>
-
-    Allocated by task 495:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     __kasan_kmalloc+0xaa/0xb0
-     __kmalloc_cache_noprof+0x28d/0x610
-     ocfs2_journal_alloc+0x91/0x450
-     ocfs2_initialize_super.isra.0+0x11b8/0x3070
-     ocfs2_fill_super+0x801/0x38f0
-     get_tree_bdev_flags+0x35d/0x5f0
-     vfs_get_tree+0x93/0x320
-     fc_mount+0x1d/0x200
-     path_mount+0x592/0x1e00
-     __x64_sys_mount+0x24b/0x2d0
-     do_syscall_64+0x114/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-    Freed by task 504:
-     kasan_save_stack+0x33/0x60
-     kasan_save_track+0x14/0x30
-     kasan_save_free_info+0x3b/0x60
-     __kasan_slab_free+0x5f/0x80
-     kfree+0x308/0x580
-     ocfs2_journal_shutdown+0x10a/0xc20
-     ocfs2_dismount_volume+0x315/0x940
-     generic_shutdown_super+0x15f/0x490
-     kill_block_super+0x40/0xa0
-     deactivate_locked_super+0xae/0x120
-     deactivate_super+0xa2/0xc0
-     cleanup_mnt+0x217/0x450
-     task_work_run+0x144/0x230
-     exit_to_user_mode_loop+0x17d/0x570
-     do_syscall_64+0x4d1/0x620
-     entry_SYSCALL_64_after_hwframe+0x77/0x7f
-
-    The buggy address belongs to the object at ffff888116a56000
-     which belongs to the cache kmalloc-512 of size 512
-    The buggy address is located 40 bytes inside of
-     freed 512-byte region [ffff888116a56000, ffff888116a56200)
-    ==================================================================
-
-Fixes: da5e7c87827e ("ocfs2: cleanup journal init and shutdown")
-Cc: stable@vger.kernel.org
-Signed-off-by: Cen Zhang <zzzccc427@gmail.com>
 ---
-Changes in v2:
-- Address the osb dereference before BUG_ON(!osb) raised by Sashiko:
-  https://sashiko.dev/#/patchset/98583
-- Remove fs_state after BUG_ON(!osb) in ocfs2_dismount_volume().
-- Trim the KASAN report.
-
-Assisted-by: LLM
-
-Link to v1: https://lore.kernel.org/r/pm-ocfs2-objects-candidate-0003-v6-2f69dbb7417fcd537be6@gmail.com
-
- fs/ocfs2/super.c | 6 ++++++
- 1 file changed, 6 insertions(+)
-
-diff --git a/fs/ocfs2/super.c b/fs/ocfs2/super.c
-index 0af2245ae303..c02896e127e5 100644
---- a/fs/ocfs2/super.c
-+++ b/fs/ocfs2/super.c
-@@ -1783,6 +1783,9 @@ static int ocfs2_mount_volume(struct super_block *sb)
- 	return 0;
- 
- out_system_inodes:
-+	/* Drain fs_state readers before releasing their backing state. */
-+	debugfs_lookup_and_remove("fs_state", osb->osb_debug_root);
-+
- 	if (osb->local_alloc_state == OCFS2_LA_ENABLED)
- 		ocfs2_shutdown_local_alloc(osb);
- 	/* Drain pending suballoc reclaim work before the journal goes away */
-@@ -1812,6 +1815,9 @@ static void ocfs2_dismount_volume(struct super_block *sb, int mnt_err)
- 	osb = OCFS2_SB(sb);
- 	BUG_ON(!osb);
- 
-+	/* Drain fs_state readers before releasing their backing state. */
-+	debugfs_lookup_and_remove("fs_state", osb->osb_debug_root);
-+
- 	/* Remove file check sysfs related directories/files,
- 	 * and wait for the pending file check operations */
- 	ocfs2_filecheck_remove_sysfs(osb);
+If you want syzbot to run the reproducer, reply with:
+#syz test: git://repo/address.git branch-or-commit-hash
+If you attach or paste a git patch, syzbot will apply it before testing.
