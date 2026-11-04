@@ -1,99 +1,48 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.216.44
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=159.226.251.21
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793753734;
-	b=T+0RPkJ/0GHKjS0ESbPbFEuR6dSh87hXlNPrAeWz2WM0CAlSKD9GN78KvHHce+Fa23RX
-	 0OmGUANEgfcttVPgmt35B/nL3CT+PiVoEmRywUeQ8YCxy19C5GHWGBlesoY4xLf8yD5sc
-	 kiAa8NqX9KGSJiKlewNM9QWpzTU06XxVk91c5/AxzWq3/vvNOoibcCJ1v6DawJUhURmrF
-	 udXiLsTfWCKBs6YemjzKYzwLWikDRqw+5jDjPWyuFMQ5cZQ7Ndqc5gn2WMNaPy7TBgLDR
-	 8uPAjJXFUrKGxPXKvC4dPZCvkqo7frpuLGTkeJd93umrf4YPAhkK0LYqkghbfPenTKA==
+	t=1793759281;
+	b=Q3HdqP0s7/hObBt5ooz+d/1W9/MmNI7h0fDTX93xoL6ONf9Vp4rHXbWoTbIkV4/zw7UF
+	 NEtIbU9F9g4SSQ865bHLDhOX7tYFlrfQ09TtbTywp24QxKomhF2KCnR5+xsh+keSzwRVv
+	 5+7dwBTYzTwNJBdb/4VKy9P5DGgYI6gYZYvl9W7nRSb3DIiqmNNJAp98/VBaiZesJXbj6
+	 uz3aTHypph4F4gbGkDQh7upkJaEICgjxMfnOS4tOUrdi1C2JzgviiDDBYzXO5+lIK3iBm
+	 TIMVrRYhY+fSPgACAzui4LE+OQwA3HRq+j4hEqhcSQ4bqvQSiGWCFDSeOOwmdx9gF3w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793753734;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
-	 Content-Type:Content-Disposition:In-Reply-To;
-	bh=xG5t3xikeZrgWEXDIQ9E66WF0APj2TRUKkrk3j8LkpE=;
-	b=KCB5QfZGrVix2TOKiNYt7urk6h0akmYDJJT5EN5tPxHNpXXAe2V4oZuUD6jr1l1ii7Hu
-	 DQS5R9i2SPOU3ebYpOegjkMfH9zgzFiAC5H6ShDThfH8x246pLKRz7lezyRggV8ZTvm/p
-	 4aZJbxwocbRwA4YpK6wDYPAAmbTQSlHtH4gg1Tcpp0EENAkK5ShkeVJJDyP7zj7624Cx9
-	 TPuDuxLZ3SFXYbjiPNZrpNHJ3RmP6xqXqSqfBScHLfsMkvSlHgwfu9EiGRrtp72LS3BfA
-	 /0yQVQchYKLeF0sBYtSZXsR7oxefEZPhMyX2J90BKf67Xn/AgAZSgolYNZlHvUNReyw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793759281;
+	h=DMARC-Filter:Received:From:To:Cc:Subject:Date:Message-Id:X-Mailer:
+	 MIME-Version:Content-Transfer-Encoding:X-CM-TRANSID:
+	 X-Coremail-Antispam:X-Originating-IP:X-CM-SenderInfo;
+	bh=ZMcEMSQF/iA9JS66ib/Q5MS9Jof8nwlvtWZM4A5nkQg=;
+	b=go2Eo7WcV3Wvy3m4S2FnVWPiirVmhPfoRUmazQImkjA7YYC8F3V4mIk0iCFXxe+xY0Q4
+	 2P/mWduPdEBeGZ4kfXrUVjq5f8WovhDTQP50nbkXodbu5akVHm0MEge6FB+VGOntY6s/U
+	 C9FXOIsh1b/cNs7/pYWTof3uA28tUFY/mY0GVqI7o5NLPDYadv+erpsHoUyJls0Zr/6N5
+	 iWgosLj22/wHfs+ZyS7U8vibCiRlIbWU2HIf9KYE/aXKJzj4ZYH9O2wCnDWZTBLvarn13
+	 fCsBcMPBoyMSHiFM262PV4mK8r/JV096AxtcRt35uvUjG1bUnQgzGTF5Rocim7u69xA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=zuUpFt9J;
-	arc=none smtp.remote-ip=209.85.216.44
-Received: from mail-pj1-f44.google.com (mail-pj1-f44.google.com [209.85.216.44])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	dmarc=none header.from=iscas.ac.cn;
+	spf=pass smtp.mailfrom=iscas.ac.cn;
+	arc=none smtp.remote-ip=159.226.251.21
+Received: from cstnet.cn (smtp21.cstnet.cn [159.226.251.21])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 71EFA606A334
-	for <ocfs2-devel@lists.linux.dev>; Wed,  4 Nov 2026 00:55:34 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 71EFA606A334
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=zuUpFt9J
-Received: by mail-pj1-f44.google.com with SMTP id 98e67ed59e1d1-3ac7842c17dso153319a91.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 03 Nov 2026 16:55:34 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1793753734; x=1794358534; darn=lists.linux.dev;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
-         :date:message-id:reply-to:content-type;
-        bh=xG5t3xikeZrgWEXDIQ9E66WF0APj2TRUKkrk3j8LkpE=;
-        b=zuUpFt9J/cFubDGclKYU2ivE6da2df9R+LlsyBBxaOu0Pc9ckPYqOCKPk+od+eEdQS
-         Vj2awdXKKArotuvNTgsp+OeUygUGbBjD5gI7w0wqelC8FVy61cDF8vIBT7NlJIbO6f/P
-         fgO97Xns0J3oGOHTyzGdLIGWTZFn5JIKt56sDJZWC/Sve8OFGJDdFDaw1czs5n01rKOm
-         chE1AxMCMbCl8jYcyeYll+b1NKrYFQQU00U11kFU0+Ko172o/EkR08ii/5ctiCTKHf+E
-         XUF0+Jb+L3tr6/Ju/KRPYe1q+VvkAVEdwsbMEI4pirY/eypE9cJHCYXG2+MAawscXTIe
-         GuKQ==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793753734; x=1794358534;
-        h=in-reply-to:content-disposition:content-type:mime-version
-         :references:message-id:subject:cc:to:from:date:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=xG5t3xikeZrgWEXDIQ9E66WF0APj2TRUKkrk3j8LkpE=;
-        b=QRlMHqvV5ArduJCw8y7IYqxpL6QQw3Po+son/a/Yao+RNLBRMdsdrd4JnjMXHg6PaB
-         iSTCyanb0JC/VD0Q8tsHn4s+lPi/9crH5oPwB9HaQ2Q6G0Gi8BB8Y6kFXkLG4BoAW/Ak
-         nKqfebkJMv7/B0EH9ZQ8t1zuFpag1ufTS7RsadyvP8XQcV+7zultZV6DRCDeS2Hb0ThD
-         9k288fUbYqWZiwTLcbAC1bQqFzlhx+HrcF+l3Auj5Yy9+2O86NOtyCkTVQTAXhb+an6v
-         YPxggK8F4oCZTWZd51lpwUS0/8KLmiFgVpTvKast0t7JByVBhatoulhSdXG83FEMyZNU
-         QoBQ==
-X-Forwarded-Encrypted: i=1; AKwUvByiMU5Z7zdcVTTPobEpfFaSi16qni5P/9FYeX7FxCNS5p5E4jf3MLmR8EgIEIYkpbveMoNVjfN32uv9Rg==@lists.linux.dev
-X-Gm-Message-State: APuU4Z9tNKH2++79NSIw832jlXd50ckTzWHTStEQAOL0yziRFpSqHIUy
-	yt2/b4wXg9hOXksuuyVKJV3Xka5zomaZo0V7+21MWLwQvnIk1inlsUXy
-X-Gm-Gg: AYBFou3PJhNDEfdXHpidJbUQwOMO2eaBurcj5+zxut9j4PyqQji4vMyXB7ZSGPL3WF+
-	zR+oxD2SLWSCFXcVOFXksjG2aKXVN+5ZFhgOq0NYrGBH5anLtHFfteLfTH0digxIFc4Vz00gMW/
-	7AoWmtE9zgVzmASi+/rXrFi0e5jT3ar7/HUF/WNSGe90XDwD3EuqYjPxbiJg67KD/qYfqdT57eb
-	DmntbLKcTOsFC4h9avZHR2Ffob2+qBo0q1v0ubq0PEK7ySe1uqY+pauXqeMtQ0ms9WJqOg+ErvZ
-	+Na9QW37PqhyUzdSdTJb1V9mxgFrkjuWW+kG3mrNdM3IfOowr5zY5hn9uoPGbgAxpKZm76dgbhc
-	CtDVbNB562qiOyF6Bz/3gwYWUYAbc9cR1yEz20yZcoFY1dCa+rqqeH6swJ0dKz18qyioZReIMnv
-	QBCYi4p7UICvkrmOqUSqeZ5K981sPz/QUHyFAiatZhXOa6MO/44T7duHBQtCK307hjRAtyzu7wH
-	+KfiER7zDPtDK5S49dyDZajHUD4lI07RDSGo8P0So2avG381MlRo6uDzeN1OPsHUkyOwteEby5j
-	PhTaRe+1H4oPixALcQ==
-X-Received: by 2002:a17:90b:184f:b0:3ac:83c1:2c0 with SMTP id 98e67ed59e1d1-3ae897e06efmr11479861a91.64.1793753733906;
-        Tue, 03 Nov 2026 16:55:33 -0800 (PST)
-Received: from localhost ([27.122.242.71])
-        by smtp.gmail.com with ESMTPSA id 98e67ed59e1d1-3b09445f7b3sm1222403a91.5.2026.11.03.16.55.32
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Tue, 03 Nov 2026 16:55:33 -0800 (PST)
-Date: Wed, 4 Nov 2026 09:55:30 +0900
-From: Hyunchul Lee <hyc.lee@gmail.com>
-To: Christian Brauner <brauner@kernel.org>
-Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>,
-	Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
-	linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
-	linux-nilfs@vger.kernel.org, exfat@lists.linux.dev,
-	linux-mm@kvack.org, ntfs@lists.linux.dev,
-	ocfs2-devel@lists.linux.dev, linux-btrfs@vger.kernel.org,
-	gfs2@lists.linux.dev, linux-efi@vger.kernel.org,
-	linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org
-Subject: Re: [PATCH v2 18/34] ntfs: use the generic emergency read-only state
-Message-ID: <auqCgguXEsKCq9p2@hyunchul-PC02>
-References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
- <20261029-work-fs-sb_rdonly-v2-18-2f44f64f0b66@kernel.org>
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D2C1A606A32F
+	for <ocfs2-devel@lists.linux.dev>; Wed,  4 Nov 2026 02:27:59 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org D2C1A606A32F
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=iscas.ac.cn
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=iscas.ac.cn
+Received: from dfae2b116770.home.arpa (unknown [36.110.52.2])
+	by APP-01 (Coremail) with SMTP id qwCowADH8_0smOpqc5s+AA--.9693S2;
+	Wed, 04 Nov 2026 10:27:56 +0800 (CST)
+From: Wentao Liang <vulab@iscas.ac.cn>
+To: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: ocfs2-devel@lists.linux.dev
+Subject: [PATCH] ocfs2: put the new lock when recovery data has a duplicate
+Date: Wed,  4 Nov 2026 02:28:05 +0000
+Message-Id: <20261104022805.1484045-1-vulab@iscas.ac.cn>
+X-Mailer: git-send-email 2.34.1
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -103,23 +52,58 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=utf-8
-Content-Disposition: inline
-In-Reply-To: <20261029-work-fs-sb_rdonly-v2-18-2f44f64f0b66@kernel.org>
+Content-Transfer-Encoding: 8bit
+X-CM-TRANSID:qwCowADH8_0smOpqc5s+AA--.9693S2
+X-Coremail-Antispam: 1UD129KBjvJXoWrtr1UWr18WF13trWDWw45Wrg_yoW8Jr4rpw
+	47Xrn8K34xXa10qa1DWr45ArW8uw15Kr1xWrn8u34rZF45Kw1fWay7Xan2qFW5Ja4IganI
+	krs3XFWUX390kaDanT9S1TB71UUUUU7qnTZGkaVYY2UrUUUUjbIjqfuFe4nvWSU5nxnvy2
+	9KBjDU0xBIdaVrnRJUUUvlb7Iv0xC_Kw4lb4IE77IF4wAFc2x0x2IEx4CE42xK8VAvwI8I
+	cIk0rVWrJVCq3wAFIxvE14AKwVWUJVWUGwA2ocxC64kIII0Yj41l84x0c7CEw4AK67xGY2
+	AK021l84ACjcxK6xIIjxv20xvE14v26w1j6s0DM28EF7xvwVC0I7IYx2IY6xkF7I0E14v2
+	6r4UJVWxJr1l84ACjcxK6I8E87Iv67AKxVWxJr0_GcWl84ACjcxK6I8E87Iv6xkF7I0E14
+	v26rxl6s0DM2AIxVAIcxkEcVAq07x20xvEncxIr21l5I8CrVACY4xI64kE6c02F40Ex7xf
+	McIj6xIIjxv20xvE14v26rWY6Fy7McIj6I8E87Iv67AKxVW8Jr0_Cr1UMcvjeVCFs4IE7x
+	kEbVWUJVW8JwACjcxG0xvY0x0EwIxGrwCY1x0262kKe7AKxVWUAVWUtwCF04k20xvY0x0E
+	wIxGrwCF04k20xvE74AGY7Cv6cx26r48ZrWUJr1UMxC20s026xCaFVCjc4AY6r1j6r4UMI
+	8I3I0E5I8CrVAFwI0_Jr0_Jr4lx2IqxVCjr7xvwVAFwI0_JrI_JrWlx4CE17CEb7AF67AK
+	xVWUAVWUtwCIc40Y0x0EwIxGrwCI42IY6xIIjxv20xvE14v26F1j6w1UMIIF0xvE2Ix0cI
+	8IcVCY1x0267AKxVW8Jr0_Cr1UMIIF0xvE42xK8VAvwI8IcIk0rVWUJVWUCwCI42IY6I8E
+	87Iv67AKxVWxJVW8Jr1lIxAIcVC2z280aVCY1x0267AKxVW8Jr0_Cr1UYxBIdaVFxhVjvj
+	DU0xZFpf9x07b7pBhUUUUU=
+X-CM-SenderInfo: pyxotu46lvutnvoduhdfq/1tbiCRQBA2rqY-nHQQAAsD
 
-On Thu, Oct 29, 2026 at 05:07:09PM +0100, Christian Brauner wrote:
-> Set SB_STATE_EMERGENCY_RO instead of the NV_EmergencyRO volume flag when
-> an error makes the volume read-only. ntfs_emergency_state() keeps
-> telling a shutdown (EIO) and the emergency state (EROFS) apart so all of
-> its callers stay as they are. /proc/mounts shows the volume read-only
-> again.
-> 
-> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
+dlm_process_recovery_data() allocates a new dlm_lock for every lock
+carried in the recovery message.  When the cookie is already present on
+the target queue the entry is only marked bad, so the lock returned by
+dlm_new_lock() keeps its initial reference and never reaches a queue
+that would later release it.  The lockres reference taken by
+dlm_lock_attach_lockres() leaks with it.
 
-Looks good to me.
+Drop the reference on that path so a duplicate entry cannot pin the lock
+and its lockres.
 
-Reviewed-by: Hyunchul Lee <hyc.lee@gmail.com>
+Fixes: c3187ce5e335 ("ocfs2: only recover one dead node at a time")
+Cc: stable@vger.kernel.org
+Assisted-by: DeepSeek-V4.1-Flash and OpenAI Codex
+Signed-off-by: Wentao Liang <vulab@iscas.ac.cn>
+---
+ fs/ocfs2/dlm/dlmrecovery.c | 3 +++
+ 1 file changed, 3 insertions(+)
 
+diff --git a/fs/ocfs2/dlm/dlmrecovery.c b/fs/ocfs2/dlm/dlmrecovery.c
+index 7d519e31fcf1..b4c08a73b9ef 100644
+--- a/fs/ocfs2/dlm/dlmrecovery.c
++++ b/fs/ocfs2/dlm/dlmrecovery.c
+@@ -2033,6 +2033,9 @@ static int dlm_process_recovery_data(struct dlm_ctxt *dlm,
+ 			dlm_lockres_set_refmap_bit(dlm, res, ml->node);
+ 		}
+ 		spin_unlock(&res->spinlock);
++
++		if (bad)
++			dlm_lock_put(newlock);
+ 	}
+ 	mlog(0, "done running all the locks\n");
+ 
 -- 
-Thanks,
-Hyunchul
+2.34.1
+
