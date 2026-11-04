@@ -1,85 +1,101 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.41
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.215.181
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793714371;
-	b=qSPTaVE71PWqG9xdeub6Pin0b4mc/zizbWNfImq8YAHKo5eEzFahX1jSlGxaoeNd99u5
-	 zlWj9PoDE8zXLYVGSEte7CT4xVGCKkHm2EOIOczJpohRjftPcnEd/sb9DcAJAHX35hnBQ
-	 qnwFfGkaa5iijRiFTKa2u4aJILuJEduEnQo2Otq7ACS8ewgjFL0grnN46FLjeDvXMZrgM
-	 nvX5XeOFX/k4ydP0pkGQHaDrx1nDpyaSYNPSTOKsqaCvwsrt+OkvO8b7hEsr79N5oHV0W
-	 1CgwPlKcq1WgLOXTXF1ALfl1NDliXvSFGRhJLBKPVWwvwje1Hy9hcUW/TXcE3llykMA==
+	t=1793753392;
+	b=xsvQJFLFDqTxU+4QIIU0qnZjZIHJJrIxuR4Ncrq9Y86GyDMUHB76N+roj2tAvJImStxO
+	 3xF41g7XXJC5nugx/wedc5B4+P8hnhlApFwcDVmyc1uDQpBci1GPg8dBOmZ+LGBDybxMw
+	 k5Nm6B09JgOI5CfEydtEcltZNZ0rKdlCSe3In5zqFSuOIHRBILFgx8QgdsZGG5Dku0S4w
+	 ssuRT/bVAzpDfozmUFFTJrayKo7Mc5cVCYxwIM5xvi0F95JjG0xVoXAqyNpywykUrtRqf
+	 IEaGYX56qftRM5J0J3u/kbKHkcJu4oUm1wEdD/HpZ5icyogHz8cmVK8U+n2P5QJjr8g==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793714371;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793753392;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Gm-Message-State:X-Gm-Gg:X-Received:Received:Message-ID:Date:
-	 MIME-Version:User-Agent:Subject:To:Cc:References:From:
-	 Content-Language:In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=74I3nnSN0fQYCG/L/O68krWPpqCBywczA6Ty/j7yNc4=;
-	b=jwHSwR+JmNZrO2FHvcnTXCFMWShAdq6Y69HClmXuimYDsdI52nO7OOhRjuEk4M2vwnws
-	 x6GT+a83BYAntsCQU/dPqLKeQY1z9lAmG8ZPC9auuANswzyzKxfvdmoA3a7l55uzWrAvN
-	 cVuW4Gbv5eEsmRV5pEapR4MeuFDHSS3taN8XtdwPPSuvy+Og9WqIb1CUO1iRTCyJD+UvL
-	 wpr2KRd580iOXcMzTxlCQ2uBsO7INwd0ichX1j7RvoTe6GwOsiD8bmm1JL0P4n3bUW3+G
-	 a+aD3IG/hHaEJSGkscxtwoZFk8gyhMGLC0nubmJ8QL4kcnwGOfURcSFKQyIiHpFIURA==
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:Message-ID:References:MIME-Version:
+	 Content-Type:Content-Disposition:In-Reply-To;
+	bh=/bumM81nPiENiLh9PH/Fm40C+VENRMD3A/OuAfI8Z4s=;
+	b=ABjDBvqCDeo/G1sZqlXyMMaKG2XN0hY4LVhO0dWWokEU6p6+NIgQUcM2kVvDKI+GX6Jh
+	 BJOGCi1xfkhovrneLzgjzxFNwu1EzfvoU5gitMg7dS4pV+yQq69OFRMyOoms6SSB31Vp1
+	 PozpCsArReDU6fcuav398jZV18YuOGS9Og8m/alu3A6urMA5W9A3OzozH1W6yCaN3a4Fd
+	 ntxueFlWwFWHZ6/4KN4ne7XWWIDl4PFvBScsYzci5MzU6YNR3q8843FL9amK6AjL9WNSA
+	 bVT3IOIAoKCihvy1SEkgTfrwYez4IhE8GkU58n4RzxQzfMYGqUzQ9LAzjUpV1L5grfA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=suse.com;
-	spf=pass smtp.mailfrom=suse.com;
-	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=UtZuKbJh;
-	arc=none smtp.remote-ip=209.85.128.41
-Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
+	dmarc=pass header.from=gmail.com;
+	spf=pass smtp.mailfrom=gmail.com;
+	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=oIYlTqWT;
+	arc=none smtp.remote-ip=209.85.215.181
+Received: from mail-pg1-f181.google.com (mail-pg1-f181.google.com [209.85.215.181])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8E4E7606D820
-	for <ocfs2-devel@lists.linux.dev>; Tue,  3 Nov 2026 13:59:30 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8E4E7606D820
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 28F8E606A32E
+	for <ocfs2-devel@lists.linux.dev>; Wed,  4 Nov 2026 00:49:52 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 28F8E606A32E
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=UtZuKbJh
-Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-4a610c7e61cso6654325e9.3
-        for <ocfs2-devel@lists.linux.dev>; Tue, 03 Nov 2026 05:59:30 -0800 (PST)
+	dkim=pass (2048-bit key, unprotected) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=oIYlTqWT
+Received: by mail-pg1-f181.google.com with SMTP id 41be03b00d2f7-cdab6ae1ee9so87342a12.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 03 Nov 2026 16:49:52 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1793714369; x=1794319169; darn=lists.linux.dev;
-        h=content-transfer-encoding:content-type:in-reply-to:content-language
-         :from:references:cc:to:subject:user-agent:mime-version:date
-         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=74I3nnSN0fQYCG/L/O68krWPpqCBywczA6Ty/j7yNc4=;
-        b=UtZuKbJhDvm3fr9DBbJyvDx1XWGJ0WdQVUec0PoUDyPqq4t3x2hCIZJyT9w2mR6Lmi
-         m1R/5qQIilaPyp4ubHLBOfoYJ7+XAQq4MNEzEh5aD4+a73VIyg/BEVDDPR3aRjoGdtNP
-         +Ng0PmbdQN4ILPpOoP3+egHiToJrqIrN18enWF6yuIEb0DMSJ/C/bC+eF7bvgnBTZ0nH
-         0SxBse5dR/9D8+9FHtr2/1S3rkDbxoAhraRSpN7Bj5zrS8KJifkuuCBpTCQlyCAJst29
-         AoqJ6inZpdG88pbgQAjidWcrwg7bizuJKoiQovhmS8Pz69UCoLYu276ErSeJlYIFM35x
-         RhTQ==
+        d=gmail.com; s=20260707; t=1793753391; x=1794358191; darn=lists.linux.dev;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=/bumM81nPiENiLh9PH/Fm40C+VENRMD3A/OuAfI8Z4s=;
+        b=oIYlTqWT09/SUly5k7UaCud1EeaQUvC7RMvXrFBnHL1wmqCrj3MF89C/VXUkjUE4MW
+         MziXsexG5bZFD8/5ww69ukE2+IAW6248QEOegXPgkb4laWmAWO0mwI0jz3EE+tEVQ1jb
+         Cfr9y2L8ivx3OiRBLYdUWMaYuAzn99jgCpRFzDU+cms5tT+mfREViht1fwtzFR7BmEUY
+         Dk03HD8TwkWYMwWGJyQBLSx0XZUUmjmvUNI1ma0gO7kyaeuiYFznEyfPu3/P2SGS2yTn
+         k3zcFNcDDLBq0JsK+rJh9aCed1fQkIO/CZh4Uf65Jxl0PqAvIJq2QDcMVS3yE1w4mgt7
+         yQEA==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793714369; x=1794319169;
-        h=content-transfer-encoding:content-type:in-reply-to:content-language
-         :from:references:cc:to:subject:user-agent:mime-version:date
-         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=74I3nnSN0fQYCG/L/O68krWPpqCBywczA6Ty/j7yNc4=;
-        b=0HFGQrmPyJ/IRyCJhQr/VNQdz2scSB6Drj0hyqS3MEeVxZ6czIW8JrHPmoqNa4J5Ww
-         Zymttvnnh8kkXFok9Yc28BrV7CBHD4xFgtcVCaOTwVmoin1SKXBO/zGAHuTKGmUqgBPc
-         nAFry9pU4Ml2Z1GOpR1FTP8q6synKpHhjm1g1dAtEWB0tStOhrdyxCMtROXZDrDPNY4g
-         3IMPbMkN42rPMCpSWrrzAosLU1Pdhf+bPmpigme3G0miskWlTzoS87ZqIpNIi6pgV3RK
-         xbZQC/iUIg0bYHrDw2l7KiWc7E3YFp3wS7TAef76IhvqZYZxXXzOh2K0zbIaiCXd5vEz
-         3hqg==
-X-Gm-Message-State: APuU4Z/8mPLjoLKokqF24hiIz+oiQLaqsQQ5ZZhwyytTx6K0LKmuPa5f
-	E/Y68lR7A9IpPQDVGKcy7S7pvv9XzKpJ1FHfDs82U5D6vt9cAw2dsoLaoIdR4B9iUlk=
-X-Gm-Gg: AYBFou2dXs55a+fKSVMT/x9ur9BrRzrBtW9vBstGH6fRzRf5k+OJdo6v6Bh9GuQcEdV
-	yOAXuARzkXIV4Z5RVRGTl2qPh/BE1EuxQAoPdLJ5I7DIdYVIpbrx3Gq1n8Jt3g8TvMTTaiJTn0W
-	tS1qtDFkGHt4RsY1lYUkRnM6YskR5ScVpuSu7XC2oG1W7truVRjOW8lfpFCYeHWmO7EJRxgOlZU
-	1HyncqQhBAmVG6gsJoKP4sGTrjH4xxr+tVdEYzq1DovLXxnFmtKOEUeLfJLnbww0AaV42a5nLWq
-	xe2oium4BXjQJtM98O/q88UGG2wJO69eiN7NSdUygBIbddE3WOge+0qJjILAgV5o/TXUbfLcIH6
-	vTnEjmQF+b+0nVkIZZJYfabj+Etv7hDPXcW53bpxWXdHbAHxTkSPpGqv2tLnaY2XGDSxd/XZzY9
-	QpxYP6zOBXV9V2hGJ6DBi72eHpylSOp/Q3t3R5IVQbZ1x+6CvmcSQdFi+y6c74Kg/gCrTbdTb06
-	wrAiKYMUGgUmFWJjFB9tIqbt6CiZxYEDFB9djSOBXb8ocTxGXRFLPbrIYCSax1vq7wvP4aR5pXt
-	sli/OzcIfYDLGyDMUkpWaYy/tqm6UBaZoQ==
-X-Received: by 2002:a7b:ce0d:0:b0:4a1:715d:1913 with SMTP id 5b1f17b1804b1-4ac177538c5mr231277385e9.1.1793714368907;
-        Tue, 03 Nov 2026 05:59:28 -0800 (PST)
-Received: from [10.202.112.30] ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id a92af1059eb24-1b23b847348sm9348208c88.4.2026.11.03.05.59.25
-        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
-        Tue, 03 Nov 2026 05:59:27 -0800 (PST)
-Message-ID: <2702c09a-3679-4d69-8072-e678f3764945@suse.com>
-Date: Tue, 3 Nov 2026 21:59:21 +0800
+        d=1e100.net; s=20260707; t=1793753391; x=1794358191;
+        h=in-reply-to:content-disposition:content-type:mime-version
+         :references:message-id:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=/bumM81nPiENiLh9PH/Fm40C+VENRMD3A/OuAfI8Z4s=;
+        b=RKovcnUZbVvjgEzQK1/ucXgX83nI98EYnRotb9k0qssnYYvR2BZP0Gh1paYB6T44jW
+         hIDFfYFLgXdDWAfRefA3EXXdb62NKWtgl0DKvs2b/8+GsXJ7W0X+1jHN3HilUbE5boSh
+         jWjxVjj+crmV8xcki88sPVHtUVXS68WSOKkokeJnQ1eSQkPg/tOvRSdyx7c9n497WdZS
+         0Dw1t7duF0FwSg5lZz1NJOf+iJ0Fr+CD2pqdDpZFklmPIRcr7FKln+8+sHOKrdUMo+Hv
+         FSt2Ur3ECPm1L0dkFpU5qera/zfFRgzqpHxaj9Dx6x9eGR+glbmgAvRt8AGjW0NSxgBi
+         yuRw==
+X-Forwarded-Encrypted: i=1; AKwUvBwJCk85fj+u0LKStmJNa9B7JU+dyLNQR7iCY874NPuiHZyKZ3Pudn9u13EjQ2Q0UTGRHDDNY9P4/Q3/Ww==@lists.linux.dev
+X-Gm-Message-State: APuU4Z+9PunfP1Rt05t7g/gjQswh9rrs5LeeZ22NNmoGi6irQpgnVtyr
+	gxpH8zwCP9A0yjwMpcOkLR8MDt1gMj85+XHyBnGeNsKeN+ahzwisp5+L
+X-Gm-Gg: AYBFou2AN3SQZ4CbjyNgRHNKBDdaH6Ei5sqehJ8O5jVmj8FkcXfzyI0MZpf8Hppylo6
+	HdXRPQXoxveNxZxsUx4VkCWX2O8t6mD6qbmWtIJmnOq4653qF2aa9O2N5dj0GrPVzjA/IY3RvkQ
+	Xm9JA4pcTts0ViCxot4rLNpDkzUtJWoLzgxxkvJLE44eahQ2s7dHCQyVG8SU1A/OfYUH+0vg3lT
+	N5F2s1ccvRSQo5zksfHliebf3gzH5uhbr26o8TGyfN/Xc3vk0ohicSloZZBofUl8jBRHZiVQlm1
+	Iu1A22Ti+KB4Yc2cesi6gZm0qJ9pSHJYpQEEKE5G3sfvCSmfHkt8s0TiYCkcJ41sq7A/gShieUM
+	/mTbvl1MWfO/c461jzfPIYpCNgNxZ0gq9gwFYcVV/bhqlMgl8U4qzS/fuevyZQxa79rREsLMgwE
+	hwenPh7fzw35GWd0t+K8S/8u9iExOQYC0DUKd+xWYUH4UoKOYmXBQF0S5das138OEXFqDHup+7S
+	bxfkh1EV52uA/5TyaG2xViNN4g7SAeg+GOxBCJwLphxMCiDPYfKKJ6itwzxGAglDKSrmKmHyxTu
+	+/88eF8nnUXUV890MzL5BDiSukUeBf4W/C9E3YE=
+X-Received: by 2002:a05:6a20:914b:b0:3e2:9470:5303 with SMTP id adf61e73a8af0-3e928953948mr11828504637.15.1793753391239;
+        Tue, 03 Nov 2026 16:49:51 -0800 (PST)
+Received: from localhost ([27.122.242.71])
+        by smtp.gmail.com with ESMTPSA id 41be03b00d2f7-cdb46440cc7sm329325a12.3.2026.11.03.16.49.50
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 03 Nov 2026 16:49:50 -0800 (PST)
+Date: Wed, 4 Nov 2026 09:49:48 +0900
+From: Hyunchul Lee <hyc.lee@gmail.com>
+To: Christian Brauner <brauner@kernel.org>
+Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>,
+	Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
+	linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net,
+	linux-nilfs@vger.kernel.org, exfat@lists.linux.dev,
+	linux-mm@kvack.org, ntfs@lists.linux.dev,
+	ocfs2-devel@lists.linux.dev, linux-btrfs@vger.kernel.org,
+	gfs2@lists.linux.dev, linux-efi@vger.kernel.org,
+	linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org,
+	stable@vger.kernel.org
+Subject: Re: [PATCH v2 17/34] ntfs: don't set SB_RDONLY after filesystem
+ errors
+Message-ID: <auqBLEvcurRZfGj6@hyunchul-PC02>
+References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
+ <20261029-work-fs-sb_rdonly-v2-17-2f44f64f0b66@kernel.org>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -89,168 +105,48 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-User-Agent: Mozilla Thunderbird
-Subject: Re: [RFC PATCH v4 0/4] migrates ocfs2 DIO from buffer_head to iomap
-To: joseph.qi@linux.alibaba.com, mark@fasheh.com, jlbec@evilplan.org,
- hch@lst.de
-Cc: ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <20261103124310.21143-1-heming.zhao@suse.com>
-From: Heming Zhao <heming.zhao@suse.com>
-Content-Language: en-US
-In-Reply-To: <20261103124310.21143-1-heming.zhao@suse.com>
-Content-Type: text/plain; charset=UTF-8; format=flowed
-Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <20261029-work-fs-sb_rdonly-v2-17-2f44f64f0b66@kernel.org>
 
-Hi List,
+On Thu, Oct 29, 2026 at 05:07:08PM +0100, Christian Brauner wrote:
+> With errors=remount-ro every ntfs_error() ends up in ntfs_handle_error()
+> which sets SB_RDONLY without holding s_umount. If that happens while the
+> volume is frozen through bdev_freeze() thaw_super() sees a read-only
+> superblock and leaves the s_writers rwsems locked so every writer hangs.
+> 
+> So set NV_Errors and a new NV_EmergencyRO flag instead like ext4 does.
+> ntfs_emergency_state() returns EIO after a shutdown and EROFS after an
+> error and the write side shutdown checks use it now. fallocate,
+> ->set_acl(), FS_IOC_SETFSLABEL, FITRIM and ntfs_mft_record_free() get a
+> check as well. Errors while mounting still set SB_RDONLY, nothing can
+> freeze the superblock before SB_BORN.
+> 
+> NV_Errors already refuses a remount to read-write and since
+> commit 521978c4f444 ("ntfs: sync the volume dirty bit with the recorded
+> error state") the volume stays marked dirty once errors were recorded.
+> But the dirty bit may not be on disk yet when the error hits and
+> writeback is refused from then on. So a work item writes it right away
+> because ntfs_error() can be called with mft records locked, and umount
+> lets a pending one run first.
+> 
+> Unlinked inodes are left to chkdsk in that state. Their mft records are
+> freed with direct bios while the index and bitmap updates of the
+> deletion can't be written back anymore. And writing to an encrypted file
+> only warns now. It called ntfs_error() which let anyone put the volume
+> into the emergency state.
+> 
+> /proc/mounts keeps showing the volume read-write. Writes through file
+> descriptors opened before the error fail with EROFS.
+> 
+> Fixes: 6251f0b0de7d ("ntfs: update super block operations")
+> Cc: stable@vger.kernel.org
+> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 
-Please ignore this patch set, as it failed to apply on sashiko.
+Looks good to me.
 
+Reviewed-by: Hyunchul Lee <hyc.lee@gmail.com>
+
+-- 
 Thanks,
-- Heming
-On 11/3/26 20:43, Heming Zhao wrote:
-> This patch set migrates ocfs2 Direct I/O (DIO) from buffer_head mode
-> to iomap mode. And the code base is commit 4056b3c9d3c92ea, and also
-> merge Joseph's code and ideas from [1]:
-> 
-> v4 changelog:
-> 
-> Fix several issues found during a sashiko review[2].
-> 
-> To simplify iomap development, we currently adopt the simplest approach:
-> retaining the buffer_head style, where only one cluster is allocated
-> per iomap_begin() call.
-> 
-> When creating a filesystem using "mkfs -b 2K -C 8K" (where the cluster
-> size is greater than the page size), several xfstests cases crashed.
-> The root cause was an incorrect return value from iomap end_io.
-> 
-> Both the add and del of the orphan inode during write I/O are now placed
-> in ocfs2_file_write_iter().
-> 
-> Additionally, I attempted to implement .submit_io/.end_io in "struct
-> iomap_dio_ops" to free dwc inside end_io. However, because ->bi_end_io
-> runs in an interrupt context and ocfs2_iomap_dio_end_io_write() contains
-> sleepable functions, this approach required scheduling a workqueue directly
-> from the ->bi_end_io callback and calling ocfs2_iomap_dio_end_io_write()
-> within the workqueue thread context. Furthermore, since iomap_dio_ops.end_io
-> still cannot access any private data, it cannot accurately wait for the
-> work to finish. Testing with xfstests triggered hangs and crashes.
-> 
-> 
-> [1]:
-> https://gitee.com/anolis/storage-cloud-kernel/commit/ea3fe75e2060118ba093e90b1cd34fa382914b29
-> 
-> [2]:
-> https://sashiko.dev/#/patchset/20261018143319.22329-1-heming.zhao%40suse.com
-> 
-> v1 patch set:
-> https://lore.kernel.org/ocfs2-devel/20260724052559.15409-1-heming.zhao@suse.com/
-> v2 patch set:
-> https://lore.kernel.org/ocfs2-devel/20260727061802.18485-1-heming.zhao@suse.com/
-> v3 patch set:
-> https://lore.kernel.org/ocfs2-devel/20261018143319.22329-1-heming.zhao@suse.com/
-> 
-> --------------
-> # test report
-> 
-> This patch set has been tested on 7.3.0-rc7 kernel with the following test
-> cases.
-> 
-> ## ltp
-> 
-> runltp -f dio -d /mnt/ocfs2/
-> 
-> 1 fail: diotest4    9  TCONF  :  diotest4.c:346: Direct I/O on /dev/null is not supported
-> 
-> This fail can be ignored.
-> 
-> The test results: passed
-> 
-> ## xfstests
-> 
-> ./check -g quick -T -b -s ocfs2 -e generic/081 \
-> -e generic/266 -e generic/272 -e generic/281 \
-> -e generic/338 -e generic/347 -e generic/361 \
-> -e generic/628 -e generic/629 -e generic/648 -e generic/650
-> 
-> The test results are the same before and after the patch set.
-> 
-> ```
-> OCFS2_MKFS_LOCAL_OPT="-b 2K -C 4K --fs-features=local --fs-feature-level=max-features"
-> Failures: generic/003 generic/091 generic/094 generic/177 generic/211
-> generic/225 generic/263 generic/322 generic/329 generic/331 generic/370
-> generic/376 generic/424 generic/448 generic/467 generic/477 generic/481
-> generic/510 generic/513 generic/537 generic/552 generic/563 generic/578
-> generic/607 generic/620 generic/630 generic/755 generic/760 generic/777
-> generic/784
-> Failed 30 of 632 tests
-> 
-> OCFS2_MKFS_LOCAL_OPT="-b 4K -C 4K --fs-features=local --fs-feature-level=max-features"
-> Failures: generic/003 generic/177 generic/211 generic/322 generic/329 generic/331 generic/370 generic/376 generic/420 generic/424 generic/448 generic/467 generic/477 generic/481 generic/510 generic/513 generic/537 generic/552 generic/563 generic/578 generic/607 generic/620 generic/630 generic/755 generic/777 generic/784
-> Failed 26 of 632 tests
-> 
-> OCFS2_MKFS_LOCAL_OPT="-b 2K -C 8K --fs-features=local --fs-feature-level=max-features"
-> Failures: generic/003 generic/075 generic/091 generic/094 generic/112 generic/177 generic/211 generic/225 generic/263 generic/322 generic/329 generic/331 generic/370 generic/376 generic/424 generic/448 generic/467 generic/477 generic/481 generic/510 generic/513 generic/537 generic/552 generic/563 generic/564 generic/578 generic/607 generic/620 generic/630 generic/755 generic/759 generic/760 generic/777 generic/784 ocfs2/001
-> Failed 35 of 632 tests
-> 
-> OCFS2_MKFS_CLUSTER_OPT="-b 2K -C 4K -N 2 --fs-feature-level=max-features --cluster-stack pcmk --cluster-name hacluster"
-> Failures: generic/001 generic/003 generic/091 generic/094 generic/211 generic/225 generic/263 generic/322 generic/329 generic/331 generic/370 generic/376 generic/424 generic/448 generic/467 generic/477 generic/510 generic/513 generic/537 generic/552 generic/563 generic/578 generic/607 generic/620 generic/630 generic/755 generic/760 generic/777 generic/784
-> Failed 29 of 632 tests
-> 
-> OCFS2_MKFS_CLUSTER_OPT="-b 4K -C 4K -N 2 --fs-feature-level=max-features --cluster-stack pcmk --cluster-name hacluster"
-> Failures: generic/003 generic/211 generic/322 generic/329 generic/331 generic/370 generic/376 generic/420 generic/424 generic/448 generic/467 generic/477 generic/510 generic/513 generic/537 generic/552 generic/563 generic/578 generic/607 generic/620 generic/630 generic/755 generic/777 generic/784
-> Failed 24 of 632 tests
-> 
-> OCFS2_MKFS_CLUSTER_OPT="-b 2K -C 8K -N 2 --fs-feature-level=max-features --cluster-stack pcmk --cluster-name hacluster"
-> Failures: generic/003 generic/075 generic/091 generic/094 generic/112 generic/211 generic/225 generic/263 generic/322 generic/329 generic/331 generic/370 generic/376 generic/424 generic/448 generic/467 generic/477 generic/510 generic/513 generic/537 generic/547 generic/552 generic/563 generic/564 generic/578 generic/607 generic/620 generic/630 generic/755 generic/759 generic/760 generic/777 generic/784
-> Failed 33 of 632 tests
-> ```
-> 
-> ## fio on single node
-> 
-> fio --direct=1 --iodepth=32 --rw=write --ioengine=libaio --bs=128k --size=1g \
-> --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-> - before patch write: IOPS=31.5k, BW=3935MiB/s (4126MB/s)(4096MiB/1041msec)
-> - before path overwrite (don't remove write.1g, run above fio command):
->        write: IOPS=39.5k, BW=4935MiB/s (5175MB/s)(4096MiB/830msec)
-> - applied patch write: IOPS=37.4k, BW=4676MiB/s (4903MB/s)(4096MiB/876msec)
-> - applied patch overwrite (don't remove write.1g, run above fio command):
->        write: IOPS=39.4k, BW=4929MiB/s (5168MB/s)(4096MiB/831msec)
-> 
-> fio --direct=1 --iodepth=32 --rw=read --ioengine=libaio --bs=128k --size=1g \
-> --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-> - before patch : IOPS=47.7k, BW=5962MiB/s (6252MB/s)(4096MiB/687msec)
-> - applied patch: IOPS=48.2k, BW=6024MiB/s (6316MB/s)(4096MiB/680msec)
-> 
-> fio --direct=1 --iodepth=32 --rw=randwrite --ioengine=libaio --bs=4k --size=1g \
-> --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-> - before patch
->    - creating write      : IOPS=3282, BW=12.8MiB/s (13.4MB/s)(1283MiB/100026msec)
->    - overwriting write.1g: IOPS=41.8k, BW=163MiB/s (171MB/s)(4096MiB/25115msec)
-> - applied patch
->    - creating write      : IOPS=3230, BW=12.6MiB/s (13.2MB/s)(1262MiB/100031msec)
->    - overwriting write.1g: IOPS=40.5k, BW=158MiB/s (166MB/s)(4096MiB/25908msec)
-> 
-> fio --direct=1 --iodepth=32 --rw=randread --ioengine=libaio --bs=4k --size=1g \
-> --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-> - before patch  read: IOPS=361k, BW=1409MiB/s (1477MB/s)(4096MiB/2907msec)
-> - applied patch read: IOPS=362k, BW=1416MiB/s (1485MB/s)(4096MiB/2893msec)
-> 
-> ---------------------
-> 
-> Heming Zhao (4):
->    ocfs2: Add new ocfs2_map_blocks() to introduce iomap feature
->    ocfs2: switch DIO read path from buffer_head to iomap
->    ocfs2: switch dio write path from buffer_head to iomap
->    ocfs2: remove legacy blockdev direct-IO path APIs
-> 
->   fs/ocfs2/Kconfig          |   2 +-
->   fs/ocfs2/aops.c           | 568 +++++++++++++++++++++++++-------------
->   fs/ocfs2/aops.h           |  38 +--
->   fs/ocfs2/buffer_head_io.c |  12 -
->   fs/ocfs2/file.c           | 214 +++++++++++---
->   fs/ocfs2/ocfs2.h          |  46 ++-
->   fs/ocfs2/ocfs2_fs.h       |   3 +
->   7 files changed, 616 insertions(+), 267 deletions(-)
-> 
-
+Hyunchul
