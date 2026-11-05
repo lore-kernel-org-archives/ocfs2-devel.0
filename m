@@ -1,82 +1,83 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.46
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.128.41
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793863182;
-	b=V2rXMWp/xh2kbEWwMmvagcjTAShsYfyOk8PD8aRJorZZT1nc5eGqki4Px1nAlPq9TilV
-	 nQMbKDHvNoM55VQS4sKyy6galD35DIq/u/Wb38OfGJEi1JVIodkVrFzla2xyOlMF+0Lcu
-	 h2G8DapiKj8/BCQCB1Cp8c+aw+sHr6rpigQyij+LuvcJXcEiAD28L4tIRC4bUDJP2eZAl
-	 NP6o/Vq8A4Wf20ekAdSiw/EVxaj2pMNoVgs8KiCQLEiy3lE6ZHq9mNSjV/Hd/xNN60CaR
-	 GwLdOz7tqKXFbzJ9O8iBqxEW/r92ccNgISrNf1//LNTN1Kmvr4xdJSAetrZQpx0MM4Q==
+	t=1793863186;
+	b=kITemHk9PmbFdnIoaLvoqEyU2Q3ah4yt1BCVrz0P3gsqVTAXUBsd6wsNe6dSMR8TQrku
+	 fOJX0+yPDMyhmXDW/yPdfLHhsCU0Z7rWu6aVLpJAOzBGjO0SDoAhUrEQWhaGGScQJHxcW
+	 YW5fiAjRbLzcQAcRNenEvcIvkEoESPyCYnwN2ApPtzt/aSb9EEe3pQUmEE1Z+NvhYBxfI
+	 z5uiUVJX2uIBZAscEu+K9YCUP1qpFMDPCUriHlGIgAxqWEDdhZn4tCOshOddx0Cd2rxH2
+	 N7Pph+Z9YPWpSmYanhld+KSDAowUobDTyQmQ0vsD00shDTAlv4BkOcD+mp8BC/vjsFw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793863182;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793863186;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=jtvDZEshy0cFy/xn5t5FZPavM2QZtUZi4LpThlcs6fg=;
-	b=YxL8a6d3uAcNDGOVX2fLI2aWKwdG85jwyjH9y44HhZJvR4XjV2qYrzAGt6BLi6x9FZO+
-	 819n2EfSnI1olcsgTxkCZAvoG8nF3S3aLwl4q0YNvi3AxjvBG0Qb158JhV2O9XgB7Jot5
-	 S1WB0F6uuayqZGGEqfK2WdAKVLqGI4FMl07lqiZdry4nLvBzzAfWUNkCOlPZ1eGTxldHB
-	 papx1FA7vKr/Wc7YiIsQSQ7AN//7kz29HGJLYofaM3jzsKsC9UAv/hN/5Y8YWQv2qLHmf
-	 nkylg67WkL0wcyiiejS0VtBNU5tmNv7rc4geiYCyVL0QXTfz0tFmWcdJfZo01+S77fQ==
+	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:In-Reply-To:References:
+	 MIME-Version:Content-Transfer-Encoding;
+	bh=2TYRXvMF603odb8S2MAHHkubTkD5yjsXtdo4fKKhyzs=;
+	b=3HaIJOFknz/dRjqdqorFhAteTZU6OCIr9tvU+UsVNiv5lB6EYgaHdGncxuiiVATZf0k4
+	 VwM9CcLW4CO5bpC178rvitDKCmRIidHkbL1EISjt8coYJfTlG5A1fxk791SxIrXkfb2zF
+	 UUgksypK3guuPyMXVh9VJX549OzWdpnTqTClpsu9ZC0PjCLVacmwjSlZJpqh1THAsfp9E
+	 e5dcWMqSkt1tSddZiEz7qvd6qZ2SBFq+qLCOAgF1iCrVX3T1OGwI9FEcC/ZBV54ZmX/MD
+	 i5KN/SiKJHttvtR8j9q1UTHVY0g2y7GMnp7lC7X/jQJvGk3+/rkhCiv7EYiJewc8zlA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=suse.com;
 	spf=pass smtp.mailfrom=suse.com;
-	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=YCpWYvlm;
-	arc=none smtp.remote-ip=209.85.128.46
-Received: from mail-wm1-f46.google.com (mail-wm1-f46.google.com [209.85.128.46])
+	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=AqWNWjSf;
+	arc=none smtp.remote-ip=209.85.128.41
+Received: from mail-wm1-f41.google.com (mail-wm1-f41.google.com [209.85.128.41])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5E1AF606A328
-	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 07:19:41 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5E1AF606A328
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 45F45606A329
+	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 07:19:46 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 45F45606A329
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key, unprotected) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=YCpWYvlm
-Received: by mail-wm1-f46.google.com with SMTP id 5b1f17b1804b1-4af52002471so3224945e9.1
-        for <ocfs2-devel@lists.linux.dev>; Wed, 04 Nov 2026 23:19:41 -0800 (PST)
+	dkim=pass (2048-bit key, unprotected) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=AqWNWjSf
+Received: by mail-wm1-f41.google.com with SMTP id 5b1f17b1804b1-4a610c7e61cso1443235e9.3
+        for <ocfs2-devel@lists.linux.dev>; Wed, 04 Nov 2026 23:19:46 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=suse.com; s=google; t=1793863180; x=1794467980; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=jtvDZEshy0cFy/xn5t5FZPavM2QZtUZi4LpThlcs6fg=;
-        b=YCpWYvlmIA74ESqXIrwUK7qATVrFHumv7EYbwHQGmpjNVH5RBltZH+vm6a6DSS8RE0
-         ho7TOdqJiE4sugFjSFMx0Fw5Ou18SsAMmTfJe3d6FEJAQy1YdccnZzneQm09KVFoAanj
-         R8Mc6xRM115vGh1P+FSJVvFm7FoDUJkceh0C7Qihfk/bVrQUz/NRBFhrVY0LjQWWLPQ7
-         B1x3DRlFhFqE+LN78Tmk0BQkJwYfYs7s5kdv/kvoNX9LED4ms7CVHxRxDVlnOAHwjkDJ
-         8RZl/lfUTjx4wxlvjEcBIu6RQspm/EU09XV39EsNDy6absLlJwH6Klnz8W6jI0Y1aqSv
-         TuiA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1793863180; x=1794467980;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+        d=suse.com; s=google; t=1793863185; x=1794467985; darn=lists.linux.dev;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=jtvDZEshy0cFy/xn5t5FZPavM2QZtUZi4LpThlcs6fg=;
-        b=hj0kSGrAA4Tsf2fWGZHC/qwT96p91Ob1q2zHuon8aM83J6pqo6fb1y6UI9ryXosAZa
-         wLevVCqC+S2w9ZkSP+2qQvZqzEiUHRrnE7dOcSIUt7ghU3IU8+icDZai8vUkZcl5UAl3
-         ZKp6j35DcYjJKvUc54cawEArD1AJ92OApFHnAyTBpoLQ8zuKOrdCkihC46Juk7TUsYQi
-         5gBj+jGA333fnkAbj5SCcwD8EdlEJEKodoiNq61hxUOIGmIniY9i7kz+9h9GQkIODipv
-         pWEcvEHg/jWHAXQfeVVRMOMMXmLdaIzeo2zct9Fqz6cjHssrH2pzlbRa508y6gih13GQ
-         g1LQ==
-X-Forwarded-Encrypted: i=1; AKwUvBw2MpNMV7XlfEvIpN6jH4BP0VrATRZpwhhZoYQ1wUQNB8oQ4bYeBWdXFDTRCJb6X36SU72jTnqVTd6/AA==@lists.linux.dev
-X-Gm-Message-State: APuU4Z8B0LE3FYHmjGRFfoPs12PuKpbiQhKR7xK8KkgYNhRA49dTf8iO
-	X1fZRK9bjmWcZvpxSL3/bg9tpZIRQFdo3Rh7C16jxz5zpCnksIyC+cmySm0ptaOeT4k=
-X-Gm-Gg: AYBFou1aefQvjoC3C9jSFgr8oPWRM5avHjxl8v6HByIamwd1IY0wHY/LuFGvtbUkJNQ
-	8E2Uoc1CywXbvBTu+FFk+C/bEZ75gm0goPuF20wo/H0gbXa/ONc2v6wOe+E0A3p/vZOL05uhcV8
-	hyCInnl97WdYF3Z5ESWIHp6gXoFmC827hNr/65OZ2LWG3v1JLOsslPorImimyfu1CHexOZ4lqCY
-	w5bR7uUhXgKeuZ0jxHdUb0AES312aDJPruCbMQYpovMV9RVBlabq9iWhay/OqgErqljLBSOP8k/
-	VVk4O1N2b03SdHtQ+RYyis3t+KSv9kb4dBjKShIqw5ZdnoEybXOZmrlT3HDxMaMWyOofKvZF2iR
-	/TJgkctz+9Dm/JMVJ7fuLn6KPRe85lzQpDmc4N+Uv5XSjgq6DT6OiopEUW0AdTmb5SPTrOspiIv
-	EGZd6pVMcs96OuiXuMcqPRuaXM7ido3QR5qQxujg5YUawzw4XUsQiAx59NDQ4pJuV7dbYGZ1Ns5
-	v/B0+uDUCJJzmX+U2uh9HOgKOPv7SVKe+DokUkhOVcUI/u3rDLjn+jtECPw/VP6jGjEG1h29oMo
-	R1N5bnmjpf2ORCgBlePQXFUbM2pxWpxU8Ee6MF7txPpzrakjO7SaUVj3FSczuh3U
-X-Received: by 2002:a05:600c:1798:b0:4a0:1f9e:5f78 with SMTP id 5b1f17b1804b1-4ac1228a41emr254417105e9.0.1793863179681;
-        Wed, 04 Nov 2026 23:19:39 -0800 (PST)
+        bh=2TYRXvMF603odb8S2MAHHkubTkD5yjsXtdo4fKKhyzs=;
+        b=AqWNWjSfF4ydH60EWeGptdHttM1ByWVJpoN6PRXriITfsK0HdD3liJOT68Htpbfwey
+         LSWDQAKHEhwyuwQCKhc2pQrqViggY9wrTJGVSka0gcnV8RoraikIHxKh5n/jgPAD/vyM
+         43OoD2KW3VHm4LHGBZKEmibrZL1P6Oa5V9GHc5L1tUlU8CS0OjDtcH2oSaXCZtykkdhZ
+         wEH2cZo+dJlYPpGgpsdDhDFkHUni+sRrDWjjROtjulhZqRw6as/9l7s24QBR6G1zpNyX
+         zZnhcBaMb1bY40dqPaZIMkz2MDLxWHZKsBw8LvIvpzdAXYHR1/NjtOp6JGUbNEG+0DA3
+         4Qrg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1793863185; x=1794467985;
+        h=content-transfer-encoding:mime-version:references:in-reply-to
+         :message-id:date:subject:cc:to:from:x-gm-gg:x-gm-message-state:from
+         :to:cc:subject:date:message-id:reply-to:content-type;
+        bh=2TYRXvMF603odb8S2MAHHkubTkD5yjsXtdo4fKKhyzs=;
+        b=jDz8YNSRbHsm/YdsNL20RkarTFkCnURsCK/Odv+w2dtVOCfPpmW8LQOcLFqmeglhzb
+         l7Kob0n1jf0GwUx9Z6/wFJY3aEFHbXTVU5stjKHgrX/Kvm4784EadnUqJytarXf2EsVd
+         +7g9EeK2Mctm62qkmERQ+MExpKkpF3PlqslNf5Uw/5w9jxG+2S7QgXtUcbItOV66QK5q
+         A+IaBEKydIS68WUCw4qIW8XS05rXokSvDfLVOrgnSZVsCAGCedsKyp7Zgm2Xq1eatcdx
+         RC39+YYostHen7DK6h44J40xkQ1grpwg3t1q92pMXfQuDkGLAltjn3Fwpy43TwiwUomf
+         yw2A==
+X-Forwarded-Encrypted: i=1; AKwUvBy4u6vRvh1gvh1BTDRHg+9DuqBhYTwAr9zSulJ1O9utJisUOsvcthj7zgPdUFlO/8OG/yKTcxe+9Zzj7A==@lists.linux.dev
+X-Gm-Message-State: APuU4Z/4OOI/+FXqwiJtq0zhoglcC1+wDxYEktt5YxdFlDjhm6tAbjNp
+	RlYuHR0KbJEMsm1Cdoi9hf4104BKOtn/fOnJwePMpsRumvrhHtUMLZGKGQRIbIYjavc=
+X-Gm-Gg: AYBFou2NDVD0leRvjxrWCIOFfqG7C7Hzo1nZEQrxnsidM3jR3iZTl0szWEaIdmOK8+t
+	AuT1InvLM19pGg3+pHJDHm13DwrJzrAis/7KExhcD68BescKjxljkP2SIVoDQ+eTTngybdUDLQp
+	GHQDOeKgcsphgBscMlFLS7or179kSFIwHL4ipJExXlIM3+jzmBU5Cbysqkt3AwL4j+8p1K8I+rE
+	bjBm4/60aYWWCQBeAammTUfVmeh0OQAoKf87W0f5xRlAl4C4CekaPbPH5tTyfANpD7lvYrjUQJ8
+	mIOwM4FTzuIUTs4Er+iisaXs2vWsXHFH5LyLvj50AvniHvY7HIc4WanRZS+Kfv8FTgya9/Cg9T6
+	s67rAjOlC3uOvVL0GAd9uavekLbzknOuwvLXSxwvamOY1Y7oL1k+RTYa/2VoZy3tjnnGyOWh+u1
+	Fl2/OwoRyYs/fQTop1/xsxEwg+8/rVwmYmkHstCf4zVV0yQjeNwSQDXHDj7wOal0hcmHLHCTsSB
+	wQ9znHHWsMeNHA7tVQIBdhNxCwPE5JOUQQf5E4hJlXJeVVa6EoZsC8TvN9J5iArUXQ8aGv5JH4R
+	ewBfbIUEOl+OuWMah8TUtqH1zlLVYWZddFOztQrzPKPHbHtWSNrVUMHkra0S4XC6
+X-Received: by 2002:a05:600c:3146:b0:4b6:2242:d0d5 with SMTP id 5b1f17b1804b1-4b62242d351mr3802415e9.0.1793863184646;
+        Wed, 04 Nov 2026 23:19:44 -0800 (PST)
 Received: from localhost.localdomain ([202.127.77.110])
-        by smtp.gmail.com with ESMTPSA id a92af1059eb24-1b245b86fbesm14687084c88.1.2026.11.04.23.19.35
+        by smtp.gmail.com with ESMTPSA id a92af1059eb24-1b245b86fbesm14687084c88.1.2026.11.04.23.19.40
         (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Wed, 04 Nov 2026 23:19:38 -0800 (PST)
+        Wed, 04 Nov 2026 23:19:43 -0800 (PST)
 From: Heming Zhao <heming.zhao@suse.com>
 To: joseph.qi@linux.alibaba.com,
 	mark@fasheh.com,
@@ -85,10 +86,12 @@ To: joseph.qi@linux.alibaba.com,
 Cc: Heming Zhao <heming.zhao@suse.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org
-Subject: [RFC PATCH v5 0/4] migrates ocfs2 DIO from buffer_head to iomap
-Date: Thu,  5 Nov 2026 15:19:24 +0800
-Message-ID: <20261105071930.16399-1-heming.zhao@suse.com>
+Subject: [RFC PATCH v5 1/4] ocfs2: Add new ocfs2_map_blocks() to introduce iomap feature
+Date: Thu,  5 Nov 2026 15:19:25 +0800
+Message-ID: <20261105071930.16399-2-heming.zhao@suse.com>
 X-Mailer: git-send-email 2.55.0
+In-Reply-To: <20261105071930.16399-1-heming.zhao@suse.com>
+References: <20261105071930.16399-1-heming.zhao@suse.com>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -100,168 +103,156 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-This patch set migrates ocfs2 Direct I/O (DIO) from buffer_head mode
-to iomap mode. And the code base is commit 6628e7d4c6b2 (v7.4-rc1),
-and also merge Joseph's code and ideas from [1]:
+As part of migrating OCFS2 DIO read/write code paths towards the modern
+and performant iomap framework, here introduces ocfs2_map_blocks() to
+replace the legacy, high-overhead buffer_head based block mapping
+routines.
 
-The key for the patch set
+In addition, OCFS2_MAP_* flags are defined to gridge OCFS2 internal block
+mapping flags with the iomap API requirements.
 
-To simplify iomap development, we currently adopt the simplest approach:
-retaining the buffer_head style, where only one cluster is allocated
-per iomap_begin() call.
+Subsequent iomap integration patches will build on this core block mapping
+routine. The implementation draws inspiration from ext4_map_blocks().
 
-Introduce OCFS2_MAX_LOGICAL_BLOCK to cap the logical offset in the iomap
-code path.
+Signed-off-by: Heming Zhao <heming.zhao@suse.com>
+---
+ fs/ocfs2/aops.c  | 72 ++++++++++++++++++++++++++++++++++++++++++++++++
+ fs/ocfs2/aops.h  |  2 ++
+ fs/ocfs2/ocfs2.h | 25 ++++++++++++++++-
+ 3 files changed, 98 insertions(+), 1 deletion(-)
 
-Put zeroing and orphan inode handling in ocfs2_file_write_iter(), the
-buffer_head style is handled in ocfs2_dio_wr_get_block() with dwc
-helper.
-
-I attempted to implement .submit_io/.end_io in "struct iomap_dio_ops" to
-free dwc inside end_io. However, because ->bi_end_io runs in an interrupt
-context and ocfs2_iomap_dio_end_io_write() contains sleepable functions,
-this approach required scheduling a workqueue directly from the
-->bi_end_io callback and calling ocfs2_iomap_dio_end_io_write() within
-the workqueue thread context. Furthermore, since iomap_dio_ops.end_io
-still cannot access any private data, it cannot accurately wait for the
-work to finish. Testing with xfstests triggered hangs and crashes.
-
-In iomap end_io, there is no dwc. ocfs2_iomap_dio_end_io_write() calls
-ocfs2_lock_allocators() with a roughly calculated extents_to_split value.
-
-v5 changelog:
-
-Fix several issues found during the sashiko review[2].
-
-Remove "map->flags = 0" in ocfs2_map_blocks().
-
-Remove some useless/unnecessary OCFS2_IOMAP_* definitions.
-
-When iomap falls back to buffered reads, add a check to ensure ki_pos is
-strictly less than i_size.
-
-In ocfs2_iomap_begin():
-- Remove redundant code for the case where blocks are already allocated.
-- Remove the IOMAP_ATOMIC code, which is not currently supported.
-
-In ocfs2_file_write_iter():
-- call kiocb_modified() after ocfs2_prepare_inode_for_write().
-- use direct_write_fallback() to handle fallback to the buffered write case. 
-
-
-[1]:
-https://gitee.com/anolis/storage-cloud-kernel/commit/ea3fe75e2060118ba093e90b1cd34fa382914b29
-
-[2]:
-https://sashiko.dev/#/patchset/20261103135605.22943-1-heming.zhao%40suse.com
-
-v1 patch set:
-https://lore.kernel.org/ocfs2-devel/20260724052559.15409-1-heming.zhao@suse.com/
-v2 patch set:
-https://lore.kernel.org/ocfs2-devel/20260727061802.18485-1-heming.zhao@suse.com/
-v3 patch set:
-https://lore.kernel.org/ocfs2-devel/20261018143319.22329-1-heming.zhao@suse.com/
-v3 sashiko review:
-https://sashiko.dev/#/patchset/20261018143319.22329-1-heming.zhao%40suse.com
-v4 patch set:
-https://lore.kernel.org/ocfs2-devel/20261103135605.22943-1-heming.zhao@suse.com/
-v4 sashiko review:
-https://sashiko.dev/#/patchset/20261103135605.22943-1-heming.zhao%40suse.com
-
-
---------------
-# test report
-
-This patch set has been tested on 7.3.0-rc7 kernel with the following test
-cases.
-
-## ltp
-
-runltp -f dio -d /mnt/ocfs2/
-
-The test results: passed
-
-## xfstests
-
-./check -g quick -T -b -s ocfs2 -e generic/081 \
--e generic/266 -e generic/272 -e generic/281 \
--e generic/338 -e generic/347 -e generic/361 \
--e generic/628 -e generic/629 -e generic/648 -e generic/650 
-
-The test results are the same before and after the patch set.
-
-```v7.4-rc1
-OCFS2_MKFS_LOCAL_OPT="-b 2K -C 8K --fs-features=local --fs-feature-level=max-features"
-Failures: generic/003 generic/056 generic/075 generic/091 generic/094
-generic/112 generic/177 generic/211 generic/225 generic/263 generic/321
-generic/322 generic/329 generic/331 generic/370 generic/376 generic/424
-generic/448 generic/467 generic/477 generic/481 generic/498 generic/510
-generic/512 generic/513 generic/534 generic/537 generic/552 generic/557
-generic/563 generic/564 generic/578 generic/588 generic/607 generic/620
-generic/630 generic/755 generic/759 generic/760 generic/771 generic/777
-generic/779 generic/784 ocfs2/001
-Failed 44 of 632 tests
-```
-
-Please note v7.3 kernel only has 35 cases failed, and v7.4-rc1 has 44
-cases failed, so the failures are not caused by this patch set.
-
-OCFS2_MKFS_LOCAL_OPT="-b 2K -C 8K --fs-features=local --fs-feature-level=max-features"
-Failures: generic/003 generic/075 generic/091 generic/094 generic/112
-generic/177 generic/211 generic/225 generic/263 generic/322 generic/329
-generic/331 generic/370 generic/376 generic/424 generic/448 generic/467
-generic/477 generic/481 generic/510 generic/513 generic/537 generic/552
-generic/563 generic/564 generic/578 generic/607 generic/620 generic/630
-generic/755 generic/759 generic/760 generic/777 generic/784 ocfs2/001
-Failed 35 of 632 tests
-
-
-## fio on single node
-
-fio --direct=1 --iodepth=32 --rw=write --ioengine=libaio --bs=128k --size=1g \
---numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-- before patch write: IOPS=31.5k, BW=3935MiB/s (4126MB/s)(4096MiB/1041msec)
-- before path overwrite (don't remove write.1g, run above fio command):
-      write: IOPS=39.5k, BW=4935MiB/s (5175MB/s)(4096MiB/830msec)
-- applied patch write: IOPS=37.4k, BW=4676MiB/s (4903MB/s)(4096MiB/876msec)
-- applied patch overwrite (don't remove write.1g, run above fio command):
-      write: IOPS=39.4k, BW=4929MiB/s (5168MB/s)(4096MiB/831msec)
-
-fio --direct=1 --iodepth=32 --rw=read --ioengine=libaio --bs=128k --size=1g \
---numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-- before patch : IOPS=47.7k, BW=5962MiB/s (6252MB/s)(4096MiB/687msec)
-- applied patch: IOPS=48.2k, BW=6024MiB/s (6316MB/s)(4096MiB/680msec)
-
-fio --direct=1 --iodepth=32 --rw=randwrite --ioengine=libaio --bs=4k --size=1g \
---numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-- before patch
-  - creating write      : IOPS=26.9k, BW=105MiB/s (110MB/s)(4096MiB/38985msec)
-  - overwriting write.1g: IOPS=231k, BW=902MiB/s (946MB/s)(4096MiB/4539msec)
-- applied patch
-  - creating write      : IOPS=26.9k, BW=105MiB/s (110MB/s)(4096MiB/38987msec)
-  - overwriting write.1g: IOPS=228k, BW=891MiB/s (935MB/s)(4096MiB/4595msec)
-
-fio --direct=1 --iodepth=32 --rw=randread --ioengine=libaio --bs=4k --size=1g \
---numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
-- before patch  read: IOPS=361k, BW=1409MiB/s (1477MB/s)(4096MiB/2907msec)
-- applied patch read: IOPS=362k, BW=1416MiB/s (1485MB/s)(4096MiB/2893msec)
-
----------------------
-
-Heming Zhao (4):
-  ocfs2: Add new ocfs2_map_blocks() to introduce iomap feature
-  ocfs2: switch DIO read path from buffer_head to iomap
-  ocfs2: switch dio write path from buffer_head to iomap
-  ocfs2: remove legacy blockdev direct-IO path APIs
-
- fs/ocfs2/Kconfig    |   2 +-
- fs/ocfs2/aops.c     | 539 ++++++++++++++++++++++++++++----------------
- fs/ocfs2/aops.h     |  38 +---
- fs/ocfs2/file.c     | 213 ++++++++++++++---
- fs/ocfs2/ocfs2.h    |  25 +-
- fs/ocfs2/ocfs2_fs.h |   3 +
- 6 files changed, 565 insertions(+), 255 deletions(-)
-
+diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+index 4acdbb70882c..0f7502de9b8d 100644
+--- a/fs/ocfs2/aops.c
++++ b/fs/ocfs2/aops.c
+@@ -126,6 +126,78 @@ static int ocfs2_lock_get_block(struct inode *inode, sector_t iblock,
+ 	return ret;
+ }
+ 
++/* ocfs2 never allocates in this function */
++int ocfs2_map_blocks(struct inode *inode, struct ocfs2_map_block *map,
++		    int flags)
++{
++	int err = 0;
++	unsigned int ext_flags;
++	u64 max_blocks = map->len;
++	u64 p_blkno, count, past_eof;
++	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
++	int create = flags & OCFS2_GET_BLOCKS_CREATE;
++
++	if (OCFS2_I(inode)->ip_flags & OCFS2_INODE_SYSTEM_FILE)
++		mlog(ML_NOTICE, "map_block on system inode 0x%p (%llu)\n",
++		     inode, inode->i_ino);
++
++	err = ocfs2_extent_map_get_blocks(inode, map->lblk, &p_blkno, &count,
++					  &ext_flags);
++	if (err) {
++		mlog(ML_ERROR, "get_blocks() failed, inode: 0x%p, "
++		     "block: %llu\n", inode, map->lblk);
++		goto bail;
++	}
++
++	if (max_blocks < count)
++		count = max_blocks;
++
++	map->pblk = p_blkno;
++	map->len = count;
++
++	/*
++	 * If we see this on a sparse file system, then a truncate has
++	 * raced us and removed the cluster. We treat this as a hole
++	 * and skip setting the iomap flags. The caller will set
++	 * iomap->type to IOMAP_HOLE.
++	 */
++	if (create && map->pblk == 0 && ocfs2_sparse_alloc(osb))
++		goto bail;
++
++	if (p_blkno) {
++		if (ext_flags & OCFS2_EXT_UNWRITTEN) {
++			map->flags |= OCFS2_MAP_UNWRITTEN;
++		} else {
++			/* Treat the unwritten extent as a hole for zeroing purposes. */
++			map->flags |= OCFS2_MAP_MAPPED;
++		}
++	}
++
++	if (!ocfs2_sparse_alloc(osb)) {
++		if (map->pblk == 0) {
++			err = -EIO;
++			mlog(ML_ERROR,
++			     "iblock = %llu p_blkno = %llu blkno=(%llu)\n",
++			     (unsigned long long)map->lblk,
++			     (unsigned long long)map->pblk,
++			     (unsigned long long)OCFS2_I(inode)->ip_blkno);
++			mlog(ML_ERROR, "Size %llu, clusters %u\n",
++			     (unsigned long long)i_size_read(inode),
++			     OCFS2_I(inode)->ip_clusters);
++			dump_stack();
++			goto bail;
++		}
++	}
++
++	past_eof = ocfs2_blocks_for_bytes(inode->i_sb, i_size_read(inode));
++
++	if (create && (map->lblk >= past_eof))
++		map->flags |= OCFS2_MAP_NEW;
++
++bail:
++	return err;
++}
++
+ int ocfs2_get_block(struct inode *inode, sector_t iblock,
+ 		    struct buffer_head *bh_result, int create)
+ {
+diff --git a/fs/ocfs2/aops.h b/fs/ocfs2/aops.h
+index 114efc9111e4..8dd6edd7c1a1 100644
+--- a/fs/ocfs2/aops.h
++++ b/fs/ocfs2/aops.h
+@@ -42,6 +42,8 @@ int ocfs2_size_fits_inline_data(struct buffer_head *di_bh, u64 new_size);
+ 
+ int ocfs2_get_block(struct inode *inode, sector_t iblock,
+ 		    struct buffer_head *bh_result, int create);
++int ocfs2_map_blocks(struct inode *inode, struct ocfs2_map_block *map,
++		    int flags);
+ /* all ocfs2_dio_end_io()'s fault */
+ #define ocfs2_iocb_is_rw_locked(iocb) \
+ 	test_bit(0, (unsigned long *)&iocb->private)
+diff --git a/fs/ocfs2/ocfs2.h b/fs/ocfs2/ocfs2.h
+index e3bb3cc0b25a..b4583b3170e2 100644
+--- a/fs/ocfs2/ocfs2.h
++++ b/fs/ocfs2/ocfs2.h
+@@ -514,7 +514,30 @@ struct ocfs2_super
+ 	struct ocfs2_filecheck_sysfs_entry osb_fc_ent;
+ };
+ 
+-#define OCFS2_SB(sb)	    ((struct ocfs2_super *)(sb)->s_fs_info)
++/*
++ * Logical to physical block mapping, used by ocfs2_map_blocks()
++ *
++ * This structure is used to pass requests into ocfs2_map_blocks()
++ * as well as to store the information returned by ocfs2_map_blocks().
++ * It takes less room on the stack than a struct buffer_head.
++ */
++#define OCFS2_MAP_NEW			BIT(BH_New)
++#define OCFS2_MAP_MAPPED		BIT(BH_Mapped)
++#define OCFS2_MAP_UNWRITTEN		BIT(BH_Unwritten)
++#define OCFS2_MAP_FLAGS		(OCFS2_MAP_NEW | OCFS2_MAP_MAPPED |\
++				 OCFS2_MAP_UNWRITTEN)
++
++struct ocfs2_map_block {
++	u64 pblk; /* physical block# */
++	u64 lblk; /* logical block# */
++	u64 len;  /* number of block */
++	unsigned int flags;
++};
++
++/* Flags used by ocfs2_map_blocks() */
++#define OCFS2_GET_BLOCKS_CREATE	(0x0001)
++
++#define OCFS2_SB(sb)	((struct ocfs2_super *)(sb)->s_fs_info)
+ 
+ /* Useful typedef for passing around journal access functions */
+ typedef int (*ocfs2_journal_access_func)(handle_t *handle,
 -- 
 2.55.0
 
