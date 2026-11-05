@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.99
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793872194;
-	b=y3tReTBO9xrFV+fkjRFZcUZBiVD/IXofzVfXnmaGTCZ8glRUMl+xhCWiKKMZsEnGvIOE
-	 L5fLiuWRItQvbQm129k0SPWEmFqi4oQUnfaSXXagaES7WPc3yBTYwP44olGCZZQoUwvuy
-	 btLH6W9pEeSy9+HbLobTOomVsMgSYP2TJBuKTSQCrsI3EH5TkahFxNel2U6Kl4c8cj4oN
-	 CRfhYPaZoexRAb5+i7oI0MZvA9W94GC2hQdO2ZYesl+Oui0Won2Wl8t22K4ar9+Z8jV3h
-	 lmts8P2KBnLCaRg6XLj6+/NFzbFhKRY7Yf+igGhE6ShWPvEcWIeba64KAvz4uxF4B3Q==
+	t=1793872195;
+	b=PFX/uPHDi2oJK8taMPkN2IrPp6CQNdoPgY+KdXC6PLKByG8LsHJBmNTskZLwEw5T5zeF
+	 hODLWV2i+Q9Dw8zSThfWeA3JXE+nuV4elrn1Wvl2QAZhwi5EHU96Qtc5I1nOtSUSTuuYk
+	 wr800pC1l5sXJ58ziSnHpY4oft3cHRYXeZo3gyf12IwJo3SjahUZBmnFnbjS4cKTIcjly
+	 WdyyB98w7Bbl+I0pC56BveCKzPQcDvePsq1i7SyfkIMbv8i9I+TwnanWNf/HCL2TKWsZ+
+	 uKIX24BqBaVStHCmM/cFfLY/YpgpZNWsn172DR/empXpjwIkFlNawpwKDviOTlgAKlw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793872194;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793872195;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=byl5MxQXhfbd4TVh3cI6SsnxKUyD+oHLNtVrLi5gjAE=;
-	b=3DtIXdl6pMKgubB7E4maZ6ufabBPHvjf6/hg5AuXbonfQVHAT1wCITD2c0S5utV6T7fl
-	 80xu7vBEa/0f2BJrSRvlnVCj5XPMHCOeNjAat62ADcb6Yln+g1pvEFyJfS6ga5N/8jKbz
-	 nZFRXWs9Tw04RoGfkZVz0sczpMNSaBAk0a5qUFLaUbZmJ0aO4xzyyKqabPDjd+IdeUN1J
-	 AIstgrfLyLSoeE5KkOo3LDdKnj5ISJ3yOmcVvkfDsSbCp2fl/mNw2eISzW2aUHmjMjS6g
-	 GqWemnTKTFOM/sv20XABxmzWuPDEzemD16WmC1P+gLNXOt435GXTcggUxcEyYuhv3xw==
+	bh=jJI4f0Df9QirktikvS42P/+FiXAktxHwsYl/ayhir8Y=;
+	b=nMx9JDsr/UKrcZDoVFkLOnKKXeC/AzfBX9XLgb/wvsfsYXhCTH89eVGP4WZtV2GrD4DE
+	 Y7xoAFcHxyP5VvFOdrxlXECFi402CCD0PwpR7m54WESGaZYbJz2bpyt5l4t36UkAFWvjy
+	 yJCR8vJ2UTNDH170fY6Ypps31dch+sLskJgbHbltpNreHaRAJ5/Ld49t9Ccn+g/hGJEZk
+	 vYCypWKmmmI5bYYuMoicjFJen2oS3MSXkpNq1/hSnDRORDfP2PNDj1ui21/3AubQSbeoa
+	 AlFbIGzoG3cQj1Nu1ESs1q5vvZnrJ9sufEzhg9AJb9gx2xmKx0+3pX+ZdSPMav6WeBg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=ODilHX0J;
-	arc=none smtp.remote-ip=115.124.30.100
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=ICd7jpTo;
+	arc=none smtp.remote-ip=115.124.30.99
+Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4208760A2628
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2846460A263E
 	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 09:49:53 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4208760A2628
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2846460A263E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=ODilHX0J
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=ICd7jpTo
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793872190; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=byl5MxQXhfbd4TVh3cI6SsnxKUyD+oHLNtVrLi5gjAE=;
-	b=ODilHX0J7abN5NhWYi85vjLY0L7ITa6KKDBPAHIVhf6zQewZQIfAnulvgV/6lF5x53MPUwYd6McVJfV+UXOLO+SZJabt0Re0B6a+kq/znNAh1cjrkV7D2EIgUPkRkY+YDtLx3+/3ax6+rWJ20ppvTTYK3SKsePPGWBHPTo31D3Y=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8K76e_1793872188;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8K76e_1793872188 cluster:ay36)
+	t=1793872191; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=jJI4f0Df9QirktikvS42P/+FiXAktxHwsYl/ayhir8Y=;
+	b=ICd7jpToPonBF//GvAVWXoqKy7oLezzNnpVb7Us+bjuN6htVQ2ZlORSugGkKQw3i9g5c6x/8NR0B2osZxZXhXyWKAehM+Q6a5apC1BPjsqYOyBFSUl5Y7rGbqyEz8DxYaBR19wIiQvdMg2CDbfz2ogHmANtcO0jIwvWYQ0O9z/s=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R791e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8RZfg_1793872190;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8RZfg_1793872190 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Thu, 05 Nov 2026 17:49:49 +0800
+          Thu, 05 Nov 2026 17:49:51 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH 23/30] ocfs2: check dinode suballoc slot in online filecheck
-Date: Thu,  5 Nov 2026 17:49:19 +0800
-Message-Id: <20261105094926.3203416-24-joseph.qi@linux.alibaba.com>
+Subject: [PATCH 25/30] ocfs2: check dinode orphaned slots in online filecheck
+Date: Thu,  5 Nov 2026 17:49:21 +0800
+Message-Id: <20261105094926.3203416-26-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
 References: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
@@ -67,12 +67,9 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Wire both suballoc slot predicates into the filecheck validator.  An
-OCFS2_INVALID_SLOT on a non-system inode and an out-of-range slot keep
-their separate messages, so the log still distinguishes the two.
-
-The range predicate excludes OCFS2_INVALID_SLOT, so system inodes
-created by mkfs.ocfs2 from the global allocator are still accepted.
+Wire both orphaned slot predicates into the filecheck validator.  Each
+predicate keeps its flag guard, so a stale slot field on an inode that
+is not orphaned is still accepted.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
@@ -80,27 +77,27 @@ Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
  1 file changed, 18 insertions(+)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 07b9445bb538..7cde33f0f616 100644
+index 0c515ba37ea0..db8cdf4d8627 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -2018,6 +2018,24 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+@@ -2045,6 +2045,24 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
  		goto bail;
  	}
  
-+	if (ocfs2_dinode_has_invalid_suballoc_slot(di)) {
++	if (ocfs2_dinode_has_bad_orphaned_slot(sb, di)) {
 +		mlog(ML_ERROR,
-+		     "Filecheck: invalid dinode #%llu: suballoc slot %u for non-system inode\n",
++		     "Filecheck: invalid dinode #%llu: orphaned slot %u\n",
 +		     (unsigned long long)bh->b_blocknr,
-+		     le16_to_cpu(di->i_suballoc_slot));
++		     le16_to_cpu(di->i_orphaned_slot));
 +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
 +		goto bail;
 +	}
 +
-+	if (ocfs2_dinode_has_out_of_range_suballoc_slot(sb, di)) {
++	if (ocfs2_dinode_has_bad_dio_orphaned_slot(sb, di)) {
 +		mlog(ML_ERROR,
-+		     "Filecheck: invalid dinode #%llu: suballoc slot %u\n",
++		     "Filecheck: invalid dinode #%llu: DIO orphaned slot %u\n",
 +		     (unsigned long long)bh->b_blocknr,
-+		     le16_to_cpu(di->i_suballoc_slot));
++		     le16_to_cpu(di->i_dio_orphaned_slot));
 +		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
 +		goto bail;
 +	}
