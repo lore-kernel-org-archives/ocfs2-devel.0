@@ -1,110 +1,59 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=195.135.223.130
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.112
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793871180;
-	b=PS83sVuiPB6r5hkhtXe9ax0WVLdnMfvRnfYhBRSwcem5oHl8aRmVYWJFFt294XIn0GEA
-	 MBhHb/wwjBrrvHtAi44JIkhFqg/ofUm2cE2CO4Tf568k3M+2xdRhTBZqEwrbwXzbciN+Y
-	 7ueBOKlW7gahCuNqBUT+XNuN/rkckyBlKyo4JorhQw5aqtqvMWgK6d6qKQ79MZ2lRSBV0
-	 FBrrXZXvb7+jxhefEgkhK2rxsbKjweuCkIokFRgzWoiMwdIFM6USWAn1VCDwrJuL1UqlO
-	 FBGxCNqnSJ+pq7IwBCSTpRBkrMsvxq6v4D9wItB+D2XCaUzK9ECrrKvbZ9dmGnB0ZLw==
+	t=1793872171;
+	b=a54revP/NStcWgEC8PzjubXhgo1xxXzbyW0+PdNtmEpNo/YWgOzVxn4Hi8F4KuQi9qJF
+	 KL5VpqVq4h3LTfCVcfgQ2xkd5N/K9EjXKV5JAfmG1B1yGtXmhV6ID6XsoXGL5p1zEVjpp
+	 u3/28/SW5uxKNtjOp1xFWoYddLpxWbTfKETAOWWTbzImJRxTVpUp/quprUb2ZGbhTe/CK
+	 aTSyJzh11sKLJlJXQSW/cTZ7KHD0Z1sCbSzCksOp+UYTfV5Uaatxd0cKZrMYl3dSreeiu
+	 9iYhKd+dCfRg38txhbj7GcPipJ4eQoGm5aCNx1AeSDRVtyoluDa4NCE/dAGEmq3D3bw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793871180;
-	h=DMARC-Filter:Received:DKIM-Signature:DKIM-Signature:DKIM-Signature:
-	 DKIM-Signature:Received:Received:Received:Date:From:To:Cc:Subject:
-	 Message-ID:References:MIME-Version:Content-Type:Content-Disposition:
-	 In-Reply-To:X-Spam-Flag:X-Spam-Level:X-Spamd-Result:X-Spam-Score;
-	bh=pgu8NzTJnS2R+zD0u6Z5S8xrxcIoknrqJKi9obAmajo=;
-	b=xI6ch27TNfax2941EofEbksH0BlyDUBn+BxE4p46isDhNJSpGj6vhLeSF2eb4diNkBZW
-	 0nhA8yCtHHxi55lF89GoAe3DTmCZ2nZXWIpURw1PcJ43caHBwPorFdwFiL0itGLXKKV6r
-	 /+deC58/80LZwuu+NUTJajVpz+IYJvK6LzcfhowRrPIMDWInoQEEYlzeBaAt3QC/D3+0C
-	 Kkhtg0Vxv1O9dd71stMGCtAPNHXN3rjnzVa3rCiwxJ7IhfVoe8Wh7ms9kwa24RciO1Ksm
-	 y5qAWcxpBXEuvZjOLhm2ZjhM/hnnp2PNK7mDxXwipC6hxguW/vKM42lIGQxpVIXeb3w==
+	a=rsa-sha256; c=relaxed/relaxed; t=1793872171;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
+	 Subject:Date:Message-Id:X-Mailer:MIME-Version:
+	 Content-Transfer-Encoding;
+	bh=6pBoDKtOrThTmnbZPlCKEUfH3xI7nK9JsGtcwaKLx24=;
+	b=PS00kuvpm0QYlTzw7eGs9x5uvVRRUqH91z9Yv8D3c3y8lDOY6feZQImRBrs0BTCnfhmt
+	 HH9ZxxkQe6LJIkqj5+//PWU1nuPGS2o90oGOi55DMh6TBM8OJPzlxnHcW8C+CGHGVyQkT
+	 bxHeRFp3SiIGNKA1Uev8ENScRWrhdjlvm+MrIRNbm4/nesBI4eWoXYwCKNLLEJpnmolKa
+	 fZrJw7gZ1/09TsJ8VciSbX/NcbUH6EUmzh+D29ens3plqhzl76PBLUCY5LFG+87xoT3HV
+	 kqoTDnVNHCgOn81HLSjmCwire3qK6CmHjDK6HBqXEalVuOZIKAvpfy3M58lsdD3BW3A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=suse.cz;
-	spf=pass smtp.mailfrom=suse.cz;
-	dkim=pass header.d=suse.cz header.i=@suse.cz header.a=rsa-sha256 header.s=susede2_rsa header.b=v14WN48b;
-	dkim=pass header.d=suse.cz header.i=@suse.cz header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=OvkNExNy;
-	dkim=pass header.d=suse.cz header.i=@suse.cz header.a=rsa-sha256 header.s=susede2_rsa header.b=v14WN48b;
-	dkim=neutral header.d=suse.cz header.i=@suse.cz header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=OvkNExNy;
-	arc=none smtp.remote-ip=195.135.223.130
-Received: from smtp-out1.suse.de (smtp-out1.suse.de [195.135.223.130])
+	dmarc=pass header.from=linux.alibaba.com;
+	spf=pass smtp.mailfrom=linux.alibaba.com;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=VjmIiB6I;
+	arc=none smtp.remote-ip=115.124.30.112
+Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 37923606A328;
-	Thu,  5 Nov 2026 09:33:00 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 37923606A328
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=suse.cz
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.cz
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 07485606A335
+	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 09:49:29 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 07485606A335
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=suse.cz header.i=@suse.cz header.a=rsa-sha256 header.s=susede2_rsa header.b=v14WN48b;
-	dkim=pass header.d=suse.cz header.i=@suse.cz header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=OvkNExNy;
-	dkim=pass (1024-bit key) header.d=suse.cz header.i=@suse.cz header.a=rsa-sha256 header.s=susede2_rsa header.b=v14WN48b;
-	dkim=neutral header.d=suse.cz header.i=@suse.cz header.a=ed25519-sha256 header.s=susede2_ed25519 header.b=OvkNExNy
-Received: from imap1.dmz-prg2.suse.org (unknown [10.150.64.97])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by smtp-out1.suse.de (Postfix) with ESMTPS id 43A9421F5B;
-	Thu,  5 Nov 2026 09:32:58 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1793871178; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=pgu8NzTJnS2R+zD0u6Z5S8xrxcIoknrqJKi9obAmajo=;
-	b=v14WN48bHlIql9h5HLTugaVISujZG1I/c68I+QtgBbLoIBApSEacYXXWBcqgCfJXFq6f+A
-	a04b7rV9MZ+1A7GaOjZPNsUBb09L6OB9bhWH1gZyydPZAUwPj8q85pTy4SRbmwmJ76LAqC
-	SSzXuvpaBX/SH14eaONLs8VdXTpBuaQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1793871178;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=pgu8NzTJnS2R+zD0u6Z5S8xrxcIoknrqJKi9obAmajo=;
-	b=OvkNExNyUPYRAlVHRPqHODS9azrcpr+2lIkcR7gaa3TaHUtdVPDuCCR60na21ee4PYtMBN
-	8FyqEylcSu5PIbBg==
-Authentication-Results: smtp-out1.suse.de;
-	none
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=suse.cz; s=susede2_rsa;
-	t=1793871178; h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=pgu8NzTJnS2R+zD0u6Z5S8xrxcIoknrqJKi9obAmajo=;
-	b=v14WN48bHlIql9h5HLTugaVISujZG1I/c68I+QtgBbLoIBApSEacYXXWBcqgCfJXFq6f+A
-	a04b7rV9MZ+1A7GaOjZPNsUBb09L6OB9bhWH1gZyydPZAUwPj8q85pTy4SRbmwmJ76LAqC
-	SSzXuvpaBX/SH14eaONLs8VdXTpBuaQ=
-DKIM-Signature: v=1; a=ed25519-sha256; c=relaxed/relaxed; d=suse.cz;
-	s=susede2_ed25519; t=1793871178;
-	h=from:from:reply-to:date:date:message-id:message-id:to:to:cc:cc:
-	 mime-version:mime-version:content-type:content-type:
-	 in-reply-to:in-reply-to:references:references;
-	bh=pgu8NzTJnS2R+zD0u6Z5S8xrxcIoknrqJKi9obAmajo=;
-	b=OvkNExNyUPYRAlVHRPqHODS9azrcpr+2lIkcR7gaa3TaHUtdVPDuCCR60na21ee4PYtMBN
-	8FyqEylcSu5PIbBg==
-Received: from imap1.dmz-prg2.suse.org (localhost [127.0.0.1])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature RSA-PSS (4096 bits) server-digest SHA256)
-	(No client certificate requested)
-	by imap1.dmz-prg2.suse.org (Postfix) with ESMTPS id 160DB134F4;
-	Thu,  5 Nov 2026 09:32:58 +0000 (UTC)
-Received: from dovecot-director2.suse.de ([2a07:de40:b281:106:10:150:64:167])
-	by imap1.dmz-prg2.suse.org with ESMTPSA
-	id jQQAOUlN7GrMbwAAD6G6ig
-	(envelope-from <jack@suse.cz>); Thu, 05 Nov 2026 09:32:58 +0000
-Received: by quack.suse.cz (Postfix, from userid 1000)
-	id 9A6FBB666; Thu, 05 Nov 2026 10:32:57 +0100 (CET)
-Date: Thu, 5 Nov 2026 10:32:57 +0100
-From: Jan Kara <jack@suse.cz>
-To: Christian Brauner <brauner@kernel.org>
-Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>, 
-	Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
-	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, 
-	linux-mm@kvack.org, ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
-	linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, linux-efi@vger.kernel.org, 
-	linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org
-Subject: Re: [PATCH v2 31/34] ext4: use the generic emergency read-only state
-Message-ID: <m2tpyczkdirf7z4pnidxf3375ykgs6mrybxz6aejffpfgptw26@vfepghgrvgdr>
-References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
- <20261029-work-fs-sb_rdonly-v2-31-2f44f64f0b66@kernel.org>
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=VjmIiB6I
+DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
+	d=linux.alibaba.com; s=default;
+	t=1793872167; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=6pBoDKtOrThTmnbZPlCKEUfH3xI7nK9JsGtcwaKLx24=;
+	b=VjmIiB6ILsAAF9noApPFbhZfR9sa45JZdSEml+9AbGLcAE7Lme3/HXUhFs+GqOSNn+NIw05L7bs1FDNDtoZKfZ9rYtTKPiXbXe+EtJ8Lz1akv3JfHVLUw6aFwOVe8egIPFn+egMeDUhVHncOHwC5BjNaOdO8s0VwI46cJtbTNZQ=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8RZVz_1793872166;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8RZVz_1793872166 cluster:ay36)
+          by smtp.aliyun-inc.com;
+          Thu, 05 Nov 2026 17:49:27 +0800
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+To: Andrew Morton <akpm@linux-foundation.org>,
+	Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>,
+	Joel Becker <jlbec@evilplan.org>,
+	ocfs2-devel@lists.linux.dev,
+	linux-kernel@vger.kernel.org,
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Subject: [PATCH 00/30] ocfs2: split dinode validation into shared predicates
+Date: Thu,  5 Nov 2026 17:48:56 +0800
+Message-Id: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
+X-Mailer: git-send-email 2.39.3
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -114,71 +63,155 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset=us-ascii
-Content-Disposition: inline
-In-Reply-To: <20261029-work-fs-sb_rdonly-v2-31-2f44f64f0b66@kernel.org>
-X-Spam-Flag: NO
-X-Spam-Level: 
-X-Spamd-Result: default: False [-11.30 / 50.00];
-	SUSE_INTERNAL_BYPASS(-9.00)[];
-	BAYES_HAM(-3.00)[100.00%];
-	SUSPICIOUS_RECIPS(1.50)[];
-	NEURAL_HAM_LONG(-1.00)[-1.000];
-	MID_RHS_NOT_FQDN(0.50)[];
-	NEURAL_HAM_SHORT(-0.20)[-1.000];
-	MIME_GOOD(-0.10)[text/plain];
-	RCVD_COUNT_THREE(0.00)[3];
-	DKIM_SIGNED(0.00)[suse.cz:s=susede2_rsa,suse.cz:s=susede2_ed25519];
-	RCPT_COUNT_TWELVE(0.00)[17];
-	ARC_NA(0.00)[];
-	MIME_TRACE(0.00)[0:+];
-	FROM_HAS_DN(0.00)[];
-	TO_MATCH_ENVRCPT_ALL(0.00)[];
-	FROM_EQ_ENVFROM(0.00)[];
-	RCVD_TLS_LAST(0.00)[];
-	RCVD_VIA_SMTP_AUTH(0.00)[];
-	TO_DN_SOME(0.00)[];
-	MISSING_XM_UA(0.00)[];
-	DBL_BLOCKED_OPENRESOLVER(0.00)[suse.com:email,suse.cz:email,imap1.dmz-prg2.suse.org:helo]
-X-Spam-Score: -11.30
+Content-Transfer-Encoding: 8bit
 
-On Thu 29-10-26 17:07:22, Christian Brauner wrote:
-> Set SB_STATE_EMERGENCY_RO next to EXT4_FLAGS_EMERGENCY_RO when an error
-> makes the filesystem read-only. The VFS then refuses modifications
-> before they reach ext4 and reports the superblock as read-only like it
-> did when ext4 still set SB_RDONLY. The shutdown state stays ext4's own
-> and so do all of ext4's checks because they cover both states. ext4
-> keeps showing "emergency_ro" in its mount options.
-> 
-> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
+ocfs2_validate_inode_block() is a flat sequence of about twenty open-coded
+on-disk dinode checks.  ocfs2_filecheck_validate_inode_block() duplicates
+eight of them, but reports differently: plain mlog() plus an
+OCFS2_FILECHECK_ERR_* code instead of ocfs2_error(), because filecheck is
+a diagnostic interface an administrator points at a suspect inode and it
+must not escalate into ocfs2_handle_error(), which can force the
+filesystem read-only or panic.
 
-Looks good! Feel free to add:
+The duplicated conditions had already drifted apart -- the two
+OCFS2_VALID_FL tests were spelled differently -- and filecheck silently
+skipped the rest.
 
-Reviewed-by: Jan Kara <jack@suse.cz>
+This series splits the conditions out and then brings filecheck up to
+parity.
 
-								Honza
+Patches 1-20: pure refactor.  Each condition becomes a static bool
+ocfs2_dinode_has_*() predicate returning true on bad, following the four
+helpers already in inode.c.  Return codes and log messages stay at the
+call sites, so the two reporting paths remain distinct and no
+ocfs2_error() call site moves.  One check per commit.  No functional
+change intended.
 
+Patch 21: a separable fix.  ocfs2_filecheck_repair_inode_block() proceeds
+when validation fails but then returns 0 unconditionally, after repairing
+only i_blkno, fs_generation and l_next_free_rec.  An inode failing any
+other check is reported to userspace as SUCCESS while still corrupt.
+This is already true today for the mode, i_rdev and size-without-clusters
+checks.  Revalidate after the repairs and return the residual code.  Drop
+this patch if you would rather keep the filecheck series purely additive,
+but it then widens the set of masked failures considerably.
 
-> ---
->  fs/ext4/super.c | 1 +
->  1 file changed, 1 insertion(+)
-> 
-> diff --git a/fs/ext4/super.c b/fs/ext4/super.c
-> index ae5ba6823c01..afbdbb607b14 100644
-> --- a/fs/ext4/super.c
-> +++ b/fs/ext4/super.c
-> @@ -757,6 +757,7 @@ static void ext4_handle_error(struct super_block *sb, bool force_ro, int error,
->  	 * and other problems.
->  	 */
->  	set_bit(EXT4_FLAGS_EMERGENCY_RO, &EXT4_SB(sb)->s_ext4_flags);
-> +	sb_set_emergency_ro(sb);
->  }
->  
->  static void update_super_work(struct work_struct *work)
-> 
-> -- 
-> 2.53.0
-> 
+Patches 22-30: wire the remaining predicates into filecheck.  All reuse
+OCFS2_FILECHECK_ERR_INVALIDINO, so no new error code is introduced and the
+ocfs2_filecheck_errs[] table with its userspace-visible names is
+unchanged.
+
+Points worth a close look:
+
+ - The fast symlink NUL-termination predicate bounds its own strnlen()
+   against ocfs2_fast_symlink_chars().  The open-coded version was only
+   safe because the preceding i_size check had already bailed; i_size
+   comes from disk, so an unbounded strnlen() over i_size + 1 bytes can
+   run past the inode block.  A helper should not inherit that ordering
+   dependency implicitly, especially once filecheck calls it too.
+
+ - The inline id_count maximum stays a signed int.
+   ocfs2_max_inline_data_with_xattr() subtracts the unvalidated
+   i_xattr_inline_size and goes negative on small block sizes.  Caching it
+   unsigned would turn a negative maximum into a huge bound and silently
+   accept the oversized id_count.
+
+ - ocfs2_dinode_is_fast_symlink() is deliberately not shared with the
+   similar test inside ocfs2_dinode_has_extents(), which additionally
+   requires a non-zero i_size.  A zero-length, zero-cluster symlink
+   currently falls through to the extent list checks.
+
+ - The suballoc range predicate keeps its != OCFS2_INVALID_SLOT
+   exclusion.  OCFS2_INVALID_SLOT is 65535, so without it every system
+   inode mkfs.ocfs2 creates from the global allocator would be rejected.
+
+ - Look-alike tests in suballoc.c are left alone:
+   ocfs2_validate_group_descriptor() deliberately permits
+   OCFS2_INVALID_SLOT for all inodes, and ocfs2_claim_suballoc_bits() also
+   rejects cl_next_free_rec == 0.  Neither is equivalent to the new
+   predicates.
+
+The inline xattr check is the one thing filecheck still does not share.
+ocfs2_validate_inode_xattr() calls ocfs2_error() through its helpers in
+xattr.c, so reusing it would mean threading a reporting flag down into
+that file.  Left for a follow-up.
+
+Testing, on top of linux-next 20261103:
+
+Patches 1-20 were checked to be behaviour preserving.  All 27 log
+messages, all return codes and all ocfs2_error()/mlog() call sites in
+ocfs2_validate_inode_block() are unchanged, each new predicate body was
+compared against the condition it replaced, and the disassembly of
+ocfs2_filecheck_validate_inode_block() is instruction identical apart
+from __LINE__ constants.  The normal validator's disassembly differs by
+more than that -- basic blocks are rescheduled and registers reallocated
+-- so equivalence there rests on the source level comparison rather than
+on an instruction by instruction proof.  The deliberate rewrites are the
+ocfs2_read_links_count() reuse in patch 1, the OCFS2_VALID_FL spelling
+unification in patch 3, flattening the mutually exclusive suballoc
+if/else-if into two tests in patch 5, and the redundant self-bounding
+guard added in patch 13.
+
+In a QEMU guest running this series, on 4K blocks with inline-data,
+refcount, sparse, usrquota, grpquota, xattr and indexed-dirs enabled:
+mount and I/O over seventeen inode types plus all the system inodes
+produced no false positive, and filecheck reported SUCCESS for every one
+of them.  A separate 512-byte block volume with inline-data, xattr,
+sparse and refcount was checked the same way over five inode types, also
+with no false positive.
+
+The corruption tests used a third volume formatted with nometaecc, so
+that a checksum failure would not mask the field being tested.  Seven
+deliberately corrupted dinodes -- zero and oversized extent l_count,
+oversized inline id_count, oversized fast symlink i_size, refcount flag
+without i_refcount_loc, oversized suballoc bit and oversized
+l_next_free_rec -- were each detected with the expected message, with no
+ocfs2_error() escalation and the filesystem still read-write afterwards.
+fix was then run on two of them: the zero l_count case, which repair
+cannot fix, returned INVALIDINO, and the l_next_free_rec case, which it
+does fix, returned SUCCESS.
+
+Forcing i_xattr_inline_size up on the 512-byte block volume drove the
+inline maximum negative and produced "inline data id_count 312 exceeds
+max -88", confirming the signed comparison survived the extraction.
+
+The ocfs2 testsuite and xfstests were not run.
+
+Joseph Qi (30):
+  ocfs2: abstract the zero nlink or mode dinode check
+  ocfs2: abstract the dinode i_blkno mismatch check
+  ocfs2: abstract the dinode OCFS2_VALID_FL check
+  ocfs2: abstract the dinode fs_generation mismatch check
+  ocfs2: abstract the dinode suballoc slot checks
+  ocfs2: abstract the dinode suballoc bit check
+  ocfs2: abstract the dinode orphaned slot check
+  ocfs2: abstract the dinode DIO orphaned slot check
+  ocfs2: abstract the inline data dinode guard and cluster check
+  ocfs2: abstract the inline data id_count bound check
+  ocfs2: abstract the inline data i_size bound check
+  ocfs2: abstract the fast symlink dinode guard and size check
+  ocfs2: abstract the fast symlink NUL-termination check
+  ocfs2: abstract the chain list dinode guard and count check
+  ocfs2: abstract the chain list next free record check
+  ocfs2: abstract the chain list bits per cluster check
+  ocfs2: abstract the dinode refcount location check
+  ocfs2: abstract the zero extent list count check
+  ocfs2: abstract the oversized extent list count check
+  ocfs2: abstract the extent list next free record check
+  ocfs2: report unrepairable corruption from online filecheck fix
+  ocfs2: check dinode nlink and mode in online filecheck
+  ocfs2: check dinode suballoc slot in online filecheck
+  ocfs2: check dinode suballoc bit in online filecheck
+  ocfs2: check dinode orphaned slots in online filecheck
+  ocfs2: check inline data dinodes in online filecheck
+  ocfs2: check fast symlink dinodes in online filecheck
+  ocfs2: check chain list dinodes in online filecheck
+  ocfs2: check dinode refcount location in online filecheck
+  ocfs2: check extent list dinodes in online filecheck
+
+ fs/ocfs2/inode.c | 456 +++++++++++++++++++++++++++++++++++++++++------
+ 1 file changed, 399 insertions(+), 57 deletions(-)
+
 -- 
-Jan Kara <jack@suse.com>
-SUSE Labs, CR
+2.39.3
+
