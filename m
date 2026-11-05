@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.100
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.131
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
 	t=1793872176;
-	b=dTNGOcOgYrtt/avymudEAVZQLdzwvtlnjzuL6Bug728Ln2IF7x6ocVliC2pjdRIAhpI2
-	 nXo1PJlq2dss5kRUIt5uWXCKElf7eLvu0FAziADpBoGp9BM92oBJ7hamGFkKiTA/hW8el
-	 hScFRAxLs8wYUatOImC94zAlFvAq/89OfM+HUEkDf9hQdNonKo7Bur71+3R6YtEzBK9yK
-	 RO0p2ZlKIdFa3vlt1Fg1m+8jrNGcKwx3aM8luDNlbOye4I2Hzxy7XEMFJUzA1mH/kJofW
-	 RVHuB9HHJ23KKzmdSdkaET8UUasGWEBseSpuaXeERw3kum9zs2XDqMdTQJ8LifZN4/w==
+	b=AvTOD+tfyN3AqLlXvyrzGhBXgh4KMl8A0QqbQhkCLQck5B8GkufvBsI+Al4u0FTTGUq3
+	 neMsbfvFSRzqSSyheTF8lEmy8SXQVPY0ZhERtYAmRNGY/wNDv00V/zqsZNkVoqGUOy5CQ
+	 +C3Rn1W7tuQBsVKRrLNA5j6YY95JMuzaELRdj697KnAPpsoIYnrrlN7nDMt6QDvOy/aLP
+	 F6WaHL2IbUzH/cBj38z9ZIFW9rzqaxWZzQ8GQVoYnnj7IEvp/jEp4zC2mv6M3PlF2mHXK
+	 T6l/IeJPOouEww+rlg3CHbcJyOieL+oxbpddAbJhbli19vY4tgBL4UUr8FDOK0toDEA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
 	a=rsa-sha256; c=relaxed/relaxed; t=1793872176;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=EdvOzSA0ips8bwQUfNOy8LK7YnXn3SMJmmzqT2NcLQI=;
-	b=1UzE5aVs9Cv5NVfg2fzpXQHhZG6KanVbj5R9FTEIwEtRyKTZWipDMsPMpO9LYGxg3FBG
-	 AHqBLROOIGMxGa6xOFf+2t+Sb9rh1NrPbe6u5bQVDPO2Zm0YcJFxMG72o6G9hT+VG4Hu5
-	 GK6MEOV/+HhbLl6d+M5Rz0mkB8uzlppe80nlv/IHiNZedeXRK8jfyuoQVd0CsOoR8cvDY
-	 E/krZ8MqU+Ke18BWrJLyy53KXr3VrzoSZZU5Sgp0kf4pnUfD7whEbVr9QizC+H0mjhZ7E
-	 Nb+WXtKZClAVcjXnblsVTQCZ5B1i/KpQVhfNtvyF4xUhleLcuXAD7GA1QsG4w/wY0Ng==
+	bh=kCvgsly8FCsXc0g7/2zskbLWDNvOjLoguzel/K4aeGE=;
+	b=yzd9nRIelabtl6oLAxPk6xvhPMKQB4M0ciysi+29VFlvHhn85q4isFlMU6QjphW/LiG0
+	 3eHjOtbgRZlFoHIA4Ux6RxtZmRPnCTlo79Ja2eO0xrEDyZw5QUYNH1PNHeHEn35SPWB/e
+	 TC0SVpGmR3ByJoG6w6pXWuwn6MjXTjKUS0y+yIE0W/f6uKbPpi740QA2N2Xko4ra5zzRH
+	 7b/SlIvbuAnHxGNkRiSgupm///yuLmuhiUXj6P+eaJVxMdKe1C1Ydm8DUHTeTYeT3DGPJ
+	 F8O6fXkGkK0V6grjE7lUfvcmjv2TzUwc1x6ENAsJfPqOogcY2AhUON5TZYHbJ5uIhEQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=SbB8Lwmn;
-	arc=none smtp.remote-ip=115.124.30.100
-Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=RoDFaRBy;
+	arc=none smtp.remote-ip=115.124.30.131
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 55952606D81F
-	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 09:49:34 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 55952606D81F
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 22B97606D831
+	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 09:49:35 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 22B97606D831
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=SbB8Lwmn
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=RoDFaRBy
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793872173; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=EdvOzSA0ips8bwQUfNOy8LK7YnXn3SMJmmzqT2NcLQI=;
-	b=SbB8LwmnqhBS0oFEwHs3NlI+vhAD0OV1/j926zHkgXLMrs5DiOqbfg4CA3yMAlJb0W113vfwlXOJ0ieko5GH3DSOyB07Kl24AWsMmZUzmwo5hH1MnyjGuglke3DN41HrlGjiSnBzBRUolA95QuH3iQP704N9ZCAqqTM/aOTMCco=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R141e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam011083073210;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8K7.c_1793872171;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8K7.c_1793872171 cluster:ay36)
+	t=1793872174; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=kCvgsly8FCsXc0g7/2zskbLWDNvOjLoguzel/K4aeGE=;
+	b=RoDFaRBy6BxYoppdNolUhvNXCvRNIcdGoes2UPos2MCSzz1Q4o2aWtE08LOqNaTBRWEO+rKdIkmz5u43nlhCQSgxPT9s7vJ66nrUS2Amhy3RRrOmY6E3SmhG4yvG0Bpiu/pMuQFITVpiaGqBp65W1DFmlPxvgSNVDEmfnyBIH2U=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R201e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8QR0g_1793872172;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8QR0g_1793872172 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Thu, 05 Nov 2026 17:49:32 +0800
+          Thu, 05 Nov 2026 17:49:33 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH 05/30] ocfs2: abstract the dinode suballoc slot checks
-Date: Thu,  5 Nov 2026 17:49:01 +0800
-Message-Id: <20261105094926.3203416-6-joseph.qi@linux.alibaba.com>
+Subject: [PATCH 06/30] ocfs2: abstract the dinode suballoc bit check
+Date: Thu,  5 Nov 2026 17:49:02 +0800
+Message-Id: <20261105094926.3203416-7-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
 References: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
@@ -67,78 +67,43 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-The suballoc slot validation is a nested if/else-if whose two arms carry
-different error messages.  Split it into two predicates so each message
-stays at its own call site without having to re-test the slot value to
-work out which arm fired.
-
-The arms were already mutually exclusive, so two sequential tests are
-equivalent to the if/else-if.
-
-Keep the OCFS2_INVALID_SLOT exclusion in the range predicate.
-OCFS2_INVALID_SLOT is 65535, which is greater than max_slots - 1, so
-without it every system inode mkfs.ocfs2 creates from the global
-allocator would be rejected.  ocfs2_validate_group_descriptor() in
-suballoc.c open-codes a similar range test that deliberately permits
-OCFS2_INVALID_SLOT for all inodes; it is left alone because this
-predicate is stricter.
+Fold the i_suballoc_bit against ocfs2_suballoc_bits_per_block() test into
+a predicate.  The rationale comment stays at the call site, next to the
+error it explains.
 
 No functional change intended.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/inode.c | 31 ++++++++++++++++++++++---------
- 1 file changed, 22 insertions(+), 9 deletions(-)
+ fs/ocfs2/inode.c | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 8eefda8fe4a6..412c8149d306 100644
+index 412c8149d306..89970378daf4 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -88,6 +88,19 @@ static bool ocfs2_dinode_has_wrong_fs_generation(struct super_block *sb,
- 	return le32_to_cpu(di->i_fs_generation) != OCFS2_SB(sb)->fs_generation;
+@@ -101,6 +101,12 @@ static bool ocfs2_dinode_has_out_of_range_suballoc_slot(struct super_block *sb,
+ 		(u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1;
  }
  
-+static bool ocfs2_dinode_has_invalid_suballoc_slot(struct ocfs2_dinode *di)
++static bool ocfs2_dinode_has_bad_suballoc_bit(struct super_block *sb,
++					      struct ocfs2_dinode *di)
 +{
-+	return le16_to_cpu(di->i_suballoc_slot) == (u16)OCFS2_INVALID_SLOT &&
-+		!(le32_to_cpu(di->i_flags) & OCFS2_SYSTEM_FL);
-+}
-+
-+static bool ocfs2_dinode_has_out_of_range_suballoc_slot(struct super_block *sb,
-+							struct ocfs2_dinode *di)
-+{
-+	return le16_to_cpu(di->i_suballoc_slot) != (u16)OCFS2_INVALID_SLOT &&
-+		(u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1;
++	return le16_to_cpu(di->i_suballoc_bit) >= ocfs2_suballoc_bits_per_block(sb);
 +}
 +
  static bool ocfs2_valid_inode_mode(umode_t mode)
  {
  	return fs_umode_to_ftype(mode) != FT_UNKNOWN;
-@@ -1553,15 +1566,15 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 	 * deleting it would pass the slot to get_local_system_inode() via
- 	 * ocfs2_remove_inode() and trigger BUG_ON(slot == OCFS2_INVALID_SLOT).
+@@ -1590,7 +1596,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 	 * BUG_ON((count + start_bit) > ocfs2_bits_per_group(cl)), since any
+ 	 * group holds at most ocfs2_suballoc_bits_per_block() bits.
  	 */
--	if (le16_to_cpu(di->i_suballoc_slot) == (u16)OCFS2_INVALID_SLOT) {
--		if (!(le32_to_cpu(di->i_flags) & OCFS2_SYSTEM_FL)) {
--			rc = ocfs2_error(sb,
--					 "Invalid dinode %llu: suballoc slot %u for non-system inode\n",
--					 (unsigned long long)bh->b_blocknr,
--					 le16_to_cpu(di->i_suballoc_slot));
--			goto bail;
--		}
--	} else if ((u32)le16_to_cpu(di->i_suballoc_slot) > OCFS2_SB(sb)->max_slots - 1) {
-+	if (ocfs2_dinode_has_invalid_suballoc_slot(di)) {
-+		rc = ocfs2_error(sb,
-+				 "Invalid dinode %llu: suballoc slot %u for non-system inode\n",
-+				 (unsigned long long)bh->b_blocknr,
-+				 le16_to_cpu(di->i_suballoc_slot));
-+		goto bail;
-+	}
-+
-+	if (ocfs2_dinode_has_out_of_range_suballoc_slot(sb, di)) {
- 		rc = ocfs2_error(sb, "Invalid dinode %llu: suballoc slot %u\n",
+-	if (le16_to_cpu(di->i_suballoc_bit) >= ocfs2_suballoc_bits_per_block(sb)) {
++	if (ocfs2_dinode_has_bad_suballoc_bit(sb, di)) {
+ 		rc = ocfs2_error(sb, "Invalid dinode %llu: suballoc bit %u\n",
  				 (unsigned long long)bh->b_blocknr,
- 				 le16_to_cpu(di->i_suballoc_slot));
+ 				 le16_to_cpu(di->i_suballoc_bit));
 -- 
 2.39.3
 
