@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.124
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.100
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793872192;
-	b=PS5mEWKF+M0nJGme0okjeVqEgQUh31//fxumYOdNFeCRgCXV56xo3dDcxGE8J5CUi6Jw
-	 49i6biJ71gKuB7fiKJnTk4eWxZwsKv20woGZLSjP0Nawfituh/Gyu8BXPZj0gwLAPJXKK
-	 CQWnt57RMhbqDXma1ZmVr59wnKWdJUlIoi+/jaBPRdEdNHZ3NKyDruukGAxMXU1jtDOrg
-	 Q4s3nW2kZqS2/IeD0R1OYPH5bRMtRT/0tN8BGa9alaO3wTvZaQGdTjJtNBzCFIjGcFifY
-	 wLUNdwJ2IrqCVMNrqlqjDEw/SreIxLGiEWGs5ZONqt1TCpXVtb/Orgccq6V2XOudKlQ==
+	t=1793872193;
+	b=lDe8qG2OLSsfkTxnuWdzokqQb0LfzlFz8hyx+4UH37BBi4y+2xXsOGzedLxx6NOENRS3
+	 4ydEE5wzkgaJd9AAq+la8iT3sp7/DZQUImQDkex90ejbfKRVGn6nOBUi5vZCcei+HHoY5
+	 LqlhHmptjE95N8g/eLxW4Q45xATU0WNfetqSXno0OGcBqzNuRasQJZQYSLKths0Q6y4QT
+	 EUz7s3SrinlfSj7J6TQzA1Beb7DZ4j6qETzfL3qPoFMH2m6Jv/R5YmGRoSQZkSsNTUXPi
+	 SD7PIaCysOCuZ3sJKxOpEdr3twrYpTAPTvxxRc2Udza0ySCUbn/zypEBlExDTwL6nLA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793872192;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793872193;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=JoB4W0U1N8S7kb+JyhF/wcdtf7y1w+y8O0idiiO+Ix4=;
-	b=fOrytcR7HVSKCma505ZoEXCNbembx0N3jreOSNMd8YI8bJNFKA8hMJmLhoJTLfOh0EXp
-	 PRMnXfQinjF/gPr2/mChY5QeT80LXC9ndqW+QbA1t+gbDj8G91TnP0YrB20gKQpJXluj3
-	 +KFO8vgxhc2ROsX1n7EG2baycXbHrfqTSCzVlD1cnmA9NyOJ2gakPNbEIcOMpmkHiqpkD
-	 JNxu3ARqtgg5R0BJuHDajVn7z0I0OB/f07VGA8lRXrMYl11pI2kR8Za7xpvXfDHgL66pU
-	 5XFgZKPVpfVcmRtYtpxix2u1O5f/7KRxrc40V0AffSJvv5/6VJtBgBRQPBl2E/DJclw==
+	bh=j7EPhho6X4WeJbT4WBRO+f19XJgmFg2S1eGKVkdT/7U=;
+	b=ZjhHTVc/oPLyXPEvF1kmZd4F3mWittEVOEfqUtysTKIFIbQFbHesLZHBtTFKz073LkE3
+	 qZ3EqirGoCDDGpYZxtr6CgjFSre8/NgUFXmD1ZZeeJIFo0kvTyINRCe8sUjsI8XOg3mMq
+	 LEa1YYvLyWQA3y9l12BCfQuEIwgACaijOUk7ElMuY3P8ps92FsdWzDM2Y0HQ8qfdUMNee
+	 w+MUTcav172p2BFOOUKXBb7aRxRadaMz2mQpPcdbXRBEpDvIvy8GU5+3r8S5cDi3OofNs
+	 Co+FtFRdxy+K0mFqdRuN19n/uJywLQXI7TnjqlQRejRzFCVc5oPbJLmtMThCUiCy7og==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=fvhTHDSz;
-	arc=none smtp.remote-ip=115.124.30.124
-Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=oSMkFQ9m;
+	arc=none smtp.remote-ip=115.124.30.100
+Received: from out30-100.freemail.mail.aliyun.com (out30-100.freemail.mail.aliyun.com [115.124.30.100])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A197260A2605
-	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 09:49:51 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A197260A2605
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3050F60A2625
+	for <ocfs2-devel@lists.linux.dev>; Thu,  5 Nov 2026 09:49:52 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3050F60A2625
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=fvhTHDSz
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=oSMkFQ9m
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793872183; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=JoB4W0U1N8S7kb+JyhF/wcdtf7y1w+y8O0idiiO+Ix4=;
-	b=fvhTHDSzSGZtpIaJ5FfuE2EBHOalvQFtGinyCgjVsZ/3mVwRmj3vnxsl7aKarIKYgz+rS1OSDtieSApUkzMxTPNhiwrlDl0T1K3GCsJzBYcnQUeQbJVGjSkSXHj5UYv8dJ3GX/vbcP31bMwzwRm0f30gHl3Ap1YVGnI00LKrzj0=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R621e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8QR4f_1793872182;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8QR4f_1793872182 cluster:ay36)
+	t=1793872191; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=j7EPhho6X4WeJbT4WBRO+f19XJgmFg2S1eGKVkdT/7U=;
+	b=oSMkFQ9m1TEjKnRwWoZ3zNRMibhztHnxdyJPPqJCKoHuPHYu3IS6UH9pv5n6XkrzOcJFpfDIurhOCJi/OcPQXj91sIfnm0/S5l14QKu83vR6Uvx7cmvF3S0sQ7FQ438Udt4E1huY6TJAbmZ8vM+Gz7/9Y4/SmLpx13gL1cBgdps=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R491e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XE8K77E_1793872189;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XE8K77E_1793872189 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Thu, 05 Nov 2026 17:49:42 +0800
+          Thu, 05 Nov 2026 17:49:50 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH 16/30] ocfs2: abstract the chain list bits per cluster check
-Date: Thu,  5 Nov 2026 17:49:12 +0800
-Message-Id: <20261105094926.3203416-17-joseph.qi@linux.alibaba.com>
+Subject: [PATCH 24/30] ocfs2: check dinode suballoc bit in online filecheck
+Date: Thu,  5 Nov 2026 17:49:20 +0800
+Message-Id: <20261105094926.3203416-25-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
 References: <20261105094926.3203416-1-joseph.qi@linux.alibaba.com>
@@ -67,62 +67,37 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Fold the cl_bpc test into a predicate that computes the expected bits per
-cluster itself, and drop the u16 bpc local from
-ocfs2_validate_inode_block().  No log message prints it, so keeping it at
-the call site would leave an unused variable.
-
-The two bitmap_blkno conditions are preserved: the global bitmap inode
-itself is exempt from the bits-per-cluster check.
-
-No functional change intended.
+Wire the suballoc bit range predicate into the filecheck validator.  A
+suballocator group bitmap lives in a single block, so a bit at or beyond
+ocfs2_suballoc_bits_per_block() can never be valid; accepting it would
+later trip the BUG_ON() in _ocfs2_free_suballoc_bits() when the inode is
+deleted.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/inode.c | 16 +++++++++++-----
- 1 file changed, 11 insertions(+), 5 deletions(-)
+ fs/ocfs2/inode.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 88284a64cf49..7f3995ca771b 100644
+index 7cde33f0f616..0c515ba37ea0 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -234,6 +234,16 @@ static bool ocfs2_dinode_has_bad_chain_next_free(struct ocfs2_dinode *di)
- 		le16_to_cpu(di->id2.i_chain.cl_count);
- }
+@@ -2036,6 +2036,15 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
  
-+static bool ocfs2_dinode_has_bad_chain_bpc(struct super_block *sb,
-+					   struct ocfs2_dinode *di)
-+{
-+	u16 bpc = 1 << (OCFS2_SB(sb)->s_clustersize_bits - sb->s_blocksize_bits);
++	if (ocfs2_dinode_has_bad_suballoc_bit(sb, di)) {
++		mlog(ML_ERROR,
++		     "Filecheck: invalid dinode #%llu: suballoc bit %u\n",
++		     (unsigned long long)bh->b_blocknr,
++		     le16_to_cpu(di->i_suballoc_bit));
++		rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
++		goto bail;
++	}
 +
-+	return OCFS2_SB(sb)->bitmap_blkno &&
-+		OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
-+		le16_to_cpu(di->id2.i_chain.cl_bpc) != bpc;
-+}
-+
- void ocfs2_set_inode_flags(struct inode *inode)
- {
- 	unsigned int flags = OCFS2_I(inode)->ip_attr;
-@@ -1849,8 +1859,6 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 
- 	if (ocfs2_dinode_has_chain_list(di)) {
- 		struct ocfs2_chain_list *cl = &di->id2.i_chain;
--		u16 bpc = 1 << (OCFS2_SB(sb)->s_clustersize_bits -
--				sb->s_blocksize_bits);
- 
- 		if (ocfs2_dinode_has_bad_chain_count(sb, di)) {
- 			rc = ocfs2_error(sb, "Invalid dinode %llu: chain list count %u\n",
-@@ -1864,9 +1872,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 					 le16_to_cpu(cl->cl_next_free_rec));
- 			goto bail;
- 		}
--		if (OCFS2_SB(sb)->bitmap_blkno &&
--		    OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
--		    le16_to_cpu(cl->cl_bpc) != bpc) {
-+		if (ocfs2_dinode_has_bad_chain_bpc(sb, di)) {
- 			rc = ocfs2_error(sb, "Invalid dinode %llu: bits per cluster %u\n",
- 					 (unsigned long long)bh->b_blocknr,
- 					 le16_to_cpu(cl->cl_bpc));
+ 	if (!ocfs2_valid_inode_mode(le16_to_cpu(di->i_mode))) {
+ 		mlog(ML_ERROR,
+ 		     "Filecheck: invalid dinode #%llu: mode 0%o has unknown file type\n",
 -- 
 2.39.3
 
