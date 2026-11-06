@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.101
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.111
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1793963710;
-	b=lHhtcWBdm6b5CQXAkYlWtuR3n6lUEqJwej/5c83BtW3+DneJWK2hSlQF/z/70qHN+znf
-	 jtUJZAF2jeb9Q/bOfFA0kZoSodh9obAj6XLMQlX4s+uHIIj29zIOE2QsuGLEG/f7UAol6
-	 j2h0t1leFPrwJ+RVV5uSWeRot5m26082dM0Kw46YbHqUIEaU9kHCLwdk9eN7mcY3c+vwx
-	 jJIBu0NUS/KiczSy2ZPmx2rwSfpN3Gng6GHP72AExankzeqbuXbLaP1vV0u5pbgdG4WRI
-	 +4t/GFUngt2lO1cbjY/c1fiYcrUPA4mvOr9VsYbNH4pJnpioqBhlbEJ2xeh+6JufYGQ==
+	t=1793963711;
+	b=S1QJTtK4ZiKB1ryoOdD2BgzVKoi0Ba01mVYOq8a+pvhTrXuZSHTUQVolxK1SCPJqkfoz
+	 x7FRtKRaWyqm0rOYEaHrp9HNIvfDTRmUrTXXGAXRUPTicKy/TO16AxiDQGPO8/CHZoWq9
+	 tl0nreRIpXO2ug0PNI3FVs9i6osFm807VbCflt+x8K6XohEEbSDFT5gfbjh2BWb4OnPRi
+	 Yfup4WS9VS/CuG5X3XrKoXGjDtN+GNDuLvuqbStmDYHk9wEKsGzNozFPrPFY+okQXIGha
+	 XjExV7czeZy9REHw6StZFrq4TlOZeZ7wbNVgXydAKDxiujJjSv8xcg0vWsoJh6kprCQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1793963710;
+	a=rsa-sha256; c=relaxed/relaxed; t=1793963711;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=ly/DHPYaYtg4H5d7I4tI+XKSj5VHoc0rWfr4sQj575E=;
-	b=w01hT8wetQpaW3QVWW9DvpARDTh6xH0VZ/Z8XEUMY5FMMalPxnocfyWemgCm1tGW318a
-	 iDujUbC1D/Cbong/w3G8QZBDg/fzYcC/Z92mwU1RtXSs2UO1jwGzBPFiHaGDBD3Rmrk0y
-	 JPqM9er+0o1cLZc5Kx3jcXzwxxhV4lOpE58IE8ZS1SYFHiKxcZCwPJ9zFfxPDhJr8LbsP
-	 sQU4ELhwTULFmtH7sbrvoDU/qfjpxfXuipvCIpKDOdHahLxZFwwxKN1HdCNNkCthmDtgF
-	 Qe1OdNdxRofItnOfNLRJhRIvtqRXjfF3BLR4KGdT1PAaMDGdm1MtBMJuHXIxe8LhtkQ==
+	bh=WRQbLV9xK9j8db8LykabLsYxijEPAiJ3b/bGAaI2kjo=;
+	b=UQcDXS2xJB1VMQxZ5L2lIctlOicfx0SmGVCK+0B1fWLVuMRrsdR+XOBjoQga39K/Xea3
+	 m+ZoiuQCdhotPOoVA3kCjMY6nuFMD/QoTXusqVT8npnxBCX/Ke9Pm3zJSh+Wa3mreWqN5
+	 S+wrABK1ls1ifwLFQO3L5V5Ouw2hlznu3PJCTMUDVfmJ5hOkC02+u0WJ8V7btTqMEgQ4+
+	 PmN/WaFeVkmXzQVG6Tj980JhleyAp0Q3Mo706CGI9iPwq0FClVbr5ncEootkWxvYUCb+G
+	 13xPz8a3/ySefhNYkN8Q/GFvpzCVMGdVpKnGnbTNhpbriktZrGlkrpLr5zRCtc8aDkQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=eEg2XrXJ;
-	arc=none smtp.remote-ip=115.124.30.101
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=XfsR5BuB;
+	arc=none smtp.remote-ip=115.124.30.111
+Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AB71E606A33D
-	for <ocfs2-devel@lists.linux.dev>; Fri,  6 Nov 2026 11:15:08 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org AB71E606A33D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C5CFD606D804
+	for <ocfs2-devel@lists.linux.dev>; Fri,  6 Nov 2026 11:15:09 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org C5CFD606D804
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=eEg2XrXJ
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=XfsR5BuB
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1793963701; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=ly/DHPYaYtg4H5d7I4tI+XKSj5VHoc0rWfr4sQj575E=;
-	b=eEg2XrXJ4zd65dFv0/caibkxYXd83hvt/OHO0ngPd8QAH1LoSOFAXqblzlRKo1oUVyflvowU7X8nfua+IOJgAoa3vtTFqfK4n8IGA4BfK1cBoWfCmtprFjY4kQn+cktR1/jcnt0p3tMsHOG/twmxucWW3us+BK4yAl5E7E8PHYA=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R171e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEBd-12_1793963699;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEBd-12_1793963699 cluster:ay36)
+	t=1793963702; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=WRQbLV9xK9j8db8LykabLsYxijEPAiJ3b/bGAaI2kjo=;
+	b=XfsR5BuBd9UB/k8mQoHfjcjftWGfhRBaVNUOafvTXAHZBctBU8glRaXXINRwnRTH745ghbMjulcPZJPH5HIDnUnk1EHtJUDjKsrd3vFEtCdZor68F1DmUVscjR5g90C45mNlHf5OY9yaZQRnroPckL6GBxgIPJ3jw0qpBLiL4W4=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R101e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEBd-1d_1793963701;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEBd-1d_1793963701 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Fri, 06 Nov 2026 19:15:00 +0800
+          Fri, 06 Nov 2026 19:15:01 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH v2 01/31] ocfs2: exempt orphaned dinodes from the zero nlink check
-Date: Fri,  6 Nov 2026 19:14:28 +0800
-Message-Id: <20261106111458.1467464-2-joseph.qi@linux.alibaba.com>
+Subject: [PATCH v2 03/31] ocfs2: abstract the dinode i_blkno mismatch check
+Date: Fri,  6 Nov 2026 19:14:30 +0800
+Message-Id: <20261106111458.1467464-4-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261106111458.1467464-1-joseph.qi@linux.alibaba.com>
 References: <20261106111458.1467464-1-joseph.qi@linux.alibaba.com>
@@ -67,70 +67,64 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-An open-unlinked inode legitimately has a zero link count on disk.
-ocfs2_unlink() drops the last link and writes it out with
-ocfs2_set_links_count(), ocfs2_orphan_add() then sets OCFS2_ORPHANED_FL,
-and OCFS2_VALID_FL is only cleared much later by ocfs2_remove_inode().
-The zero nlink check added by the commit below rejects such an inode as
--EFSCORRUPTED even though it is perfectly valid.
+The same i_blkno against b_blocknr comparison is open-coded in
+ocfs2_validate_inode_block(), ocfs2_filecheck_validate_inode_block() and
+ocfs2_filecheck_repair_inode_block().  Fold it into a shared predicate.
 
-That commit describes its own change as a check for "(i_mode == 0,
-i_nlink == 0, non-orphan)", but the code it added has no orphan exemption
-and ORs the two conditions rather than ANDing them, so a zero link count
-alone is enough to fail even when i_mode is valid.  Add the exemption the
-changelog describes.
+Each call site keeps its own log message and return code: the normal
+validator escalates through ocfs2_error(), filecheck reports
+OCFS2_FILECHECK_ERR_BLOCKNO, and repair rewrites the field.
 
-Orphan recovery hits this on every pass.  OCFS2_FI_FLAG_ORPHAN_RECOVERY
-clears can_lock in ocfs2_read_locked_inode(), so the block is read with
-ocfs2_read_blocks_sync() and then validated by the explicit
-ocfs2_validate_inode_block() call in that branch.  The read helper having
-no validate callback of its own does not mean the path skips validation.
-ocfs2_orphan_filldir() then ignores the resulting ocfs2_iget() failure
-("Skip bad inodes so that recovery can continue"), so the orphan is never
-wiped: its space is leaked permanently and the "Corrupt state" message is
-logged again on every mount.
+No functional change intended.
 
-The same applies to an orphaned dinode read through
-ocfs2_read_inode_block(), for example from ocfs2_delete_inode() once the
-buffer has been evicted.
-
-Note that a zero i_mode is already rejected by the later
-ocfs2_valid_inode_mode() check, since fs_umode_to_ftype(0) is FT_UNKNOWN,
-so the nlink arm was not what protected against the zombie inode the
-original commit was fixing.
-
-DIO orphans need no exemption: ocfs2_add_inode_to_orphan() is the only
-caller that passes dio=true to ocfs2_orphan_add(), and it never drops a
-link, so those inodes keep a positive link count.
-
-Fixes: 7efb45f9685f ("ocfs2: invalidate inode if i_mode is zero after block read")
-Cc: <stable@vger.kernel.org>
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/inode.c | 10 +++++++++-
- 1 file changed, 9 insertions(+), 1 deletion(-)
+ fs/ocfs2/inode.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 7005e59519b2..371857673712 100644
+index 209066321932..587fcea59f5a 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -1482,7 +1482,15 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+@@ -82,6 +82,11 @@ static bool ocfs2_dinode_has_zero_nlink_or_mode(struct ocfs2_dinode *di)
+ 	return !ocfs2_read_links_count(di) || !di->i_mode;
+ }
+ 
++static bool ocfs2_dinode_has_wrong_blkno(struct ocfs2_dinode *di, u64 blkno)
++{
++	return le64_to_cpu(di->i_blkno) != blkno;
++}
++
+ static bool ocfs2_valid_inode_mode(umode_t mode)
+ {
+ 	return fs_umode_to_ftype(mode) != FT_UNKNOWN;
+@@ -1518,7 +1523,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
  		goto bail;
  	}
  
--	if ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode) {
-+	/*
-+	 * An open-unlinked inode legitimately has a zero link count on disk:
-+	 * ocfs2_unlink() drops the last link and ocfs2_orphan_add() sets
-+	 * OCFS2_ORPHANED_FL, while OCFS2_VALID_FL is only cleared later by
-+	 * ocfs2_remove_inode().  DIO orphans keep their link count, so they
-+	 * need no exemption here.
-+	 */
-+	if (!(le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
-+	    ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode)) {
- 		mlog(ML_ERROR, "Invalid dinode #%llu: "
- 			"Corrupt state (nlink = %u or mode = %u) detected!\n",
- 		        (unsigned long long)bh->b_blocknr,
+-	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
++	if (ocfs2_dinode_has_wrong_blkno(di, bh->b_blocknr)) {
+ 		rc = ocfs2_error(sb, "Invalid dinode #%llu: i_blkno is %llu\n",
+ 				 (unsigned long long)bh->b_blocknr,
+ 				 (unsigned long long)le64_to_cpu(di->i_blkno));
+@@ -1840,7 +1845,7 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+ 	} else if (rc)
+ 		goto bail;
+ 
+-	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
++	if (ocfs2_dinode_has_wrong_blkno(di, bh->b_blocknr)) {
+ 		mlog(ML_ERROR,
+ 		     "Filecheck: invalid dinode #%llu: i_blkno is %llu\n",
+ 		     (unsigned long long)bh->b_blocknr,
+@@ -1945,7 +1950,7 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
+ 		return -OCFS2_FILECHECK_ERR_VALIDFLAG;
+ 	}
+ 
+-	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
++	if (ocfs2_dinode_has_wrong_blkno(di, bh->b_blocknr)) {
+ 		di->i_blkno = cpu_to_le64(bh->b_blocknr);
+ 		changed = 1;
+ 		mlog(ML_ERROR,
 -- 
 2.39.3
 
