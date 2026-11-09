@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.111
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.131
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
 	t=1794226921;
-	b=btAgynBJ7CFx27Z1savaQaVFr6m2SRJttiYlA65/gPZ175ksiPH7zGd6OUslA2G6RZE3
-	 enL6hN4UswE9cghlojWBvXdqMHdY4mBbaWtYGaHYzW/P/VSSTXYELCtj8CrEQ/KZEornA
-	 R/mBD3/2NvYAiDEPwTttSNB/k5q2rO6acGbIUXVOXD/mqTxK0pqM0gP4eiRE22PuVPobB
-	 TGA1YzYpOC3n1VL94h4YqtkZOwPMEVzUed12Bg+VnUdG1v0jpHE+/Z4H4+sLnZsK1/vA6
-	 YM3TqYQk/fHM/KmEsxd46YQZgrFeOUtwGMEf2jt30Xd+/sNNkmhhz8NtVgGPTMkbzAA==
+	b=J61ZL/ubkbfIp4XMO/Yiqypnz/iUIiNV3IMzeyhckcXi1mlG6rv9UhFX/9XNZsv5jqrZ
+	 GvTcVjIPwf5i0zzixNnc/vv2pAi5/P7v42jlUGbxT+WO9Anwa5Adl1CYIWU+EhwfLt4VH
+	 Xh2+XdldR0+uzeOyg+rOt5TrzWlzCIyUQdA/BYW9JUMlKtkgQgVQN4SmjO0t1CKNksJDA
+	 9vDCcf5b+aR3EdnIC371fZa+NxHSMb+dj49Pt1mJgVjcGg5XA0cTE6VktLH68PvAmMY58
+	 tTyhursHnB7jIYbkojN3HweYhfrCrUZ89+NZ5nxodNN8PCE9DlsH5W4sWAzK6PXaH1w==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
 	a=rsa-sha256; c=relaxed/relaxed; t=1794226921;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=fMu03X4wbz04Z9kIe0M1Zt3sPWaYbThV3APfzRBOM2g=;
-	b=zL8doXZuEspAB6cGRZziHLBQiaQjOcmnImLnEd+cQp0VNZnB9N9CtGgenHhqr6x+9gtl
-	 4AjwN6ZFxrv8z86V9wqJifJFgkt5KuzGoi7mQEj6lftePv85TJiEnzX7ACUJOa1o1OI0y
-	 08fV7I6oOALQ/jl73rKaQwftULwLRCa4VV5m5+ZNInIgVwB1X5eSKOND4kF99wAtVoGJA
-	 zTi7Y8k/OWlqSrx7nwD44+KTSKVq05oxXz6vc9ly71hK4CdCSeSy/bHENy87XW8VXduUK
-	 q66ozeQ6MEiXEafdSZ69OVgVSJMRpSw4RMtZh8WLnHMw4hzfjvzSptSaXq0YvEOmVAA==
+	bh=WRQbLV9xK9j8db8LykabLsYxijEPAiJ3b/bGAaI2kjo=;
+	b=qiQzqrB8f5BiYhw5qzUSQe1keW4mii2rQnuOlvvHRgbwwUhypmchghIqwLaOiBowIB+7
+	 wsAuj0JMMm4rRROvoODF6woU4tMrniG0/mihRKT9s51czgSFjaV613E99CGfO6NGjYQY/
+	 BdxQ6EiAwMtrQd1JlKEx8UzySWxDwZ7x6RvDon1o2WGDQw8hMlCWuxHV3RPYEc9pLqxsc
+	 xMjAugPtGMpy7C0Qjhqf2APwUzIuPRvdJa6PVWPAipIYEgfj6tox5RxQxx1C7CECGV1le
+	 7/PIE9nxl+QZvRY8gSKbYiUrVSxIVwDh23u8QmL/AvqKf7MqCWk8mRzYKy5dUArIM/A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=DqOgmZVm;
-	arc=none smtp.remote-ip=115.124.30.111
-Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=GhmQAK8v;
+	arc=none smtp.remote-ip=115.124.30.131
+Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id C4BED606D80E
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:22:00 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org C4BED606D80E
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0E12E606A33E
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:21:59 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0E12E606A33E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=DqOgmZVm
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=GhmQAK8v
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1794226918; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=fMu03X4wbz04Z9kIe0M1Zt3sPWaYbThV3APfzRBOM2g=;
-	b=DqOgmZVmmNXJhONveADONeCsUhK6KJYOd/WlDlxj/J6ox/QSVqpdbCoOzKJjNRP5rqeTIL7BR06R+TBrH8z0v0nW3bk8fNRfhkMbf/rEpgq6VQs1Kcgt25Ln1yGN+bN0KOaKKZT2nVcykSGMv7aCHn1ODFXpgKCVdFjICHyC68U=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R971e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOZNis_1794226917;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOZNis_1794226917 cluster:ay36)
+	t=1794226911; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=WRQbLV9xK9j8db8LykabLsYxijEPAiJ3b/bGAaI2kjo=;
+	b=GhmQAK8vSvnSW3GoRDjSUjfg1qiKpbk8hLpNbaoBwZ69T8EQi72AYGaFSv/0iILx0PtYVWyvaGiFeI4Xoujrvc2tbd1OqKv9TcghkyaWmZH3pBckxewsdjzmRPzs+uAyWxAn6TiLdXuVblD0ngsbnDgwdD9SVuDCIiUKC59AO6Q=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R131e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOZNgj_1794226910;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOZNgj_1794226910 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 09 Nov 2026 20:21:58 +0800
+          Mon, 09 Nov 2026 20:21:50 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH v3 11/31] ocfs2: abstract the inline data id_count bound check
-Date: Mon,  9 Nov 2026 20:21:01 +0800
-Message-Id: <20261109122121.21473-12-joseph.qi@linux.alibaba.com>
+Subject: [PATCH v3 03/31] ocfs2: abstract the dinode i_blkno mismatch check
+Date: Mon,  9 Nov 2026 20:20:53 +0800
+Message-Id: <20261109122121.21473-4-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
 References: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
@@ -67,57 +67,64 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Fold the id_count against ocfs2_max_inline_data_with_xattr() test into a
-predicate.
+The same i_blkno against b_blocknr comparison is open-coded in
+ocfs2_validate_inode_block(), ocfs2_filecheck_validate_inode_block() and
+ocfs2_filecheck_repair_inode_block().  Fold it into a shared predicate.
 
-The comparison stays signed.  ocfs2_max_inline_data_with_xattr() returns
-int and subtracts the unvalidated on-disk i_xattr_inline_size from the
-space available in the inode block, so it can go negative on small block
-sizes.  Caching it in an unsigned local would turn a negative maximum
-into a huge bound and silently accept the oversized id_count.  The
-message keeps its %d for the same reason.
+Each call site keeps its own log message and return code: the normal
+validator escalates through ocfs2_error(), filecheck reports
+OCFS2_FILECHECK_ERR_BLOCKNO, and repair rewrites the field.
 
 No functional change intended.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/inode.c | 16 ++++++++++++++--
- 1 file changed, 14 insertions(+), 2 deletions(-)
+ fs/ocfs2/inode.c | 11 ++++++++---
+ 1 file changed, 8 insertions(+), 3 deletions(-)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 2aac1918562a..259f44661f37 100644
+index 209066321932..587fcea59f5a 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -174,6 +174,19 @@ static bool ocfs2_dinode_has_inline_clusters(struct ocfs2_dinode *di)
- 	return le32_to_cpu(di->i_clusters) != 0;
+@@ -82,6 +82,11 @@ static bool ocfs2_dinode_has_zero_nlink_or_mode(struct ocfs2_dinode *di)
+ 	return !ocfs2_read_links_count(di) || !di->i_mode;
  }
  
-+static bool ocfs2_dinode_has_oversized_inline_data(struct super_block *sb,
-+						   struct ocfs2_dinode *di)
++static bool ocfs2_dinode_has_wrong_blkno(struct ocfs2_dinode *di, u64 blkno)
 +{
-+	/*
-+	 * The maximum is a signed int and can go negative, because
-+	 * i_xattr_inline_size is itself unvalidated.  Keep the comparison
-+	 * signed: an unsigned bound would turn a negative maximum into a
-+	 * huge one and let the oversized id_count through.
-+	 */
-+	return le16_to_cpu(di->id2.i_data.id_count) >
-+		ocfs2_max_inline_data_with_xattr(sb, di);
++	return le64_to_cpu(di->i_blkno) != blkno;
 +}
 +
- void ocfs2_set_inode_flags(struct inode *inode)
+ static bool ocfs2_valid_inode_mode(umode_t mode)
  {
- 	unsigned int flags = OCFS2_I(inode)->ip_attr;
-@@ -1747,8 +1760,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 			goto bail;
- 		}
+ 	return fs_umode_to_ftype(mode) != FT_UNKNOWN;
+@@ -1518,7 +1523,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
  
--		if (le16_to_cpu(data->id_count) >
--		    ocfs2_max_inline_data_with_xattr(sb, di)) {
-+		if (ocfs2_dinode_has_oversized_inline_data(sb, di)) {
- 			rc = ocfs2_error(sb,
- 					 "Invalid dinode #%llu: inline data id_count %u exceeds max %d\n",
- 					 (unsigned long long)bh->b_blocknr,
+-	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
++	if (ocfs2_dinode_has_wrong_blkno(di, bh->b_blocknr)) {
+ 		rc = ocfs2_error(sb, "Invalid dinode #%llu: i_blkno is %llu\n",
+ 				 (unsigned long long)bh->b_blocknr,
+ 				 (unsigned long long)le64_to_cpu(di->i_blkno));
+@@ -1840,7 +1845,7 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+ 	} else if (rc)
+ 		goto bail;
+ 
+-	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
++	if (ocfs2_dinode_has_wrong_blkno(di, bh->b_blocknr)) {
+ 		mlog(ML_ERROR,
+ 		     "Filecheck: invalid dinode #%llu: i_blkno is %llu\n",
+ 		     (unsigned long long)bh->b_blocknr,
+@@ -1945,7 +1950,7 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
+ 		return -OCFS2_FILECHECK_ERR_VALIDFLAG;
+ 	}
+ 
+-	if (le64_to_cpu(di->i_blkno) != bh->b_blocknr) {
++	if (ocfs2_dinode_has_wrong_blkno(di, bh->b_blocknr)) {
+ 		di->i_blkno = cpu_to_le64(bh->b_blocknr);
+ 		changed = 1;
+ 		mlog(ML_ERROR,
 -- 
 2.39.3
 
