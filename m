@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.98
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.124
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794226926;
-	b=KziMTLAqzjXaMQ365a4lB4SdP7z9Afj3FTTINJMH3mBWbzxMu4j1C3R+E1PBxI6DNoMr
-	 WTj3tXdWR9iM/9W7U70g5YpUdygSLZkdUqH2qHDiQLRwpsiidACtVK4j0+SlllUOfCsUq
-	 /SZmMimu0ziOQ3HqJGQqvTNn0JPAdoKYtbjsg0Wq3tdxD6Ussn/6KakNTwf6LbNbtv7Fq
-	 Re1DToqRn/vOetx9s2y0F7n60MDWslkSgWSAf/sraUTnOiACXDYqH0+dD5YuPaSy/4fDG
-	 N/Etcp6OosUUh8wmbGYiN/tB+MqViU5rL4DuVOEaGhyhmWcXa3WbdYR1AiCEaKKP0wg==
+	t=1794226927;
+	b=gFxmCJFkMj7GzcEvqyGB356vlgRQftaokbFqBCs+jOWu/95t9Wh+iJVSk/9sjr8m1Xzh
+	 vmdMGwa5ng8bN4N2J5z75zP0xGSxJiS7NKtySv40hrn4pwHrMjKXNrOe3RT0L6ulRWoe4
+	 ubBGGQLOieOTHewKUgXwyMeqF3/C5pfBA7Sjw+5+o9P4axm26ypnTjNu2U217zToX1aW+
+	 62kjf4tE8HxzK0mDKHzirtOgtlQ7EN2UCMdL983bc/wDYymKfHSasaetUOYedzz/ydVIC
+	 OE7QIAotxP8zCCYTDAbx2pdRr7mMjr55+9DJpzWzVSxW784z0VeOTKjI6bILD1tyLlA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794226926;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794226927;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=Ht3jRqYuLjrDEVEoazEJ37O5hdHUFkQk2/v/rACxvps=;
-	b=l2hwGFP9g7IyiSKTdvsK+eIg3cXjnxHUKZM7RuxFdC98TVjxmxGxILNVZ57hq44wUTv1
-	 DiIzuXXVurv9Zfsuo/so7g8ayIC/Jc+aFS7djhDaATtsLqnWj46wr/3/q+h45GJRDDP2w
-	 lTuM4nGcM+ApcrpIk6pri9uKHzsUmGjL5EHIBXQLQPnajF4Hqg6LJgh9zFpd/xyO8p9xq
-	 KP6HYokP4aKPdWMmfCx/T9T5ki8GZ+PYUatm2GntycptfUZN7XnAYzaa2fEE7YGd65BiF
-	 /zOyhX9wzSYzXq3nFs8yQA2LEaDSEwoxb1eBdWqFhKq02sdrEKWSP4JvqNgvnU5n3ug==
+	bh=wXb0GXyopzIAevJI4IHfeJICZevtzJ1G9faTYp+IM0M=;
+	b=B4+D1toDTqiXH6hi0ky8dlOG39Tq58JgB56Ms3TMb4ARLqob7geBglMGRjBO00j3rI85
+	 Bki1W/Q5xz+Of0j0C69jZ9kGE3edBm6jVQY+8mS2TUqQjLEY2seCl3YdWPfdIGLGEoPcY
+	 69YxxdvWPd1ulk3NN80efJpaxrMbGQG+MIC59pzA63VLrY2uI/pUpMYqXnNRFESMBE8gM
+	 NECslZlEOTYeys8Ak2bbPZTHkUcKLkNFvWohPYNadLZ0evqL/zqxg2cKvZLxj5ZxznOCr
+	 T0RgQyQdt9YPl7BotDq/eEoxHowXEZnIm7scatO7HDC2sQYCYS7MFrg2JAxWPcnbD5Q==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=YzT19rIi;
-	arc=none smtp.remote-ip=115.124.30.98
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=CWATIg6g;
+	arc=none smtp.remote-ip=115.124.30.124
+Received: from out30-124.freemail.mail.aliyun.com (out30-124.freemail.mail.aliyun.com [115.124.30.124])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3D783606D813
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:22:04 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3D783606D813
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9D37606D82A
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:22:05 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A9D37606D82A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=YzT19rIi
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=CWATIg6g
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1794226920; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=Ht3jRqYuLjrDEVEoazEJ37O5hdHUFkQk2/v/rACxvps=;
-	b=YzT19rIiGQVNY/zR6Wl3FvwT+siiR6Ih6gyLZGN1HIhLu5GIS34u69wlej82q+Sy9M6xMvejggEGnYJoLq73p0uIL2zONDZ15hQnYqimbvWq9jHRVfgqNfMic3ilFjEqSr0PP+wPrfhs/Pp2rMFuMc7fFRCGbPQFasj5Rm7Xzkc=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOjdqC_1794226919;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOjdqC_1794226919 cluster:ay36)
+	t=1794226917; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=wXb0GXyopzIAevJI4IHfeJICZevtzJ1G9faTYp+IM0M=;
+	b=CWATIg6gwjqkbP+quO+vMGrUTdMqqrfpFkt3PpRvvwroH5Rc42boLpIRztVDTkEKSDabd5EzGhyxAgdlPNv/dnFdOc//52wOdhkXt6Caw37IZKOjZI5rWedIZUoECBRpvp+ANVxVxBZu3kTg9UXJY47Uy1jJelBwmR99PcGqFQ4=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R151e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOZNi4_1794226915;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOZNi4_1794226915 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 09 Nov 2026 20:21:59 +0800
+          Mon, 09 Nov 2026 20:21:56 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH v3 13/31] ocfs2: abstract the fast symlink dinode guard and size check
-Date: Mon,  9 Nov 2026 20:21:03 +0800
-Message-Id: <20261109122121.21473-14-joseph.qi@linux.alibaba.com>
+Subject: [PATCH v3 09/31] ocfs2: abstract the dinode DIO orphaned slot check
+Date: Mon,  9 Nov 2026 20:20:59 +0800
+Message-Id: <20261109122121.21473-10-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
 References: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
@@ -67,64 +67,46 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-Introduce ocfs2_dinode_is_fast_symlink() for the S_ISLNK with no
-allocated clusters test that selects the id2.i_symlink union arm, and
-ocfs2_dinode_has_oversized_fast_symlink() for the i_size bound.
-
-The guard is deliberately not shared with the similar test inside
-ocfs2_dinode_has_extents(), which additionally requires a non-zero
-i_size.  A zero-length, zero-cluster symlink currently falls through to
-the extent list checks, and reusing one predicate for both would change
-that.
+Fold the OCFS2_DIO_ORPHANED_FL guarded i_dio_orphaned_slot range test
+into a predicate, mirroring the orphaned slot one.  The flag test stays
+inside it for the same reason: the slot field is only meaningful while
+the inode is DIO orphaned.
 
 No functional change intended.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/inode.c | 20 +++++++++++++++++---
- 1 file changed, 17 insertions(+), 3 deletions(-)
+ fs/ocfs2/inode.c | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 8e867f6f394a..bf27925dd5c8 100644
+index fd9613a95802..17d546a9245d 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -192,6 +192,21 @@ static bool ocfs2_dinode_has_inline_size_over_count(struct ocfs2_dinode *di)
- 	return le64_to_cpu(di->i_size) > le16_to_cpu(di->id2.i_data.id_count);
+@@ -124,6 +124,13 @@ static bool ocfs2_dinode_has_bad_orphaned_slot(struct super_block *sb,
+ 		le16_to_cpu(di->i_orphaned_slot) >= OCFS2_SB(sb)->max_slots;
  }
  
-+/*
-+ * Unlike the similar test in ocfs2_dinode_has_extents(), this does not require
-+ * a non-zero i_size: a zero-length fast symlink is still validated here.
-+ */
-+static bool ocfs2_dinode_is_fast_symlink(struct ocfs2_dinode *di)
++static bool ocfs2_dinode_has_bad_dio_orphaned_slot(struct super_block *sb,
++						   struct ocfs2_dinode *di)
 +{
-+	return S_ISLNK(le16_to_cpu(di->i_mode)) && !le32_to_cpu(di->i_clusters);
++	return (le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
++		le16_to_cpu(di->i_dio_orphaned_slot) >= OCFS2_SB(sb)->max_slots;
 +}
 +
-+static bool ocfs2_dinode_has_oversized_fast_symlink(struct super_block *sb,
-+						    struct ocfs2_dinode *di)
-+{
-+	return le64_to_cpu(di->i_size) >= ocfs2_fast_symlink_chars(sb);
-+}
-+
- void ocfs2_set_inode_flags(struct inode *inode)
+ static bool ocfs2_valid_inode_mode(umode_t mode)
  {
- 	unsigned int flags = OCFS2_I(inode)->ip_attr;
-@@ -1784,12 +1799,11 @@ int ocfs2_validate_inode_block(struct super_block *sb,
- 		}
+ 	return fs_umode_to_ftype(mode) != FT_UNKNOWN;
+@@ -1628,8 +1635,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		goto bail;
  	}
  
--	if (S_ISLNK(le16_to_cpu(di->i_mode)) &&
--	    !le32_to_cpu(di->i_clusters)) {
-+	if (ocfs2_dinode_is_fast_symlink(di)) {
- 		int max_inline = ocfs2_fast_symlink_chars(sb);
- 		u64 i_size = le64_to_cpu(di->i_size);
- 
--		if (i_size >= max_inline) {
-+		if (ocfs2_dinode_has_oversized_fast_symlink(sb, di)) {
- 			rc = ocfs2_error(sb,
- 					 "Invalid dinode #%llu: fast symlink i_size %llu exceeds max %d\n",
- 					 (unsigned long long)bh->b_blocknr,
+-	if ((le32_to_cpu(di->i_flags) & OCFS2_DIO_ORPHANED_FL) &&
+-	    le16_to_cpu(di->i_dio_orphaned_slot) >= OCFS2_SB(sb)->max_slots) {
++	if (ocfs2_dinode_has_bad_dio_orphaned_slot(sb, di)) {
+ 		rc = ocfs2_error(sb, "Invalid dinode %llu: DIO orphaned slot %u\n",
+ 				 (unsigned long long)bh->b_blocknr,
+ 				 le16_to_cpu(di->i_dio_orphaned_slot));
 -- 
 2.39.3
 
