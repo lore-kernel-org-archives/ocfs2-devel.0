@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.112
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.111
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794226896;
-	b=RkerPThMXc/3SDPsXnLHpH1HO3+A+s6SL1Y6TM9U81Og25i2w/AKvqtt6ofgGPa8K2Qi
-	 d/woMc6eQHfHtSu6N4S3sHc6PUriQDXOZEg7817M0zEJuCYsQFWtzCzAqzrS+G3Z5QrL/
-	 xjFyZ407lmy9jcs812PYf8ZUCgT6kAXKKdSgAE++tsMZHD7VwCsuGO7rFK2lF3emU6ZE6
-	 XUa4qhWJ7Tpkpn5yzXVhpJRy71P3Kg+174VCbSCOjfOBhrkXiStt8RYcUFVo0gkcJQH1Y
-	 mrJlRFQULaq0yACxWY1FDmMfkTRHwakHdZ3N9kU0T8zhdUeV5Kdye8ED1nQ6ctDevOA==
+	t=1794226903;
+	b=Ss1MJZJ9AqbQ/pV3Mcx69WlFKJHkKSrEnNk0QCOJ8IXUf3t9ReKBx3UBrt2DqXHDqJBQ
+	 tgeWyvURoaMTcqb55uIzg6SBKSrhruPmyIDlSUMO2MGXxWNMOLxj0IutWrrwP8QevDQbR
+	 i9ILXQg0k+6nEzGxoj23bomWr6fG/JngBNkOqDKpwdLR8GbfzHpq5VO6l6wwlKPpkMmVG
+	 7agoLBbOMpUeJRcmO6JA+Hgo1QIvCWNTvvQFI8wp+I7W7Ec9WWoRWP9N/T5B5bnppkZCP
+	 a7W5PQXeSTO+bLpgvK20mdj/UdRpT/mySD9XgHX4wyasJCHGaI6sQP5ilXTGrSKN4ZA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794226896;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794226903;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
-	 Subject:Date:Message-Id:X-Mailer:MIME-Version:
+	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=lKyvJKrB8+E/n0pjzoTWMB1H0U7ADJePiiDLznugPv4=;
-	b=Rm1ZjJPkKltBH8aRhHFoDAl8BFn26IPxzqiqCzzHKscKLB6x8MuixGp0Ihi7iGXNCB7m
-	 0SaxJtygRatRBMV1MZyJsWHFgIr77cPcNXhtOUdl1TerY1sQofFTSnwww5jashgUA/KN4
-	 eQc0hSj/7N3BQzFMc4CUMQBVFbTBqFRlI1lB7MPoxU70wULH/UVQj5tz6xduFylxvuiIe
-	 szTy2vnjW4Stw1rTAzlO5DVbsz3PogaRAuMGXSxRftjiLy5N7QuPDvPxsFdqNzrp5bIAZ
-	 Jr4ixZjFkQ9hBjIn5KMJxq8/xUekrZAFjMpCD72q+PG+B5h3rbXEgFlpEe5aj+PCTyg==
+	bh=ly/DHPYaYtg4H5d7I4tI+XKSj5VHoc0rWfr4sQj575E=;
+	b=iMeUrrDtMhNnRClR6vQHv3i5Czgm+uTSSHNjxWKtyuD+J1mW8w4roOi6ProIUdf08dgz
+	 JbitnnUDd4ocP/AZ1i6qSQWdTGWJ8HASRTH65xM4nDAyndpqkumbFdpPKKlesOQeoYbPd
+	 3ml4SavK7heRf9XyZkq8uesudGMSYRCYM+xp0NL6fnSxuQTyM3eOdU55GvWCV0O0EK+Ct
+	 evLtrkc6aytTsEmgWsPTAx2oZjPaWME/sdBEws1F3u6HFtdrWSe/xC4QrBm+Rvs5MwXE7
+	 0SKQA7ACLYmIRTEyU8EblIMO/oSYspEoX41tJ9siLI0JSubBZy2tOv12Ww0pPA5yA2A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=CR8S7pLr;
-	arc=none smtp.remote-ip=115.124.30.112
-Received: from out30-112.freemail.mail.aliyun.com (out30-112.freemail.mail.aliyun.com [115.124.30.112])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=OUSKG4Xo;
+	arc=none smtp.remote-ip=115.124.30.111
+Received: from out30-111.freemail.mail.aliyun.com (out30-111.freemail.mail.aliyun.com [115.124.30.111])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 4AE72606A321
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:21:33 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 4AE72606A321
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 3148E606A338
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:21:41 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 3148E606A338
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=CR8S7pLr
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=OUSKG4Xo
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1794226891; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=lKyvJKrB8+E/n0pjzoTWMB1H0U7ADJePiiDLznugPv4=;
-	b=CR8S7pLrLzMDE5sFlVSUcaJAhmmp4qOehU+T3t80A91EYcOBhcVjaKfPWD0zEALEhabWgazXkCh4d0oXSO/GzBSS3Lf54ZiY6jh1ymnCDUeRgPTdd2BkUMkg3pIDhQmGG2FTfxwiCDI816OMKjm96qmE4UrRIYmP+p42pX0hBV0=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R411e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOZNbG_1794226890;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOZNbG_1794226890 cluster:ay36)
+	t=1794226896; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=ly/DHPYaYtg4H5d7I4tI+XKSj5VHoc0rWfr4sQj575E=;
+	b=OUSKG4Xov4OOT6OhAfsWJlxZwhIzfpUTWQkML66p2Ln5f0oEvVUlqczI59Dkr5qNrrF3/ue2iSYjiwYT5r1cQPbFYpiLZqJtjWezi4obrpTaf9D5z9kuAOX6zh3TLgjo2a7/Hpct2iCMF74gaJEUhcTfmd+s2Kqe0BOJSyBoZFo=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037026112;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=8;SR=0;TI=SMTPD_---0XEOZNct_1794226894;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOZNct_1794226894 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 09 Nov 2026 20:21:30 +0800
+          Mon, 09 Nov 2026 20:21:35 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -49,11 +49,14 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH v3 00/31] ocfs2: split dinode validation into shared predicates
-Date: Mon,  9 Nov 2026 20:20:50 +0800
-Message-Id: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
+	Joseph Qi <joseph.qi@linux.alibaba.com>,
+	stable@vger.kernel.org
+Subject: [PATCH v3 01/31] ocfs2: exempt orphaned dinodes from the zero nlink check
+Date: Mon,  9 Nov 2026 20:20:51 +0800
+Message-Id: <20261109122121.21473-2-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
+In-Reply-To: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
+References: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -65,187 +68,70 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_validate_inode_block() is a flat sequence of about twenty open-coded
-dinode checks.  The filecheck variant duplicates eight of them but reports
-differently: mlog() plus an OCFS2_FILECHECK_ERR_* code instead of
-ocfs2_error(), which can force the filesystem read-only.  The duplicated
-conditions had drifted apart, and filecheck silently skipped the rest.
+An open-unlinked inode legitimately has a zero link count on disk.
+ocfs2_unlink() drops the last link and writes it out with
+ocfs2_set_links_count(), ocfs2_orphan_add() then sets OCFS2_ORPHANED_FL,
+and OCFS2_VALID_FL is only cleared much later by ocfs2_remove_inode().
+The zero nlink check added by the commit below rejects such an inode as
+-EFSCORRUPTED even though it is perfectly valid.
 
-Patch series summary
+That commit describes its own change as a check for "(i_mode == 0,
+i_nlink == 0, non-orphan)", but the code it added has no orphan exemption
+and ORs the two conditions rather than ANDing them, so a zero link count
+alone is enough to fail even when i_mode is valid.  Add the exemption the
+changelog describes.
 
-  01      Bug fix.  Exempt orphaned dinodes from the zero nlink check.
-          An open-unlinked inode legitimately has nlink 0 on disk with
-          OCFS2_VALID_FL still set, so the check rejects valid inodes.
-          Orphan recovery then skips the resulting bad inode, so the
-          orphan is never wiped and its space leaks.  Fixed at the root
-          first, so the refactor stays behaviour preserving.
+Orphan recovery hits this on every pass.  OCFS2_FI_FLAG_ORPHAN_RECOVERY
+clears can_lock in ocfs2_read_locked_inode(), so the block is read with
+ocfs2_read_blocks_sync() and then validated by the explicit
+ocfs2_validate_inode_block() call in that branch.  The read helper having
+no validate callback of its own does not mean the path skips validation.
+ocfs2_orphan_filldir() then ignores the resulting ocfs2_iget() failure
+("Skip bad inodes so that recovery can continue"), so the orphan is never
+wiped: its space is leaked permanently and the "Corrupt state" message is
+logged again on every mount.
 
-  02-21   Pure refactor, one check per commit.  Each condition becomes a
-          static bool ocfs2_dinode_has_*() predicate, following the four
-          helpers already in inode.c.  Return codes and log messages stay
-          at the call sites, so no ocfs2_error() call site moves and the
-          two reporting paths remain distinct.
+The same applies to an orphaned dinode read through
+ocfs2_read_inode_block(), for example from ocfs2_delete_inode() once the
+buffer has been evicted.
 
-  22      Bug fix.  filecheck fix reported SUCCESS on corruption it cannot
-          repair.  Revalidate and return the residual code, snapshotting
-          the block before validation so a failed repair rolls back to
-          what was read from disk instead of leaving a dirty buffer or a
-          stray ecc fixup behind.
+Note that a zero i_mode is already rejected by the later
+ocfs2_valid_inode_mode() check, since fs_umode_to_ftype(0) is FT_UNKNOWN,
+so the nlink arm was not what protected against the zombie inode the
+original commit was fixing.
 
-  23-31   Wire the remaining predicates into filecheck.  All reuse
-          OCFS2_FILECHECK_ERR_INVALIDINO, so no new error code and no
-          change to the userspace-visible names in ocfs2_filecheck_errs[].
+DIO orphans need no exemption: ocfs2_add_inode_to_orphan() is the only
+caller that passes dio=true to ocfs2_orphan_add(), and it never drops a
+link, so those inodes keep a positive link count.
 
-The inline xattr check is still not shared: ocfs2_validate_inode_xattr()
-calls ocfs2_error() through its helpers in xattr.c, so reusing it needs a
-reporting flag threaded into that file.  Left for a follow-up.
+Fixes: 7efb45f9685f ("ocfs2: invalidate inode if i_mode is zero after block read")
+Cc: <stable@vger.kernel.org>
+Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
+---
+ fs/ocfs2/inode.c | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
 
-Testing
-
-linux-next 20261105, in a QEMU guest running the series.  Block device
-buffers are flushed and caches dropped before each remount and before
-each on-disk comparison, otherwise a corruption test can read a stale
-buffer and appear to pass.
-
-  - Refactor is behaviour preserving: all 27 messages, all return codes
-    and all ocfs2_error()/mlog() call sites in the normal validator are
-    unchanged, each predicate body was compared against the condition it
-    replaced, and filecheck's disassembly is instruction identical apart
-    from __LINE__.  The normal validator's disassembly also shows block
-    rescheduling, so equivalence there rests on the source comparison
-    rather than an instruction by instruction proof.
-
-  - No false positives on 4K blocks with inline-data, refcount, sparse,
-    usrquota, grpquota, xattr and indexed-dirs, over seventeen inode types
-    plus all system inodes during mount and I/O; and on 512-byte blocks
-    over five types.  Forcing i_xattr_inline_size up on 512-byte blocks
-    drove the inline maximum negative and gave "id_count 312 exceeds max
-    -88", confirming the comparison stayed signed.
-
-  - Seven corrupted dinodes on a nometaecc volume were each detected with
-    the expected message, with no escalation and the filesystem still
-    read-write.
-
-  - With metaecc on: a repairable field alone gives SUCCESS and is really
-    written to disk; an unrepairable field alone, and a repairable plus
-    unrepairable pair, both give INVALIDINO with the on-disk block byte
-    identical afterwards and repeated checks reporting a real filecheck
-    code rather than FAILED.  An orphaned dinode with nlink 0 reports
-    SUCCESS, while the same dinode without OCFS2_ORPHANED_FL still reports
-    INVALIDINO, so the exemption did not disable the check.
-
-  - The stray bit ocfs2_block_check_validate() leaves behind when its
-    hamming fixup fails was tested with a python model of that fixup,
-    validated by checking it predicts the exact bit and the exact restored
-    block for 99 single bit corruptions.  With the flip aimed at an
-    unchecked timestamp byte, fix gives SUCCESS and the on-disk block
-    matches the predicted repair byte for byte, differing from the input
-    image only in i_blkno and i_check.  With the flip aimed at
-    i_suballoc_slot, fix gives SUCCESS and repairs the ecc.  A recoverable
-    single bit gives SUCCESS, increments ecc_recoveries and writes nothing
-    back, so the legitimate in-place fixup is kept rather than rolled
-    back.
-
-The ocfs2 testsuite and xfstests were not run.
-
-Changes since v2
-
-  - Patch 22 took the block snapshot after the initial validation, which
-    has already mutated bh->b_data.  ocfs2_validate_meta_ecc() ->
-    ocfs2_block_check_validate() applies a hamming fixup in place and
-    restores only the ocfs2_block_check field on the way out, so when the
-    post-fix crc32 still fails the flipped bit stays behind and the
-    snapshot recorded it.  The snapshot now precedes validation, every
-    error exit restores it including the readonly, jbd, signature and
-    VALID_FL gates, and the bogus flip is undone before any field repair
-    when the initial validation reported BLOCKECC.  Without that last
-    step the ecc recompute stamps the stray flip with a valid checksum,
-    and the flip can also fabricate an unrepairable field that is not on
-    disk.  An ecc check that passed keeps its data, a successful single
-    bit fixup included, so recoverable single bit errors are still
-    repaired.  Both effects were reproduced on v2, as described above.
-
-Changes since v1
-
-  - The zero nlink check rejected valid orphaned dinodes.  Instead of
-    exempting them only in filecheck, patch 01 fixes the predicate at the
-    root.  The check was added by commit 7efb45f9685f ("ocfs2: invalidate
-    inode if i_mode is zero after block read"), whose changelog describes
-    a check for "(i_mode == 0, i_nlink == 0, non-orphan)" while the code
-    has no orphan exemption and ORs the conditions instead of ANDing
-    them.  v1 also understated the reachability: it claimed orphan
-    recovery skips validation because ocfs2_read_blocks_sync() takes no
-    validate callback, but ocfs2_read_locked_inode() calls
-    ocfs2_validate_inode_block() explicitly right after it in the
-    !can_lock branch.  Recovery therefore rejects every orphan on every
-    pass, and ocfs2_orphan_filldir() ignores the resulting iget failure
-    ("Skip bad inodes so that recovery can continue"), so the orphan is
-    never wiped and its space is leaked, with a "Corrupt state" message
-    logged on each mount.
-
-  - Returning an error from the repair callback after mark_buffer_dirty()
-    left a dirty non-uptodate buffer in the block device cache.
-    ocfs2_read_blocks() clears BH_Uptodate on validate failure and
-    ocfs2_read_locked_inode() bails before the exclusive lock upgrade and
-    ocfs2_write_block(), so the next OCFS2_BH_IGNORE_CACHE read skips the
-    disk read and fails -EIO, and later filecheck requests report FAILED
-    instead of the real reason.  Patch 22 now recomputes the ecc,
-    revalidates, and only then marks the buffer dirty, restoring a
-    snapshot otherwise.  Two details: the snapshot covers the whole block
-    because ocfs2_validate_meta_ecc() mutates it in place during a hamming
-    fix, and the ecc is recomputed before revalidating so a bad ecc does
-    not roll back its own repair.  The mechanism was confirmed by reading
-    those two functions; it was not reproduced by running v1.
-
-  - The l_next_free_rec repair copied an unvalidated l_count, spreading
-    the corruption to a second field and stamping it with a good ecc.
-    Now guarded by a valid l_count.
-
-  - The suballoc slot commit cited ocfs2_validate_group_descriptor(),
-    which does not inspect i_suballoc_slot, and called the range predicate
-    stricter than suballoc.c when it is identical.  Corrected to
-    ocfs2_get_suballoc_slot_bit() and reworded: the pair of predicates is
-    stricter, the range test alone is not.
-
-Link to v1: https://lore.kernel.org/ocfs2-devel/20261105094926.3203416-1-joseph.qi@linux.alibaba.com/
-Link to v2: https://lore.kernel.org/ocfs2-devel/20261106111458.1467464-1-joseph.qi@linux.alibaba.com/
-
-Joseph Qi (31):
-  ocfs2: exempt orphaned dinodes from the zero nlink check
-  ocfs2: abstract the zero nlink or mode dinode check
-  ocfs2: abstract the dinode i_blkno mismatch check
-  ocfs2: abstract the dinode OCFS2_VALID_FL check
-  ocfs2: abstract the dinode fs_generation mismatch check
-  ocfs2: abstract the dinode suballoc slot checks
-  ocfs2: abstract the dinode suballoc bit check
-  ocfs2: abstract the dinode orphaned slot check
-  ocfs2: abstract the dinode DIO orphaned slot check
-  ocfs2: abstract the inline data dinode guard and cluster check
-  ocfs2: abstract the inline data id_count bound check
-  ocfs2: abstract the inline data i_size bound check
-  ocfs2: abstract the fast symlink dinode guard and size check
-  ocfs2: abstract the fast symlink NUL-termination check
-  ocfs2: abstract the chain list dinode guard and count check
-  ocfs2: abstract the chain list next free record check
-  ocfs2: abstract the chain list bits per cluster check
-  ocfs2: abstract the dinode refcount location check
-  ocfs2: abstract the zero extent list count check
-  ocfs2: abstract the oversized extent list count check
-  ocfs2: abstract the extent list next free record check
-  ocfs2: report unrepairable corruption from online filecheck fix
-  ocfs2: check dinode nlink and mode in online filecheck
-  ocfs2: check dinode suballoc slot in online filecheck
-  ocfs2: check dinode suballoc bit in online filecheck
-  ocfs2: check dinode orphaned slots in online filecheck
-  ocfs2: check inline data dinodes in online filecheck
-  ocfs2: check fast symlink dinodes in online filecheck
-  ocfs2: check chain list dinodes in online filecheck
-  ocfs2: check dinode refcount location in online filecheck
-  ocfs2: check extent list dinodes in online filecheck
-
- fs/ocfs2/inode.c | 545 +++++++++++++++++++++++++++++++++++++++++------
- 1 file changed, 480 insertions(+), 65 deletions(-)
-
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 7005e59519b2..371857673712 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -1482,7 +1482,15 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
+-	if ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode) {
++	/*
++	 * An open-unlinked inode legitimately has a zero link count on disk:
++	 * ocfs2_unlink() drops the last link and ocfs2_orphan_add() sets
++	 * OCFS2_ORPHANED_FL, while OCFS2_VALID_FL is only cleared later by
++	 * ocfs2_remove_inode().  DIO orphans keep their link count, so they
++	 * need no exemption here.
++	 */
++	if (!(le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
++	    ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode)) {
+ 		mlog(ML_ERROR, "Invalid dinode #%llu: "
+ 			"Corrupt state (nlink = %u or mode = %u) detected!\n",
+ 		        (unsigned long long)bh->b_blocknr,
 -- 
 2.39.3
 
