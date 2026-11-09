@@ -1,47 +1,47 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.131
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794226917;
-	b=gIYSEcCzVFIH8ZycdAvKYesAIWatCfJ08lky3NO6GZlfDS15yEggCvHC/ZCqFPFCwNkH
-	 ZobzVk9abWrqXt/jVU0H65NIqhY1j4Ix8o1jpUVWisn4t2dwdJnyqmU1tA8b7L7c4r8kW
-	 DqFwKi/kwskzL/X7dbkCBQ3CojnoYDHEe3v/M3HtaHJfUzJfMxR7/juFVzy3F0THk4smy
-	 vzRSOAe5BJx0IA22xJZKimf6dPp0DlqhSru4PnUJIRQ8IUIltMtZ+XcuEx9opurY5gXOf
-	 nDKqOLiQai+adq27xOHPDih0UBIf7cvLB8tzaJcu+ZejKMLpYwoGLd6Ypyf6QSoSpXg==
+	t=1794226918;
+	b=SIgP7UgfIGdH0Gm2amfel9HSAGGkVV6vuc5i4intey70VycjrkteUIHJ2E2OzSdQlLlq
+	 q1fQSWFNWq72CeUEXb+JQAM4BqonzejU1tpkSc4Gpu/6soCYv98AY2lX7oqhvh4TGZvOM
+	 2lBSnRmgJS8OjyyemL04twvH+48vVljfRPczs5fjKsRGpUU+bW8nFyFs9gTnt6jTiYMe8
+	 D8QZWIjJTokNH30t0WGcBN8DinY+OLXNGglfMa+oB67cmBQb26QHldu7riFnOqKcAicQt
+	 cGEvfPbU0VweeUkph2i40QFfu7ZtGLZUov56NT0aioHsYxDjTbqLN+POmrdDsnD2SUw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794226917;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794226918;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
 	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=p4vwbYYLQrtjR0iELFGwWmSzIE6lZ4pD21prPC9EqQg=;
-	b=L7wcvLTuJSlHD+O2gRvVScgzqsznXyOoo6FtTlNgE0aO0Y61cBTGTxsi9GWDzVMAgY4a
-	 6v9cclvitDoDHHbKwiQnKS3lMEMbQcjrf5plAD6EDXgwl66t2UCYEM7865L8f6ffLhxus
-	 DUerJhf1D5fplsN4R5zzp9FX8456bB7Rm2rxBkFzb1vDdMGr76XXfwhn2lGPr9y2oKNWG
-	 gNAihf8UZ8aMKrS7EJKN30nwnWrUlftV7Hga/2Oh+1Rq9pi8StJItC24IF3uUisSRJDcD
-	 pY45MlOwXwNEXz43esWxXmts8AvR76frC4DQrVyPLWaeENROH8IzrtOoyHtq62Kx9BQ==
+	bh=m5MTk+iMSF8IJK5g5CfhcVnBo8V+eg0v1q4zXApCeQM=;
+	b=imfIPQOr+6TOz2gpxnAnECHp4dQL6bWarWLIPukmjJWYICSw7gqSRfLOumjkM9SpHmtB
+	 RWyJ/CdQy+YLS2WsCHPAmoalERMaAQHMu9XZn1+InqOPiCwpTKFuVU4+6TEaoaNCioMeW
+	 XNRXzHilNG5os68J6EQfmSpWNhF6qYL3kkAlXpiGskWTUTvDapdBK6WxbtXocK8+K+GuM
+	 pa+a5Y4Hyv98K7uMwNNpa5Z4EZ0UKaoFyJb5wx6PoX/yL96OHdxuUHQ+F+shQR4kv1M4r
+	 am/MStffbW9YoNmAeDEKU1+AucGEEggzEOvB629FtuDLebKtJyefbtSmJFVu8HWTAzg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=tGfFOSyg;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=Kdk24kOH;
 	arc=none smtp.remote-ip=115.124.30.131
 Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 7F31D606A334
-	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:21:55 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 7F31D606A334
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 52CC7606A325
+	for <ocfs2-devel@lists.linux.dev>; Mon,  9 Nov 2026 12:21:57 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 52CC7606A325
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=tGfFOSyg
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=Kdk24kOH
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1794226908; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=p4vwbYYLQrtjR0iELFGwWmSzIE6lZ4pD21prPC9EqQg=;
-	b=tGfFOSygVuQN+iCewyY8KS7f0ZyP7p56+Iiyez2AHPwxWY0oO6XusQjlE6W5L8U24WZ2urT6nk9P1nzrPu3Wt79JGA/tQd2TJo5yaZOvsPU44FW5GQdu+xuhDPBCSJoALH4LmIKrt9TgyjUAoriBwNYAC0kgjl+DbeFIId4hXG4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R211e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOjdmz_1794226907;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOjdmz_1794226907 cluster:ay36)
+	t=1794226914; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=m5MTk+iMSF8IJK5g5CfhcVnBo8V+eg0v1q4zXApCeQM=;
+	b=Kdk24kOHNdO2KtmkIUqmQFGmX+SsmvMFnM+1KLdJEamSg/JQcGISOsIhVwoCXCW3omCLR1qzt4TlsIt7KUgJovl5aZKpRqvWXRiGPrU6+W+5f3Simj0rqDx+yNbG7sCmrIFWYuhinaJpZaSUyDxrTlhJipLisdGeIVF3uPd0OIo=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R641e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033032089153;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XEOZNhC_1794226912;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEOZNhC_1794226912 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 09 Nov 2026 20:21:47 +0800
+          Mon, 09 Nov 2026 20:21:52 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -50,9 +50,9 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
 	Joseph Qi <joseph.qi@linux.alibaba.com>
-Subject: [PATCH v3 02/31] ocfs2: abstract the zero nlink or mode dinode check
-Date: Mon,  9 Nov 2026 20:20:52 +0800
-Message-Id: <20261109122121.21473-3-joseph.qi@linux.alibaba.com>
+Subject: [PATCH v3 05/31] ocfs2: abstract the dinode fs_generation mismatch check
+Date: Mon,  9 Nov 2026 20:20:55 +0800
+Message-Id: <20261109122121.21473-6-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
 In-Reply-To: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
 References: <20261109122121.21473-1-joseph.qi@linux.alibaba.com>
@@ -67,74 +67,68 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_validate_inode_block() open-codes the test for a dinode that has
-no links or no mode.  Fold the condition into a predicate so it reads
-like the neighbouring ocfs2_dinode_has_*() helpers, and so the filecheck
-variant can share it.
+The comparison against OCFS2_SB(sb)->fs_generation is open-coded in the
+normal validator, the filecheck validator and the repair path.  Fold it
+into a shared predicate.
 
-Reuse ocfs2_read_links_count() rather than testing i_links_count and
-i_links_count_hi separately.  OCFS2_LINKS_HI_SHIFT is 16 and both fields
-are 16 bits wide, so the combined count is zero exactly when both raw
-fields are zero.
-
-The OCFS2_ORPHANED_FL carve-out moves into the predicate along with the
-rest of the condition, in the same early-return style as
-ocfs2_dinode_has_size_without_clusters().
-
-The return code and the log message stay at the call site: filecheck
-reports the same conditions with a different code and must not call
-ocfs2_error().
+Each call site keeps its own log message and return code: the normal
+validator escalates through ocfs2_error(), filecheck reports
+OCFS2_FILECHECK_ERR_GENERATION, and repair rewrites the field.
 
 No functional change intended.
 
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/inode.c | 25 ++++++++++++++++---------
- 1 file changed, 16 insertions(+), 9 deletions(-)
+ fs/ocfs2/inode.c | 15 +++++++++------
+ 1 file changed, 9 insertions(+), 6 deletions(-)
 
 diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 371857673712..209066321932 100644
+index 8b4652002ae2..6b78b3f3c5fa 100644
 --- a/fs/ocfs2/inode.c
 +++ b/fs/ocfs2/inode.c
-@@ -67,6 +67,21 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
- static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
- 						      struct buffer_head *bh);
+@@ -92,6 +92,12 @@ static bool ocfs2_dinode_has_no_valid_flag(struct ocfs2_dinode *di)
+ 	return !(le32_to_cpu(di->i_flags) & OCFS2_VALID_FL);
+ }
  
-+static bool ocfs2_dinode_has_zero_nlink_or_mode(struct ocfs2_dinode *di)
++static bool ocfs2_dinode_has_wrong_fs_generation(struct super_block *sb,
++						 struct ocfs2_dinode *di)
 +{
-+	/*
-+	 * An open-unlinked inode legitimately has a zero link count on disk:
-+	 * ocfs2_unlink() drops the last link and ocfs2_orphan_add() sets
-+	 * OCFS2_ORPHANED_FL, while OCFS2_VALID_FL is only cleared later by
-+	 * ocfs2_remove_inode().  DIO orphans keep their link count, so they
-+	 * need no exemption here.
-+	 */
-+	if (le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL)
-+		return false;
-+
-+	return !ocfs2_read_links_count(di) || !di->i_mode;
++	return le32_to_cpu(di->i_fs_generation) != OCFS2_SB(sb)->fs_generation;
 +}
 +
  static bool ocfs2_valid_inode_mode(umode_t mode)
  {
  	return fs_umode_to_ftype(mode) != FT_UNKNOWN;
-@@ -1482,15 +1497,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+@@ -1542,8 +1548,7 @@ int ocfs2_validate_inode_block(struct super_block *sb,
  		goto bail;
  	}
  
--	/*
--	 * An open-unlinked inode legitimately has a zero link count on disk:
--	 * ocfs2_unlink() drops the last link and ocfs2_orphan_add() sets
--	 * OCFS2_ORPHANED_FL, while OCFS2_VALID_FL is only cleared later by
--	 * ocfs2_remove_inode().  DIO orphans keep their link count, so they
--	 * need no exemption here.
--	 */
--	if (!(le32_to_cpu(di->i_flags) & OCFS2_ORPHANED_FL) &&
--	    ((!di->i_links_count && !di->i_links_count_hi) || !di->i_mode)) {
-+	if (ocfs2_dinode_has_zero_nlink_or_mode(di)) {
- 		mlog(ML_ERROR, "Invalid dinode #%llu: "
- 			"Corrupt state (nlink = %u or mode = %u) detected!\n",
- 		        (unsigned long long)bh->b_blocknr,
+-	if (le32_to_cpu(di->i_fs_generation) !=
+-	    OCFS2_SB(sb)->fs_generation) {
++	if (ocfs2_dinode_has_wrong_fs_generation(sb, di)) {
+ 		rc = ocfs2_error(sb,
+ 				 "Invalid dinode #%llu: fs_generation is %u\n",
+ 				 (unsigned long long)bh->b_blocknr,
+@@ -1868,8 +1873,7 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
+ 		goto bail;
+ 	}
+ 
+-	if (le32_to_cpu(di->i_fs_generation) !=
+-	    OCFS2_SB(sb)->fs_generation) {
++	if (ocfs2_dinode_has_wrong_fs_generation(sb, di)) {
+ 		mlog(ML_ERROR,
+ 		     "Filecheck: invalid dinode #%llu: fs_generation is %u\n",
+ 		     (unsigned long long)bh->b_blocknr,
+@@ -1964,8 +1968,7 @@ static int ocfs2_filecheck_repair_inode_block(struct super_block *sb,
+ 		     (unsigned long long)le64_to_cpu(di->i_blkno));
+ 	}
+ 
+-	if (le32_to_cpu(di->i_fs_generation) !=
+-	    OCFS2_SB(sb)->fs_generation) {
++	if (ocfs2_dinode_has_wrong_fs_generation(sb, di)) {
+ 		di->i_fs_generation = cpu_to_le32(OCFS2_SB(sb)->fs_generation);
+ 		changed = 1;
+ 		mlog(ML_ERROR,
 -- 
 2.39.3
 
