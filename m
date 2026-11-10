@@ -1,48 +1,48 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794302343;
-	b=sCDx0Y8fPVDF3rVszPVoMsPGKWcbX+h1Zz0SySA82VOa3e8n41pBO+yyohUCeMiswwhu
-	 0GTV1KPXsPR/SzTuP+rTT0GxyHaPtvTK14+FR7rU8hyNM4uLn6gIiX7osDhZ5486pblJm
-	 BlRisGa7S/lNzZsfFl80HXGyfIV5Ccap/epaYxH+i0p1kwyQ08aPxWGtYmfvr0ptqKXK3
-	 SeQ2sFirsSzT7UMriz2Orgli4HBE5yOFM2iS59jRK76lO2wlaFWS59vguXiC6EqtQYoET
-	 1Nqv/sw5XmhfXHyo8FsHtp2vSoXNdnGlDM6RIc6A33VBZgtERVI4xE0T6GeXLtiDjLw==
+	t=1794302349;
+	b=EBqVlKXUfxkzdUDUNcH/VnVr4C5v62hiEHxTlC6w1xlI9qV59lseJCRzbvJW0H2n9PUX
+	 AuB5qj+Gn8P80DuIcl8NpgQsMNYd1VGASluuiaji2OMKWUMO/atNPOXeEohDZEuGrRL74
+	 mQFowCynnMsYS5T9jCjOKryhcRVwokE3Dzf+jonoyvgYcFMogvWcc2ul8A+mU3rGnwaDk
+	 ym/Csc9rivOEOz3+fSWu2vV56MbWrwfyx+1j/LTQng7m4NJpdDYccTiBxo0zy41tUFXm6
+	 5wbRFjk5sn+Dk+7YYj3R5/EgjbtJNwF+MVeo9g110xSatGjgP4zpBy62tCcXKVzRpCw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794302343;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794302349;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=V9O75TKfTcHeHVPMLenNiZqGn0S/SDcuL2HVenCDHeA=;
-	b=cJHVZRISUBXWdTzAtpuy3s7R/gEl6hlJ9NUlnH+Qat1ETiKSKOemno+k0NBMizlp1S2O
-	 85hIaDhZLDcTgMeN9np3kW4pmN8pTc5xVD+T3/BNEA2VK/hoXxfMjzsvUxngQ2PsoFuUT
-	 M/M1xCy/qbMM3jNx8GFT0w6qJU7RqPpS2m6Yc2u+H8mrM76xarKB1neLVO7RTmY4kUH2t
-	 RdyGk2mxRLCMsB/YIX3X0+pNCGaOhVfvS77ZQgN+uf4GoVVAHR/nzq+Vj9QiD/Hkc2RmR
-	 +01iWC45G2euBdj5ns/SaZPy0rjRCcBb0dLDfwFXy1uwD2rBWq8cgef1k3C8DGr8dMg==
+	bh=5VuE4/weECRM9eIO6+lamMRzkXENJc2tSdRrjKtP/6E=;
+	b=kPuCc6B2gUdSO5G+kaQpVP7Zg5TAg32gJg3G+/h7fjqnOuqtWVF+8KpaidnYx5bYTB5/
+	 Gt/dBZbTeiQ+VgLe3drFs8cYHYO5Mnw/73j7csHzqFWZu5cQ7WIKF3OcIehf01eW30eas
+	 5JxEdvDKdLVPm+9pqn8tA3ikJvfuXDzjaQjxGTzuuD/HV3MXa4aq+90F0brc/z4pXFN23
+	 b0gcr964hxvuA+NMhPT6d3ztSEI389GPV2mJpMOhVHDFshug/MowuFT4y0jAAfzHEv2uD
+	 yU/TrRhw/n+Z7Ctve+nBf/SVQGb7uQGwf8log8EIwcWt/GCYoWExTisZRnPyns1mhkw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XU5FYslU;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="iQA/sxsh";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A9A2D606B9FD;
-	Tue, 10 Nov 2026 09:19:02 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 64F2F607695D;
+	Tue, 10 Nov 2026 09:19:09 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XU5FYslU
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id D685E1F008A1;
-	Tue, 10 Nov 2026 09:18:55 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=iQA/sxsh
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id A77511F008A3;
+	Tue, 10 Nov 2026 09:19:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794302342;
-	bh=V9O75TKfTcHeHVPMLenNiZqGn0S/SDcuL2HVenCDHeA=;
+	s=k20260515; t=1794302349;
+	bh=5VuE4/weECRM9eIO6+lamMRzkXENJc2tSdRrjKtP/6E=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=XU5FYslUu/QycaxvYDsVfiLjksSb23n6kAsx0C4TwSSMJEdkUorbOifqhqCOqU1BZ
-	 tmBnCWeUwFgQQ+4ZAkQAk/VjPzQ+RPHW3/AblZyzH50Bb47hCUnqPVxJ/GU4Mc1JiA
-	 5FFUIjTt/J8XmL5z4nM4R0/u+A/O7oMn8+99R0NQQoD9YRGpBmk26SOy2wcjejpGHl
-	 mr0KKFrE0VjNzX1I+Ubt/meHZXfZj8kp1B2dkcgv3kCLJkAik/ieVBt/S0jkqQRk4B
-	 ZyDYntU3Wf2Vq8yKC7h12DmuYinSiJ1I+4nWRIhPcZEmr+7PkRUVFiiLnUd0MB8tP5
-	 IiA+GGSFyG75Q==
+	b=iQA/sxshAM8lgjVZtwQBlBlt6Ccgq/KLZUd+ak37Q2oUOuNb3EKD2IEz5QKL7HSuJ
+	 PzfYZUUU9t4mHJQyXpGh/FegWtFPckXXEaWIZpe18Dzveuhdh412cFkoYX9U6GHhAs
+	 FA3mIwVRbXfRG/foFS7hgF8f2XdzXBVoA2mbPV/1dW+mNpe42vnBoqn1KQUo3a7IH3
+	 OShJM3zaQPTgLbpL8PYQYa3MhajH2yuDWbFWTSzcixuX/GpsV21irhlminf8YwjK3i
+	 FcMM/10RV269QdY1WwY6VGtRQ1P449Wk5bY3A8Uk5z3MdBjKp3IUMwp4dCZ2nOAdUX
+	 a+oxx0hQk158g==
 From: Christian Brauner <brauner@kernel.org>
-Date: Tue, 10 Nov 2026 10:14:43 +0100
-Subject: [PATCH RFC 27/41] openpromfs: use fc_init_pseudo()
+Date: Tue, 10 Nov 2026 10:14:44 +0100
+Subject: [PATCH RFC 28/41] ocfs2: use fc_init_pseudo() for dlmfs
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,7 +54,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261110-work-loop-pseudo-v1-27-4c998976c6c7@kernel.org>
+Message-Id: <20261110-work-loop-pseudo-v1-28-4c998976c6c7@kernel.org>
 References: <20261110-work-loop-pseudo-v1-0-4c998976c6c7@kernel.org>
 In-Reply-To: <20261110-work-loop-pseudo-v1-0-4c998976c6c7@kernel.org>
 To: linux-fsdevel@vger.kernel.org
@@ -75,44 +75,44 @@ Cc: Jann Horn <jannh@google.com>, Chris Mason <mason@kernel.org>,
  linux-kselftest@vger.kernel.org, 
  "Christian Brauner (Amutable)" <brauner@kernel.org>
 X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=930; i=brauner@kernel.org;
- h=from:subject:message-id; bh=HbK9i4t197PzSxP5CKS5JO7XvQ/k806ZQREmy2rg/1Q=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9erB5yxKrdqWdTL6/ROTOpHFZfYk8FvP4V1D53MDzH
- Vaet0xOdJSyMIhxMciKKbI4tJuEyy3nqdhslKkBM4eVCWQIAxenAEyks5eRYePLZ35LS2WzX6Wn
- +D69nf1re86D6lp5E91F/Asahdd+rGb4Z1YXc0BUZ9rZoskiB0RU3Nyq0xSNReXOZtV9XNcYHfC
- bAQA=
+X-Developer-Signature: v=1; a=openpgp-sha256; l=909; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=IdNufAsq5EGNNcdE9WV9rVN1DCJjWbb8v/riZT7kRA0=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9erDl3LqF3BIxnOW7s6R69N3au4r1m0WSo7rUW0tPb
+ d3ziC+no5SFQYyLQVZMkcWh3SRcbjlPxWajTA2YOaxMIEMYuDgFYCJLTjEydK1aEV6R03Dp6Qur
+ 9ReajrtK9AT09OsHms5fHf0wofDSUkaGzj38rmzbCz87b5+14Zu8c8plz01rglO+aJ1tSLofN8u
+ eDQA=
 X-Developer-Key: i=brauner@kernel.org; a=openpgp;
  fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-Initialize openpromfs as a pseudo filesystem. This raises SB_I_PSEUDO and
-also SB_I_NOEXEC and SB_I_NODEV. openpromfs never holds executables or
+Initialize dlmfs as a pseudo filesystem. This raises SB_I_PSEUDO and
+also SB_I_NOEXEC and SB_I_NODEV. dlmfs never holds executables or
 device nodes.
 
 Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 ---
- fs/openpromfs/inode.c | 2 ++
+ fs/ocfs2/dlmfs/dlmfs.c | 2 ++
  1 file changed, 2 insertions(+)
 
-diff --git a/fs/openpromfs/inode.c b/fs/openpromfs/inode.c
-index fb8d84bdedfb..6cd02d456bac 100644
---- a/fs/openpromfs/inode.c
-+++ b/fs/openpromfs/inode.c
-@@ -10,6 +10,7 @@
- #include <linux/string.h>
+diff --git a/fs/ocfs2/dlmfs/dlmfs.c b/fs/ocfs2/dlmfs/dlmfs.c
+index d3bfcada3e3b..1789ec96dc13 100644
+--- a/fs/ocfs2/dlmfs/dlmfs.c
++++ b/fs/ocfs2/dlmfs/dlmfs.c
+@@ -21,6 +21,7 @@
+ #include <linux/module.h>
  #include <linux/fs.h>
  #include <linux/fs_context.h>
 +#include <linux/pseudo_fs.h>
- #include <linux/init.h>
+ #include <linux/pagemap.h>
+ #include <linux/types.h>
  #include <linux/slab.h>
- #include <linux/seq_file.h>
-@@ -419,6 +420,7 @@ static const struct fs_context_operations openpromfs_context_ops = {
+@@ -563,6 +564,7 @@ static const struct fs_context_operations dlmfs_context_ops = {
  
- static int openpromfs_init_fs_context(struct fs_context *fc)
+ static int dlmfs_init_fs_context(struct fs_context *fc)
  {
 +	fc_init_pseudo(fc);
- 	fc->ops = &openpromfs_context_ops;
+ 	fc->ops = &dlmfs_context_ops;
+ 
  	return 0;
- }
 
 -- 
 2.53.0
