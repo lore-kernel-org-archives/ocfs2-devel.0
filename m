@@ -1,49 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.98
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.110
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794360101;
-	b=OB3nSaxalERbzlY+1uNuQxZVOBZTiQvc2hHU7QeSCRG53sSvibITrs/Qk8I+WNtgQbmc
-	 NvLsC2U/DA4hWd4Yyy1ylMHMmozcFVv/MJL1gLeQ1/BxEAi21/h89GODHGzXcIJRQ+ZfY
-	 +SHqEZsL20n7aNMq7xu3wQKKgHfElsPiDckyrBzvq2YQxiffMYge4r08Z7viZtBIG5Dk6
-	 2m5Am2gsnAuYcDzqnXFInXDww8QRkeY3JUlmN/3nNpU9B6LrQC6A3a0gr9OiY5qJJjlfU
-	 B04biK5A4GTF+hCHsWy+Hqr9rcZQi1/2RDJlJgPKVmgLw+AegA8k7EAKMR8y7pPHXuw==
+	t=1794360674;
+	b=05ScZNd++Q0MUvkiLaHdMdmCn9XxtXDPjY91YREbkkMM+OhurGdQXrY/i3P+nEovZrOT
+	 8UWKO8oqB0dGYy84l+7Dy7J957ND51NK+oLoccaY8ADEhNsMN5/q0SaRd5X5lpfE7vHD8
+	 qKRMf3DQC9gg8R+NZGwml5/cOZrKeh8f/Hah7ZYIgDC1nYwc3CctP0jcJS/jMTXneWhKx
+	 i8msuhfRMajq+VpJE9082u3XDoMvnXnet5Ls7XyA2ctoBlvr5Kc5WFxogbuvIF4NeZU5f
+	 CNJOMI6jiOM+UP9y9aVvNQSbwSBf1j6hkkuJ0Yzw6KSm8Nu1rGfUh1VBWLBNpErp7hA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794360101;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794360674;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
 	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=vn+1VmYhBBdJfereCP6tHTG+RC3081IsvhsQCT8Kt+Y=;
-	b=SF/YoUUotWIJrY2Z/u5PpS9xvGXMl4cyPOWuA/jO/sgi4CuDmLRYW4TXzdiV52aSGoAu
-	 h+wR5KonK4a1B2c/MCa5buCOHw5ha8sk5mThjwF2o3SSgDLSC7oXYXWbH/myVEUYrErNn
-	 VUD2LIMr6EfcgTcjPa22ceBIGdFu0oKUoNF7uBZEsak9mk3g5EECewC+LQeTrwt8bGW+L
-	 BGw5HmPfkLmpWxY/YbB2FL9/q2QSzDoN1boMNnDwjwA6LY3TdBSPZaByQzWxWizR6fJGR
-	 u76u7WLWu8etSBWpoHBfZpe3tznRk588Hk89uBP/JGD7nzXhvtJcd9KWM6fg1jtYaEQ==
+	bh=fz7Db6YPpucPps2P9eFgAPZMsl4Z2nZBpO1+iQqdPhM=;
+	b=ELGsmB4t2R5jUhlWgmUEU/XV7APZKOdzVoGBF1LISKnFouQMKxXMCkYcK+fbp866jaix
+	 sduFIo3E74taHr2Tm7KsypPSrWfPenI2WyT9MbLThT3nPsqDAH9PhN7JlxrWDf3+7whwY
+	 6+nzJH4/C6Vu9cWlRiSAo6DYiHySV5o+KrVzL0cwR6oEV29GudIWPz79do/ceHbPbxCGe
+	 qHRa5b7UVbY0bI+WY9i5ydA3FcCLnZC5Ikytt8mFroCNilMo/nCM0SwvjrTzgk9dIdQUw
+	 8qOLtz/0FMH6Mpwcb1iajsilkRIktBQW1BfbE9kQbnwyhg/2mPYU3q7qyNrQqki+l4A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=Zh9L0xV+;
-	arc=none smtp.remote-ip=115.124.30.98
-Received: from out30-98.freemail.mail.aliyun.com (out30-98.freemail.mail.aliyun.com [115.124.30.98])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=mq7w0PoV;
+	arc=none smtp.remote-ip=115.124.30.110
+Received: from out30-110.freemail.mail.aliyun.com (out30-110.freemail.mail.aliyun.com [115.124.30.110])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2D840606A31C
-	for <ocfs2-devel@lists.linux.dev>; Wed, 11 Nov 2026 01:21:39 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2D840606A31C
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id B7DAB606A320;
+	Wed, 11 Nov 2026 01:31:12 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org B7DAB606A320
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=Zh9L0xV+
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=mq7w0PoV
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1794360092; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=vn+1VmYhBBdJfereCP6tHTG+RC3081IsvhsQCT8Kt+Y=;
-	b=Zh9L0xV+SaEL0ugSOe4npDJa77RsiLVYcps7zfS9G8Kah259vDUYCiNmok0Wdoevar07UHbQtzFytIzFZChH/0IFwATF7KqJCGB5oH0ojjUU6v0R+8kXhPWjPrusxN6qcaLYIzG+L3y2zK65yVjuaKm3NPqBJcJQBzqnDZKTKw8=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R891e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=9;SR=0;TI=SMTPD_---0XEX7K6x_1794360090;
-Received: from 30.221.145.127(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEX7K6x_1794360090 cluster:ay36)
+	t=1794360664; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=fz7Db6YPpucPps2P9eFgAPZMsl4Z2nZBpO1+iQqdPhM=;
+	b=mq7w0PoVXCwu1IX5ivmHA8As80sOmn10inPCZOG+QhlYp6qb0mg+dgSd17z1pXOsln4JJ09DELsc+5awHi3JyuM1vG3mkZkxNGxXiVtr8wj0fz65Fmeo+JddfxQeZaPB2cDKH76kna5eWQAcDs3+9zCCKwZ7z1M/3EU9JhzwAZ0=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R121e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=17;SR=0;TI=SMTPD_---0XEX6F-L_1794360662;
+Received: from 30.221.145.127(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XEX6F-L_1794360662 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Wed, 11 Nov 2026 09:21:31 +0800
-Message-ID: <462d5470-7d1f-43a0-93a0-6de964169fc2@linux.alibaba.com>
-Date: Wed, 11 Nov 2026 09:21:30 +0800
+          Wed, 11 Nov 2026 09:31:03 +0800
+Message-ID: <f6cdf5d0-9468-48cb-9bfb-0cc41b46c7fe@linux.alibaba.com>
+Date: Wed, 11 Nov 2026 09:31:01 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,101 +54,55 @@ List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: fix lockdep class of newly created directories
-To: Shuai Liu <847807867@qq.com>, Andrew Morton <akpm@linux-foundation.org>
-Cc: mark@fasheh.com, jlbec@evilplan.org, heming.zhao@suse.com,
- a.p.zijlstra@chello.nl,
- syzbot+c73ff6790f3d6c635abc@syzkaller.appspotmail.com,
- ocfs2-devel@lists.linux.dev, linux-kernel@vger.kernel.org
-References: <6a791c94.01d0871a.3a0d52.009a.GAE@google.com>
- <tencent_DEBEB3490E975A2C62C2D7DD573A9A254F05@qq.com>
+Subject: Re: [PATCH v2 19/34] ocfs2: keep the current mount options on remount
+To: Christian Brauner <brauner@kernel.org>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.com>,
+ ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org,
+ jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org,
+ exfat@lists.linux.dev, linux-mm@kvack.org, ntfs@lists.linux.dev,
+ ocfs2-devel@lists.linux.dev, linux-btrfs@vger.kernel.org,
+ gfs2@lists.linux.dev, linux-efi@vger.kernel.org,
+ linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org,
+ linux-fsdevel@vger.kernel.org
+References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
+ <20261029-work-fs-sb_rdonly-v2-19-2f44f64f0b66@kernel.org>
+ <0a8576a4-e397-4a49-ab0e-8f0f32bf2642@linux.alibaba.com>
+ <20261110-zerfallen-meiden-wacholderbeere-a90ac157e063@brauner>
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <tencent_DEBEB3490E975A2C62C2D7DD573A9A254F05@qq.com>
+In-Reply-To: <20261110-zerfallen-meiden-wacholderbeere-a90ac157e063@brauner>
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 7bit
 
 
 
-On 11/10/26 9:45 AM, Shuai Liu wrote:
-> Directories and regular files use different lockdep classes for
-> i_rwsem (i_mutex_dir_key vs i_mutex_key) so that lockdep can verify
-> the documented locking order "parent[2] -> child -> normal" without
-> spurious class-level cycles: e.g. cross-directory rename takes
-> I_MUTEX_CHILD on the source directory followed by an unclassed
-> I_MUTEX_NORMAL on the target inode, while other paths take
-> I_MUTEX_NORMAL on a file before touching a child-class inode.
+On 11/11/26 5:52 AM, Christian Brauner wrote:
+> On Fri, Oct 30, 2026 at 10:58:52AM +0800, Joseph Qi wrote:
+>> ocfs2_reconfigure() decides the transition from fc->sb_flags alone without
+>> sb_flags_mask test, unlike reconfigure_super(). And fspick() passes
+>> fs_context_for_reconfigure(target.dentry, 0, 0). So on a read-only mount:
 > 
-> Since commit 14358e6ddaed ("lockdep: annotate dir vs file i_mutex"),
-> this split is applied in unlock_new_inode(), which relies on the
-> inode being created with I_NEW set.  ocfs2 creates inodes through
-> new_inode() (no I_NEW) and instantiates them with a plain
-> d_instantiate(), so lockdep_annotate_inode_mutex_key() never runs on
-> this path.  Every directory created after mount therefore keeps the
-> plain i_mutex_key class for its whole lifetime, breaking the
-> dir/file class separation that the VFS locking order relies on.
+>> So it seems we should test sb_flags_mask as well?
 > 
-> With such a directory the class-level chain
+> No, that's a generic bug. I fixed that in reconfigure_super() with
+> "super: keep the read-only state if a reconfiguration doesn't change it".
+> That is in vfs-7.5.super (cf. [1]). This series depends on that work.
 > 
->   i_mutex_key/I_MUTEX_NORMAL -> i_mutex_key/I_MUTEX_CHILD
+> If SB_RDONLY isn't in sb_flags_mask it fills in the current read-only
+> state. So ocfs2_reconfigure() sees SB_RDONLY and stays read-only. ocfs2
+> is one of the 23 filesystems listed there that only look at
+> fc->sb_flags.
 > 
-> recorded by the reflink path (ocfs2_vfs_reflink() locks the source
-> inode, then __ocfs2_reflink() takes I_MUTEX_CHILD on the orphan
-> inode) collides with the chain
-> 
->   i_mutex_key/I_MUTEX_CHILD -> i_mutex_key
-> 
-> recorded by vfs_rename() when renaming a directory onto an existing
-> file, and lockdep reports a "possible deadlock in vfs_rename":
-> 
->   syz-executor105/5623 is trying to acquire lock:
->   ffff8880767009a0 (&sb->s_type->i_mutex_key#18){+.+.}-{4:4}, at: vfs_rename+0x6e3
->   but task is already holding lock:
->   ffff8880764ff9a0 (&sb->s_type->i_mutex_key#18/2){+.+.}-{4:4}, at: vfs_rename+0x64d
-> 
->   Chain exists of:
->     &sb->s_type->i_mutex_key#18 --> &oi->ip_alloc_sem --> &sb->s_type->i_mutex_key#18/2
-> 
-> Fix it by calling lockdep_annotate_inode_mutex_key() in
-> ocfs2_get_init_inode() right after the final mode is established,
-> before the inode can be found or locked by anyone else.  This is the
-> same treatment shmem got (commit b45d71fb89ab8adf, "mm: shmem.c:
-> Correctly annotate new inodes for lockdep"), following the hugetlbfs
-> pattern of annotating right after new inode creation.  Freshly
-> created ocfs2 directories are now properly separated from files in
-> lockdep and the rename vs reflink cycle disappears.
-> 
-> The C reproducer from syzbot (mount ocfs2 image, OCFS2_IOC_REFLINK,
-> mkdir two directories, rename a directory onto the reflinked file)
-> hits the lockdep warning on every run without the fix and runs
-> cleanly with it.
-> 
-> Reported-by: syzbot+c73ff6790f3d6c635abc@syzkaller.appspotmail.com
-> Closes: https://syzkaller.appspot.com/bug?extid=c73ff6790f3d6c635abc
-> Fixes: 14358e6ddaed ("lockdep: annotate dir vs file i_mutex")
-> Signed-off-by: Shuai Liu <847807867@qq.com>
 
-Looks fine.
+Now it looks fine.
 Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> ---
->  fs/ocfs2/namei.c | 7 +++++++
->  1 file changed, 7 insertions(+)
+
+>> The same falls out of a legacy remount whose flags omit MS_RDONLY.
 > 
-> diff --git a/fs/ocfs2/namei.c b/fs/ocfs2/namei.c
-> index d8759605786c4..f3ec348eb709d 100644
-> --- a/fs/ocfs2/namei.c
-> +++ b/fs/ocfs2/namei.c
-> @@ -203,6 +203,13 @@ static struct inode *ocfs2_get_init_inode(struct inode *dir, umode_t mode)
->  		set_nlink(inode, 2);
->  	mode = mode_strip_sgid(&nop_mnt_idmap, dir, mode);
->  	inode_init_owner(&nop_mnt_idmap, inode, dir, mode);
-> +	/*
-> +	 * This inode never goes through unlock_new_inode() (there is no
-> +	 * I_NEW state on this path), so the directory vs file lockdep
-> +	 * class split for i_rwsem has to be done here, before the inode
-> +	 * becomes visible to anybody else.
-> +	 */
-> +	lockdep_annotate_inode_mutex_key(inode);
->  	status = dquot_initialize(inode);
->  	if (status) {
->  		iput(inode);
+> No, do_remount() always passes MS_RMT_MASK which includes MS_RDONLY. A
+> remount without MS_RDONLY asks for read-write.
+> 
+> Thanks for the review!
+> 
+> [1]: https://lore.kernel.org/r/20261011-work-super-fixes-core-v1-11-c727176c5b53@kernel.org
+
 
