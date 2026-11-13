@@ -1,54 +1,66 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.167.200
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794515637;
-	b=l7N8EJD4MNxeNsrUZijkVdcxeuk2ldiMUDkSiKVZGj4vpLFeu+n1I8q/goaHaynpABuV
-	 EYBqF10tk/SvThVP3ZcUos2ZfMA3HDEBMAStUroVkjvNYCBKqK82r60FLz/Ztc278XIpq
-	 xF5kxEcJs3wdNrbPV8ZqqikynOpom7y8IbV+t8ZaEAMUI9bwYd2HJ8l9qNMivC2+xSgBy
-	 KVM1zoWGRfswFFBpE8/B4pcIEHzt8UWvF3wKjW+I+fH+cAkuYayM2vi+ByuhdsHySmdvU
-	 UW1zNWwXkZRpKeU0gsfER0t22Lno1G2iHkN/YtLb8vo+d8I9GbkdEZ7/Fci+Uc/Ip5A==
+	t=1794562715;
+	b=ArSFkwWTkA5eSH8iJOCpOT+tzFQIQvM84vOhCNgTvjEeGWXy024Wd9CH52JCHXmYksdA
+	 HxoIJP6CGIUKfJlqJ6Y9vC13Lh13l4XcnvFj6HxR88PszCzyo+Y4iaxDK0kftPSkJWs/9
+	 4PHxHrH1vS8f+4uqQjZdLx919ryL11vw3NOwHXrXPzNovjpKWikls7+4Er64t3/Un8OlI
+	 etwmNko7D5VKHsWE3UqTcQ5gYPyTcBZej11I8aem3fJ/vjBT76Wgms4cBc7bRo+TV4Xfs
+	 BnBzZv0MztodyDq7IRu7y01mHr8tImBWLEju5HpsskUmZJiqXq0CSklmlciBtcNg5+A==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794515637;
-	h=DMARC-Filter:Received:X-Google-DKIM-Signature:X-Forwarded-Encrypted:
-	 X-Gm-Message-State:MIME-Version:X-Received:Date:
-	 X-Google-Appengine-App-Id:X-Google-Appengine-App-Id-Alias:Message-ID:
-	 Subject:From:To:Content-Type;
-	bh=AGrviyGKzOJyqDNGuonvUk0+iEVsk423d//XjaI5/Pk=;
-	b=szUS6tgWyWsewdVsp4CMNMs/OOpXtMt96ep9IEP7QNq0mMKrdnmKJeE9ToNvNIVBdSQq
-	 v6XorrIghVwuPBwjRPjt069BgGPGEmt20ve08zGSLmsdaNnavi/RECvKnRCOLaF/zigFE
-	 LrZaW5LNyjBs6JcHan/LftfTMoTShRvn5Eh0bXDNsDAeyXH7lXznE39vJgmhvO77pbDuL
-	 0Km4h6c7A6dTiujmqPJKb1ivvFeKjQpyB3cUCW6qJ/RSLQY7lbA0T2BTmNOAoI5eY9YjJ
-	 fr08I/4CwLSVhwoH9+PBA+UpX5tutbTLAhcC0vP2x9Y4QOWyiQ+W6VnUWG2tTsuy0kQ==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794562715;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:In-Reply-To;
+	bh=cyYiEXj4r2TdfxUYkpb5oOHA+dMqnC/KnZCWbHMkenQ=;
+	b=JX4S6gyYbzsiSWQW4KbGL+o+bG5BZ1kHrpqtfjm1gZQKvyySj1siKm+TLw3oOKSyNmir
+	 yMhFvhEn6hoRuQHuDvIKW2iYEJQ023PlaTAg5SllPRsBamEqmcgznZsCeW+C7XI5sdok+
+	 AFHyigqjIQQCuqIYbBlEkpyQ/ae/8cZdC/NYubbyD6znGQV2z9VmpLB9zidKMoNeyubJK
+	 QROF2RPnRxVVZpljL+yp6OilrnqsbaVWs7FcbXW4b9+jYj2Kj6wkETwmVrlY7cpb0gk+C
+	 SXDDPr8Hk0vyAyhPZaEZHYlI4GSZQmfUZYmIFQjdPRM3cYdz03lEq0IJi984BoeCGYw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=fail header.from=syzkaller.appspotmail.com;
-	spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com;
-	arc=none smtp.remote-ip=209.85.167.200
-Received: from mail-oi1-f200.google.com (mail-oi1-f200.google.com [209.85.167.200])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=G0aoPaWB;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 86FB8606A886
-	for <ocfs2-devel@lists.linux.dev>; Thu, 12 Nov 2026 20:33:57 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 86FB8606A886
-Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
-Received: by mail-oi1-f200.google.com with SMTP id 5614622812f47-4fb73e868aaso300157b6e.0
-        for <ocfs2-devel@lists.linux.dev>; Thu, 12 Nov 2026 12:33:57 -0800 (PST)
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794515636; x=1795120436;
-        h=content-type:to:from:subject:message-id:date:mime-version
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=AGrviyGKzOJyqDNGuonvUk0+iEVsk423d//XjaI5/Pk=;
-        b=Ycp94WRfKswB7blILNUe6Llj30RgAVT61DyWR45Y+LA3HkNShoQj3b2Cq7tRt2MMQR
-         2/piz/FuIp6itoyLQW9lADRPwRLSGjcoQSaJKBA08NHaytEEZd2L/Pt4gaN8CKMsimIU
-         6qcbpa7IY59OHkmrCnUpIF2Uv8xl1xyIWIcmRlsI+CIqT7T95lA5G8BGwYZSTUX2VaUR
-         wv3ybMWnolXqygyDoDvvJTcs76ZrUH00w6uytLM+TQnSixX6FLqhXvDDS+tLIKWwKFu4
-         D689DpPAYYhkZ5oB8c8zJPaPuakfBL4PZvniwIkMhW3RWuswqIm2WSN1xWNhBJIu5QMg
-         Jnrg==
-X-Forwarded-Encrypted: i=1; AL+hErEG/XE3tdwLu5Mu9bE2gzI9o4tvDlMUcBYCvdFjLdVV/Lpb/TzlxTdFOpvkTjuVHm77ybYJuCquHIt4ew==@lists.linux.dev
-X-Gm-Message-State: APuU4Z8JSGOKsnOJWMctseCFC28TwEBYbjgSsM3Mk8Nn5Bu5ITnC4bhG
-	+CSWMLkQnmY8ttOBwpJvWy3eRhcw+P9Gq2WTyyJVOkpmTztl77lC3sNePrcWnhqLzBxQw+/MSt3
-	x7SPQT3CtRdcXilDgeIlAYuVnY1bn/jjwRnLGfAgAV9cW0DyplMYQsZz/424=
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 98344606A334;
+	Fri, 13 Nov 2026 09:38:35 +0000 (UTC)
+Authentication-Results: smtp.subspace.kernel.org;
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=G0aoPaWB
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 33F321F000C4;
+	Fri, 13 Nov 2026 09:38:31 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794562715;
+	bh=cyYiEXj4r2TdfxUYkpb5oOHA+dMqnC/KnZCWbHMkenQ=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=G0aoPaWBd72jNdaUejL1FLrAnRK3dBg7nKImNWeUFNW4z4PCgCfYTdQz1fkRwVHmb
+	 KMUT4o1pv98YTq4+sOb0DRnY5NA9AhSY9muPozYtlPKP7GITGIWVyqxlT2Lbe4gDgh
+	 DUKeiVG6uBVTl5/xgukvDHNaOL5j36fa2FQ4TKuu/sqZvneH+k7Y9Kkvsr58uzYShF
+	 m6liZNx7Yn9oUKVS6OG22zQht8IfiDOTOY2ocG2nLZ33OCWigHMStPuFGS8jRrcEDg
+	 HPmsR3svBeIaC1O1WZTEBFOuB731AaPpyqUmnt9jeKGaFcyRTBKxm1yOv1bk0r5wv1
+	 n093Q7JztiiYw==
+Date: Fri, 13 Nov 2026 10:38:28 +0100
+From: Christian Brauner <brauner@kernel.org>
+To: Jan Kara <jack@suse.cz>
+Cc: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>, 
+	Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, linux-ext4@vger.kernel.org, 
+	jfs-discussion@lists.sourceforge.net, linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, 
+	linux-mm@kvack.org, ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
+	linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, linux-efi@vger.kernel.org, 
+	linux-mtd@lists.infradead.org, linux-xfs@vger.kernel.org, 
+	Karl Mehltretter <kmehltretter@gmail.com>, Dave Kleikamp <shaggy@kernel.org>
+Subject: Re: [PATCH v2 04/34] ext2: don't set SB_RDONLY after filesystem
+ errors
+Message-ID: <20261113-hermachen-qualvoll-porzellan-adc585bf14d1@brauner>
+References: <20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org>
+ <20261029-work-fs-sb_rdonly-v2-4-2f44f64f0b66@kernel.org>
+ <5qefa4mracb3x2z4vsdejmkyyfrhdcrixmmnooz4rzwcdfoejm@mqkvixj6afwp>
+ <20261110-kargheit-impfen-pausieren-881763d28b19@brauner>
+ <za33axmgzmuzsj3zmfeh43fkphtcsqtkhhrauwuvs7aiftelgp@dzl6z322st5f>
+ <20261112-wohncontainer-saurier-wonnen-91f30c3b3ae2@brauner>
+ <20261112-besorgen-nobel-handschuhe-fb3373259b5f@brauner>
+ <20261112-aktivieren-datteln-assimilieren-062b8257ed49@brauner>
+ <7rm43pfkasky5th4fs65qdt4l2d6j3togha56idrqhs4524qca@u7socb57rg3v>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -58,63 +70,57 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-X-Received: by 2002:a05:6808:3509:b0:532:963f:3118 with SMTP id
- 5614622812f47-56e603885b7mr346645b6e.3.1794515636629; Thu, 12 Nov 2026
- 12:33:56 -0800 (PST)
-Date: Thu, 12 Nov 2026 12:33:56 -0800
-X-Google-Appengine-App-Id: s~syzkaller
-X-Google-Appengine-App-Id-Alias: syzkaller
-Message-ID: <6af622b4.ff6dfe28.557e.001a.GAE@google.com>
-Subject: [syzbot] Monthly ocfs2 report (Nov 2026)
-From: syzbot <syzbot+list812a400613f624e19b24@syzkaller.appspotmail.com>
-To: jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
-	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
-	syzkaller-bugs@googlegroups.com
-Content-Type: text/plain; charset="UTF-8"
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
+In-Reply-To: <7rm43pfkasky5th4fs65qdt4l2d6j3togha56idrqhs4524qca@u7socb57rg3v>
 
-Hello ocfs2 maintainers/developers,
+On Thu, Nov 12, 2026 at 07:27:45PM +0100, Jan Kara wrote:
+> On Thu 12-11-26 18:03:55, Christian Brauner wrote:
+> > Ok, so if I understood you correctly the changes below should be
+> > implementing what you ask, @Jan.
+> > 
+> > It's a diff against v2:
+> > 
+> > - jfs: free the anonymous tlocks when evicting an inode the way
+> >   txUnlock() does. That's also a mainline fix.
+> > 
+> > - fs: sync_filesystem() and sync(2) skip a superblock in the emergency
+> >   state. syncfs(2) and Q_SYNC return EROFS.
+> > 
+> > - fs: refuse to freeze a superblock in the emergency state. Otherwise
+> >   freeze doesn't sync anything anymore and the flusher keeps writing to
+> >   the frozen filesystem.
+> > 
+> >   That means, FIFREEZE and dm suspend with lockfs now fail with EROFS on
+> >   an errored ext2, fat etc. I think you said that you expect freeze to
+> >   fail anyway. I think that's right.
+> > 
+> >   The exfat, ntfs, btrfs and ext4 shutdown ioctls then have to skip the
+> >   freeze after an error.
+> > 
+> > - ext2, fat, affs, ufs and hfs: drop the ->write_inode() refusals.
+> >   Otherwise the flusher writes data and bitmaps but never the inodes.
+> > 
+> > - ext2, jfs, nilfs2, ocfs2 and ubifs: their ->sync_fs() checks are dead
+> >   now and go.
+> > 
+> > - ubifs: drop dirty folios and inodes after an error. Without the sync
+> >   at remount the flusher otherwise hits ubifs' asserts after a remount
+> >   to read-only.
+> > 
+> > With that nothing is synced on request after an error anymore.
+> > 
+> > syncfs, fsync and Q_SYNC return EROFS without writing anything and
+> > sync(2) and umount skip the filesystem's own sync.
+> > 
+> > The flusher and the block device flushes in sync(2) and
+> > kill_block_super() still write. So what ends up on disk is the same as
+> > on mainline today:
+> > 
+> > Is that what you had in mind?
+> 
+> Wow, that was quick! Indeed this looks like what I had in mind and I like
+> the result. Thanks for implementing it so quickly.
 
-This is a 31-day syzbot report for the ocfs2 subsystem.
-All related reports/information can be found at:
-https://syzkaller.appspot.com/upstream/s/ocfs2
-
-During the period, 0 new issues were detected and 1 were fixed.
-In total, 23 issues are still open and 61 have already been fixed.
-There are also 3 low-priority issues.
-
-Some of the still happening issues:
-
-Ref  Crashes Repro Title
-<1>  434640  Yes   possible deadlock in ocfs2_try_remove_refcount_tree
-                   https://syzkaller.appspot.com/bug?extid=1fed2de07d8e11a3ec1b
-<2>  50002   Yes   possible deadlock in ocfs2_reserve_suballoc_bits
-                   https://syzkaller.appspot.com/bug?extid=5d516fba7bc3c966c9a9
-<3>  20078   Yes   possible deadlock in ocfs2_setattr
-                   https://syzkaller.appspot.com/bug?extid=d78497256d53041ee229
-<4>  9457    No    possible deadlock in ocfs2_xattr_set
-                   https://syzkaller.appspot.com/bug?extid=ba9a789bd1f4d21fcefe
-<5>  6292    Yes   kernel BUG in ocfs2_write_cluster_by_desc
-                   https://syzkaller.appspot.com/bug?extid=18a87160c7d64ba2e2f6
-<6>  591     Yes   kernel BUG in ocfs2_reserve_suballoc_bits
-                   https://syzkaller.appspot.com/bug?extid=fd05de09d1267725aa95
-<7>  473     Yes   kernel BUG in ocfs2_dio_wr_get_block
-                   https://syzkaller.appspot.com/bug?extid=f8b081be889b639423bb
-<8>  8       No    possible deadlock in ocfs2_xattr_set_handle (2)
-                   https://syzkaller.appspot.com/bug?extid=b4732eab3dcd27c32ae6
-<9>  72      Yes   kernel BUG in ocfs2_populate_inode
-                   https://syzkaller.appspot.com/bug?extid=779d072a1067a8b1a917
-<10> 25      Yes   kernel BUG in ocfs2_block_group_search
-                   https://syzkaller.appspot.com/bug?extid=44c564a3cb08605f34a1
-
----
-This report is generated by a bot. It may contain errors.
-See https://goo.gl/tpsmEJ for more information about syzbot.
-syzbot engineers can be reached at syzkaller@googlegroups.com.
-
-To disable reminders for individual bugs, reply with the following command:
-#syz set <Ref> no-reminders
-
-To change bug's subsystems, reply with:
-#syz set <Ref> subsystems: new-subsystem
-
-You may send multiple commands in a single email message.
+No problem. We're paying off technical debt, big time... So I my motto
+is "let's go", so we can focus on the fun things again.
