@@ -1,48 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794571315;
-	b=rx+2qMqNey8A7+RavLOBf2a4bWARauw3PPT0kNdBIpYqRCwjP1F4HwHmsHX8PsyECuBN
-	 YVAWkWWtxqCUUWhFVCKJlD/Cv5GlA9ZE6yDvQduxtCUD/2lezPa3OZ+kIqdUQx6QQCXwb
-	 5p0mDrLoILSVDYxzfB2ArZiF3vIv7516Mopo0HXBN8TFJhy1Y9/SMKzZb9W/RdU8VAJ6H
-	 IeIbRtqx0vgQx6BcisMBZc320K4v5er1rTDhn4u5h/OY3bShhv8nq88pVeXlDfhV9B863
-	 W/gFeQyI8srIq7aUiFdBfUos1dsYkK5v8QdTXg4QuvhlpRImY+uEpWRYGGxJc4lwVcw==
+	t=1794571328;
+	b=TDYZqRz2K/UT1fHh5bZ8qPlsssY+oR4f32kKnf0O72IZxNrOF08HD3gCnulw0+hJ3AGp
+	 TvCFfIf3tkM05dktyVB4IRpUF9e1CBCA8/s5WbRcZuXSubXjjW2dFKut7ceqASOn0tyBS
+	 alRxtgEx9awKd54cEKPhXAmXeU/Z8OuhSJri2o2uBQjtZ4GGfocg+wx9loiXTkayvSt8X
+	 EoTiKmViZwPs1C9+xbsubwE0WK44Q9TcsOMlMcWVuEpeU/HgLmDCdn/pHxKcAqSFrSTds
+	 nACMZ6eBXdw7ArpAEcl7tmoHI29yv9Eq73ESI++ZlSBPhQvHZzEmA65TI28x5U/9TpA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794571315;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794571328;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=O2/MUeVszLfB4RtsOn4WKnrIcUTtO30etZqZbBOXA4s=;
-	b=Hq3fAwdcn8T0ssg0+Dya/RfliHsttHSFy4iEL1zgEWl9zVGZqrlfsvZOZvxZJED5u/mB
-	 xJqAeaS8aWuy4oDEDWzWzAXDAE0xVGBl82xoUE1UiVJY5Mdu8Ob82LUhmTcnsozCZo+yk
-	 HY97p3PjT+MptkjdvT/SCSCCZZBUDgkFbp2MOVJdTV3kp0FGmyH6P1QuSpvkHsjEq7bV+
-	 j5hGkKFpuhlbfbfyKFzFoFU5N79ORJfpjRoz0ayt0aB8MounRR/Hwy9CwcE65R3RUk/LU
-	 AzOCUv5Qb+HDnr9bB6zTBsMN0fOGco4X1hYzwg0+FsR3lw60iTi4ilTJQurpI2iv+vQ==
+	bh=YUJ/RH16CUAQaM0PxhxLjbl6pOsDoCFNUfhjJDzXYAI=;
+	b=dfrMue7LrITMAtJCBohzdjbFF/apNqfC1TqDctsgLeA7YndWl50H7JuiH5fHnV7VYbqr
+	 fIdDgC86iFRIKlghhyIQgoyrbIeBcXZrOHe0ftyHhCDKJwe3dGgo5BnzFgats+ZJEdYTi
+	 gTJqBY1m9cfa/pw53KD98/b9W38SN8xcAO5JGmIiGoDkYTgnO0I2CGLbJTxjpJhu2Xqqi
+	 o1otWx0vAFnCXS0Z97Q8lLtcIEVpb6x5kGF+ch02h/OmaaZRTaMMjjdwMrL9iVNIcFl6F
+	 T3LNSwWz7pPnG0ciI7p97nGgb1cqSQRasFboNghO7ckVtEIamMD0pq6MCw6ik1KzduA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eKqQh+7z;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JRpZnT4t;
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 61B5C60A3837;
-	Fri, 13 Nov 2026 12:01:55 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0B7D9606A884;
+	Fri, 13 Nov 2026 12:02:08 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=eKqQh+7z
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id 3D4111F000CC;
-	Fri, 13 Nov 2026 12:01:51 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=JRpZnT4t
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id EECC31F000C8;
+	Fri, 13 Nov 2026 12:02:03 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794571314;
-	bh=O2/MUeVszLfB4RtsOn4WKnrIcUTtO30etZqZbBOXA4s=;
+	s=k20260515; t=1794571327;
+	bh=YUJ/RH16CUAQaM0PxhxLjbl6pOsDoCFNUfhjJDzXYAI=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=eKqQh+7z+yQn8SfRPcQiJrlyaLd+6GVVio057/v2gxV8N2tV8p2k93hVROT5zEjYS
-	 pwSvyXLSrsY/MkoD1+ie0kIUz2xD5Gojqu3pg1/5fIIffIeNNjmu3BKigMWVc2uxVb
-	 ov5BxBjxQjo1Bhd+lc2Jaw2iA+/IXQAxqRQnRNvUtV9w7AjzBZ7EQjC2tTYmL4EHbr
-	 sxdS35mw+qqzalhZpUnEHFw/CUjcs/24PUefi1E5sPn/yTfnCJ4KP8F+lUVIbxKGTL
-	 xUQgrDqIyQmwDKtjlkJbIcDA3dMhJjoqjDTJPrfYZnlFiohGMYUqhx3zZzsloxt8xM
-	 aSyekIeH8IGyQ==
+	b=JRpZnT4t/jYbHpTQBZoAPxuC43KKqhQeXRStGzW9hFFjLHr69igGE2UBo+5YKnWrI
+	 6yXrPHlE7MVQKWFxBfBxlYZFy9S/vpLmUeGY3XqZjw//xJk7S0I5D1emk0NJFzB0U2
+	 I3er5eljWMspmrvP0zgjWx8CbO5RuNDw/Wmn821zjZ+wkK2GUGAVl+HvAPjaVuAlIc
+	 V/u3bYzEQCIURcDJ0eTE7xnepibFXGJ7BpvW3cQ2TTowUrEKBRovXGNL5psqJ/gAnu
+	 vt0GVMPoozgBRhxRRGXMpZFjJYlQ2RL1gwHgAFYHmYciD5STu+MbLlHB3XtPlMAbPq
+	 rHJ0XuzI4u4jQ==
 From: Christian Brauner <brauner@kernel.org>
-Date: Fri, 13 Nov 2026 12:59:20 +0100
-Subject: [PATCH v3 24/33] zonefs: use the generic emergency read-only state
+Date: Fri, 13 Nov 2026 12:59:23 +0100
+Subject: [PATCH v3 27/33] gfs2: wait for a pending withdraw before
+ remounting read-only
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,7 +55,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261113-work-fs-sb_rdonly-v3-24-0be92bb73709@kernel.org>
+Message-Id: <20261113-work-fs-sb_rdonly-v3-27-0be92bb73709@kernel.org>
 References: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
 In-Reply-To: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
 To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
@@ -65,143 +66,95 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, 
  linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
  linux-xfs@vger.kernel.org, 
- "Christian Brauner (Amutable)" <brauner@kernel.org>
+ "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org
 X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=4502; i=brauner@kernel.org;
- h=from:subject:message-id; bh=YjmE71/9/Uw3i5bx6DCMi7QXXafvEqrSsF85N/7XKgU=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9+70twtp+y6Tr14t0N93glXf9H3Fm6YLd7sduzr2xZ
- 83k8g+3MzpKWRjEuBhkxRRZHNpNwuWW81RsNsrUgJnDygQyhIGLUwAm4lvHyPD5F9OCH0HbZvqb
- MBl2XtZIjVlyQHtFVg6n4kXZSU+i7z9jZDi6eeX6lh6OZv7dJzV83IzDeOx5lXZpH378Mqi74UR
- 0NgcA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=2800; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=c4mPQccEi9gz8unBosiI8qBxJmixdc+IlKuwVCk3jlI=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9+73LfPfKBzIWqW9OvkvPjHxZM8nQtbrctT3gRuaXb
+ rV/CWcnd5SyMIhxMciKKbI4tJuEyy3nqdhslKkBM4eVCWQIAxenAEzk6W+Gf5olC2Qc59ZVZAX3
+ b9B4uFE95lx3xlX1KVFTD/fuKuKQTmBkuK4jWLf9WX8Nd90m/zPsRT+evmA7t3Hd0qArEs5hkU4
+ GzAA=
 X-Developer-Key: i=brauner@kernel.org; a=openpgp;
  fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-Set SB_STATE_EMERGENCY_RO instead of a private bit and drop the checks
-the VFS does now. /proc/mounts and statfs() report the filesystem as
-read-only again. zonefs_set_emergency_ro() still prints the warning
-once. The check in zonefs_seq_file_write_close() stays so a failed zone
-close doesn't make the filesystem read-only a second time. And so does
-the one in zonefs_file_write_iter() because the loop driver, nfs localio
-and others call ->write_iter() without rw_verify_area().
+Since commit 9c4a3de6cd5b ("gfs2: Asynchronous withdraw") most of a
+withdraw happens in do_withdraw() from a work item and SDF_JOURNAL_LIVE
+stays set until then. A remount to read-only in that window bails out of
+its log flushes on the withdrawn filesystem and gfs2_quota_cleanup()
+hits its BUG_ON(). Flushing the work isn't enough because
+gfs2_withdraw() only queues it after setting SDF_WITHDRAWN and a
+withdraw can also start in the middle of gfs2_make_fs_ro().
 
+So let do_withdraw() wake up waiters when it clears SDF_JOURNAL_LIVE and
+let gfs2_make_fs_ro() wait for that right before gfs2_quota_cleanup().
+umount doesn't need to wait because it sets SDF_NORECOVERY first.
+
+gfs2_make_fs_rw() could leave the bit set on a withdrawn filesystem too
+if do_withdraw() ran between its withdraw check and setting the bit. So
+do both under sd_log_flush_lock which do_withdraw() holds while it tests
+the bit.
+
+Fixes: 9c4a3de6cd5b ("gfs2: Asynchronous withdraw")
+Cc: stable@vger.kernel.org
 Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 ---
- fs/zonefs/file.c   | 10 ++++------
- fs/zonefs/super.c  | 11 +----------
- fs/zonefs/zonefs.h | 15 ---------------
- 3 files changed, 5 insertions(+), 31 deletions(-)
+ fs/gfs2/super.c | 20 ++++++++++++++++----
+ fs/gfs2/util.c  |  2 +-
+ 2 files changed, 17 insertions(+), 5 deletions(-)
 
-diff --git a/fs/zonefs/file.c b/fs/zonefs/file.c
-index 8959b6b36a83a..de1a06d53ec14 100644
---- a/fs/zonefs/file.c
-+++ b/fs/zonefs/file.c
-@@ -299,7 +299,7 @@ static vm_fault_t zonefs_filemap_page_mkwrite(struct vm_fault *vmf)
- 	struct inode *inode = file_inode(vmf->vma->vm_file);
- 	vm_fault_t ret;
+diff --git a/fs/gfs2/super.c b/fs/gfs2/super.c
+index 04bb4cf787d4d..f61c309368ef1 100644
+--- a/fs/gfs2/super.c
++++ b/fs/gfs2/super.c
+@@ -146,12 +146,21 @@ int gfs2_make_fs_rw(struct gfs2_sbd *sdp)
+ 	}
  
--	if (unlikely(IS_IMMUTABLE(inode) || zonefs_emergency_ro(inode->i_sb)))
-+	if (unlikely(IS_IMMUTABLE(inode)))
- 		return VM_FAULT_SIGBUS;
- 
- 	/*
-@@ -601,7 +601,8 @@ static ssize_t zonefs_file_write_iter(struct kiocb *iocb, struct iov_iter *from)
- 	if (unlikely(IS_IMMUTABLE(inode)))
- 		return -EPERM;
- 
--	if (sb_rdonly(inode->i_sb) || zonefs_emergency_ro(inode->i_sb))
-+	/* loop and others call ->write_iter() without rw_verify_area() */
-+	if (sb_rdonly_any(inode->i_sb))
- 		return -EROFS;
- 
- 	/* Write operations beyond the zone capacity are not allowed */
-@@ -788,9 +789,6 @@ static int zonefs_file_open(struct inode *inode, struct file *file)
- {
- 	int ret;
- 
--	if ((file->f_mode & FMODE_WRITE) && zonefs_emergency_ro(inode->i_sb))
--		return -EROFS;
--
- 	file->f_mode |= FMODE_CAN_ODIRECT;
- 	ret = generic_file_open(inode, file);
- 	if (ret)
-@@ -832,7 +830,7 @@ static void zonefs_seq_file_write_close(struct inode *inode)
- 			 * file system read-only.
- 			 */
- 			if (z->z_flags & ZONEFS_ZONE_OPEN &&
--			    !sb_rdonly(sb) && !zonefs_emergency_ro(sb)) {
-+			    !sb_rdonly_any(sb)) {
- 				zonefs_warn(sb,
- 					"closing zone at %llu failed %d\n",
- 					z->z_sector, ret);
-diff --git a/fs/zonefs/super.c b/fs/zonefs/super.c
-index e7c97b75c6013..342dcc2619065 100644
---- a/fs/zonefs/super.c
-+++ b/fs/zonefs/super.c
-@@ -253,8 +253,7 @@ static void zonefs_inode_update_mode(struct inode *inode)
-  */
- void zonefs_set_emergency_ro(struct super_block *sb)
- {
--	if (sb_rdonly(sb) ||
--	    test_and_set_bit(ZONEFS_SB_EMERGENCY_RO, &ZONEFS_SB(sb)->s_state))
-+	if (sb_rdonly(sb) || !sb_set_emergency_ro(sb))
- 		return;
- 
- 	zonefs_warn(sb, "remounting filesystem read-only\n");
-@@ -549,9 +548,6 @@ static int zonefs_inode_setattr(const struct mnt_idmap *idmap,
- 	struct inode *inode = d_inode(dentry);
- 	int ret;
- 
--	if (unlikely(zonefs_emergency_ro(inode->i_sb)))
--		return -EROFS;
--
- 	if (unlikely(IS_IMMUTABLE(inode)))
- 		return -EPERM;
- 
-@@ -1382,11 +1378,6 @@ static int zonefs_reconfigure(struct fs_context *fc)
- 	struct super_block *sb = fc->root->d_sb;
- 	struct zonefs_sb_info *sbi = sb->s_fs_info;
- 
--	/* An error made the file system read-only until it is unmounted. */
--	if (sb_rdonly(sb) && !(fc->sb_flags & SB_RDONLY) &&
--	    zonefs_emergency_ro(sb))
--		return -EROFS;
--
- 	sync_filesystem(fc->root->d_sb);
- 	/* Copy new options from ctx into sbi. */
- 	sbi->s_mount_opts = ctx->s_mount_opts;
-diff --git a/fs/zonefs/zonefs.h b/fs/zonefs/zonefs.h
-index b14822cb9c02e..24029c0e23dbd 100644
---- a/fs/zonefs/zonefs.h
-+++ b/fs/zonefs/zonefs.h
-@@ -241,16 +241,6 @@ struct zonefs_sb_info {
- 	bool			s_sysfs_registered;
- 	struct kobject		s_kobj;
- 	struct completion	s_kobj_unregister;
--
--	unsigned long		s_state;
--};
--
--/*
-- * Super block state bits (s_state).
-- */
--enum {
--	/* An error made the file system read-only until it is unmounted */
--	ZONEFS_SB_EMERGENCY_RO,
- };
- 
- static inline struct zonefs_sb_info *ZONEFS_SB(struct super_block *sb)
-@@ -258,11 +248,6 @@ static inline struct zonefs_sb_info *ZONEFS_SB(struct super_block *sb)
- 	return sb->s_fs_info;
+ 	error = gfs2_quota_init(sdp);
+-	if (!error && gfs2_withdrawn(sdp)) {
+-		gfs2_quota_cleanup(sdp);
++	if (error)
++		return error;
++
++	/*
++	 * Check for a withdraw under the lock do_withdraw() holds while it
++	 * takes a live journal down, so one of them sees the other.
++	 */
++	down_write(&sdp->sd_log_flush_lock);
++	if (gfs2_withdrawn(sdp))
+ 		error = -EIO;
+-	}
+-	if (!error)
++	else
+ 		set_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
++	up_write(&sdp->sd_log_flush_lock);
++	if (error)
++		gfs2_quota_cleanup(sdp);
+ 	return error;
  }
  
--static inline bool zonefs_emergency_ro(struct super_block *sb)
--{
--	return test_bit(ZONEFS_SB_EMERGENCY_RO, &ZONEFS_SB(sb)->s_state);
--}
--
- #define zonefs_info(sb, format, args...)	\
- 	pr_info("zonefs (%s): " format, sb->s_id, ## args)
- #define zonefs_err(sb, format, args...)		\
+@@ -567,6 +576,9 @@ void gfs2_make_fs_ro(struct gfs2_sbd *sdp)
+ 				   HZ * 5);
+ 		gfs2_assert_warn(sdp, gfs2_log_is_empty(sdp));
+ 	}
++	/* A withdraw that do_withdraw() didn't finish yet leaves it live. */
++	if (!test_bit(SDF_NORECOVERY, &sdp->sd_flags))
++		wait_on_bit(&sdp->sd_flags, SDF_JOURNAL_LIVE, TASK_UNINTERRUPTIBLE);
+ 	gfs2_quota_cleanup(sdp);
+ }
+ 
+diff --git a/fs/gfs2/util.c b/fs/gfs2/util.c
+index 529c3ec37a18a..888e0d6bf5122 100644
+--- a/fs/gfs2/util.c
++++ b/fs/gfs2/util.c
+@@ -121,7 +121,7 @@ static void do_withdraw(struct gfs2_sbd *sdp)
+ 		up_write(&sdp->sd_log_flush_lock);
+ 		return;
+ 	}
+-	clear_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
++	clear_and_wake_up_bit(SDF_JOURNAL_LIVE, &sdp->sd_flags);
+ 	gfs2_ail_drain(sdp); /* frees all transactions */
+ 	up_write(&sdp->sd_log_flush_lock);
+ 
 
 -- 
 2.53.0
