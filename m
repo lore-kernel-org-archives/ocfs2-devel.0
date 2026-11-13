@@ -1,110 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.225.137
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794570657;
-	b=IiNZBW18dtqF6cTE5DQqHsbiCbKS/mUpEUziebktYZe4PZUfq2A7EiMlAWlSBzyQGbNr
-	 WPt2u51BAMztMlsMOpv6ZNWXoPSOjfTErTLpsZgva4BukgnCDV2qnJ1R5+ngL5UWIfKT4
-	 1JtVVPxWe0usvyFP9hcJWsEXr3boQ9CJerWwKyq46z9TciWQUHrYw624Ou4cP0qEdNs8X
-	 pZLtEhvJvAq0oZUx89xioXPAhAQ65CUvAtsapHzEeM0RHkdU+xKWd2HLLKbYvQYmW3fD0
-	 pFX2I0PJkVpTrbBVs6AQTzTXX4MS0LpdvGd2gKue3FHemXq/WQTojuq09apIRY9ptWA==
+	t=1794571210;
+	b=ldkdEBvv0EA3sU0b4qsf73PhYFJgxts9wQSJw5Pc6rJeqOFrB0DUtN3aAueW8yDQnjLF
+	 1PK97R7gQWS8F/BLdXTLtHhqyaVmMTkjs4FxQ99XpQia/pfYp68pYTy1UsLw4L4/QpO7T
+	 e153SCf7aAiD3emKY/kFzpeUa1JKdeBCslrVorYF2hrN9uN+0Lx4fKNcDpJG5+HnTDkvM
+	 dEK9ejV3u+YIIqJ/c17w/4IfWE79g1/moBUegNFupjOq2zj2v/qxG0FxEL55hE1IYRjIN
+	 VHaHceDkZNcf3imozO2XRZfBrvIlLrwsla7uiIuwILzPp8rJE/QQyrmCjOnwP0J3T4Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794570657;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
-	 Content-Type:Content-Transfer-Encoding:User-Agent:MIME-Version;
-	bh=Rk3otRCyAGvYi9qROv1wnRXT7VTrY+ckBcx/ltC2G4s=;
-	b=O4Reco/Ivv3fCrqrgam0CCB5nRjU5zuTcZzloMErskkUSkx9cPqi2J5IEybL0GTvnqNZ
-	 mNaU5aUEau8JT/yu0antkh/nLgnQ+MRqmkFRL3UvUKwLIlbb1KFcBNWvN0C3Vdbn1kRVD
-	 rgvL23xeTvAcjJU2oRdgTgUMzn6eITNjoWUA9qM9m/32zhqTcqOzWSfkzzxmUijB3slqA
-	 h2mhqYv2xTqoIixM87N3pu+lSDGRB+gRFaLvsmevpaupSo0fwNwVpWKXL7JdZJlBZYivB
-	 eQ9oyVz7QoUTUN7rPo6UUqmF6yMFFWRg3Op+9qKw7LLceuT/aS9S3o0ptGTffEdJrmA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794571210;
+	h=Received:DKIM-Signature:From:Subject:Date:Message-Id:MIME-Version:
+	 Content-Type:Content-Transfer-Encoding:X-B4-Tracking:X-Change-ID:To:
+	 Cc:X-Mailer:X-Developer-Signature:X-Developer-Key;
+	bh=IWprbPwkQqPxXeS+kMxX8OuNnd1sijR3CtNVlcmSiAs=;
+	b=YN7clzfgMG/ezQ/neVFqib3lzVMjdbayyPf1DmSLbYAFREYFSVGn36/Fcg55Lhse1Xq6
+	 ss6zYfYev/FmqHubyP1uLtTJZjhwVucoji5UfU9Ix8Ss41oJswd6YhbzdZ5LMVguFyLdu
+	 /oxW3AYwP4jRNTJN5UZ1bSaJI6mEcAPsfjDFAXRiSP3YYxNRR59N7zDOBBMTOfFO/J1Yt
+	 NTEeOn1emfeDZrNlPfT1n6kCnSZ67CPkmGTul1gbYrNTfM3oEkXfVux57XWl88+pYy+x9
+	 9yHtJuYTraR4+YmtTcjXyE4ENZH7rPVC8ZX7vOsJdDRQInpoW0HCQzQt+CTBA+apZ2A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=none header.from=amutable.com;
-	spf=pass smtp.mailfrom=amutable.com;
-	dkim=pass header.d=amutable-com.20260707.gappssmtp.com header.i=@amutable-com.20260707.gappssmtp.com header.a=rsa-sha256 header.s=20260707 header.b=V6udKOoy;
-	arc=none smtp.remote-ip=74.125.225.137
-Received: from mail-wm2-f9.google.com (mail-wm2-f9.google.com [74.125.225.137])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=TtipzD2D;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5493D606A32E
-	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Nov 2026 11:50:56 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5493D606A32E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=amutable.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amutable.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id D349A606A32D;
+	Fri, 13 Nov 2026 12:00:10 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=amutable-com.20260707.gappssmtp.com header.i=@amutable-com.20260707.gappssmtp.com header.a=rsa-sha256 header.s=20260707 header.b=V6udKOoy
-Received: by mail-wm2-f9.google.com with SMTP id 5b1f17b1804b1-4bb5b21feccso490365e9.1
-        for <ocfs2-devel@lists.linux.dev>; Fri, 13 Nov 2026 03:50:56 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=amutable-com.20260707.gappssmtp.com; s=20260707; t=1794570655; x=1795175455; darn=lists.linux.dev;
-        h=mime-version:user-agent:content-transfer-encoding:content-type
-         :references:in-reply-to:date:cc:to:from:subject:message-id:from:to
-         :cc:subject:date:message-id:reply-to:content-type;
-        bh=Rk3otRCyAGvYi9qROv1wnRXT7VTrY+ckBcx/ltC2G4s=;
-        b=V6udKOoyGp9v6JtgSgAxPmtGCA39jAtbspcsZaAeyuKtcTiCowVKkxf32iiubC8bmG
-         MeVHdbNShFGvFqCXMS84F/IztSH+cnWtD/750pQ6mZf8X/XWLHNhJhzDIvkLCnw2hu3w
-         XgFyEeIAj4YJZP/T5Q3EwE4ixgO7FRgwaQ+LEoVl/k9X2pMOBJn+Zxx0tq5IB5ig/Nxk
-         tfJlaNcB1rGoMRJ2GeOFRuoUj/UdLSVGiwk2VAlD9Ecl96uxwb4m2wEOSXC4MPX2ekLf
-         owmnMZ+r+H4LS2emrgRq04Bb5WZLQax5Pn1jHX1t1YSbWFqC37BvcCnOMYFqWYjl3yIo
-         rceg==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794570655; x=1795175455;
-        h=mime-version:user-agent:content-transfer-encoding:content-type
-         :references:in-reply-to:date:cc:to:from:subject:message-id:x-gm-gg
-         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
-         :content-type;
-        bh=Rk3otRCyAGvYi9qROv1wnRXT7VTrY+ckBcx/ltC2G4s=;
-        b=DpC4JiY9/nOguHBGdwGcV2z9cS3t6q/VPdNM4QQF79CejTOi37gqgFid9cM0sqa+5O
-         iHK+RH3dEn8E0+UTRcVdr+vr4k75vX+5sdL0OsK4Yxb7qMU4M+84qpUijkQRxX/EOc8j
-         F3OLFRyWxkT/3h8oM7D2EDgH7UJ4VpKkHtmaekoFbpIysFMGqYsVmSBXqRiU2gyH44Wa
-         78EJEutL7Hqam3H9IlYI27q8dA5rsm50Vh03dugFWLro9k1ovCpB7L3OqFzVEVHiuakD
-         Yg+IIg+qCj91OYJrVEwTA8i1CLgYO4vzmk+xAfsxSB9wTohdKFWa7Rw9IxpuXFCz4+js
-         UUTw==
-X-Forwarded-Encrypted: i=1; AL+hErEU13q0sn2Kax88klcSAvflVfCC4P1GFuBKg6kr5eEoo0Kf7XZ6+eFb8GOpOyXVwI+5ME/Zv4WHNpQ5tQ==@lists.linux.dev
-X-Gm-Message-State: APuU4Z/X3jO921IqbZiQURMcSG05UsPfXh5RG8n+qsqo/glieXB4KhTZ
-	sowdOnQVltGzN71nYh0LzK1aygoXoE5j4ceglg+AJV/QaZhLv86uHgXZIpQQg06+KFaB
-X-Gm-Gg: AYBFou23qvB3MhixmYOO80WZfBQHZfNO7fxi+Yxuf7yYuC2JmgtpODULcstnVpzdQmW
-	qN+NJmyiha8/ZQOALyfuvSRpZjMNob0Kd4eeUwKCQR1a3u9kp24zrb0g027JoG9kwbUnUUdfrrC
-	urkLS0AEZMmgbN7uiGHCGY9JNZE/fKCqDW2vx+BPEZwG6Xi9USv1ONiiHF3xfX4P7VFRnnhSTl1
-	Z6AzKs0BnioyEcS8ZoOF/7Op9eDDtbwhaQYoObmbvbLul7lANWRj5BoBc5WvzF4WpAeew7dRMSP
-	rNAyiMl68yrjL137riapxkA98XUG7ThEy7CkA3LyalYloUmvMoJgqeOJwjvEpk19gxRTM+rUCFw
-	OIaQDehiOrV6Vnv80chQ0CdbF8U0hdT0ljvYrQavM0ecdgs/biLc2c8BDkLnTlzgVCLY48UjN7B
-	QVxr4BQxYksM/3CKxnw2ngiNo18qVc+4ksm/5kNDanNS4vi+yjvL8WxvVn/t7BtoAyp0w0yHFk1
-	SPy7i6C31UWJG8Nn+lhOslJPco3vVJIlQW5fMiBIR6+GfhEt/B7y1qH/Ey5zKhQaBT9wdY35tGy
-	1nW3gic4yU/XEAbhKHA4aXkM4AQO4Tawo5TrVkqH7st16+bOLI2k20XllQs6B2s=
-X-Received: by 2002:a05:600c:b95:b0:4a2:d99:3171 with SMTP id 5b1f17b1804b1-4bb55aa3688mr46865575e9.23.1794570654371;
-        Fri, 13 Nov 2026 03:50:54 -0800 (PST)
-Received: from [10.0.0.233] (tmo-086-54.customers.d1-online.com. [80.187.86.54])
-        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4bb571d7e87sm33015315e9.3.2026.11.13.03.50.51
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Fri, 13 Nov 2026 03:50:53 -0800 (PST)
-Message-ID: <ae189903d4cda27130317a9312d94b53d07415ba.camel@amutable.com>
-Subject: Re: [PATCH RFC 00/41] fs: don't use pseudo filesystem files as
- storage
-From: Alexander Mikhalitsyn <alex@amutable.com>
-To: Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org
-Cc: Jann Horn <jannh@google.com>, Chris Mason <mason@kernel.org>, Josef
- Bacik	 <josef@toxicpanda.com>, Christoph Hellwig <hch@lst.de>, 
-	linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, 
-	linux-nvme@lists.infradead.org, Alexander Viro <viro@zeniv.linux.org.uk>,
- Jan Kara <jack@suse.cz>, linux-scsi@vger.kernel.org,
- target-devel@vger.kernel.org, 	driver-core@lists.linux.dev,
- linux-mm@kvack.org, bpf@vger.kernel.org, 
-	linux-security-module@vger.kernel.org, selinux@vger.kernel.org, 
-	apparmor@lists.ubuntu.com, linux-nfs@vger.kernel.org,
- netdev@vger.kernel.org, 	fuse-devel@lists.linux.dev,
- linux-efi@vger.kernel.org, 	xen-devel@lists.xenproject.org,
- ocfs2-devel@lists.linux.dev, 	linux-s390@vger.kernel.org,
- linuxppc-dev@lists.ozlabs.org, 	linux-usb@vger.kernel.org, Amir Goldstein
- <amir73il@gmail.com>, 	linux-erofs@lists.ozlabs.org,
- linux-kselftest@vger.kernel.org, 	stable@vger.kernel.org
-Date: Fri, 13 Nov 2026 12:50:50 +0100
-In-Reply-To: <20261110-work-loop-pseudo-v1-0-4c998976c6c7@kernel.org>
-References: <20261110-work-loop-pseudo-v1-0-4c998976c6c7@kernel.org>
-Content-Type: text/plain; charset="UTF-8"
-Content-Transfer-Encoding: base64
-User-Agent: Evolution 3.56.2-0+deb13u1 
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=TtipzD2D
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 6F6D61F000C4;
+	Fri, 13 Nov 2026 12:00:04 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794571210;
+	bh=IWprbPwkQqPxXeS+kMxX8OuNnd1sijR3CtNVlcmSiAs=;
+	h=From:Subject:Date:To:Cc;
+	b=TtipzD2D57k1FaW7n2aOXcsxOQUyGAOFQPuLkxWB/5ZUic2Hz/TevGioOwz5c3EuN
+	 NwaWt1gjqJGSexamWcb6bAq3Z8exNSlhzD9AQ7q66hhnvKJN+1HZ3dyo7OqGD2sA53
+	 8aSINs6GoSWacnPVC6xi3kaLoTU1vt0DKCbsEJUdOqFdPJq+pJtJpIcFeSQs1sd39M
+	 Rzd30imuRd3XwgbgmO6sHxmbx55hp/aU2LE+X2e9NmKt+v9XnWz5PJ+c+KosXPx5WM
+	 wxIR8TEp1vev9awx7oYI6VmTkVUVe3lifU0I9D36XpzXnY09txOBr5yN70nO69RSZt
+	 Syt7IdyqiZBnA==
+From: Christian Brauner <brauner@kernel.org>
+Subject: [PATCH v3 00/33] fs: don't set SB_RDONLY after filesystem errors
+Date: Fri, 13 Nov 2026 12:58:56 +0100
+Message-Id: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -114,230 +53,339 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+X-B4-Tracking: v=1; b=H4sIAAAAAAAC/23OQQrCMBAF0KtI1qYkkxLRlfcQkSad2KgkMqNVk
+ d7dRlEUXP7hz+PfBSNFZLGY3AVhHznmNAYznQjfNWmLMrZjFqDAaqW1vGTay8CS3YbanA43GeY
+ GLVjXKg9i/DsShnh9mqv1K/PZ7dCfClQarmGUjprku3IqZBW4+pBVKZRiF/mU6fZc1+sCvofAn
+ yG9lkpaNatNY1pvwC73SAkPVaatKEt6+CJg/o+AkYBQ18HWQTn7SwzD8ADWvmBZMQEAAA==
+X-Change-ID: 20261011-work-fs-sb_rdonly-f93e626bd0c2
+To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
+Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, 
+ linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
+ linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, linux-mm@kvack.org, 
+ ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
+ linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, 
+ linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
+ linux-xfs@vger.kernel.org, 
+ "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org, 
+ Farhad Alemi <farhad.alemi@berkeley.edu>, Tyler Hicks <code@tyhicks.com>, 
+ Jan Kara <jack@suse.cz>, Karl Mehltretter <kmehltretter@gmail.com>, 
+ Ryusuke Konishi <konishi.ryusuke@gmail.com>, 
+ Viacheslav Dubeyko <slava@dubeyko.com>, Hyunchul Lee <hyc.lee@gmail.com>, 
+ Joseph Qi <joseph.qi@linux.alibaba.com>, Christoph Hellwig <hch@lst.de>
+X-Mailer: b4 0.17-dev-ce4c1
+X-Developer-Signature: v=1; a=openpgp-sha256; l=17051; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=99RT7ELH83mPhcnOk5YHQ3hDMsPWvJyllxxqXgpc3bE=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9+z3z6+nZG49N+tZyTNT/xfHXCRZf3R82LA5vZJFWr
+ FZaIVwwr6OUhUGMi0FWTJHFod0kXG45T8Vmo0wNmDmsTCBDGLg4BWAiQmsY/pecPa36feWsd3/d
+ fiUw1FyTiNFKLO5o8o88n8XqttV6bTsjw1/mCgWv6erPrk5KVg1i52jwWHV7g28Hx+w629z78pU
+ /WAA=
+X-Developer-Key: i=brauner@kernel.org; a=openpgp;
+ fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-T24gVHVlLCAyMDI2LTExLTEwIGF0IDEwOjE0ICswMTAwLCBDaHJpc3RpYW4gQnJhdW5lciB3cm90
-ZToKPiBMb29wIGhhcHBpbHkgdGFrZXMgYW55IHJlZ3VsYXIgZmlsZSB3aXRoIC0+cmVhZF9pdGVy
-KCkgYXMgYSBiYWNraW5nCj4gZmlsZSBhbmQgYW55IGZpbGUgdGhhdCBhbHNvIGhhcyAtPndyaXRl
-X2l0ZXIoKSBhcyBhIHdyaXRhYmxlIG9uZS4gQQo+IGZldwo+IGV4YW1wbGVzOgo+IAo+ICogL3By
-b2Mva2NvcmUgYXR0YWNoZXMgcmVhZC1vbmx5IGFzIGEgbG9vcCBkZXZpY2UgdGhlIHNpemUgb2Yg
-dGhlCj4gwqAga2VybmVsJ3MgdmlydHVhbCBhZGRyZXNzIHNwYWNlICg2NCBQaUIgd2l0aCA1LWxl
-dmVsIHBhZ2luZykKPiAqIHN5c2ZzIGF0dHJpYnV0ZXMgYXR0YWNoIHJlYWQtd3JpdGUgYXMgNDA5
-NiBieXRlIGxvb3AgZGV2aWNlcwo+ICogdXNpbmcgL3N5cy9rZXJuZWwvbW0vdHJhbnNwYXJlbnRf
-aHVnZXBhZ2UvZW5hYmxlZCBmb3IgdGhlIGxvb3AKPiBkZXZpY2UKPiDCoCBhbmQgd3JpdGluZyBh
-IGJsb2NrIHRvIHRoZSBsb29wIGRldmljZSBjaGFuZ2VzIHRoZSBUSFAgc2V0dGluZwo+IAo+IEl0
-J3Mgbm90IGp1c3Qgc2lsbHkuIEl0J3MgYWJ1c2FibGUgKGlzIHRoYXQgYSB3b3JkPykuIExvb3Ag
-Y2FsbHMKPiAtPnJlYWRfaXRlcigpIGFuZCAtPndyaXRlX2l0ZXIoKSBvZiB0aGUgYmFja2luZyBm
-aWxlIGRpcmVjdGx5IGZyb20KPiBpdHMKPiBrd29ya2VyIHdoaWNoIHJ1bnMgd2l0aCBrZXJuZWwg
-Y3JlZGVudGlhbHMuCj4gCj4gQnV0IHBzZXVkbyBmaWxlcyBlbmZvcmNlIHBhcnQgb2YgdGhlaXIg
-YWNjZXNzIHJ1bGVzIGF0IHJlYWQgYW5kIHdyaXRlCj4gYWdhaW5zdCB0aGUgY2FsbGVyLiBTbyBk
-b3plbnMgb2Ygc3lzZnMgLT5zaG93KCkgYW5kIC0+c3RvcmUoKSBtZXRob2RzCj4gY2FsbCBjYXBh
-YmxlKCkuCj4gCj4gQnV0IHNldHRpbmcgdXAgYSBsb29wIGRldmljZSByZXF1aXJlcyBubyBjYXBh
-YmlsaXRpZXMuIEl0IG9ubHkKPiByZXF1aXJlcwo+IGFjY2VzcyB0byB0aGUgZGV2aWNlIG5vZGVz
-LiBTbyB3aG9ldmVyIGhhcyBhIGxvb3AgZGV2aWNlIHNraXBzIGFsbCBvZgo+IHRoZSBjYXBhYmxl
-KCkgY2hlY2tzLgo+IAo+IEEgY291cGxlIG9mIGZ1biBleGFtcGxlczoKPiAKPiBPbiB2Ny40LXJj
-MSB1aWQgMCB3aXRob3V0IGFueSBjYXBhYmlsaXRpZXMgY2FuJ3Qga2lsbCBhIHByb2Nlc3Mgb2YK
-PiB1aWQKPiAxMDAwIGFuZCBjYW4ndCBwb2lzb24gaXRzIG1lbW9yeSBlaXRoZXI6Cj4gCj4gwqDC
-oMKgICQgZ3JlcCBDYXBFZmYgL3Byb2Mvc2VsZi9zdGF0dXMKPiDCoMKgwqAgQ2FwRWZmOiAwMDAw
-MDAwMDAwMDAwMDAwCj4gwqDCoMKgICQga2lsbCAtOSAzMjcKPiDCoMKgwqAgYmFzaDoga2lsbDog
-KDMyNykgLSBPcGVyYXRpb24gbm90IHBlcm1pdHRlZAo+IMKgwqDCoCAkIGVjaG8gMHgyMjA2ODkw
-MDAgPiAvc3lzL2RldmljZXMvc3lzdGVtL21lbW9yeS9oYXJkX29mZmxpbmVfcGFnZQo+IMKgwqDC
-oCBiYXNoOiBlY2hvOiB3cml0ZSBlcnJvcjogT3BlcmF0aW9uIG5vdCBwZXJtaXR0ZWQKPiAKPiBC
-dXQgcHV0IGhhcmRfb2ZmbGluZV9wYWdlIGJlaGluZCBhIGxvb3AgZGV2aWNlLCB3cml0ZSBhIGJs
-b2NrCj4gY29udGFpbmluZyAweDIyMDY4OTAwMCB0byB0aGUgbG9vcCBkZXZpY2UgYW5kIHRoZSBs
-b29wIHdvcmtlciBoYXBwaWx5Cj4gZG9lcyBpdDoKPiAKPiDCoMKgwqAgTWVtb3J5IGZhaWx1cmU6
-IDB4MjIwNjg5OiByZWNvdmVyeSBhY3Rpb24gZm9yIGRpcnR5IExSVSBwYWdlOgo+IFJlY292ZXJl
-ZAo+IMKgwqDCoCBNQ0U6IEtpbGxpbmcgdmljdGltOjMyNyBkdWUgdG8gaGFyZHdhcmUgbWVtb3J5
-IGNvcnJ1cHRpb24gZmF1bHQKPiBhdCA3ZjQ2OGU5NzIwMDAKPiAKPiBUaGF0IGhhcmRfb2ZmbGlu
-ZV9wYWdlIGlzIGEgd3JpdGUtb25seSBmaWxlIGRvZXNuJ3Qgc3RvcCBsb29wIGZyb20KPiB1c2lu
-ZyBpdCBhcyBhIHdyaXRhYmxlIGJhY2tpbmcgZmlsZSBlaXRoZXIuCj4gCj4gT3RoZXIgZnVuIGV4
-YW1wbGVzOgo+IAo+ICgxKSBzb2Z0LWJsb2NrIHJhZGlvcyB2aWEgL3N5cy9jbGFzcy9yZmtpbGwv
-cmZraWxsKi9zb2Z0Cj4gwqDCoMKgIChDQVBfTkVUX0FETUlOKQo+IAo+ICgyKSBjaGFuZ2UgdGhl
-IHJlYm9vdCBtb2RlIHZpYSAvc3lzL2tlcm5lbC9yZWJvb3QvbW9kZSAoQ0FQX1NZU19CT09UKQo+
-IAo+ICgzKSByZWNvbmZpZ3VyZSBtZCBhcnJheXMgdmlhIC9zeXMvYmxvY2svbWQqL21kLy4gbWRf
-YXR0cl9zdG9yZSgpCj4gwqDCoMKgIHJlcXVpcmVzIENBUF9TWVNfQURNSU4gZm9yIGV2ZXJ5IG1k
-IGF0dHJpYnV0ZS4KPiAKPiAoNCkgcmVjb25maWd1cmUgc2NzaSBkaXNrcyB2aWEgL3N5cy9jbGFz
-cy9zY3NpX2Rpc2svKi9hbGxvd19yZXN0YXJ0Cj4gYW5kCj4gwqDCoMKgIGZyaWVuZHMgKENBUF9T
-WVNfQURNSU4pCj4gCj4gKDUpIHJlYWQgZG1pLXN5c2ZzIGF0dHJpYnV0ZXMgKENBUF9TWVNfQURN
-SU4pCj4gCj4gQW5kIGFuIHVucHJpdmlsZWdlZCBjb250YWluZXIgdGhhdCB3YXMgaGFuZGVkIGEg
-bG9vcCBkZXZpY2UgY2FuCj4gY2hhbmdlCj4gZ3JvX2ZsdXNoX3RpbWVvdXQgb2YgaXRzIG93biBu
-ZXR3b3JrIGRldmljZXMuIFRoYXQgdXN1YWxseSByZXF1aXJlcwo+IENBUF9ORVRfQURNSU4gaW4g
-dGhlIGluaXRpYWwgdXNlciBuYW1lc3BhY2UgKHZpYSBzeXNmcyBhbmQgdmlhCj4gbmV0bGluayku
-Cj4gCj4gSSd2ZSByZXByb2R1Y2VkIHRoYXQgYWxsIG9uIHY3LjQtcmMxLgo+IAo+IEFhYWFuZCB6
-bG9vcCwgdGhlIG52bWUgdGFyZ2V0J3MgZmlsZSBiYWNrZW5kLCB0aGUgc2NzaSB0YXJnZXQncwo+
-IGZpbGVpbwo+IGJhY2tlbmQsIGZ1c2UgcGFzc3Rocm91Z2ggYW5kIHRoZSB1c2IgbWFzcyBzdG9y
-YWdlIGdhZGdldCBoYXZlIHRoZQo+IHNhbWUKPiBwcm9ibGVtLiBlcm9mcyB0YWtlcyBwc2V1ZG8g
-ZmlsZXMgYXMgaW1hZ2VzIGZvciBmaWxlLWJhY2tlZCBtb3VudHMgYXMKPiB3ZWxsLiBJdCByZWFk
-cyB0aGVtIHdpdGggdGhlIG1vdW50ZXIncyBjcmVkZW50aWFscyB0aG91Z2ggc28gdGhhdCdzCj4g
-anVzdAo+IHNpbGx5IGFuZCBub3QgYWJ1c2FibGUuCj4gCj4gRndpdywgZGV2aWNlIG1hcHBlciBk
-b2Vzbid0IG5lZWQgYW55dGhpbmcuIEl0IG9ubHkgdGFrZXMgYmxvY2sKPiBkZXZpY2VzLgo+IG1k
-J3MgZGVwcmVjYXRlZCBiaXRtYXAgZmlsZSBpcyBmaW5lIGFzIHdlbGwuIEl0IG1hcHMgdGhlIGZp
-bGUgd2l0aAo+IGJtYXAoKSB3aGljaCBubyBwc2V1ZG8gZmlsZXN5c3RlbSBpbXBsZW1lbnRzLgo+
-IAo+IFNvIHRoaXMgc2VyaWVzIGFkZHMgU0JfSV9QU0VVRE8gdG8gc3RhdGUgdGhhdCB0aGUgcmVn
-dWxhciBmaWxlcyBvZiBhCj4gZmlsZXN5c3RlbSBhcmUga2VybmVsIGludGVyZmFjZXMgYW5kIG5v
-dCBzdG9yYWdlIGFuZCBtYWtlcyBhbGwgc2V2ZW4KPiByZWZ1c2Ugc3VjaCBmaWxlcy4KPiAKPiBJ
-IGRpZG4ndCB3YW50IHRvIHNwcmlua2xlIFNCX0lfUFNFVURPIG92ZXIgYWxsIHBzZXVkbyBmaWxl
-c3lzdGVtcyBvbmUKPiBieQo+IG9uZS4gSW5zdGVhZCB0aGVyZSdzIG5vdyBhIGNvbW1vbiBpbml0
-aWFsaXphdGlvbiBwb2ludCBmb3IgYWxsIG9mCj4gdGhlbQo+IHZpYSBmY19pbml0X3BzZXVkbygp
-Lgo+IAo+IGluaXRfcHNldWRvKCkgdXNlcyBpdCBmb3IgdGhlIGludGVybmFsIHBzZXVkbyBmaWxl
-c3lzdGVtcyBhbmQgYWxsCj4gbW91bnRhYmxlIHBzZXVkbyBmaWxlc3lzdGVtcyBjYWxsIGl0IGZy
-b20gdGhlaXIgLT5pbml0X2ZzX2NvbnRleHQoKS4KPiAKPiBrZXJuZnMgZG9lcyBpdCBvbmNlIGlu
-IGtlcm5mc19nZXRfdHJlZSgpLiBJdCByYWlzZXMgU0JfSV9QU0VVRE8sCj4gU0JfSV9OT0VYRUMg
-YW5kIFNCX0lfTk9ERVYuIFBzZXVkbyBmaWxlc3lzdGVtcyBuZXZlciBob2xkIGV4ZWN1dGFibGVz
-Cj4gb3IKPiBkZXZpY2Ugbm9kZXMuIFNvbWUgb2YgdGhlbSByYWlzZWQgU0JfSV9OT0VYRUMgYW5k
-IFNCX0lfTk9ERVYgYWxyZWFkeSwKPiBtb3N0IGRpZG4ndC4KPiAKPiBJIHdlbnQgdGhyb3VnaCBl
-dmVyeSBzaW5nbGUgb25lIG9mIHRoZW0uIE5vbmUgb2YgdGhlbSBuZWVkcyB0bwo+IGV4ZWN1dGUK
-PiBhbnl0aGluZy4gVGhlIGZpbGVzIHRoYXQgY2FuIGJlIG1tYXAoKWVkIG1hcCBkYXRhIGFuZCB0
-aGUgdHJhY2luZwo+IHJpbmcKPiBidWZmZXIgcmVmdXNlcyBWTV9FWEVDIGFueXdheS4KPiAKPiBT
-Ql9JX05PREVWIGlzIGNsZWFyZWQgYWdhaW4gYnkgZGV2cHRzLCBiaW5kZXJmcyBhbmQgc2VsaW51
-eGZzLiBUaGUKPiBmaXJzdAo+IHR3byBkaWQgdGhhdCBhbHJlYWR5LiBzZWxpbnV4ZnMgbmVlZHMg
-aXQgYmVjYXVzZSBBbmRyb2lkIGluaXQgb3BlbnMKPiAvc3lzL2ZzL3NlbGludXgvbnVsbCBieSBw
-YXRoIGFzIC9kZXYvbnVsbCBkb2Vzbid0IGV4aXN0IHlldCBhdCB0aGF0Cj4gcG9pbnQuIE5vdGUg
-dGhhdCBzeXN0ZW1kIG1vdW50cyBtb3N0IG9mIHRoZXNlIGZpbGVzeXN0ZW1zIHdpdGggbm9leGVj
-Cj4gYW5kIG5vZGV2IGFscmVhZHkuCj4gCj4gZmlsZV9pc19wc2V1ZG8oKSBsb29rcyBhdCBkX3Jl
-YWxfaW5vZGUoKS4gb3ZlcmxheWZzIGhhcHBpbHkgc3RhY2tzIG9uCj4gdG9wIG9mIHN5c2ZzLCBj
-Z3JvdXAyLCBkZWJ1Z2ZzLCB0cmFjZWZzLCBjb25maWdmcyBhbmQgc2VjdXJpdHlmcyBhbmQKPiBy
-ZWFkcyBvZiBzdWNoIG92ZXJsYXlmcyBmaWxlcyBhcmUgc2VydmVkIGJ5IHRoZSBwc2V1ZG8gZmls
-ZS4gT25seQo+IHByb2Nmcwo+IGFuZCBiaW5mbXRfbWlzYyBhcmUgcmVmdXNlZCBhcyB0aGV5IHNl
-dCBzX3N0YWNrX2RlcHRoIHRvCj4gRklMRVNZU1RFTV9NQVhfU1RBQ0tfREVQVEguCj4gCj4gV2hl
-dGhlciBhbGwgcHNldWRvIGZpbGVzeXN0ZW1zIHNob3VsZCByZWZ1c2Ugc3RhY2tpbmcgaXMgYSBz
-ZXBhcmF0ZQo+IGRpc2N1c3Npb24uIG92ZXJsYXlmcyByZWFkcyB0aGUgbG93ZXIgZmlsZSB3aXRo
-IHRoZSBtb3VudGVyJ3MKPiBjcmVkZW50aWFscyBzbyBhIHJvb3QtbW91bnRlZCBvdmVybGF5ZnMg
-b24gdG9wIG9mIGEgc3lzZnMgZGlyZWN0b3J5Cj4gaGFuZHMgY2FwYWJpbGl0eSBnYXRlZCByZWFk
-cyB0byBldmVyeSByZWFkZXIuIFdpdGggU0JfSV9QU0VVRE8KPiBvdmVybGF5ZnMKPiBjb3VsZCBl
-YXNpbHkgcmVmdXNlIHRoZW0uCj4gCj4gVGhlIGZpcnN0IHRocmVlIHBhdGNoZXMgYXJlIGluZGVw
-ZW5kZW50IGZpeGVzLiBMb29wIG5ldmVyIGNoZWNrZWQKPiB3aGV0aGVyIGl0cyBiYWNraW5nIGZp
-bGUgaXMgb3BlbiBmb3IgcmVhZGluZy4gSXQgcmVsaWVkIG9uCj4gdmZzX2l0ZXJfcmVhZCgpIHJl
-ZnVzaW5nIHN1Y2ggZmlsZXMuIERpcmVjdCBJL08gbmV2ZXIgd2VudCB0aHJvdWdoCj4gdmZzX2l0
-ZXJfcmVhZCgpIGFuZCBzaW5jZSB2Ni4xNSBidWZmZXJlZCBJL08gZG9lc24ndCBlaXRoZXIuIFNv
-Cj4gd2hvZXZlcgo+IGhhcyBhIGxvb3AgZGV2aWNlIGNhbiByZWFkIGZpbGVzIHRoZXkgY291bGQg
-b25seSBvcGVuIGZvciB3cml0aW5nLgo+IEFuZAo+IHRoZSBudm1lIHRhcmdldCdzIGZpbGUgYmFj
-a2VuZCBhbmQgdGhlIHNjc2kgdGFyZ2V0J3MgZmlsZWlvIGJhY2tlbmQKPiBjYWxsCj4gLT5yZWFk
-X2l0ZXIoKSBhbmQgLT53cml0ZV9pdGVyKCkgd2l0aG91dCBjaGVja2luZyB0aGF0IHRoZXkgZXhp
-c3QuCj4gCj4gU2lnbmVkLW9mZi1ieTogQ2hyaXN0aWFuIEJyYXVuZXIgKEFtdXRhYmxlKSA8YnJh
-dW5lckBrZXJuZWwub3JnPgo+IC0tLQo+IENocmlzdGlhbiBCcmF1bmVyICg0MSk6Cj4gwqDCoMKg
-wqDCoCBsb29wOiByZWZ1c2UgYmFja2luZyBmaWxlcyB0aGF0IGFyZW4ndCBvcGVuIGZvciByZWFk
-aW5nCj4gwqDCoMKgwqDCoCBudm1ldDogY2hlY2sgdGhhdCB0aGUgZmlsZSBiYWNrZW5kIHN1cHBv
-cnRzIC0+e3JlYWQsd3JpdGV9X2l0ZXIKPiDCoMKgwqDCoMKgIHRhcmdldDogZmlsZWlvOiBjaGVj
-ayB0aGF0IHRoZSBiYWNraW5nIGZpbGUgc3VwcG9ydHMgLQo+ID57cmVhZCx3cml0ZX1faXRlcgo+
-IMKgwqDCoMKgwqAgZnM6IGFkZCBTQl9JX1BTRVVETwo+IMKgwqDCoMKgwqAga2VybmZzOiB1c2Ug
-ZmNfaW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgcHJvYzogdXNlIGZjX2luaXRfcHNldWRvKCkK
-PiDCoMKgwqDCoMKgIGJpbmZtdF9taXNjOiB1c2UgZmNfaW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKg
-wqAgbXF1ZXVlOiB1c2UgZmNfaW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgYnBmOiB1c2UgZmNf
-aW5pdF9wc2V1ZG8oKSBmb3IgYnBmZnMKPiDCoMKgwqDCoMKgIG51bGxmczogdXNlIGZjX2luaXRf
-cHNldWRvKCkKPiDCoMKgwqDCoMKgIGZhaWxmczogdXNlIGZjX2luaXRfcHNldWRvKCkKPiDCoMKg
-wqDCoMKgIHJ1c3RfYmluZGVyZnM6IHVzZSBmY19pbml0X3BzZXVkbygpCj4gwqDCoMKgwqDCoCBk
-ZXZwdHM6IHVzZSBmY19pbml0X3BzZXVkbygpCj4gwqDCoMKgwqDCoCBkZWJ1Z2ZzOiB1c2UgZmNf
-aW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgdHJhY2VmczogdXNlIGZjX2luaXRfcHNldWRvKCkK
-PiDCoMKgwqDCoMKgIGNvbmZpZ2ZzOiB1c2UgZmNfaW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAg
-c2VjdXJpdHlmczogdXNlIGZjX2luaXRfcHNldWRvKCkKPiDCoMKgwqDCoMKgIHNlbGludXg6IHVz
-ZSBmY19pbml0X3BzZXVkbygpIGZvciBzZWxpbnV4ZnMKPiDCoMKgwqDCoMKgIHNtYWNrOiB1c2Ug
-ZmNfaW5pdF9wc2V1ZG8oKSBmb3Igc21hY2tmcwo+IMKgwqDCoMKgwqAgYXBwYXJtb3I6IHVzZSBm
-Y19pbml0X3BzZXVkbygpIGZvciBhcHBhcm1vcmZzCj4gwqDCoMKgwqDCoCBuZnNkOiB1c2UgZmNf
-aW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgc3VucnBjOiB1c2UgZmNfaW5pdF9wc2V1ZG8oKSBm
-b3IgcnBjX3BpcGVmcwo+IMKgwqDCoMKgwqAgZnVzZTogdXNlIGZjX2luaXRfcHNldWRvKCkgZm9y
-IGZ1c2VjdGwKPiDCoMKgwqDCoMKgIGVmaXZhcmZzOiB1c2UgZmNfaW5pdF9wc2V1ZG8oKQo+IMKg
-wqDCoMKgwqAgcHN0b3JlOiB1c2UgZmNfaW5pdF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgeGVuZnM6
-IHVzZSBmY19pbml0X3BzZXVkbygpCj4gwqDCoMKgwqDCoCBvcGVucHJvbWZzOiB1c2UgZmNfaW5p
-dF9wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgb2NmczI6IHVzZSBmY19pbml0X3BzZXVkbygpIGZvciBk
-bG1mcwo+IMKgwqDCoMKgwqAgczM5MC9oeXBmczogdXNlIGZjX2luaXRfcHNldWRvKCkKPiDCoMKg
-wqDCoMKgIHBvd2VycGMvc3B1ZnM6IHVzZSBmY19pbml0X3BzZXVkbygpCj4gwqDCoMKgwqDCoCB1
-c2I6IGdhZGdldDogZl9mczogdXNlIGZjX2luaXRfcHNldWRvKCkKPiDCoMKgwqDCoMKgIHVzYjog
-Z2FkZ2V0OiBnYWRnZXRmczogdXNlIGZjX2luaXRfcHNldWRvKCkKPiDCoMKgwqDCoMKgIGZzOiBh
-ZGQgZmlsZV9pc19wc2V1ZG8oKQo+IMKgwqDCoMKgwqAgbG9vcDogcmVmdXNlIGZpbGVzIG9uIHBz
-ZXVkbyBmaWxlc3lzdGVtcyBhcyBiYWNraW5nIGZpbGVzCj4gwqDCoMKgwqDCoCB6bG9vcDogcmVm
-dXNlIHpvbmUgZmlsZXMgb24gcHNldWRvIGZpbGVzeXN0ZW1zCj4gwqDCoMKgwqDCoCBudm1ldDog
-cmVmdXNlIGZpbGVzIG9uIHBzZXVkbyBmaWxlc3lzdGVtcyBhcyBuYW1lc3BhY2UgYmFja2luZwo+
-IGZpbGVzCj4gwqDCoMKgwqDCoCB0YXJnZXQ6IGZpbGVpbzogcmVmdXNlIGZpbGVzIG9uIHBzZXVk
-byBmaWxlc3lzdGVtcyBhcyBiYWNraW5nCj4gZmlsZXMKPiDCoMKgwqDCoMKgIGZ1c2U6IHJlZnVz
-ZSBmaWxlcyBvbiBwc2V1ZG8gZmlsZXN5c3RlbXMgYXMgcGFzc3Rocm91Z2ggYmFja2luZwo+IGZp
-bGVzCj4gwqDCoMKgwqDCoCB1c2I6IGdhZGdldDogZl9tYXNzX3N0b3JhZ2U6IHJlZnVzZSBmaWxl
-cyBvbiBwc2V1ZG8gZmlsZXN5c3RlbXMKPiDCoMKgwqDCoMKgIGVyb2ZzOiByZWZ1c2UgZmlsZXMg
-b24gcHNldWRvIGZpbGVzeXN0ZW1zIGFzIGJhY2tpbmcgZmlsZXMKPiDCoMKgwqDCoMKgIHNlbGZ0
-ZXN0cy9maWxlc3lzdGVtczogYWRkIGJhY2tpbmcgZmlsZSB0ZXN0cyBmb3IgcHNldWRvIGZpbGVz
-Cj4gCj4gwqBhcmNoL3Bvd2VycGMvcGxhdGZvcm1zL2NlbGwvc3B1ZnMvaW5vZGUuY8KgwqDCoMKg
-wqDCoMKgwqDCoCB8wqDCoCAyICsKPiDCoGFyY2gvczM5MC9oeXBmcy9pbm9kZS5jwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzCoMKgIDIgKwo+
-IMKgZHJpdmVycy9hbmRyb2lkL2JpbmRlci9ydXN0X2JpbmRlcmZzLmPCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqAgfMKgwqAgMyArLQo+IMKgZHJpdmVycy9ibG9jay9sb29wLmPCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgNiAr
-Cj4gwqBkcml2ZXJzL2Jsb2NrL3psb29wLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzCoMKgIDUgKwo+IMKgZHJpdmVycy9udm1lL3Rh
-cmdldC9pby1jbWQtZmlsZS5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqAg
-MTAgKwo+IMKgZHJpdmVycy90YXJnZXQvdGFyZ2V0X2NvcmVfZmlsZS5jwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoCB8wqAgMTUgKysKPiDCoGRyaXZlcnMvdXNiL2dhZGdldC9mdW5j
-dGlvbi9mX2ZzLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAyICsKPiDC
-oGRyaXZlcnMvdXNiL2dhZGdldC9mdW5jdGlvbi9zdG9yYWdlX2NvbW1vbi5jwqDCoMKgwqDCoMKg
-IHzCoMKgIDUgKwo+IMKgZHJpdmVycy91c2IvZ2FkZ2V0L2xlZ2FjeS9pbm9kZS5jwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAyICsKPiDCoGRyaXZlcnMveGVuL3hlbmZz
-L3N1cGVyLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oCB8wqDCoCAyICsKPiDCoGZzL2JpbmZtdF9taXNjLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCA1ICstCj4g
-wqBmcy9jb25maWdmcy9tb3VudC5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgMiArCj4gwqBmcy9kZWJ1Z2ZzL2lub2Rl
-LmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgIHzCoMKgIDIgKwo+IMKgZnMvZGV2cHRzL2lub2RlLmPCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAg
-MiArCj4gwqBmcy9lZml2YXJmcy9zdXBlci5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgMiArCj4gwqBmcy9lcm9mcy9z
-dXBlci5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgNiArLQo+IMKgZnMvZmFpbGZzLmPCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqAgfMKgwqAgMyArLQo+IMKgZnMvZnVzZS9iYWNraW5nLmPCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAg
-MyArCj4gwqBmcy9mdXNlL2NvbnRyb2wuY8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAyICsKPiDCoGZzL2tlcm5m
-cy9tb3VudC5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgIHzCoMKgIDQgKy0KPiDCoGZzL2xpYmZzLmPCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoCB8wqDCoCAyICstCj4gwqBmcy9uZnNkL25mc2N0bC5jwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKg
-wqAgMiArCj4gwqBmcy9udWxsZnMuY8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAzICstCj4g
-wqBmcy9vY2ZzMi9kbG1mcy9kbG1mcy5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgMiArCj4gwqBmcy9vcGVucHJvbWZzL2lub2Rl
-LmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgIHzCoMKgIDIgKwo+IMKgZnMvcHJvYy9yb290LmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgNCAr
-LQo+IMKgZnMvcHN0b3JlL2lub2RlLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqAgfMKgwqAgMiArCj4gwqBmcy90cmFjZWZz
-L2lub2RlLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgIHzCoMKgIDIgKwo+IMKgaW5jbHVkZS9saW51eC9mcy5owqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8
-wqAgMTIgKwo+IMKgaW5jbHVkZS9saW51eC9mcy9zdXBlcl90eXBlcy5owqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAxICsKPiDCoGluY2x1ZGUvbGludXgvcHNl
-dWRvX2ZzLmjCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oCB8wqAgMTEgKwo+IMKgaXBjL21xdWV1ZS5jwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAzICst
-Cj4gwqBrZXJuZWwvYnBmL2lub2RlLmPCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzCoMKgIDQgKy0KPiDCoG5ldC9zdW5ycGMv
-cnBjX3BpcGUuY8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqAgfMKgwqAgMiArCj4gwqBzZWN1cml0eS9hcHBhcm1vci9hcHBhcm1vcmZzLmPC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzCoMKgIDIgKwo+IMKgc2Vj
-dXJpdHkvaW5vZGUuY8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKg
-wqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzCoMKgIDIgKwo+IMKgc2VjdXJpdHkvc2VsaW51eC9z
-ZWxpbnV4ZnMuY8KgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgIHzC
-oMKgIDUgKwo+IMKgc2VjdXJpdHkvc21hY2svc21hY2tmcy5jwqDCoMKgwqDCoMKgwqDCoMKgwqDC
-oMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoMKgwqDCoCB8wqDCoCAyICsKPiDCoHRvb2xzL3Rlc3Rp
-bmcvc2VsZnRlc3RzL2ZpbGVzeXN0ZW1zLy5naXRpZ25vcmXCoMKgwqDCoCB8wqDCoCAxICsKPiDC
-oHRvb2xzL3Rlc3Rpbmcvc2VsZnRlc3RzL2ZpbGVzeXN0ZW1zL01ha2VmaWxlwqDCoMKgwqDCoMKg
-IHzCoMKgIDIgKy0KPiDCoHRvb2xzL3Rlc3Rpbmcvc2VsZnRlc3RzL2ZpbGVzeXN0ZW1zL2NvbmZp
-Z8KgwqDCoMKgwqDCoMKgwqAgfMKgwqAgOSArCj4gwqAuLi4vc2VsZnRlc3RzL2ZpbGVzeXN0ZW1z
-L3BzZXVkb19iYWNraW5nX3Rlc3QuY8KgwqDCoCB8IDI3NAo+ICsrKysrKysrKysrKysrKysrKysr
-Kwo+IMKgNDMgZmlsZXMgY2hhbmdlZCwgNDE5IGluc2VydGlvbnMoKyksIDE1IGRlbGV0aW9ucygt
-KQo+IC0tLQo+IGJhc2UtY29tbWl0OiA2NjI4ZTdkNGM2YjI1YzhkMThmMTM0NWUzYTIwZDIxODI5
-YWFlN2U0Cj4gY2hhbmdlLWlkOiAyMDI2MTEwOS13b3JrLWxvb3AtcHNldWRvLTg5MDg0NDE2OGVm
-MQoKSGkgQ2hyaXN0aWFuLAoKSSB0aGluayB3ZSBzaG91bGQgYWxzbyBjb3ZlciBhY2N0KDIpIGNh
-c2Ugd2l0aCBzb21ldGhpbmcgbGlrZSB0aGlzOgoKZGlmZiAtLWdpdCBhL2tlcm5lbC9hY2N0LmMg
-Yi9rZXJuZWwvYWNjdC5jCmluZGV4IGM0NDBkNDM0NzljYS4uOTE4MzViODRiZTAxIDEwMDY0NAot
-LS0gYS9rZXJuZWwvYWNjdC5jCisrKyBiL2tlcm5lbC9hY2N0LmMKQEAgLTI0NSwxMSArMjQ1LDEw
-IEBAIHN0YXRpYyBpbnQgYWNjdF9vbihjb25zdCBjaGFyIF9fdXNlciAqbmFtZSkKICAgICAgICAg
-ICAgICAgIHJldHVybiAtRUFDQ0VTOwogCiAgICAgICAgLyogRXhjbHVkZSBrZXJuZWwgaW50ZXJu
-YWwgZmlsZXN5c3RlbXMuICovCi0gICAgICAgaWYgKGZpbGVfaW5vZGUoZmlsZSktPmlfc2ItPnNf
-ZmxhZ3MgJiAoU0JfTk9VU0VSIHwKU0JfS0VSTk1PVU5UKSkKKyAgICAgICBpZiAoZmlsZV9pbm9k
-ZShmaWxlKS0+aV9zYi0+c19mbGFncyAmIFNCX0tFUk5NT1VOVCkKICAgICAgICAgICAgICAgIHJl
-dHVybiAtRUlOVkFMOwogCi0gICAgICAgLyogRXhjbHVkZSBwcm9jZnMgYW5kIHN5c2ZzLiAqLwot
-ICAgICAgIGlmIChmaWxlX2lub2RlKGZpbGUpLT5pX3NiLT5zX3R5cGUtPmZzX2ZsYWdzICYKRlNf
-VVNFUk5TX01PVU5UX1JFU1RSSUNURUQpCisgICAgICAgaWYgKGZpbGVfaXNfcHNldWRvKGZpbGUp
-KQogICAgICAgICAgICAgICAgcmV0dXJuIC1FSU5WQUw7CiAKICAgICAgICBpZiAoIShmaWxlLT5m
-X21vZGUgJiBGTU9ERV9DQU5fV1JJVEUpKQo=
+A lot of filesystems handle errors by setting SB_RDONLY from whatever
+context found the error and without holding s_umount. SB_RDONLY is
+supposed to only change under s_umount through a proper remount. So
+that races with everyone else writing sb->s_flags and it breaks
+freezing: freeze_super() and thaw_super() decide from sb_rdonly()
+whether the s_writers rwsems need to be taken or released. An error
+while frozen makes thaw_super() leave them write-locked, every writer
+after that hangs in sb_start_write() and umount warns. jfs even oopses.
+
+Karl proposed teaching thaw_super() to remember what the freeze took
+(cf. [1]). Jan preferred fixing the filesystems like ext4 and f2fs
+already did (cf. [2]) and I agree. v1 did that and every filesystem
+grew the same checks in ->open, ->setattr, ->fsync and friends, so Jan
+suggested a generic flag in the superblock instead (cf. [3]):
+
+- sb->s_state gets SB_STATE_EMERGENCY_RO. It's only ever set and never
+  cleared and SB_RDONLY stays untouched so freezing keeps working.
+- a filesystem calls sb_set_emergency_ro() where it used to set
+  SB_RDONLY
+- the VFS refuses modifications with EROFS wherever sb_rdonly() does,
+  also for files opened before the error, refuses the remount to
+  read-write and a new freeze, and doesn't sync the superblock anymore:
+  syncfs(2) and Q_SYNC fail with EROFS, sync(2) and umount skip it (Jan)
+- /proc/mounts, statmount() and statfs() show it read-only and a
+  remount to read-only works, so sysrq u doesn't WARN anymore, and
+  doesn't mark the filesystem clean
+
+Writeback isn't stopped. The flusher and the block device flushes in
+sync(2) and kill_block_super() keep writing, so what ends up on disk is
+what it is on mainline today and every filesystem decides what its
+writeback still writes. The same goes for what doesn't pass through the
+VFS: allocators, journals, the deletion of unlinked inodes and the xattr
+and ACL setters that ecryptfs calls without write access on the lower
+mount. That's about a third of the checks v1 had.
+
+The stable fixes stay self-contained, a follow-up patch converts each of
+exfat, hfs, ntfs, zonefs and ext4 to the generic state. fat, exfat, hpfs
+and ntfs still set SB_RDONLY for errors during mount, nothing can freeze
+before SB_BORN. A few patches make the read-only remount work in the
+first place: exfat and ocfs2 didn't inherit their mount options on
+remount, gfs2 BUG()s when remounted read-only during a withdraw, and
+ext4 in its emergency state and a shut down xfs refused to go read-only
+at all, so sysrq u WARNed for them. ecryptfs gets a read-only fallback
+for its lower files, otherwise every lookup on top of an errored
+filesystem fails with EROFS and leaks the inode.
+
+The first two patches are jfs fixes for mainline: umount after an error
+BUG()s because nothing commits the anonymous tlocks of allocations
+writeback didn't get to, and slow symlinks read from disk didn't get
+jfs_setattr().
+
+There are user-visible changes but I think they're all fine. "mount -o
+remount,rw" doesn't make the filesystem writable again after an error,
+like ext4 since commit d3476f3dad4a ("ext4: don't set SB_RDONLY after
+filesystem errors"). Writes through file descriptors opened before the
+error, fsync(), syncfs() and Q_SYNC fail with EROFS and stores through
+shared mappings get SIGBUS. FIFREEZE and dm suspend with lockfs fail
+with EROFS like they already did for ext4, and the shutdown ioctls of
+ext4, exfat, ntfs and btrfs skip the freeze after an error. A second
+read-only mount of the device fails with EBUSY. And ext4 shows "ro" in
+/proc/mounts and reports ST_RDONLY again after an error.
+
+This has dependencies on vfs-7.5.super (cf. [4]). With this no
+filesystem changes SB_RDONLY outside of mount and remount anymore.
+
+[1]: https://lore.kernel.org/r/20260903060855.4610-1-kmehltretter@gmail.com
+[2]: https://lore.kernel.org/r/hyhuckyohsabx2suvq3z7uy3pbgmihva6wgzxr3op7pzcrlu33@p7zzlgp2ehjf
+[3]: https://lore.kernel.org/r/my2k7257m265fp5ad77n5hfndl23i56gsog3jwnsyocp3yxbnj@aphfqdiej2hs
+[4]: https://lore.kernel.org/r/20261011-work-super-fixes-core-v1-0-c727176c5b53@kernel.org
+
+Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
+---
+Changes in v3:
+- New first patch: jfs frees the anonymous tlocks of an evicted inode
+  instead of BUG()ing on umount after an error. That's a mainline bug,
+  Cc stable.
+- sync_filesystem() and sync(2) skip a superblock in the emergency
+  state, syncfs(2) and Q_SYNC fail with EROFS. That's the VFS patch from
+  the v1 thread after all, the jfs fix takes care of the BUG (Jan).
+- freeze_super() refuses a new freeze in the emergency state with EROFS,
+  the exfat, ntfs, btrfs and ext4 shutdown ioctls skip the freeze after
+  an error.
+- ext2, fat, affs, ufs and hfs don't refuse ->write_inode() anymore. The
+  flusher wrote data and bitmaps but no inodes and new files were lost
+  (sashiko).
+- The ->sync_fs() checks of ext2, jfs, nilfs2, ocfs2 and ubifs are gone,
+  the VFS doesn't call them in that state.
+- ext2: ext2_freeze() doesn't check the emergency state anymore (Jan).
+- jfs: refuse a resize after an error, keep FM_DIRTY with nointegrity
+  when the error hit while frozen (sashiko).
+- ntfs: ntfs_drop_big_inode() leaves unlinked inodes to chkdsk in the
+  emergency state like ntfs_evict_big_inode() (sashiko).
+- btrfs_force_shutdown() sets BTRFS_FS_STATE_RO too (Qu).
+- ubifs: always use the emergency state, don't sync the write-buffers
+  or the master node on a remount to read-only after an error, drop
+  dirty folios and inodes after an error (Zhihao, sashiko).
+- ecryptfs doesn't try to write the header through a read-only lower
+  file when opening an empty file (sashiko).
+- Dropped the selftests, fstests is the place for them (Christoph).
+- The jfs symlink inode operations fix is a patch of its own.
+- sb_rdonly_any() for the checks that need the read-only mount and the
+  emergency state instead of open-coding the pair.
+- Picked up the review tags. The ones for hfs, ntfs, ocfs2, nilfs2
+  and the ext4 conversion are kept although those patches changed a
+  bit (a ->sync_fs() or ->write_inode() hunk less, the shutdown ioctls
+  skip the freeze). Jan's tag on the VFS patch isn't, it changed too
+  much.
+- Link to v2: https://patch.msgid.link/20261029-work-fs-sb_rdonly-v2-0-2f44f64f0b66@kernel.org
+
+Changes in v2:
+- Generic SB_STATE_EMERGENCY_RO in the superblock, the VFS refuses
+  modifications. The checks at the VFS entry points of every filesystem
+  are gone (Jan).
+- The VFS patch from the v1 thread also hooked write_inode() and
+  sync_filesystem(). Dropped, jfs still has to commit queued allocations
+  after the error.
+- /proc/mounts shows "ro" and statfs() reports ST_RDONLY again in the
+  emergency state.
+- The stable-tagged fixes stay self-contained, follow-up patches convert
+  exfat, hfs, ntfs, zonefs and ext4 to the generic state.
+- hfsplus checks the b-tree map records in hfsplus_fill_super() (Slava).
+- Selftests expect ST_RDONLY and EROFS from fsync() on jfs too.
+- ecryptfs refuses writes through a read-only lower file with EROFS.
+  truncate(2) and creating a file ran into the WARN_ON_ONCE() in
+  __kernel_write_iter() (sashiko).
+- gfs2: bail out of the freeze loop when the filesystem withdrew in the
+  meantime, keep the EIO from gfs2_make_fs_rw() for a remount to
+  read-write and don't show "withdrawn" in the mount options (Andreas).
+- Don't show "emergency_ro" and "ro_ops" in the mount options. Remount
+  helpers that pass the shown options back trip over them. ext4 keeps
+  showing "emergency_ro" like it does now (Andreas).
+- Rebased onto current mainline. ntfs persists its error state itself
+  since commit 521978c4f444, the error work uses that now, and the new
+  named stream paths refuse modifications in the emergency state too.
+- statmount() reports the emergency state as read-only too and
+  remap_verify_area() refuses FICLONE and friends in that state.
+- nilfs2 refuses going read-write in the emergency state itself because
+  nilfs_get_tree() reconfigures the superblock without
+  reconfigure_super(). zonefs keeps its check in ->write_iter() because
+  the loop driver and others call it without rw_verify_area().
+- ntfs runs a pending error work before umount persists the error
+  state, hfsplus says which b-tree header node it couldn't load again.
+- The reproducers moved out of the commit messages into git notes.
+- Link to v1: https://patch.msgid.link/20261012-work-fs-sb_rdonly-v1-0-60743a3dc326@kernel.org
+
+---
+Christian Brauner (33):
+      jfs: free uncommitted anonymous tlocks when evicting an inode
+      jfs: use jfs_symlink_inode_operations in jfs_iget()
+      ecryptfs: don't leak the inode when a lookup can't open the lower file
+      ecryptfs: fall back to a read-only lower file
+      fs: add a generic emergency read-only state
+      ext2: don't set SB_RDONLY after filesystem errors
+      jfs: don't set SB_RDONLY after filesystem errors
+      nilfs2: don't set SB_RDONLY after filesystem errors
+      fat: don't set SB_RDONLY after filesystem errors
+      exfat: keep the current mount options on remount
+      exfat: don't set SB_RDONLY after filesystem errors
+      exfat: use the generic emergency read-only state
+      hfs: don't set SB_RDONLY after MDB write errors
+      hfs: use the generic emergency read-only state
+      hfsplus: don't set SB_RDONLY when creating the attributes tree
+      affs: don't set SB_RDONLY after filesystem errors
+      ufs: don't set SB_RDONLY after filesystem errors
+      hpfs: don't set SB_RDONLY after filesystem errors
+      ntfs: don't set SB_RDONLY after filesystem errors
+      ntfs: use the generic emergency read-only state
+      ocfs2: keep the current mount options on remount
+      ocfs2: don't set SB_RDONLY after filesystem errors
+      zonefs: don't set SB_RDONLY after I/O errors
+      zonefs: use the generic emergency read-only state
+      btrfs: check BTRFS_FS_STATE_RO instead of SB_RDONLY at runtime
+      btrfs: don't set SB_RDONLY after filesystem errors
+      gfs2: wait for a pending withdraw before remounting read-only
+      gfs2: don't set SB_RDONLY on withdraw
+      efivarfs: stop using SB_RDONLY for read-only efivar ops
+      ubifs: don't set SB_RDONLY after errors
+      ext4: allow remounting read-only in the emergency state
+      ext4: use the generic emergency read-only state
+      xfs: allow remounting read-only after a shutdown
+
+ Documentation/filesystems/porting.rst | 20 +++++++++++
+ Documentation/filesystems/zonefs.rst  |  4 +--
+ fs/affs/amigaffs.c                    |  4 +--
+ fs/affs/super.c                       | 14 +++++---
+ fs/attr.c                             |  4 +++
+ fs/btrfs/acl.c                        |  3 +-
+ fs/btrfs/bio.c                        |  2 +-
+ fs/btrfs/block-group.c                |  2 +-
+ fs/btrfs/dev-replace.c                |  2 +-
+ fs/btrfs/discard.c                    |  2 +-
+ fs/btrfs/disk-io.c                    |  4 +--
+ fs/btrfs/fs.h                         | 20 +++++++----
+ fs/btrfs/inode.c                      |  8 ++---
+ fs/btrfs/ioctl.c                      | 13 ++++---
+ fs/btrfs/messages.c                   | 16 +++++----
+ fs/btrfs/qgroup.c                     |  4 +--
+ fs/btrfs/reflink.c                    |  3 +-
+ fs/btrfs/super.c                      | 35 +++++++++++++++---
+ fs/btrfs/sysfs.c                      |  4 +--
+ fs/btrfs/tree-checker.c               |  2 +-
+ fs/btrfs/volumes.c                    |  4 +--
+ fs/btrfs/xattr.c                      |  8 +++--
+ fs/ecryptfs/file.c                    |  4 ++-
+ fs/ecryptfs/inode.c                   | 13 ++++++-
+ fs/ecryptfs/kthread.c                 | 15 ++++++--
+ fs/ecryptfs/read_write.c              |  3 ++
+ fs/efivarfs/file.c                    |  6 ++++
+ fs/efivarfs/inode.c                   | 15 ++++++++
+ fs/efivarfs/internal.h                | 14 +++++++-
+ fs/efivarfs/super.c                   | 26 +++++++++-----
+ fs/exfat/exfat_fs.h                   | 10 ++++++
+ fs/exfat/file.c                       | 54 ++++++++++++++++++++--------
+ fs/exfat/inode.c                      | 11 +++---
+ fs/exfat/misc.c                       | 16 ++++++---
+ fs/exfat/namei.c                      | 27 ++++++++------
+ fs/exfat/super.c                      | 41 +++++++++++++--------
+ fs/ext2/balloc.c                      |  5 +++
+ fs/ext2/ialloc.c                      |  2 ++
+ fs/ext2/inode.c                       |  4 ++-
+ fs/ext2/super.c                       | 13 ++++---
+ fs/ext2/xattr.c                       |  2 ++
+ fs/ext4/ioctl.c                       |  4 +++
+ fs/ext4/super.c                       | 19 ++++++----
+ fs/fat/dir.c                          |  3 ++
+ fs/fat/fatent.c                       | 11 +++++-
+ fs/fat/file.c                         |  4 +++
+ fs/fat/inode.c                        | 13 +++++--
+ fs/fat/misc.c                         | 19 ++++++----
+ fs/gfs2/quota.c                       |  2 +-
+ fs/gfs2/super.c                       | 40 +++++++++++++++++----
+ fs/gfs2/util.c                        |  7 ++--
+ fs/hfs/attr.c                         |  3 ++
+ fs/hfs/extent.c                       |  5 +++
+ fs/hfs/inode.c                        |  7 ++++
+ fs/hfs/mdb.c                          | 16 +++++----
+ fs/hfs/super.c                        |  2 +-
+ fs/hfsplus/btree.c                    | 42 ++++++++++++++--------
+ fs/hfsplus/hfsplus_fs.h               |  1 +
+ fs/hfsplus/super.c                    |  5 +++
+ fs/hpfs/alloc.c                       |  4 +--
+ fs/hpfs/dir.c                         |  2 +-
+ fs/hpfs/map.c                         |  3 +-
+ fs/hpfs/super.c                       | 11 ++++--
+ fs/jfs/acl.c                          |  3 ++
+ fs/jfs/inode.c                        | 15 +++++++-
+ fs/jfs/ioctl.c                        |  4 +++
+ fs/jfs/jfs_dtree.c                    |  3 +-
+ fs/jfs/jfs_extent.c                   | 10 ++++++
+ fs/jfs/jfs_incore.h                   |  6 ++++
+ fs/jfs/jfs_inode.c                    |  3 ++
+ fs/jfs/jfs_txnmgr.c                   | 68 +++++++++++++++++++++++++++++++++++
+ fs/jfs/jfs_txnmgr.h                   |  1 +
+ fs/jfs/super.c                        | 36 ++++++++++++++++---
+ fs/jfs/xattr.c                        |  3 ++
+ fs/namei.c                            |  3 +-
+ fs/namespace.c                        |  5 ++-
+ fs/nilfs2/inode.c                     |  4 +--
+ fs/nilfs2/ioctl.c                     |  4 +++
+ fs/nilfs2/mdt.c                       |  2 +-
+ fs/nilfs2/page.c                      |  2 +-
+ fs/nilfs2/segment.c                   | 13 ++++---
+ fs/nilfs2/sufile.h                    |  2 +-
+ fs/nilfs2/super.c                     | 25 +++++++++----
+ fs/ntfs/aops.c                        |  5 +--
+ fs/ntfs/dir.c                         |  5 +--
+ fs/ntfs/ea.c                          | 10 ++++--
+ fs/ntfs/file.c                        | 63 +++++++++++++++++++++++---------
+ fs/ntfs/inode.c                       | 18 +++++++---
+ fs/ntfs/iomap.c                       |  6 ++--
+ fs/ntfs/mft.c                         | 10 ++++--
+ fs/ntfs/named_stream.c                | 43 +++++++++++-----------
+ fs/ntfs/namei.c                       | 40 ++++++++++++---------
+ fs/ntfs/super.c                       | 56 +++++++++++++++++++++++++----
+ fs/ntfs/volume.h                      | 13 +++++++
+ fs/ocfs2/acl.c                        |  3 ++
+ fs/ocfs2/super.c                      | 27 +++++++++++---
+ fs/ocfs2/xattr.c                      |  8 +++++
+ fs/open.c                             |  4 +++
+ fs/proc_namespace.c                   |  2 +-
+ fs/quota/dquot.c                      | 27 ++++++++++----
+ fs/quota/quota.c                      | 13 +++++++
+ fs/read_write.c                       |  5 +++
+ fs/remap_range.c                      |  4 +++
+ fs/statfs.c                           |  9 +++--
+ fs/super.c                            | 17 +++++++++
+ fs/sync.c                             | 14 ++++++--
+ fs/ubifs/file.c                       | 12 +++++++
+ fs/ubifs/io.c                         |  6 +++-
+ fs/ubifs/super.c                      | 40 +++++++++++++--------
+ fs/ubifs/xattr.c                      |  6 ++++
+ fs/ufs/cylinder.c                     | 12 ++++---
+ fs/ufs/super.c                        | 56 ++++++++++++++++++++---------
+ fs/xfs/xfs_super.c                    | 13 +++++--
+ fs/zonefs/file.c                      | 13 ++++---
+ fs/zonefs/super.c                     | 25 ++++++++-----
+ fs/zonefs/zonefs.h                    |  1 +
+ include/linux/fs/super.h              | 23 ++++++++++++
+ include/linux/fs/super_types.h        | 19 ++++++++++
+ mm/memory.c                           |  6 ++++
+ 119 files changed, 1185 insertions(+), 343 deletions(-)
+---
+base-commit: c339f4010dea8b0d754f84ace70cd1b089878ef8
+change-id: 20261011-work-fs-sb_rdonly-f93e626bd0c2
 
