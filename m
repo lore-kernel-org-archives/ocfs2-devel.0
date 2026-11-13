@@ -1,48 +1,112 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.225.138
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794571355;
-	b=cy2sRv+KlbSIWiru3VAXM7zZDslB2WRGtBnkNIuoVhoCIeRpvkMo4GMEaB0V4d1KRgkf
-	 6RKaC3dzi8Vm7sYqOHImOqAj6RoiFIaRYj4V3mGz0thbNzztqBfmN4Ak9cK9cO4qc23ds
-	 DFE9MZhPGNvMfMNJ4zm2V7TktByj+cSV4be6BwCKn/DIgw84SJQ7Rs5r7xcweJumBY21P
-	 mAEkbucSIVyEBiaXXbcpErhl22oHD7KAQY031kLw9b6hOSOIMHFxPgLttMh0cTxYaDMS+
-	 i88O+qIWmfXYMcmrq18MZ5Y7U3FC5+pjb81HdfwMPMJvkheLzlFkINPdU6wfCv8r/aw==
+	t=1794573426;
+	b=kI80tdkgvexmK4f6EgSmup4wTHlXwdBGBRs5DIkd/tPM9MP4DQwHs+gMyqzrPx5/TW5F
+	 G/NUHAIxZtgPB7s+NgI8maMTkLMYYfhs/PvlyaE76D8GMJAMWlYL8FNCC/p2NTJd4ZFUX
+	 vNbJgxZuGF/sf+EkNmfD6FVrHqukprcU7DFXtp6W/Jws+BFDLlYxKwCa0OMlKnjPImoQR
+	 NzI3W+Qpm6SlEjIBo27qqfP0NZG3zmhJW+T0i6OK9R9zCdB25fHGaiIKsW2ODJmvmF8rP
+	 q0x/dpSTG97lJnvcX4cG7zvU8XWG+7gKUIJf22Gx11QPatapJLRQQuoO3EHtetQ56hQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794571355;
-	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
-	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
-	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=nqpl7OV39r2iQfy91FqwaHd5ZOtj6zGRSvahZGEYD+E=;
-	b=tRMrYiX/KUHWHcuZ0mG3sKm7GbDgWs8D+uc60njCf7qYAw3lV2j4713lkFSXYr4RPLnG
-	 P/6iJOrzKyjs28XoQOzicJF9nmqXMSAC0A+6xTZV0lju4Fuz7YvsvLpfOrAExewSA9hiT
-	 xeeE8ZBq4n4Bph5Hqh4LRBtapM0XwKM8K4Gzcxt/mrVswuhsUzMIHAmQ2nXsZVd5Z9cev
-	 lm3GECUE2/oaf+Ldsa9FUZ8FfltCiytzqxw7x6fh7HWQcgoFWq//LHCx4kEzpKnhaQqFH
-	 mL39pNkF30KMb5RORrPC0m6s+FsePtcvT49Yh2LMp5p7oSsWFE2lkqxGXGnmP+0IlQg==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794573426;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Message-ID:Subject:From:To:Cc:Date:In-Reply-To:References:
+	 Content-Type:Content-Transfer-Encoding:User-Agent:MIME-Version;
+	bh=87/Ge5NhXdmtGpcXCLUvnqWpWEAxiW5M6eWOW+m4zUs=;
+	b=EzySBf3KofYcqp0JvZLp78k7jlE9ECIfFkvSbpIli2GP1ucZR6jfol1hUUrMjZMO+Opk
+	 9H1FRCq+IPa4An6A4qsUXzjE7JpAdHvAXGoPEiprJNz5bVJJy+NlUfcnDW10/O+EHhK7M
+	 1FM9l7svIfBqu0sQ0ozJdHonBgGW/ihtV7Ei+HwerG5XIBYesOP7SEzQ5KsYLnTSK2R9x
+	 wMuig/tqTZs6b3iVBzmFX4QONQwagmgTuECwIaXJMmmLX9ozo0scogFQU273PtG06KXvk
+	 SfpviqQXzGa6zmzYNV6crJYdmF90RjS2l7YaOKTDcxVmIZzIcEw2orsjwCT0O4ZeYsQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=cf+yeFhO;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=none header.from=amutable.com;
+	spf=pass smtp.mailfrom=amutable.com;
+	dkim=pass header.d=amutable-com.20260707.gappssmtp.com header.i=@amutable-com.20260707.gappssmtp.com header.a=rsa-sha256 header.s=20260707 header.b=Tu9p6NGc;
+	arc=none smtp.remote-ip=74.125.225.138
+Received: from mail-wm2-f10.google.com (mail-wm2-f10.google.com [74.125.225.138])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E47B2606A884;
-	Fri, 13 Nov 2026 12:02:34 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E04F4606A33A
+	for <ocfs2-devel@lists.linux.dev>; Fri, 13 Nov 2026 12:37:04 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org E04F4606A33A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=none (p=none dis=none) header.from=amutable.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=amutable.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=cf+yeFhO
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id BF12E1F000C4;
-	Fri, 13 Nov 2026 12:02:30 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794571354;
-	bh=nqpl7OV39r2iQfy91FqwaHd5ZOtj6zGRSvahZGEYD+E=;
-	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=cf+yeFhOxffbF4Gcf34O35WTxadG12WvPaCmfzpM4r32A0Zx6mgMDJc1sLO/YM6kO
-	 AttOejPt8vjAVMDguouOKgG4chNWLadxzD+/+x0udw00EWdrBxZXjjyUGxXiNfr0KL
-	 2Cy4hMfY6XBfQRpX+3tRTOLMyM9ycZzFnmbhGe4vQX/XMXAN8zxW+nTIQRZUDSPFN+
-	 UA0HoX/cY+5dUrCcKOGhiq27KEj1oYfFrxgN2XYCRdQGCGFk9rXYAWmgfrTpRTXfVE
-	 pkxsl//WEYBESVhL4XDuY4okx74G61h8X8gdb9K34VBxKOCwUYhd2LlsYSC6gjpuqG
-	 xJXrsVuVLfs5g==
-From: Christian Brauner <brauner@kernel.org>
-Date: Fri, 13 Nov 2026 12:59:29 +0100
-Subject: [PATCH v3 33/33] xfs: allow remounting read-only after a shutdown
+	dkim=pass (2048-bit key) header.d=amutable-com.20260707.gappssmtp.com header.i=@amutable-com.20260707.gappssmtp.com header.a=rsa-sha256 header.s=20260707 header.b=Tu9p6NGc
+Received: by mail-wm2-f10.google.com with SMTP id 5b1f17b1804b1-4b886ebe069so3303835e9.1
+        for <ocfs2-devel@lists.linux.dev>; Fri, 13 Nov 2026 04:37:04 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=amutable-com.20260707.gappssmtp.com; s=20260707; t=1794573423; x=1795178223; darn=lists.linux.dev;
+        h=mime-version:user-agent:content-transfer-encoding:content-type
+         :references:in-reply-to:date:cc:to:from:subject:message-id:from:to
+         :cc:subject:date:message-id:reply-to:content-type;
+        bh=87/Ge5NhXdmtGpcXCLUvnqWpWEAxiW5M6eWOW+m4zUs=;
+        b=Tu9p6NGcOF4z0zLKEG8rFsAGxhnNNZ3YXRzgBjD+Zgvog4jzGewEr93mY+5QLqeJiY
+         k/b4eA3nyJFT5mUkf19NIQbfgFGdNlwzoP+Gk8+ZauW72nC0Fe02lc/nAN0lHw+3/Zzb
+         Q7cxGpm8N5h2I1opQc8PdtWBs8GH3ul5+o1cSuGLAsR9W7YSxaMm4TXumFn46mioHsGN
+         wsmOFjqXVBlSo4Tx9r1r3V6DBkSTtq0HaddZAyi28yE2e5UZUa2jqd57XSlB5HF9QRFc
+         DjugvFJHUM5nIyIm1TAdtnTGyuyV2W9USZt254Vrts4YGip+jRmUTEEn9h0DREuegwVs
+         rUHg==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794573423; x=1795178223;
+        h=mime-version:user-agent:content-transfer-encoding:content-type
+         :references:in-reply-to:date:cc:to:from:subject:message-id:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=87/Ge5NhXdmtGpcXCLUvnqWpWEAxiW5M6eWOW+m4zUs=;
+        b=lZQZRxPhzhWIxl9BUQnzWQuhHDZvGSlEdlifre6l7jJsiNLv7UmlaqmbNHFM47f9kA
+         wAknrKxXuIvsAP/pBaby8lOwcSKl8YTWgDOSG01UtaRtr7KXCIb3TT8OH6rUBiMl6KKT
+         qumjZM9b8m2kLmkMInbNgXU6sEwqRoH7hsPoZD24S51u+cVRMMMbBB6T8aPi/uuGMoJQ
+         KYmMeoRZ/J2JQmGQtXO/G1vGQi6PHfb6/jVhDTlt2t2epkNnoLUktiKtOtB9jNYnLpYf
+         NTDoYVi5vJVxwgQeVbJleaV+dJmHzK8qjAHPrVNGjSovVTPdExXcAu55+CNPddLLXvZY
+         NY9A==
+X-Forwarded-Encrypted: i=1; AL+hErFlkkmyazQPqh6JYi4NbogULZ839Sj63KXJZR1eRzpyu58AdGPhlm4U0dYWqD215ytk4qahPeeuplbOMQ==@lists.linux.dev
+X-Gm-Message-State: APuU4Z9X0/oNbmb4iNTcdiHLJw3Stkn9CMBblQiKmaYWFeymkRKoQ6PH
+	vYPirxgzmqyfiSv1TUI7WShXGa8UNsb1a7/rjjznrlaWUP45ZbKKdqPs5nBdc70n1dYH
+X-Gm-Gg: AYBFou0qCMZKRIhv0+8LsFbrdEeTV9R/Q/38eBUncrrcrZXR1vRjqEGO1jSwDUv+qTl
+	BIt3hURN5mVjxpcNTTn7HplHr2QdQw46KNCg56BnqEIH/u5XEJ5exvfpGsW+yQ7DVIGFVP02YsW
+	WCqlFz1//Ywfv+tiObZ+SFrAh++4rD5sgPgHaIGtMg3tVEHNf2aZv6TQ2HjJyg+aKO3am4fbJ+c
+	L4IPMoSbLYyTlRd7yjyraXNcZ6WTBGLIuER0TdaF3fzk5OxGXr5AKP7l+FEF44SxE52A1PpFetP
+	CMzloRFL/OIPJv3xTBQYzaeR4L9AcaS+vV3XlUtzDyvley8tnmqxQh4+LERyJ7GIzUyiQBGo22B
+	vMghoOkNxYPqJGl9foMMQEowGckfsBRtvApw97grN1+s5zo2iBMAoFckkIGrrTasdLos4powvdY
+	bisQSahSjFMSV3yPlJGcNBKsdylDC13/UFDvOsQUvQR5Lpbi/nn9PXn4PFLaPb+FZAD9HUJ9eg5
+	kCRLfDYHBytGp0DrgB7CupWbzuvxItrwpIlnAXnwAGXjvs91AvlmN7ZuEvJrNCTZYSoroxB2lnU
+	qmTLo3z1z012TYFNYP9FNrjQDMjgwkb+BgOuihxozYIh0MxcfK6oW+1WS4poDpjOhAG3ne8Qwja
+	VPDybigAz
+X-Received: by 2002:a05:600c:b86:b0:4b5:d95c:2378 with SMTP id 5b1f17b1804b1-4bb55ac4030mr49782945e9.34.1794573423157;
+        Fri, 13 Nov 2026 04:37:03 -0800 (PST)
+Received: from [10.0.0.233] (tmo-086-54.customers.d1-online.com. [80.187.86.54])
+        by smtp.gmail.com with ESMTPSA id 5b1f17b1804b1-4bb55af2901sm57437255e9.13.2026.11.13.04.37.00
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 13 Nov 2026 04:37:02 -0800 (PST)
+Message-ID: <f12140be54ffc4d1e8e4026f80c41c75cf5727e0.camel@amutable.com>
+Subject: Re: [PATCH RFC 39/41] usb: gadget: f_mass_storage: refuse files on
+ pseudo filesystems
+From: Alexander Mikhalitsyn <alex@amutable.com>
+To: Christian Brauner <brauner@kernel.org>, linux-fsdevel@vger.kernel.org
+Cc: Jann Horn <jannh@google.com>, Chris Mason <mason@kernel.org>, Josef
+ Bacik	 <josef@toxicpanda.com>, Christoph Hellwig <hch@lst.de>, 
+	linux-block@vger.kernel.org, linux-kernel@vger.kernel.org, 
+	linux-nvme@lists.infradead.org, Alexander Viro <viro@zeniv.linux.org.uk>,
+ Jan Kara <jack@suse.cz>, linux-scsi@vger.kernel.org,
+ target-devel@vger.kernel.org, 	driver-core@lists.linux.dev,
+ linux-mm@kvack.org, bpf@vger.kernel.org, 
+	linux-security-module@vger.kernel.org, selinux@vger.kernel.org, 
+	apparmor@lists.ubuntu.com, linux-nfs@vger.kernel.org,
+ netdev@vger.kernel.org, 	fuse-devel@lists.linux.dev,
+ linux-efi@vger.kernel.org, 	xen-devel@lists.xenproject.org,
+ ocfs2-devel@lists.linux.dev, 	linux-s390@vger.kernel.org,
+ linuxppc-dev@lists.ozlabs.org, 	linux-usb@vger.kernel.org, Amir Goldstein
+ <amir73il@gmail.com>, 	linux-erofs@lists.ozlabs.org,
+ linux-kselftest@vger.kernel.org
+Date: Fri, 13 Nov 2026 13:36:59 +0100
+In-Reply-To: <20261110-work-loop-pseudo-v1-39-4c998976c6c7@kernel.org>
+References: <20261110-work-loop-pseudo-v1-0-4c998976c6c7@kernel.org>
+	 <20261110-work-loop-pseudo-v1-39-4c998976c6c7@kernel.org>
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+User-Agent: Evolution 3.56.2-0+deb13u1 
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -52,93 +116,40 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Content-Type: text/plain; charset="utf-8"
-Content-Transfer-Encoding: 7bit
-Message-Id: <20261113-work-fs-sb_rdonly-v3-33-0be92bb73709@kernel.org>
-References: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
-In-Reply-To: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
-To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
-Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org, 
- linux-ext4@vger.kernel.org, jfs-discussion@lists.sourceforge.net, 
- linux-nilfs@vger.kernel.org, exfat@lists.linux.dev, linux-mm@kvack.org, 
- ntfs@lists.linux.dev, ocfs2-devel@lists.linux.dev, 
- linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, 
- linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
- linux-xfs@vger.kernel.org, 
- "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org, 
- Christoph Hellwig <hch@lst.de>
-X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=2142; i=brauner@kernel.org;
- h=from:subject:message-id; bh=Wv1rk/34mZRddPCwhZsrnHdy4Y6/8eX5Up6b2ymQePk=;
- b=kA0DAAoWkcYbwGV43KIByyZiAGr2+8Ci+Z4+6tOwi97X6NaG06NaC9t14B0Ks88kXi6ffXLsd
- Yh1BAAWCgAdFiEEQIc0Vx6nDHizMmkokcYbwGV43KIFAmr2+8AACgkQkcYbwGV43KJHWwD/VEUp
- qHV8TWkuKU4bX3KINk6z04cdivoCpFl2Vn3AuVEBANhCoTbo2sLJQwZevodePoMGYTNnOhgh2Gr
- V9nOa3SIE
-X-Developer-Key: i=brauner@kernel.org; a=openpgp;
- fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-xfs_remount_ro() starts with sync_filesystem() which fails with EIO
-after a shutdown. So a shut down xfs can't be remounted read-only and
-emergency remount (sysrq u) WARNs in reconfigure_super(), a panic with
-panic_on_warn:
+On Tue, 2026-11-10 at 10:14 +0100, Christian Brauner wrote:
+> fsg_lun_open() takes any regular file as the backing file of a LUN.
+> The
+> file-storage kthread then reads and writes it with kernel_read() and
+> kernel_write() on behalf of the USB host. With a procfs or sysfs file
+> behind a LUN the host gets to read and write kernel interfaces with
+> kernel credentials. Refuse files on pseudo filesystems just like loop
+> does.
+>=20
+> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 
-  forced remount of a xfs fs returned -5
+Reviewed-by: Alexander Mikhalitsyn <alex@amutable.com>
 
-Going read-only doesn't need to write anything. So ignore the errors
-from flushing and from freeing the COW and post-EOF blocks once xfs is
-shut down, also if the flush shut it down itself. The rest of
-xfs_remount_ro() copes with a shutdown like unmount does. And refuse
-going back to read-write with EIO, xfs_remount_rw() didn't check for a
-shutdown at all.
-
-Fixes: b97cca3ba909 ("xfs: only bother with sync_filesystem during readonly remount")
-Cc: stable@vger.kernel.org
-Reviewed-by: Christoph Hellwig <hch@lst.de>
-Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
----
- fs/xfs/xfs_super.c | 13 ++++++++++---
- 1 file changed, 10 insertions(+), 3 deletions(-)
-
-diff --git a/fs/xfs/xfs_super.c b/fs/xfs/xfs_super.c
-index 5a06132aa3846..59c83438d402b 100644
---- a/fs/xfs/xfs_super.c
-+++ b/fs/xfs/xfs_super.c
-@@ -2041,6 +2041,10 @@ xfs_remount_rw(
- 	struct xfs_sb		*sbp = &mp->m_sb;
- 	int error;
- 
-+	/* Nothing can be written anymore after a shutdown. */
-+	if (xfs_is_shutdown(mp))
-+		return -EIO;
-+
- 	if (mp->m_logdev_targp && mp->m_logdev_targp != mp->m_ddev_targp &&
- 	    xfs_readonly_buftarg(mp->m_logdev_targp)) {
- 		xfs_warn(mp,
-@@ -2115,9 +2119,12 @@ xfs_remount_ro(
- 	};
- 	int			error;
- 
--	/* Flush all the dirty data to disk. */
-+	/*
-+	 * Flush all the dirty data to disk. That fails after a shutdown, also
-+	 * one the flush itself caused, but going read-only still has to work.
-+	 */
- 	error = sync_filesystem(mp->m_super);
--	if (error)
-+	if (error && !xfs_is_shutdown(mp))
- 		return error;
- 
- 	/*
-@@ -2133,7 +2140,7 @@ xfs_remount_ro(
- 	 * cached inode, so this requires a synchronous cache scan.
- 	 */
- 	error = xfs_blockgc_free_space(mp, &icw);
--	if (error) {
-+	if (error && !xfs_is_shutdown(mp)) {
- 		xfs_force_shutdown(mp, SHUTDOWN_CORRUPT_INCORE);
- 		return error;
- 	}
-
--- 
-2.53.0
-
+> ---
+> =C2=A0drivers/usb/gadget/function/storage_common.c | 5 +++++
+> =C2=A01 file changed, 5 insertions(+)
+>=20
+> diff --git a/drivers/usb/gadget/function/storage_common.c
+> b/drivers/usb/gadget/function/storage_common.c
+> index 75831f2c7abe..83683ade20c2 100644
+> --- a/drivers/usb/gadget/function/storage_common.c
+> +++ b/drivers/usb/gadget/function/storage_common.c
+> @@ -211,6 +211,11 @@ int fsg_lun_open(struct fsg_lun *curlun, const
+> char *filename)
+> =C2=A0		goto out;
+> =C2=A0	}
+> =C2=A0
+> +	if (file_is_pseudo(filp)) {
+> +		LINFO(curlun, "file on a pseudo filesystem: %s\n",
+> filename);
+> +		goto out;
+> +	}
+> +
+> =C2=A0	/*
+> =C2=A0	 * If we can't read the file, it's no good.
+> =C2=A0	 * If we can't write the file, use it read-only.
