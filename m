@@ -1,49 +1,48 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794571258;
-	b=0HFtCKFzLT6Chx+5eaBCcmp5/aW5iYb+LrR2/nPNrJg7jR2a3xsYjeKsjRRSvzPUdNBl
-	 zXT9+qjv4tfMnspXkhS02M2GHvzNkEluMQQKc9LxtvisvdTiagLM2u46WQd/EuWc09LfR
-	 LhTyP7WsehBYCTaE3/I1+6gk9pX1WLmC9lFgenz1wedPpF5a7lSRAJkrZhF6f0HGm/WMS
-	 vmv0okN0ob5Z7B25bKQ3l+CCcgy+YX9f1L1qQq5wHNz94QhDq16xmve2uYXQdOYRP264u
-	 u//zpWK1pT7Cs0DQrBC/A85AxwD2LGfxzH6wxrbZHuzmgvUAHtRGUvDzDqTQTzpPvVw==
+	t=1794571267;
+	b=FTi9TbUTVTAsmV1hosSXXwuCSHlFCt6CSKG1++WbjT+jQg1ZfC17EQgt1nmDC+RxfTYe
+	 LRjZJQXxKT6raDxe/My9Rt2QqIO9NBYilrEHQs2hnpxZKOaV2F90Q2Ga6G0/JB8pKhsQs
+	 g3uzpm9fOIUj9Dpz0N0xwzCVX5/QxPLe85QSj7R71N5LqCec6OVpDCrisx2soLXw/sd/T
+	 a644E95aMTGsknh3O5chCSumI3cR5wcM3iFC5nPTErab4vvQPSIO2ctl1wruLJFbh1xdG
+	 0BQH6+Z4jbRKlaczmSmWDhvTG31ZH8teYC9BPBWU4bz5lAjkIrtE4ACZcNJquTLCuCw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794571258;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794571267;
 	h=Received:DKIM-Signature:From:Date:Subject:MIME-Version:Content-Type:
 	 Content-Transfer-Encoding:Message-Id:References:In-Reply-To:To:Cc:
 	 X-Mailer:X-Developer-Signature:X-Developer-Key;
-	bh=cuL6dmqbcO0kABDujkkRco3kfgbZeQ5BKPs4MnoNauY=;
-	b=TfA7B/XnAZtSm41b73TiX+AQIkibsA7Hbm6bEIq8TKlF7oAHrNe/xpX2HbXrfxaGX9Mn
-	 I24d2R0Z1p1/kgEU0Spn/fXK5OfAT3eC7xI46qqIvh1IXNLtHVipegfgkKjMfDgsSUvkI
-	 n74s8yQYKcKJwpC5dBjjJzU+nB75JvnIil+OReOJ1v1+xXQscuXSKgOavxe2fP5ogygjZ
-	 pvkPiw5w4Yj4nXXOQ6SjjXml/uOgy7rph1jlSWhCVYD67MV4HD9aYKf2MeApEeMwl0s1b
-	 wA1vm0gLh5FpxlFtSTotVk8mnh84D8GjDjPKJRIpk7RdG/9ebEh7my0E71ny1SdTU+w==
+	bh=gTPIFdycLfvRFxLEZX/ysZQ8afAPlmyCKY9h7UfC59w=;
+	b=20wkENZ2OIbFzLnJk8mpbLhbBK4MKnjLvDPlRKQlT6SRNODLp7wqM13mrZM0i24nWjts
+	 TA7MjqYdq/TQaKj904j1lyN14+LaOvLZIbes5o7+pSfu/yLaBR9VlmZyHa4cvtFYbgXGN
+	 cJXSrD3gh5G8RFW7V1la8Ib03qA4mWjcdP5HZhf+5oAqahM8x7YA3o+5oXHZbCrty8fQ+
+	 BENPx9VTD8V8TXlnRbp+kujvkP4BcrCuV/jg83qOIBImnHYkM2cvqAA/C+IGNP7n7ulsz
+	 Tzix2+YW1Dojzxdd5r/caWTj6KJvgJkcy9sXmW1wgwc3tquM7lG3a4/aQ6XijkvjY1g==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XYTi9Zgt;
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b="ZfgPFpD/";
 	arc=none smtp.remote-ip=100.103.45.18
 Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A6C37606A896;
-	Fri, 13 Nov 2026 12:00:58 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 81A2F606A337;
+	Fri, 13 Nov 2026 12:01:07 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=XYTi9Zgt
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id ADF171F000C6;
-	Fri, 13 Nov 2026 12:00:54 +0000 (UTC)
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=ZfgPFpD/
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 272521F000C5;
+	Fri, 13 Nov 2026 12:01:02 +0000 (UTC)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794571258;
-	bh=cuL6dmqbcO0kABDujkkRco3kfgbZeQ5BKPs4MnoNauY=;
+	s=k20260515; t=1794571267;
+	bh=gTPIFdycLfvRFxLEZX/ysZQ8afAPlmyCKY9h7UfC59w=;
 	h=From:Date:Subject:References:In-Reply-To:To:Cc;
-	b=XYTi9Zgt8sQoQf9deqk75kgzMbpxbR929EOKlhOig+Ud7DONo5PLccIM6UtsBzlez
-	 lkKeh0GXn0ZHWMcuOCAIYOuBaDHNbCan91zyZW+tdWKMLymVjGjzE+a0V21vSiy1a+
-	 7r6SbZhbh1+t5QAJylZi4sb1uZ9x2n1yx2PpHZIvhWaahOuHeMTRKw/NFW5k6GIY76
-	 6M5y/dQ9EpL0JbKWjlTyLoG60jPpTT7hSBDCG8OQZA62Ba3+paDLFoh9SEezOI/Vef
-	 pAByqk08ZiPkp3/Adcq3Je9VgjJyRSvagTkx0T6Apue3Rivz1jvw4JffNATzhq0t3Z
-	 PB1cRoMtQYpUg==
+	b=ZfgPFpD/dqpo/27RFi1AlEYTPl8SMhW9Kg6wzsW2TfPJ2d+Hwi9uYdtxiE4ByiB0G
+	 8y20UMtQ7sJ4N/HWlIiKB40KXmKNiSaL5QbDvS3QZ6BA9awd4RmZfCGwr/Tc0nQurt
+	 iaIJbvdH5unV7kDlu6GDh6R23AcQAV1DPE72FFj7rNnkAa6JFjqtkD3YTV6IKfHY4t
+	 WnjaDsj3FqMGBfKaSHxZ8YUir8ILB0wT6rZPsXROS2xhYiarKzl6zG2A+F2F+c3wJL
+	 BtfXrdsqBeFX3/VmP3eUvEu5E65aU85P0DmOp2zIUxzOf7tzM+KA6JH8tixRcqrhrL
+	 CUsD/OXWCHYCA==
 From: Christian Brauner <brauner@kernel.org>
-Date: Fri, 13 Nov 2026 12:59:07 +0100
-Subject: [PATCH v3 11/33] exfat: don't set SB_RDONLY after filesystem
- errors
+Date: Fri, 13 Nov 2026 12:59:09 +0100
+Subject: [PATCH v3 13/33] hfs: don't set SB_RDONLY after MDB write errors
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -55,7 +54,7 @@ Precedence: list
 MIME-Version: 1.0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
-Message-Id: <20261113-work-fs-sb_rdonly-v3-11-0be92bb73709@kernel.org>
+Message-Id: <20261113-work-fs-sb_rdonly-v3-13-0be92bb73709@kernel.org>
 References: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
 In-Reply-To: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
 To: linux-fsdevel@vger.kernel.org, Jan Kara <jack@suse.com>
@@ -66,397 +65,297 @@ Cc: Al Viro <viro@zeniv.linux.org.uk>, ecryptfs@vger.kernel.org,
  linux-btrfs@vger.kernel.org, gfs2@lists.linux.dev, 
  linux-efi@vger.kernel.org, linux-mtd@lists.infradead.org, 
  linux-xfs@vger.kernel.org, 
- "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org
+ "Christian Brauner (Amutable)" <brauner@kernel.org>, stable@vger.kernel.org, 
+ Viacheslav Dubeyko <slava@dubeyko.com>
 X-Mailer: b4 0.17-dev-ce4c1
-X-Developer-Signature: v=1; a=openpgp-sha256; l=13008; i=brauner@kernel.org;
- h=from:subject:message-id; bh=yrYWDSakDtDtmhW/+TXZ0IfQ3gilt/KAgq9xcVgHBgs=;
- b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9+72s91sW2+QqlqCdgkJrDTl91SZsf6SnwGa1293pM
- u/psIh3HaUsDGJcDLJiiiwO7Sbhcst5KjYbZWrAzGFlAhnCwMUpABPxb2X4X+230nz7t+w3saeE
- pDrq1PZfyDzD88n01tWu2p5zs69UP2JkOKOWdnvBfxHJVq5/eupdW285Fn3Y7fvxZETs89VK8z+
- W8wIA
+X-Developer-Signature: v=1; a=openpgp-sha256; l=10035; i=brauner@kernel.org;
+ h=from:subject:message-id; bh=hiBHmFbT56K7+Xyk4nQvRna9XyZ1bO7Um7R0oFjPD2I=;
+ b=owGbwMvMwCU28Zj0gdSKO4sYT6slMWR9+73y6ezohh1P1MUzBH+zu75J6rtr8Ytd/2eemkvYz
+ W3KxpvXd5SyMIhxMciKKbI4tJuEyy3nqdhslKkBM4eVCWQIAxenAEzkpQkjw/p/d1fq6j2qFpTi
+ lq1OfBa2lvWHC0fg5j9J3+u26Sbaf2Jk6E/j3l+c4xSZk7riNS+HO9+LOX6tf1c6yc38vrB8lns
+ RJwA=
 X-Developer-Key: i=brauner@kernel.org; a=openpgp;
  fpr=4880B8C9BD0E5106FC070F4F7B3C391EFEA93624
 
-With errors=remount-ro, the exfat default, __exfat_fs_error() sets
-SB_RDONLY without holding s_umount. If that happens while the filesystem
-is frozen through bdev_freeze(), e.g. by a device mapper suspend,
-thaw_super() sees a read-only superblock and leaves the s_writers rwsems
-locked so every writer hangs.
+Since commit fdbb95ff89b2 ("hfs: don't re-dirty MDB buffers after a
+write failure") hfs_mdb_commit() sets SB_RDONLY when a write of the MDB
+failed. It runs from the flush_mdb work and from ->sync_fs() and neither
+holds s_umount exclusively. freeze_super() decides from sb_rdonly()
+whether to take the s_writers rwsems and drops s_umount while it waits
+for writers. A sync(2) in that window sets SB_RDONLY, the freeze
+completes with the rwsems held and the thaw never releases them.
 
-exfat's shutdown state already stops modifications but it refuses reads
-as well. So add EXFAT_FLAGS_EMERGENCY_RO and exfat_emergency_state()
-which returns EIO after a shutdown and EROFS after an error like ext4
-does, and set the new bit instead of SB_RDONLY. Errors while mounting
-still set SB_RDONLY, nothing can freeze the superblock before SB_BORN.
+So record the condition in a new HFS_FLG_EMERGENCY_RO bit instead. Later
+calls of hfs_mdb_commit() return early like they did for sb_rdonly() and
+the MDB is never marked cleanly unmounted. hfs refuses modifications
+with EROFS itself: the namespace operations, setattr, the hfs.type and
+hfs.creator xattrs, opening for write, write_begin, O_DIRECT writes,
+block allocation and hfs_file_truncate(). Writing inodes back isn't
+refused because writeback still writes data and b-tree nodes.
 
-The write side shutdown checks use exfat_emergency_state() now. That
-includes ->writepages() and ->write_inode(), so dirty data from before
-the error is dropped like after a shutdown. Opening
-and mmapping only check it for FMODE_WRITE so reads keep working.
-page_mkwrite, FS_IOC_SETFSLABEL and FITRIM get a check, the rename check
-moves up so it covers cross-directory moves too, and
-exfat_set_vol_flags() leaves the boot sector alone so the volume stays
-marked dirty.
+B-tree growth isn't refused. A read can need a new b-tree node when it
+writes back a cached extent record, and failing that would make such
+reads fail with EIO until umount.
 
-After a remount to read-only a remount to read-write fails until
-umount. A plain remount to read-write right after the error succeeds
-but the filesystem stays read-only. A remount to read-only
-works, for non-default iocharset, time_offset, sys_tz, keep_last_dots or
-allow_utime that needs the previous patch. /proc/mounts keeps showing
-the filesystem read-write. Writes through file descriptors opened before
-the error fail with EROFS.
+After a remount to read-only a remount to read-write fails with EROFS.
+A plain remount to read-write right after the error succeeds but the
+filesystem stays read-only. A remount to read-only works and
+/proc/mounts keeps showing the filesystem read-write.
 
-Fixes: 772b29cca528 ("exfat: add misc operations")
+Fixes: fdbb95ff89b2 ("hfs: don't re-dirty MDB buffers after a write failure")
 Cc: stable@vger.kernel.org
+Reviewed-by: Viacheslav Dubeyko <slava@dubeyko.com>
 Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
 ---
- fs/exfat/exfat_fs.h | 19 +++++++++++++++++++
- fs/exfat/file.c     | 54 +++++++++++++++++++++++++++++++++++++++--------------
- fs/exfat/inode.c    | 11 +++++++----
- fs/exfat/misc.c     | 20 +++++++++++++++-----
- fs/exfat/namei.c    | 27 ++++++++++++++++-----------
- fs/exfat/super.c    | 10 ++++++++--
- 6 files changed, 105 insertions(+), 36 deletions(-)
+ fs/hfs/attr.c   |  3 +++
+ fs/hfs/dir.c    | 12 ++++++++++++
+ fs/hfs/extent.c |  5 +++++
+ fs/hfs/hfs_fs.h | 11 +++++++++++
+ fs/hfs/inode.c  | 16 ++++++++++++++++
+ fs/hfs/mdb.c    | 16 ++++++++++------
+ fs/hfs/super.c  |  5 ++++-
+ 7 files changed, 61 insertions(+), 7 deletions(-)
 
-diff --git a/fs/exfat/exfat_fs.h b/fs/exfat/exfat_fs.h
-index eee573d1697c6..c0e712d9083a0 100644
---- a/fs/exfat/exfat_fs.h
-+++ b/fs/exfat/exfat_fs.h
-@@ -123,6 +123,7 @@ enum {
+diff --git a/fs/hfs/attr.c b/fs/hfs/attr.c
+index 6d737a085461c..bd9a1289d8c5d 100644
+--- a/fs/hfs/attr.c
++++ b/fs/hfs/attr.c
+@@ -129,6 +129,9 @@ static int hfs_xattr_set(const struct xattr_handler *handler,
+ 	if (!value)
+ 		return -EOPNOTSUPP;
  
- /* Superblock flags */
- #define EXFAT_FLAGS_SHUTDOWN	1
-+#define EXFAT_FLAGS_EMERGENCY_RO	2	/* read-only after an error */
- 
- struct exfat_dentry_namebuf {
- 	char *lfn;
-@@ -375,6 +376,24 @@ static inline int exfat_forced_shutdown(struct super_block *sb)
- 	return test_bit(EXFAT_FLAGS_SHUTDOWN, &EXFAT_SB(sb)->s_exfat_flags);
- }
- 
-+static inline int exfat_emergency_ro(struct super_block *sb)
-+{
-+	return test_bit(EXFAT_FLAGS_EMERGENCY_RO, &EXFAT_SB(sb)->s_exfat_flags);
-+}
-+
-+/*
-+ * Modifications are refused after a forced shutdown (-EIO) and after an error
-+ * with errors=remount-ro (-EROFS).
-+ */
-+static inline int exfat_emergency_state(struct super_block *sb)
-+{
-+	if (unlikely(exfat_forced_shutdown(sb)))
-+		return -EIO;
-+	if (unlikely(exfat_emergency_ro(sb)))
++	if (unlikely(hfs_emergency_ro(inode->i_sb)))
 +		return -EROFS;
-+	return 0;
-+}
 +
- /*
-  * If ->i_mode can't hold 0222 (i.e. ATTR_RO), we use ->i_attrs to
-  * save ATTR_RO instead of ->i_mode.
-diff --git a/fs/exfat/file.c b/fs/exfat/file.c
-index 1386149916bbe..dddedf6e75da6 100644
---- a/fs/exfat/file.c
-+++ b/fs/exfat/file.c
-@@ -180,8 +180,9 @@ static long exfat_fallocate(struct file *file, int mode,
- 	if (!S_ISREG(inode->i_mode))
- 		return -EOPNOTSUPP;
- 
--	if (unlikely(exfat_forced_shutdown(inode->i_sb)))
--		return -EIO;
-+	err = exfat_emergency_state(inode->i_sb);
-+	if (unlikely(err))
-+		return err;
- 
- 	inode_lock(inode);
- 
-@@ -411,8 +412,9 @@ int exfat_setattr(const struct mnt_idmap *idmap, struct dentry *dentry,
- 	unsigned int ia_valid;
- 	int error;
- 
--	if (unlikely(exfat_forced_shutdown(inode->i_sb)))
--		return -EIO;
-+	error = exfat_emergency_state(inode->i_sb);
-+	if (unlikely(error))
-+		return error;
- 
- 	if ((attr->ia_valid & ATTR_SIZE) &&
- 	    attr->ia_size > i_size_read(inode)) {
-@@ -580,6 +582,11 @@ static int exfat_ioctl_fitrim(struct inode *inode, unsigned long arg)
- 	if (!capable(CAP_SYS_ADMIN))
- 		return -EPERM;
- 
-+	/* Don't trust the allocation bitmap after an error. */
-+	ret = exfat_emergency_state(inode->i_sb);
-+	if (ret)
-+		return ret;
-+
- 	if (!bdev_max_discard_sectors(inode->i_sb->s_bdev))
- 		return -EOPNOTSUPP;
- 
-@@ -658,6 +665,10 @@ static int exfat_ioctl_set_volume_label(struct super_block *sb,
- 
- 	uniname.name_len = ret;
- 
-+	ret = exfat_emergency_state(sb);
-+	if (unlikely(ret))
-+		return ret;
-+
- 	return exfat_write_volume_label(sb, &uniname);
+ 	return __hfs_setxattr(inode, handler->flags, value, size, flags);
  }
  
-@@ -697,8 +708,9 @@ int exfat_file_fsync(struct file *filp, loff_t start, loff_t end, int datasync)
- 	struct inode *inode = filp->f_mapping->host;
- 	int err;
+diff --git a/fs/hfs/dir.c b/fs/hfs/dir.c
+index f6b97da197887..f0d8ddb075034 100644
+--- a/fs/hfs/dir.c
++++ b/fs/hfs/dir.c
+@@ -189,6 +189,9 @@ static int hfs_create(const struct mnt_idmap *idmap, struct inode *dir,
+ 	struct inode *inode;
+ 	int res;
  
--	if (unlikely(exfat_forced_shutdown(inode->i_sb)))
--		return -EIO;
-+	err = exfat_emergency_state(inode->i_sb);
-+	if (unlikely(err))
-+		return err;
- 
- 	err = simple_fsync_noflush(filp, start, end, datasync);
- 	if (err)
-@@ -878,8 +890,9 @@ static ssize_t exfat_file_write_iter(struct kiocb *iocb, struct iov_iter *iter)
- 	loff_t pos, valid_size, end;
- 	int err;
- 
--	if (unlikely(exfat_forced_shutdown(inode->i_sb)))
--		return -EIO;
-+	err = exfat_emergency_state(inode->i_sb);
-+	if (unlikely(err))
-+		return err;
- 
- 	inode_lock(inode);
- 
-@@ -974,6 +987,11 @@ static vm_fault_t exfat_page_mkwrite(struct vm_fault *vmf)
- 	struct exfat_inode_info *ei = EXFAT_I(inode);
- 	vm_fault_t ret;
- 	loff_t new_valid_size, mmap_valid_size, fault_page_start;
-+	int err;
++	if (unlikely(hfs_emergency_ro(dir->i_sb)))
++		return -EROFS;
 +
-+	err = exfat_emergency_state(inode->i_sb);
-+	if (unlikely(err))
-+		return vmf_fs_error(err);
+ 	inode = hfs_new_inode(dir, &dentry->d_name, mode);
+ 	if (IS_ERR(inode))
+ 		return PTR_ERR(inode);
+@@ -219,6 +222,9 @@ static struct dentry *hfs_mkdir(const struct mnt_idmap *idmap, struct inode *dir
+ 	struct inode *inode;
+ 	int res;
  
- 	if (!inode_trylock(inode))
- 		return VM_FAULT_RETRY;
-@@ -986,8 +1004,6 @@ static vm_fault_t exfat_page_mkwrite(struct vm_fault *vmf)
- 		loff_t zeroed_size = exfat_get_zeroed_size(ei);
++	if (unlikely(hfs_emergency_ro(dir->i_sb)))
++		return ERR_PTR(-EROFS);
++
+ 	inode = hfs_new_inode(dir, &dentry->d_name, mode);
+ 	if (IS_ERR(inode))
+ 		return ERR_CAST(inode);
+@@ -252,6 +258,9 @@ static int hfs_remove(struct inode *dir, struct dentry *dentry)
+ 	struct inode *inode = d_inode(dentry);
+ 	int res;
  
- 		if (zeroed_size < fault_page_start) {
--			int err;
--
- 			/*
- 			 * Zero only the gap below the faulting page. The read
- 			 * fault populated its folio and iomap_page_mkwrite()
-@@ -1032,9 +1048,15 @@ static const struct vm_operations_struct exfat_file_vm_ops = {
- static int exfat_file_mmap_prepare(struct vm_area_desc *desc)
- {
- 	struct file *file = desc->file;
-+	struct super_block *sb = file_inode(file)->i_sb;
-+	int err;
++	if (unlikely(hfs_emergency_ro(sb)))
++		return -EROFS;
++
+ 	if (S_ISDIR(inode->i_mode) && inode->i_size != 2)
+ 		return -ENOTEMPTY;
  
--	if (unlikely(exfat_forced_shutdown(file_inode(desc->file)->i_sb)))
--		return -EIO;
-+	if (file->f_mode & FMODE_WRITE)
-+		err = exfat_emergency_state(sb);
-+	else
-+		err = exfat_forced_shutdown(sb) ? -EIO : 0;
-+	if (unlikely(err))
-+		return err;
- 
- 	file_accessed(file);
- 	desc->vm_ops = &exfat_file_vm_ops;
-@@ -1054,8 +1076,12 @@ static int exfat_file_open(struct inode *inode, struct file *filp)
- {
- 	int err;
- 
--	if (unlikely(exfat_forced_shutdown(inode->i_sb)))
--		return -EIO;
-+	if (filp->f_mode & FMODE_WRITE)
-+		err = exfat_emergency_state(inode->i_sb);
-+	else
-+		err = exfat_forced_shutdown(inode->i_sb) ? -EIO : 0;
-+	if (unlikely(err))
-+		return err;
- 
- 	err = generic_file_open(inode, filp);
- 	if (err)
-diff --git a/fs/exfat/inode.c b/fs/exfat/inode.c
-index 5129df1e79b44..3f24e5bd3eb11 100644
---- a/fs/exfat/inode.c
-+++ b/fs/exfat/inode.c
-@@ -114,8 +114,9 @@ int exfat_write_inode(struct inode *inode, struct writeback_control *wbc)
- {
- 	int ret;
- 
--	if (unlikely(exfat_forced_shutdown(inode->i_sb)))
--		return -EIO;
-+	ret = exfat_emergency_state(inode->i_sb);
-+	if (unlikely(ret))
-+		return ret;
- 
- 	mutex_lock(&EXFAT_SB(inode->i_sb)->s_lock);
- 	ret = __exfat_write_inode(inode, wbc->sync_mode == WB_SYNC_ALL);
-@@ -282,9 +283,11 @@ static int exfat_writepages(struct address_space *mapping,
- 		.wbc		= wbc,
- 		.ops		= &exfat_writeback_ops,
- 	};
-+	int ret;
- 
--	if (unlikely(exfat_forced_shutdown(mapping->host->i_sb)))
--		return -EIO;
-+	ret = exfat_emergency_state(mapping->host->i_sb);
-+	if (unlikely(ret))
-+		return ret;
- 
- 	return iomap_writepages(&wpc);
- }
-diff --git a/fs/exfat/misc.c b/fs/exfat/misc.c
-index dfd0bbf31c940..56dcb93ce69e0 100644
---- a/fs/exfat/misc.c
-+++ b/fs/exfat/misc.c
-@@ -19,13 +19,14 @@
-  * exfat_fs_error reports a file system problem that might indicate fa data
-  * corruption/inconsistency. Depending on 'errors' mount option the
-  * panic() is called, or error message is printed FAT and nothing is done,
-- * or filesystem is remounted read-only (default behavior).
-- * In case the file system is remounted read-only, it can be made writable
-- * again by remounting it.
-+ * or the filesystem is made read-only (default behavior): a mount in
-+ * progress comes up read-only, a mounted filesystem refuses modifications
-+ * until it is unmounted.
-  */
- void __exfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
- {
--	struct exfat_mount_options *opts = &EXFAT_SB(sb)->options;
-+	struct exfat_sb_info *sbi = EXFAT_SB(sb);
-+	struct exfat_mount_options *opts = &sbi->options;
- 	va_list args;
- 	struct va_format vaf;
- 
-@@ -41,7 +42,16 @@ void __exfat_fs_error(struct super_block *sb, int report, const char *fmt, ...)
- 		panic("exFAT-fs (%s): fs panic from previous error\n",
- 			sb->s_id);
- 	} else if (opts->errors == EXFAT_ERRORS_RO && !sb_rdonly(sb)) {
--		sb->s_flags |= SB_RDONLY;
-+		/*
-+		 * Before SB_BORN the mounter holds s_umount so SB_RDONLY is
-+		 * fine. Later it needs a remount, set on a frozen superblock
-+		 * it makes thaw_super() leave s_writers locked.
-+		 */
-+		if (!(sb->s_flags & SB_BORN))
-+			sb->s_flags |= SB_RDONLY;
-+		else if (test_and_set_bit(EXFAT_FLAGS_EMERGENCY_RO,
-+					  &sbi->s_exfat_flags))
-+			return;
- 		exfat_err(sb, "Filesystem has been set read-only");
- 	}
- }
-diff --git a/fs/exfat/namei.c b/fs/exfat/namei.c
-index 68ddb9c5504fe..72aeb5cdc7453 100644
---- a/fs/exfat/namei.c
-+++ b/fs/exfat/namei.c
-@@ -562,8 +562,9 @@ static int exfat_create(const struct mnt_idmap *idmap, struct inode *dir,
- 	int err;
- 	loff_t size = i_size_read(dir);
- 
--	if (unlikely(exfat_forced_shutdown(sb)))
--		return -EIO;
-+	err = exfat_emergency_state(sb);
-+	if (unlikely(err))
-+		return err;
- 
- 	mutex_lock(&EXFAT_SB(sb)->s_lock);
- 	exfat_set_volume_dirty(sb);
-@@ -783,8 +784,9 @@ static int exfat_unlink(struct inode *dir, struct dentry *dentry)
- 	struct exfat_entry_set_cache es;
- 	int err = 0;
- 
--	if (unlikely(exfat_forced_shutdown(sb)))
--		return -EIO;
-+	err = exfat_emergency_state(sb);
-+	if (unlikely(err))
-+		return err;
- 
- 	mutex_lock(&EXFAT_SB(sb)->s_lock);
- 	if (ei->dir.dir == DIR_DELETED) {
-@@ -836,8 +838,9 @@ static struct dentry *exfat_mkdir(const struct mnt_idmap *idmap, struct inode *d
- 	int err;
- 	loff_t size = i_size_read(dir);
- 
--	if (unlikely(exfat_forced_shutdown(sb)))
--		return ERR_PTR(-EIO);
-+	err = exfat_emergency_state(sb);
-+	if (unlikely(err))
-+		return ERR_PTR(err);
- 
- 	mutex_lock(&EXFAT_SB(sb)->s_lock);
- 	exfat_set_volume_dirty(sb);
-@@ -927,8 +930,9 @@ static int exfat_rmdir(struct inode *dir, struct dentry *dentry)
- 	struct exfat_entry_set_cache es;
- 	int err;
- 
--	if (unlikely(exfat_forced_shutdown(sb)))
--		return -EIO;
-+	err = exfat_emergency_state(sb);
-+	if (unlikely(err))
-+		return err;
- 
- 	mutex_lock(&EXFAT_SB(inode->i_sb)->s_lock);
- 
-@@ -1011,9 +1015,6 @@ static int exfat_rename_file(struct inode *parent_inode,
- 	int sync = IS_DIRSYNC(parent_inode);
- 	unsigned int num_extra_entries, num_total_entries;
- 
--	if (unlikely(exfat_forced_shutdown(sb)))
--		return -EIO;
--
- 	num_new_entries = exfat_calc_num_entries(p_uniname);
- 	if (num_new_entries < 0)
- 		return num_new_entries;
-@@ -1283,6 +1284,10 @@ static int exfat_rename(const struct mnt_idmap *idmap,
+@@ -290,6 +299,9 @@ static int hfs_rename(const struct mnt_idmap *idmap, struct inode *old_dir,
  	if (flags & ~RENAME_NOREPLACE)
  		return -EINVAL;
  
-+	err = exfat_emergency_state(sb);
-+	if (unlikely(err))
-+		return err;
-+
- 	mutex_lock(&EXFAT_SB(sb)->s_lock);
- 	old_inode = old_dentry->d_inode;
- 	new_inode = new_dentry->d_inode;
-diff --git a/fs/exfat/super.c b/fs/exfat/super.c
-index 44d2000007dfb..feeda41a80741 100644
---- a/fs/exfat/super.c
-+++ b/fs/exfat/super.c
-@@ -97,9 +97,10 @@ static int exfat_set_vol_flags(struct super_block *sb, unsigned short new_flags)
- 	sbi->vol_flags = new_flags;
- 
- 	/* skip updating volume dirty flag,
--	 * if this volume has been mounted with read-only
-+	 * if this volume has been mounted with read-only,
-+	 * or an error left it read-only (it stays dirty then)
- 	 */
--	if (sb_rdonly(sb))
-+	if (sb_rdonly(sb) || exfat_emergency_ro(sb))
- 		return 0;
- 
- 	p_boot->vol_flags = cpu_to_le16(new_flags);
-@@ -788,6 +789,11 @@ static int exfat_reconfigure(struct fs_context *fc)
- 
- 	fc->sb_flags |= SB_NODIRATIME;
- 
-+	/* After an error the filesystem stays read-only until unmount. */
-+	if ((fc->sb_flags_mask & SB_RDONLY) && !(fc->sb_flags & SB_RDONLY) &&
-+	    sb_rdonly(sb) && exfat_emergency_ro(sb))
++	if (unlikely(hfs_emergency_ro(old_dir->i_sb)))
 +		return -EROFS;
 +
- 	sync_filesystem(sb);
+ 	/* Unlink destination if it already exists */
+ 	if (d_really_is_positive(new_dentry)) {
+ 		res = hfs_remove(new_dir, new_dentry);
+diff --git a/fs/hfs/extent.c b/fs/hfs/extent.c
+index 26357086517fc..dacf7ce1ffe4a 100644
+--- a/fs/hfs/extent.c
++++ b/fs/hfs/extent.c
+@@ -356,6 +356,9 @@ int hfs_get_block(struct inode *inode, sector_t block,
+ 		if (block > HFS_I(inode)->fs_blocks)
+ 			return -EIO;
+ 		if (ablock >= HFS_I(inode)->alloc_blocks) {
++			/* No new allocations after an error. */
++			if (unlikely(hfs_emergency_ro(sb)))
++				return -EROFS;
+ 			res = hfs_extend_file(inode);
+ 			if (res)
+ 				return res;
+@@ -491,6 +494,8 @@ void hfs_file_truncate(struct inode *inode)
+ 	hfs_dbg("ino %llu, phys_size %llu -> i_size %llu\n",
+ 		inode->i_ino, (long long)HFS_I(inode)->phys_size,
+ 		inode->i_size);
++	if (unlikely(hfs_emergency_ro(sb)))
++		return;
+ 	if (inode->i_size > HFS_I(inode)->phys_size) {
+ 		struct address_space *mapping = inode->i_mapping;
+ 		void *fsdata = NULL;
+diff --git a/fs/hfs/hfs_fs.h b/fs/hfs/hfs_fs.h
+index fdfa5d303d5ef..325214573d91d 100644
+--- a/fs/hfs/hfs_fs.h
++++ b/fs/hfs/hfs_fs.h
+@@ -143,6 +143,7 @@ struct hfs_sb_info {
+ #define HFS_FLG_BITMAP_DIRTY	0
+ #define HFS_FLG_MDB_DIRTY	1
+ #define HFS_FLG_ALT_MDB_DIRTY	2
++#define HFS_FLG_EMERGENCY_RO	3	/* read-only after an MDB write error */
  
- 	if ((fc->sb_flags & (SB_FORCE | SB_RDONLY)) == SB_RDONLY &&
+ /* bitmap.c */
+ extern u32 hfs_vbm_search_free(struct super_block *sb, u32 goal, u32 *num_bits);
+@@ -293,6 +294,16 @@ static inline const char *hfs_mdb_name(struct super_block *sb)
+ 	return sb->s_id;
+ }
+ 
++/*
++ * Writing back the MDB failed and the filesystem stopped all modifications
++ * until unmount. SB_RDONLY isn't used for that because it must not change
++ * without s_umount.
++ */
++static inline bool hfs_emergency_ro(struct super_block *sb)
++{
++	return test_bit(HFS_FLG_EMERGENCY_RO, &HFS_SB(sb)->flags);
++}
++
+ static inline void hfs_bitmap_dirty(struct super_block *sb)
+ {
+ 	set_bit(HFS_FLG_BITMAP_DIRTY, &HFS_SB(sb)->flags);
+diff --git a/fs/hfs/inode.c b/fs/hfs/inode.c
+index 40c169d67664f..10f72c0536a07 100644
+--- a/fs/hfs/inode.c
++++ b/fs/hfs/inode.c
+@@ -54,6 +54,9 @@ int hfs_write_begin(const struct kiocb *iocb, struct address_space *mapping,
+ 	loff_t total_capacity;
+ 	int ret;
+ 
++	if (unlikely(hfs_emergency_ro(inode->i_sb)))
++		return -EROFS;
++
+ 	total_capacity = (loff_t)sbi->fs_ablocks * sbi->alloc_blksz;
+ 
+ 	if (pos >= total_capacity)
+@@ -139,6 +142,10 @@ static ssize_t hfs_direct_IO(struct kiocb *iocb, struct iov_iter *iter)
+ 	size_t count = iov_iter_count(iter);
+ 	ssize_t ret;
+ 
++	if (iov_iter_rw(iter) == WRITE &&
++	    unlikely(hfs_emergency_ro(inode->i_sb)))
++		return -EROFS;
++
+ 	ret = blockdev_direct_IO(iocb, inode, iter, hfs_get_block);
+ 
+ 	/*
+@@ -619,6 +626,8 @@ void hfs_evict_inode(struct inode *inode)
+ 
+ static int hfs_file_open(struct inode *inode, struct file *file)
+ {
++	if ((file->f_mode & FMODE_WRITE) && hfs_emergency_ro(inode->i_sb))
++		return -EROFS;
+ 	if (HFS_IS_RSRC(inode))
+ 		inode = HFS_I(inode)->rsrc_inode;
+ 	atomic_inc(&HFS_I(inode)->opencnt);
+@@ -650,6 +659,9 @@ int hfs_inode_setattr(const struct mnt_idmap *idmap, struct dentry *dentry,
+ 	struct hfs_sb_info *hsb = HFS_SB(inode->i_sb);
+ 	int error;
+ 
++	if (unlikely(hfs_emergency_ro(inode->i_sb)))
++		return -EROFS;
++
+ 	error = setattr_prepare(&nop_mnt_idmap, dentry, attr);
+ 	if (error)
+ 		return error;
+@@ -701,6 +713,10 @@ static int hfs_file_fsync(struct file *filp, loff_t start, loff_t end,
+ 	struct super_block * sb;
+ 	int ret, err;
+ 
++	/* Inodes aren't written back after an error. */
++	if (unlikely(hfs_emergency_ro(inode->i_sb)))
++		return -EROFS;
++
+ 	ret = file_write_and_wait_range(filp, start, end);
+ 	if (ret)
+ 		return ret;
+diff --git a/fs/hfs/mdb.c b/fs/hfs/mdb.c
+index 277de712f9d47..1a56cf5ea56e6 100644
+--- a/fs/hfs/mdb.c
++++ b/fs/hfs/mdb.c
+@@ -322,8 +322,8 @@ int hfs_mdb_get(struct super_block *sb)
+  *   NONE
+  * Returns:
+  *   0 on success, -EIO if the MDB or alternate MDB buffer is no longer
+- *   valid (e.g. after a prior write error), in which case the volume is
+- *   remounted read-only.
++ *   valid (e.g. after a prior write error), in which case the volume
++ *   refuses all further modifications until it is unmounted.
+  * Preconditions:
+  *   'mdb' points to a "valid" (struct hfs_mdb).
+  * Postconditions:
+@@ -338,12 +338,16 @@ int hfs_mdb_commit(struct super_block *sb)
+ 	struct hfs_mdb *mdb = HFS_SB(sb)->mdb;
+ 	int ret = 0;
+ 
+-	if (sb_rdonly(sb))
++	if (sb_rdonly(sb) || hfs_emergency_ro(sb))
+ 		return 0;
+ 
++	/*
++	 * SB_RDONLY needs s_umount and a remount. Set on a frozen superblock
++	 * it makes thaw_super() leave s_writers locked.
++	 */
+ 	if (!buffer_uptodate(HFS_SB(sb)->mdb_bh)) {
+ 		pr_err("primary MDB is corrupt, mounting read-only\n");
+-		sb->s_flags |= SB_RDONLY;
++		set_bit(HFS_FLG_EMERGENCY_RO, &HFS_SB(sb)->flags);
+ 		return -EIO;
+ 	}
+ 
+@@ -377,7 +381,7 @@ int hfs_mdb_commit(struct super_block *sb)
+ 	    HFS_SB(sb)->alt_mdb) {
+ 		if (!buffer_uptodate(HFS_SB(sb)->alt_mdb_bh)) {
+ 			pr_err("alternate MDB is corrupt, mounting read-only\n");
+-			sb->s_flags |= SB_RDONLY;
++			set_bit(HFS_FLG_EMERGENCY_RO, &HFS_SB(sb)->flags);
+ 			ret = -EIO;
+ 			goto out;
+ 		}
+@@ -428,7 +432,7 @@ int hfs_mdb_commit(struct super_block *sb)
+ void hfs_mdb_close(struct super_block *sb)
+ {
+ 	/* update volume attributes */
+-	if (sb_rdonly(sb))
++	if (sb_rdonly(sb) || hfs_emergency_ro(sb))
+ 		return;
+ 
+ 	if (!buffer_uptodate(HFS_SB(sb)->mdb_bh))
+diff --git a/fs/hfs/super.c b/fs/hfs/super.c
+index 5e6d66ff4bee9..bcc19c3a4f6bc 100644
+--- a/fs/hfs/super.c
++++ b/fs/hfs/super.c
+@@ -82,7 +82,7 @@ void hfs_mark_mdb_dirty(struct super_block *sb)
+ 	struct hfs_sb_info *sbi = HFS_SB(sb);
+ 	unsigned long delay;
+ 
+-	if (sb_rdonly(sb))
++	if (sb_rdonly(sb) || hfs_emergency_ro(sb))
+ 		return;
+ 
+ 	spin_lock(&sbi->work_lock);
+@@ -131,6 +131,9 @@ static int hfs_reconfigure(struct fs_context *fc)
+ 		return 0;
+ 
+ 	if (!(fc->sb_flags & SB_RDONLY)) {
++		/* After an MDB write error it stays read-only until unmount. */
++		if (hfs_emergency_ro(sb))
++			return -EROFS;
+ 		if (!(HFS_SB(sb)->mdb->drAtrb & cpu_to_be16(HFS_SB_ATTRIB_UNMNT))) {
+ 			pr_warn("filesystem was not cleanly unmounted, running fsck.hfs is recommended.  leaving read-only.\n");
+ 			sb->s_flags |= SB_RDONLY;
 
 -- 
 2.53.0
