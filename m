@@ -1,45 +1,107 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.180
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794664506;
-	b=dFULKUlpSf6cJv8vlLSA8J7ZIzQqdqmTQM89l2Dxy1Hdqn2C/+y0hyVCTCExk9u3ifMy
-	 SRcOGcq1Sjb24iQYd/xjD3KjPHOmmbH/SeZ5CQ4cg3KcgajoYKbFwIQjLIiprAtMsVq8P
-	 5YQB+5Lw5+zF0o+RO15yPOCdagSBHmfewN5BZ7UKQVtpkGVNknEUnufq0sT+FH2ew7yWn
-	 xUswKFVmpu0VGjR9fJR5s+KLT161L8WOy9h7xnp/go9ONgoWpYF4KoZUOO9RONxNtCj+m
-	 TFExwtRuNAcQhKPB+JgFCQnMMfhk9qz9yMpiQVKc8QZt7f6JpshEULhsu2tNE9ZZ1Ew==
+	t=1794686757;
+	b=BerQeXV397D/Cuib5WtW+9Hcs7DllxZkupvBI7fvVBXUDoq+NRrf7d5zVqS6Bmidiiaf
+	 Lyji3TE85a7wkTVDglH4zsPCkVEojvGdXHx9WQPRAlqNZfREGqrzdtfYUKLZYEBGG+9yR
+	 /7R55pDp1oUuoSgDfEm3UMSmMh1+j9/B9UDaHy1ZleXdD1r35Dh7z049A5Z2j3w6T+oll
+	 ZcqWhjMNHe4fdH5zZctL/ew/nona0OEXEjPeLOaOFh+4ZoNFfyNKrKKly9vSd8tS2h2wb
+	 LuEBitwIV2Acn0il0cWt/vsod7cvYyMxNfTUkK1fJLc6K9qk6TYxsrq7PhmfZ1wOqAg==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794664506;
-	h=Received:DKIM-Signature:Content-Type:MIME-Version:Message-Id:
-	 In-Reply-To:References:Subject:From:To:Cc:Date;
-	bh=gZCOg3PYW5/XzYktPPO7fZbRJ9jC/nh9/3WC5LHdP9k=;
-	b=hXY0DqmenbfI+3T5ge4+EoX9i3cpPrl44Pw2sJDk/0UpqdvK6T1+RR8S39nxUDw94uxp
-	 FH4aL0rBYG6dBDMrQwEu4o2SLO7PnNWrmbIgRHaCZ0JPM2DoeBzR1r+3dkLJg967QJMJh
-	 IIXiLxd84C+ycGsOHCX/KP/IlY8wMI+QGF2Xk3w/IEBzq2GEqFvaVxrFMPCx2KLPXKUtg
-	 2ImZkYNaybwMrMH8ujZhShTb6OQtP2mtWbqXWUzCSdKr8lJxiIgY+GacAT7gokXY+yCzL
-	 PpkvAkEWlurTRdRtHvD903r3rOq8kW+5Ha0oaySWWfG+dK08Fo98Oc+aZA4QJjuRb1Q==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794686757;
+	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
+	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
+	 Date:From:To:Cc:Subject:In-Reply-To:References:MIME-Version:
+	 Content-Type:Content-Disposition:Message-ID:User-Agent;
+	bh=SncZUWGrBOxT9WurRufkDIe8hGFcWm37DANGybHY+fQ=;
+	b=s2msq0R1rFJR5lHMTmAV/9PKxVJ1phOWQMTzkhEargwU0uKXdBrhEycA2+tk2ax6M15y
+	 d7p49ifn/YuBvbFK0ZzOQwmBkEEQhYgQ+hEEJOQXym8f2JJj3noLY0nCyBB4NsW+tUco3
+	 tRI0K5HpwbDWCQe5WEp/XgrJPYr+piGJMO+WuMlXYHosxOY3aQYgstDo3bfKxDEwPpFZz
+	 32iJJ1446lYndVCxDywYxIPaI9s9u990nSNmGX+/vtuvYeFtS6D5TYu2sVNzxzJflIpn5
+	 k1nibiY4B3h97p+MTswgCtyvzOavVkJXjP3ZfLSvoU5UaVwAE2vE8fgPAqo+yEeDRUQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lC1rRmz7;
-	arc=none smtp.remote-ip=100.103.45.18
-Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1))
+	dmarc=pass header.from=chrisdown.name;
+	spf=pass smtp.mailfrom=chrisdown.name;
+	dkim=pass header.d=chrisdown.name header.i=@chrisdown.name header.a=rsa-sha256 header.s=google header.b=PzooN50t;
+	arc=none smtp.remote-ip=209.85.210.180
+Received: from mail-pf1-f180.google.com (mail-pf1-f180.google.com [209.85.210.180])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 87187606A338;
-	Sat, 14 Nov 2026 13:55:06 +0000 (UTC)
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id A4484606A334
+	for <ocfs2-devel@lists.linux.dev>; Sat, 14 Nov 2026 20:05:56 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org A4484606A334
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=chrisdown.name
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=chrisdown.name
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=lC1rRmz7
-Received: by smtp.kernel.org (Postfix) with ESMTPSA id E73891F000C5;
-	Sat, 14 Nov 2026 13:55:02 +0000 (UTC)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
-	s=k20260515; t=1794664506;
-	bh=gZCOg3PYW5/XzYktPPO7fZbRJ9jC/nh9/3WC5LHdP9k=;
-	h=In-Reply-To:References:Subject:From:To:Cc:Date;
-	b=lC1rRmz7ahj/srEYA2ijCYwgAqxvBpBEiZzJTz1BT/wrTEWhRCAJRjIQUg90ualPp
-	 8fNiGIog6yGBq7jcPWwPg3KTZ4hhP7wzOgQinag8fVT+8JrN/YD10tUBIHBk4t50YO
-	 lVbRqj+kObH/VFAULApyIEa7KJo13ikHhn4sjSYyAVLzN15VB21GTINJSJZ5zSjoJ2
-	 SqbEpuE67Y8c73FjyTC9QAtGI69lnMt18W/xx4/7c8YFqB+lo9IQTij1vjYC2G1yJC
-	 gbXcz8wGq7FFvOpMP/hQpyy359bbb1860T3yz8/mr3WEBUyRt+SVvwAJEu6hB8hDoE
-	 Jru9mkTF+Jtaw==
-Content-Type: multipart/mixed; boundary="===============0802335019258284520=="
+	dkim=pass (1024-bit key) header.d=chrisdown.name header.i=@chrisdown.name header.a=rsa-sha256 header.s=google header.b=PzooN50t
+Received: by mail-pf1-f180.google.com with SMTP id d2e1a72fcca58-8b5e5e64494so1463748b3a.1
+        for <ocfs2-devel@lists.linux.dev>; Sat, 14 Nov 2026 12:05:56 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=chrisdown.name; s=google; t=1794686756; x=1795291556; darn=lists.linux.dev;
+        h=user-agent:message-id:content-disposition:content-type:mime-version
+         :references:in-reply-to:subject:cc:to:from:date:from:to:cc:subject
+         :date:message-id:reply-to:content-type;
+        bh=SncZUWGrBOxT9WurRufkDIe8hGFcWm37DANGybHY+fQ=;
+        b=PzooN50tk6Jvo1qz/TShfwPqaa4BsD8Gg+GfDc5bzng12G37IHsCyHW+pKP6tifk2b
+         oNjoJBEHbYzEmeMNWndVLiCwfsU4HSoJbv52m1N+6sbHWEHQjOS48HDR4XQmwrbDuJvf
+         BAxSOEtWBW5hNocnz6dgI+fhoEkWkh91+mn7I=
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794686756; x=1795291556;
+        h=user-agent:message-id:content-disposition:content-type:mime-version
+         :references:in-reply-to:subject:cc:to:from:date:x-gm-gg
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=SncZUWGrBOxT9WurRufkDIe8hGFcWm37DANGybHY+fQ=;
+        b=oLfrK8Nk4nDULj6Oj9nDi2YifliC2z2vPaechZCVjdtbmBS9NBoHWDTb/IJwiPbXS2
+         EKLRfWRecEFMjFbsoXIrG1v1EO/2QGu5NfL3N1VM2zGjs8pAcYQ61UpZBNIrKDOgdp0j
+         GVl6TbHQWl/Yx3bxSUzS/pJ9fENtSeq9qMW9BYIIjdRACWvlSHydNsip3sfY1RjQ156o
+         WsV5C8/vBy8pCQDX2fwkTU0jWwhnJlN6fFyWOnM49qkuwbde/XaTg2e0jmhTFTL687Z+
+         V5xFDv2njBNO+1zAiCcNvUTuQW00q0UXz3LBG4TE4NC7woT8BAB/PP4ixZHXYnM8KOMN
+         lvpA==
+X-Forwarded-Encrypted: i=1; AL+hErHExSYys0fX/8mTUfN2jIjj+4gay7Hl1BIq/SaascoP8qBsSrWAAqQF94oV32PbJvSdfhDfLpW5L67dFw==@lists.linux.dev
+X-Gm-Message-State: APuU4Z+P3ZRZyImfSsVEVAm61iOlJXu910SgYHJ2JQapaPR8+rXPsKtK
+	xLjK+NojG4aEQ5qXG9Nlj/UPugojcq88ms1o/BKlcqcGpV5Ihw6by76gco8+65oPvGs=
+X-Gm-Gg: AYBFou2ok2dufWKjhxJ/6dDB5Bctk7BkLmTfZn8S/9WFi+V9zujp0ZI8xqZW3G3u4ac
+	bXS8eb39bca/sCUCHLChwr4WCjSG2dFC8n0FdcaJgPwpYlv8CzMf4Gx6FnaN1xwA94v22mEroAI
+	GFp8xgcnTzjdobyucWOd3SPK2SIAuU9m88nMT9X2HcZ4bLZtgce9RP7eI7Zz6xm/cZHVN24b8Wj
+	bZmUwmCiDmSXpowhlFBz6ed40b5pee9Y3+pr1sLbk7RU46goTslOX9agCyUVP5od6Lu1FstGOrA
+	uosycvokvOkpDPzLwJLX3MPHvw8VcdDniDptNTyihElINuRwPEwWLl62xdp8N/w7euwisnr21cb
+	GjnFx7FwoCPIvp3r9p9FIUZsEtYzJP77rW6o3pEeWDNbVup0joiXM9WeQ0xAtuk6n0TbwbNFVOy
+	g2J7W/pIxcbJa5eZNeSb08cKncPgewQdYrc+8ckhoZs4lsrk4fpP5AUrYQ2Rzo9jNpXcJ/VmMm6
+	RC33rLTV8zttTqhTVVuSMOIAHmbWqG/SpzQV0LFKFy/rm1i2iDgu00iQzBiFMeIT5u+8h/8aJig
+	2E4TZCFmUhQQEIxszrwAx4mpuOmhFWzdRSW9L2c2dnI6Xe4pLex03cbhASCyN/CSvvc1dSfTukq
+	TNAh50/KwCglZJc1CbAwCG9L1pKVabtlc318N4TjfCgPLX14xmcPakgizmIXncP6G2vmATu9T0k
+	NQR1sSjBLCWit7uTDQEgSJ6LumvVtL0wHkfJ0c/rtKh9QnntLzXzTR5+vu
+X-Received: by 2002:a05:6a21:748b:b0:3e3:37ff:3795 with SMTP id adf61e73a8af0-3f7a4dbfbbfmr5517650637.7.1794686756009;
+        Sat, 14 Nov 2026 12:05:56 -0800 (PST)
+Received: from [172.22.0.2] ([64.16.22.130])
+        by smtp.gmail.com with ESMTPSA id d2e1a72fcca58-8bed12a8172sm2271197b3a.13.2026.11.14.12.05.52
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Sat, 14 Nov 2026 12:05:54 -0800 (PST)
+Date: Sat, 14 Nov 2026 12:05:50 -0800
+From: Chris Down <chris@chrisdown.name>
+To: Christian Brauner <brauner@kernel.org>
+Cc: linux-fsdevel@vger.kernel.org, Jann Horn <jannh@google.com>,
+	Chris Mason <mason@kernel.org>, Josef Bacik <josef@toxicpanda.com>,
+	Christoph Hellwig <hch@lst.de>, linux-block@vger.kernel.org,
+	linux-kernel@vger.kernel.org, linux-nvme@lists.infradead.org,
+	Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>,
+	linux-scsi@vger.kernel.org, target-devel@vger.kernel.org,
+	driver-core@lists.linux.dev, linux-mm@kvack.org, bpf@vger.kernel.org,
+	linux-security-module@vger.kernel.org, selinux@vger.kernel.org,
+	apparmor@lists.ubuntu.com, linux-nfs@vger.kernel.org, netdev@vger.kernel.org,
+	fuse-devel@lists.linux.dev, linux-efi@vger.kernel.org,
+	xen-devel@lists.xenproject.org, ocfs2-devel@lists.linux.dev,
+	linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org,
+	linux-usb@vger.kernel.org, Amir Goldstein <amir73il@gmail.com>,
+	linux-erofs@lists.ozlabs.org, linux-kselftest@vger.kernel.org,
+	stable@vger.kernel.org, Alexander Mikhalitsyn <alex@amutable.com>,
+	Breno Leitao <leitao@debian.org>, Casey Schaufler <casey@schaufler-ca.com>,
+	Chuck Lever <cel@kernel.org>, Sashiko <sashiko-bot@kernel.org>
+Subject: Re: [PATCH RFC v2 00/42] fs: don't use pseudo filesystem files as
+	storage
+In-Reply-To: <20261114-work-loop-pseudo-v2-0-98639a2286fb@kernel.org>
+References: <20261114-work-loop-pseudo-v2-0-98639a2286fb@kernel.org>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -49,97 +111,27 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-Message-Id: <91e245da9f3df6d6e61808e72a4ad0213a9a6b838f594d0be74dd70ab228422f@mail.kernel.org>
-In-Reply-To: <20261114-work-loop-pseudo-v2-33-98639a2286fb@kernel.org>
-References: <20261114-work-loop-pseudo-v2-33-98639a2286fb@kernel.org>
-Subject: Re: [PATCH RFC v2 33/42] fs: add file_check_backing()
-From: bot+bpf-ci@kernel.org
-To: brauner@kernel.org,linux-fsdevel@vger.kernel.org
-Cc: jannh@google.com,mason@kernel.org,josef@toxicpanda.com,hch@lst.de,linux-block@vger.kernel.org,linux-kernel@vger.kernel.org,linux-nvme@lists.infradead.org,viro@zeniv.linux.org.uk,jack@suse.cz,linux-scsi@vger.kernel.org,target-devel@vger.kernel.org,driver-core@lists.linux.dev,linux-mm@kvack.org,bpf@vger.kernel.org,linux-security-module@vger.kernel.org,selinux@vger.kernel.org,apparmor@lists.ubuntu.com,linux-nfs@vger.kernel.org,netdev@vger.kernel.org,fuse-devel@lists.linux.dev,linux-efi@vger.kernel.org,xen-devel@lists.xenproject.org,ocfs2-devel@lists.linux.dev,linux-s390@vger.kernel.org,linuxppc-dev@lists.ozlabs.org,linux-usb@vger.kernel.org,amir73il@gmail.com,linux-erofs@lists.ozlabs.org,linux-kselftest@vger.kernel.org,brauner@kernel.org,ast@kernel.org,andrii@kernel.org,daniel@iogearbox.net,martin.lau@kernel.org,eddyz87@gmail.com,yonghong.song@linux.dev,mason@kernel.org,ihor.solodrai@linux.dev
-Date: Sat, 14 Nov 2026 13:55:02 +0000 (UTC)
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Disposition: inline
+Message-ID: <20261114120550.0c9e73aa12a3072c@chrisdown.name>
+User-Agent: Mutt/2.4.3 (cc9e3943) (2026-10-09)
 
---===============0802335019258284520==
-Content-Type: text/plain; charset="us-ascii"
-MIME-Version: 1.0
-Content-Transfer-Encoding: 7bit
+Hi Christian,
 
-> fs: add file_check_backing()
+Patches 1-11, 13-16, 18-26, 28, 31, 32, 34-37 and 39-42 look good to me,
+so for those please feel free to add:
 
-TL;DR: file_check_backing() may call d_real_inode() on O_PATH overlayfs files,
-which could hit WARN in ovl_d_real() (panic with panic_on_warn) and let the
-pseudo-fs check pass wrongly; reachable via fuse backing open, needs
-CAP_SYS_ADMIN.
+Reviewed-by: Chris Down <chris@chrisdown.name>
 
-> diff --git a/fs/read_write.c b/fs/read_write.c
-> --- a/fs/read_write.c
-> +++ b/fs/read_write.c
+I've also tested 5, 6, 34-37, 41 and 42. The selftests all pass with the
+series applied, and a uid 0 without capabilities can no longer change
+/sys/kernel/reboot/mode through a loop device. So for those, please also
+feel free to add:
 
-[ ... ]
+Tested-by: Chris Down <chris@chrisdown.name>
 
-> +int file_check_backing(const struct file *file, fmode_t mode, umode_t type)
-> +{
+I've replied separately to 17 and 33.
 
-[ ... ]
+Thanks!
 
-> +	/* Look through stacking filesystems at the inode with the data. */
-> +	if (d_real_inode(file->f_path.dentry)->i_sb->s_iflags & SB_I_PSEUDO)
-> +		return -EINVAL;
-
-With FMODE_PATH accepted, can d_real_inode() be reached for an O_PATH file
-here?  No ->open() has run on such a file.
-
-For an overlayfs metacopy file whose data is in a data-only lower layer,
-the lowerdata redirect is only resolved lazily, by ovl_open() via
-ovl_verify_lowerdata() or by ovl_d_real().  For an O_PATH file this means
-d_real_inode() goes into ovl_d_real(), which does the lookup and verity
-check itself:
-
-    err = ovl_verify_lowerdata(dentry);
-    if (err)
-        goto bug;
-    ...
-bug:
-    WARN(1, "%s(%pd4, %d): real dentry not found\n", __func__, dentry, type);
-    return dentry;
-
-ovl_maybe_lookup_lowerdata() treats a failed lookup as a normal runtime
-event (pr_warn_ratelimited("lazy lowerdata lookup failed ...")).  It can
-also return -EINTR from ovl_inode_lock_interruptible(), and
-ovl_maybe_validate_verity() returns -EIO for a missing or wrong digest with
-verity=require.  Each of these would hit WARN(1) when reached through this
-helper, which panics with panic_on_warn.
-
-In that case ovl_d_real() returns the overlayfs dentry, so the SB_I_PSEUDO
-test looks at the overlayfs superblock and passes.  Does the check fail
-open there?
-
-Nothing calls the helper in this commit, but later in the series
-f79b9e79484f ("fuse: refuse files on pseudo filesystems as passthrough
-backing files") adds file_check_backing(file, FMODE_PATH, 0) to
-fuse_backing_open_file().  That gets its fd via CLASS(fd_raw), which
-accepts O_PATH:
-
-FUSE_DEV_IOC_BACKING_OPEN
-  fuse_backing_new()
-    fuse_backing_open_file()
-      file_check_backing()
-        d_real_inode()
-          ovl_d_real()
-            ovl_verify_lowerdata() fails -> WARN
-
-This needs CAP_SYS_ADMIN and an overlayfs with data-only layers where the
-data file is missing, the digest check fails, or the inode lock is
-contended while a signal is pending.  No fix for this was found later in
-the series.
-
-Could the pseudo filesystem check avoid forcing the lazy lowerdata lookup
-on O_PATH files, or should ovl_d_real() stop warning on lookup failures now
-that it has callers besides trace_uprobe?
-
-
----
-AI reviewed your patch. Please fix the bug or email reply why it's not a bug.
-See: https://github.com/kernel-patches/vmtest/blob/master/ci/claude/README.md
-
-CI run summary: https://github.com/kernel-patches/bpf/actions/runs/43599461726
---===============0802335019258284520==--
+Chris
