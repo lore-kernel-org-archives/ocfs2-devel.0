@@ -1,73 +1,54 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=113.46.200.225
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.210.70
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794622646;
-	b=IOBsxTgUizWpHZGvXU2du8sJWs6GAsaj/GeguKCKBK7zKeYtLqRine/IvAH55PbskKuS
-	 ceCPtSG5A6Np0p4N0gK/k0wWMpuBIPTrQE7yRJIYziPE2gTxWWd3RuxV0XezhwshKg4y/
-	 n75SrdFdfvJ8HnZt+IhKqCi2GzQpdGHFocEVAAZrnLiMPwcLiXoWvi/CTjVIIJ4sTuMN/
-	 murAfc23elchyXinKfFLs/9jRoB1I4AM3/FircbtZKtI9BOUZu9S7q2Nb4U+X8Q6BaPDk
-	 jVf1AJlMFNbI1PPnEuQSMJCWCR7IAon7EY1hNYrq1v9Y5pqDeE8WInlaZciqvFxxGnQ==
+	t=1794644790;
+	b=w0Jw9J9AgaDbYqIisRmB8+PVcDhu3qvRgzeI4JcZ+MsHVAu1hb/SOkhEA/mHXPW1VKAx
+	 BQeNi/KGxo9dVe4GLWKtuFsugjf2qmOL8hIgyIdMVfJCRKbEP540ut8x6acC9yjMooONo
+	 j3hdopu7I0axNxR6I3oEmdV1Ti0rc6nn1ea+5euI92huejSkut/sNNPLKBT3IXlgwv7ea
+	 nQPw3NI6KljiT1FjzR9MF/u81A54ldS0K8r7qCw0bpCIZ1zE/l1pX179aFuI5r7YRVk2E
+	 KQrOgaDh9FBC6/ZsSnsiNB+MR2ShlVcpEz1RfgdT3J+JHn84VUQHRuuaWb5YhvaXdBQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794622646;
-	h=DMARC-Filter:dkim-signature:Received:Received:Received:Subject:To:CC:
-	 References:From:Message-ID:Date:User-Agent:MIME-Version:In-Reply-To:
-	 Content-Type:Content-Transfer-Encoding:X-Originating-IP:
-	 X-ClientProxiedBy;
-	bh=lamjSy1jct+Y32LWUG/7mqOA0l+lzlvT/xdWWaLZFKQ=;
-	b=If0YgjRpsGFxixtOYFFKJ3j25pS0Z+fTBd8NEVARqmKmHa3WszZs+gt9qN4VXtYFEU5Z
-	 AYiRF0k7dFlzcFbVM/kkXCBr1npvbDF7dU//DQqfwkNTfFi/oO8qpOM9DuFvcQvOCNFGo
-	 eXZzbk+/eSeQdPChISwIWC7DzhwJMwJAHz34nKtBeDaTyoZy5tsuNUII5G4JAo6UTaPJB
-	 MwvMHScx2JhSLUmM8Oo5IcwkfOvovRKVIhvNlqviPO0s/HFCI3C4heUhfAbbqiwXUBO4W
-	 OYR505MI8OKzGZNp7JTOQB130yJSARBEBALrdMY2rC15w25osdnWRag7WM4TimFhLZw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794644790;
+	h=DMARC-Filter:Received:X-Google-DKIM-Signature:X-Forwarded-Encrypted:
+	 X-Gm-Message-State:MIME-Version:X-Received:Date:
+	 X-Google-Appengine-App-Id:X-Google-Appengine-App-Id-Alias:Message-ID:
+	 Subject:From:To:Content-Type;
+	bh=LxT87EFsNzRJRHFsuOKWqqk4s6jW+mIcA4huHSOsASI=;
+	b=i4X5PQIJXrcN8eACUKmWJ9OZFLhtz4azB+XRHtIppwyiqjO1SCyXOvCBp4FqJMBocuW4
+	 7fWpw7CTAFWNW8gJHx3cXr5/S6MaroxqchliGvNGjhnIr6XQsaY1tcq/et9c7/0H8wWDG
+	 ZkQC+iFk8HieAWnH4bktujtllJt3mzOm3tem41tY/HIJ9lc+bHNA6YzdO5+MCRgVFlql0
+	 C7lNP69RFySUtf162jlLcWPgPbrNotzeXbQgmrWXsBH1AlM/rK1O7MSd8WarIH9yUPh6g
+	 tYdomrjbOQ4JzZ0iHpGrvbdVhXKu9HkEhRno0/cEGhpeiqmdUVGe0DMk8NGdaP06drg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=huawei.com;
-	spf=pass smtp.mailfrom=huawei.com;
-	dkim=pass header.d=huawei.com header.i=@huawei.com header.a=rsa-sha256 header.s=dkim header.b=dmJo6jxo;
-	arc=none smtp.remote-ip=113.46.200.225
-Received: from canpmsgout10.his.huawei.com (canpmsgout10.his.huawei.com [113.46.200.225])
-	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	dmarc=fail header.from=syzkaller.appspotmail.com;
+	spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com;
+	arc=none smtp.remote-ip=209.85.210.70
+Received: from mail-ot1-f70.google.com (mail-ot1-f70.google.com [209.85.210.70])
+	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 8B5F5606A32E;
-	Sat, 14 Nov 2026 02:17:24 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 8B5F5606A32E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=huawei.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=huawei.com
-Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=huawei.com header.i=@huawei.com header.a=rsa-sha256 header.s=dkim header.b=dmJo6jxo
-dkim-signature: v=1; a=rsa-sha256; d=huawei.com; s=dkim;
-	c=relaxed/relaxed; q=dns/txt;
-	h=From;
-	bh=lamjSy1jct+Y32LWUG/7mqOA0l+lzlvT/xdWWaLZFKQ=;
-	b=dmJo6jxorxqj/soF5hgiJAk0L/VbZ+b6NQ150G77AKdiKykroxkSgy9jha28sMjYHaadv7xU4
-	gX5qGcCNkavMkbqMIDp0Pr2diskt5hVLJa0+T41ntlJJoc8GUBBS7KeBABGtvyISA72TUzk8pOV
-	JKQ3g1KA+Ky1blIGX4Su+70=
-Received: from mail.maildlp.com (unknown [172.19.163.163])
-	by canpmsgout10.his.huawei.com (SkyGuard) with ESMTPS id 4jRHnX4bKrz1K98l;
-	Sat, 14 Nov 2026 10:17:04 +0800 (CST)
-Received: from whupemo200011.china.huawei.com (unknown [7.152.185.179])
-	by mail.maildlp.com (Postfix) with ESMTPS id 8F8174048B;
-	Sat, 14 Nov 2026 10:17:15 +0800 (CST)
-Received: from [10.174.178.46] (10.174.178.46) by
- whupemo200011.china.huawei.com (7.152.185.179) with Microsoft SMTP Server
- (version=TLS1_2, cipher=TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384) id
- 15.2.2562.45; Sat, 14 Nov 2026 10:17:13 +0800
-Subject: Re: [PATCH v3 30/33] ubifs: don't set SB_RDONLY after errors
-To: Christian Brauner <brauner@kernel.org>, <linux-fsdevel@vger.kernel.org>,
-	Jan Kara <jack@suse.com>
-CC: Al Viro <viro@zeniv.linux.org.uk>, <ecryptfs@vger.kernel.org>,
-	<linux-ext4@vger.kernel.org>, <jfs-discussion@lists.sourceforge.net>,
-	<linux-nilfs@vger.kernel.org>, <exfat@lists.linux.dev>, <linux-mm@kvack.org>,
-	<ntfs@lists.linux.dev>, <ocfs2-devel@lists.linux.dev>,
-	<linux-btrfs@vger.kernel.org>, <gfs2@lists.linux.dev>,
-	<linux-efi@vger.kernel.org>, <linux-mtd@lists.infradead.org>,
-	<linux-xfs@vger.kernel.org>
-References: <20261113-work-fs-sb_rdonly-v3-0-0be92bb73709@kernel.org>
- <20261113-work-fs-sb_rdonly-v3-30-0be92bb73709@kernel.org>
-From: Zhihao Cheng <chengzhihao1@huawei.com>
-Message-ID: <17287026-cccc-f56c-15a3-029b9a2c38c9@huawei.com>
-Date: Sat, 14 Nov 2026 10:17:12 +0800
-User-Agent: Mozilla/5.0 (Windows NT 10.0; WOW64; rv:68.0) Gecko/20100101
- Thunderbird/68.5.0
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 30D4E606A32D
+	for <ocfs2-devel@lists.linux.dev>; Sat, 14 Nov 2026 08:26:30 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 30D4E606A32D
+Authentication-Results: smtp.subspace.kernel.org; dmarc=fail (p=none dis=none) header.from=syzkaller.appspotmail.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=M3KW2WVRGUFZ5GODRSRYTGD7.apphosting.bounces.google.com
+Received: by mail-ot1-f70.google.com with SMTP id 46e09a7af769-862ad1e3959so32063a34.2
+        for <ocfs2-devel@lists.linux.dev>; Sat, 14 Nov 2026 00:26:30 -0800 (PST)
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1794644789; x=1795249589;
+        h=content-type:to:from:subject:message-id:date:mime-version
+         :x-gm-message-state:from:to:cc:subject:date:message-id:reply-to
+         :content-type;
+        bh=LxT87EFsNzRJRHFsuOKWqqk4s6jW+mIcA4huHSOsASI=;
+        b=YnuWBab1jxYW325JjVhQiSCysS0geEfXncx4NH0+/nqvc10QsUzqN/gbrmLUljgMMZ
+         5UznUCYDsQma+Q/ASnhWSmst8ESIbLnGixo2SvNGzXBA/1k50QA4/JFFrXuBWIVFPEt1
+         sFBQlJ4kCb6l7LCc/2r1CSYTeQNk95miD2AdrRJvBLPS28moucDFa2xgtQ0BVscb5QKo
+         v/ifJyQSBti+Jbgj/ZbnflwmXuT8iP9evQjga5tlzejQQlmlbL1YOuQhJs0bvJvs96ow
+         NVVfK93zrFoWQ+jrnDueQBFiQCSg+ahlMY8yWH4SqmWM3D3mPG1mWx0YrEbnb9rJ8Bb2
+         9Sbw==
+X-Forwarded-Encrypted: i=1; AL+hErFYHNcrplmALnZYMQ5JXVzh383OUJouOa/wqXqrgfmFRIL2yhevgn67YGuFFLWrRpgbaBEsC0fV7iH6tg==@lists.linux.dev
+X-Gm-Message-State: APuU4Z91Ev98yjtG8LV3GF4svMqJiH5Tr8jcW1kY3U76TVnS/IkNmdty
+	tVybNVpyfR3pXxM/74949E34xYdSRG/PqvuIFFgYu20bqdx9DMVmvcO5eHrd+U+GaerraLEb0Ak
+	YrKLp7iT1ApPJc9f+w/VAN8GJswFxWrm2mxlDurGGNGaitS1Pf1d3+f2baVg=
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -77,209 +58,215 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
-In-Reply-To: <20261113-work-fs-sb_rdonly-v3-30-0be92bb73709@kernel.org>
-Content-Type: text/plain; charset="gbk"; format=flowed
-Content-Transfer-Encoding: 8bit
-X-ClientProxiedBy: kwepems100001.china.huawei.com (7.221.188.238) To
- whupemo200011.china.huawei.com (7.152.185.179)
+X-Received: by 2002:a05:6808:c177:b0:4c3:7073:8c4d with SMTP id
+ 5614622812f47-56e642d319emr4344318b6e.20.1794644789171; Sat, 14 Nov 2026
+ 00:26:29 -0800 (PST)
+Date: Sat, 14 Nov 2026 00:26:29 -0800
+X-Google-Appengine-App-Id: s~syzkaller
+X-Google-Appengine-App-Id-Alias: syzkaller
+Message-ID: <6af81b35.097d52ff.3d440.0001.GAE@google.com>
+Subject: [syzbot] [ocfs2?] possible deadlock in ocfs2_duplicate_inline_data
+From: syzbot <syzbot+3f66416993279938e957@syzkaller.appspotmail.com>
+To: heming.zhao@suse.com, jlbec@evilplan.org, joseph.qi@linux.alibaba.com, 
+	linux-kernel@vger.kernel.org, mark@fasheh.com, ocfs2-devel@lists.linux.dev, 
+	syzkaller-bugs@googlegroups.com
+Content-Type: text/plain; charset="UTF-8"
 
-ÔÚ 2026/11/13 19:59, Christian Brauner Ð´µÀ:
-> ubifs_ro_mode() sets c->ro_error and SB_RDONLY from whatever context hit
-> the error, e.g. a failing write, and without holding s_umount. UBIFS
-> can't be frozen but that still races with everyone else changing
-> sb->s_flags. And c->ro_error alone already makes every write fail with
-> EROFS.
-> 
-> So call sb_set_emergency_ro() instead. The background thread can hit
-> the error before SB_BORN but doesn't hold s_umount either. The xattr
-> setters check c->ro_error as well because ecryptfs calls them without
-> write access on the lower mount and they change the inode in memory
-> first.
-> 
-> So far a remount to read-only after an error was refused and a remount
-> to read-write went through and cleared SB_RDONLY again because
-> c->ro_mount was never set. Now going read-only works. Nothing is synced
-> for it in that state and ubifs_remount_ro() skips the write-buffer syncs
-> and the master node like ubifs_put_super() does and only cancels the
-> write-buffer timers. Going read-write after that is refused by the VFS.
-> 
-> The flusher still gets to the folios and inodes that were dirty before
-> the error, also after the remount which sets c->ro_mount and frees the
-> write reserve buffer. Every journal write fails with EROFS after an
-> error anyway. So do_writepage() and ubifs_write_inode() drop them
-> without going near the journal. Otherwise reserve_space() trips its
-> !c->ro_mount assert for every folio after the remount.
-> 
-> Signed-off-by: Christian Brauner (Amutable) <brauner@kernel.org>
-> ---
->   fs/ubifs/file.c  | 12 ++++++++++++
->   fs/ubifs/io.c    |  6 +++++-
->   fs/ubifs/super.c | 40 ++++++++++++++++++++++++++--------------
->   fs/ubifs/xattr.c |  6 ++++++
->   4 files changed, 49 insertions(+), 15 deletions(-)
+Hello,
 
-Reviewed-by: Zhihao Cheng <chengzhihao1@huawei.com>
-> 
-> diff --git a/fs/ubifs/file.c b/fs/ubifs/file.c
-> index 99dd52715eee9..4eae6c2ae2eea 100644
-> --- a/fs/ubifs/file.c
-> +++ b/fs/ubifs/file.c
-> @@ -898,6 +898,13 @@ static int do_writepage(struct folio *folio, size_t len)
->   
->   	folio_start_writeback(folio);
->   
-> +	/* Nothing gets written after an error, drop the folio. */
-> +	if (unlikely(c->ro_error)) {
-> +		err = -EROFS;
-> +		mapping_set_error(folio->mapping, err);
-> +		goto out;
-> +	}
-> +
->   	block = folio->index << UBIFS_BLOCKS_PER_PAGE_SHIFT;
->   	for (;;) {
->   		blen = min_t(size_t, len, UBIFS_BLOCK_SIZE);
-> @@ -918,6 +925,7 @@ static int do_writepage(struct folio *folio, size_t len)
->   		ubifs_ro_mode(c, err);
->   	}
->   
-> +out:
->   	ubifs_assert(c, folio->private != NULL);
->   	if (folio_test_checked(folio))
->   		release_new_page_budget(c);
-> @@ -997,6 +1005,10 @@ static int ubifs_writepage(struct folio *folio, struct writeback_control *wbc)
->   		goto out_unlock;
->   	}
->   
-> +	/* After an error do_writepage() drops the folio. */
-> +	if (unlikely(c->ro_error))
-> +		return do_writepage(folio, len);
-> +
->   	spin_lock(&ui->ui_lock);
->   	synced_i_size = ui->synced_i_size;
->   	spin_unlock(&ui->ui_lock);
-> diff --git a/fs/ubifs/io.c b/fs/ubifs/io.c
-> index 6c6d682427793..931a88329b5f5 100644
-> --- a/fs/ubifs/io.c
-> +++ b/fs/ubifs/io.c
-> @@ -72,7 +72,11 @@ void ubifs_ro_mode(struct ubifs_info *c, int err)
->   	if (!c->ro_error) {
->   		c->ro_error = 1;
->   		c->no_chk_data_crc = 0;
-> -		c->vfs_sb->s_flags |= SB_RDONLY;
-> +		/*
-> +		 * SB_RDONLY needs s_umount, see sb_set_emergency_ro(). The
-> +		 * background thread runs before SB_BORN already.
-> +		 */
-> +		sb_set_emergency_ro(c->vfs_sb);
->   		ubifs_warn(c, "switched to read-only mode, error %d", err);
->   		dump_stack();
->   	}
-> diff --git a/fs/ubifs/super.c b/fs/ubifs/super.c
-> index 38972786817e7..2d71274e89ad0 100644
-> --- a/fs/ubifs/super.c
-> +++ b/fs/ubifs/super.c
-> @@ -312,6 +312,12 @@ static int ubifs_write_inode(struct inode *inode, struct writeback_control *wbc)
->   		return 0;
->   	}
->   
-> +	/* Nothing gets written after an error, drop the change. */
-> +	if (unlikely(c->ro_error)) {
-> +		err = -EROFS;
-> +		goto out;
-> +	}
-> +
->   	/*
->   	 * As an optimization, do not write orphan inodes to the media just
->   	 * because this is not needed.
-> @@ -327,6 +333,7 @@ static int ubifs_write_inode(struct inode *inode, struct writeback_control *wbc)
->   			err = dbg_check_inode_size(c, inode, ui->ui_size);
->   	}
->   
-> +out:
->   	ui->dirty = 0;
->   	mutex_unlock(&ui->ui_mutex);
->   	ubifs_release_dirty_inode_budget(c, ui);
-> @@ -1839,19 +1846,26 @@ static void ubifs_remount_ro(struct ubifs_info *c)
->   
->   	dbg_save_space_info(c);
->   
-> -	for (i = 0; i < c->jhead_cnt; i++) {
-> -		err = ubifs_wbuf_sync(&c->jheads[i].wbuf);
-> +	/* Like ubifs_put_super(), don't write anything after an error. */
-> +	if (!c->ro_error) {
-> +		for (i = 0; i < c->jhead_cnt; i++) {
-> +			err = ubifs_wbuf_sync(&c->jheads[i].wbuf);
-> +			if (err)
-> +				ubifs_ro_mode(c, err);
-> +		}
-> +
-> +		c->mst_node->flags &= ~cpu_to_le32(UBIFS_MST_DIRTY);
-> +		c->mst_node->flags |= cpu_to_le32(UBIFS_MST_NO_ORPHS);
-> +		c->mst_node->gc_lnum = cpu_to_le32(c->gc_lnum);
-> +		err = ubifs_write_master(c);
->   		if (err)
->   			ubifs_ro_mode(c, err);
-> +	} else {
-> +		/* Syncing the write-buffers would have canceled them. */
-> +		for (i = 0; i < c->jhead_cnt; i++)
-> +			hrtimer_cancel(&c->jheads[i].wbuf.timer);
->   	}
->   
-> -	c->mst_node->flags &= ~cpu_to_le32(UBIFS_MST_DIRTY);
-> -	c->mst_node->flags |= cpu_to_le32(UBIFS_MST_NO_ORPHS);
-> -	c->mst_node->gc_lnum = cpu_to_le32(c->gc_lnum);
-> -	err = ubifs_write_master(c);
-> -	if (err)
-> -		ubifs_ro_mode(c, err);
-> -
->   	vfree(c->orph_buf);
->   	c->orph_buf = NULL;
->   	kfree(c->write_reserve_buf);
-> @@ -1977,10 +1991,7 @@ static int ubifs_reconfigure(struct fs_context *fc)
->   		if (err)
->   			return err;
->   	} else if (!c->ro_mount && (fc->sb_flags & SB_RDONLY)) {
-> -		if (c->ro_error) {
-> -			ubifs_msg(c, "cannot re-mount R/O due to prior errors");
-> -			return -EROFS;
-> -		}
-> +		/* After an error ubifs_remount_ro() can't write but still works. */
->   		ubifs_remount_ro(c);
->   	}
->   
-> @@ -1994,7 +2005,8 @@ static int ubifs_reconfigure(struct fs_context *fc)
->   		mutex_unlock(&c->bu_mutex);
->   	}
->   
-> -	if (!c->need_recovery)
-> +	/* Only valid without a media failure, see ubifs_put_super(). */
-> +	if (!c->need_recovery && !c->ro_error)
->   		ubifs_assert(c, c->lst.taken_empty_lebs > 0);
->   
->   	return 0;
-> diff --git a/fs/ubifs/xattr.c b/fs/ubifs/xattr.c
-> index 3b0e8a270f594..572f6f3e52ad3 100644
-> --- a/fs/ubifs/xattr.c
-> +++ b/fs/ubifs/xattr.c
-> @@ -260,6 +260,9 @@ int ubifs_xattr_set(struct inode *host, const char *name, const void *value,
->   	if (check_lock)
->   		ubifs_assert(c, inode_is_locked(host));
->   
-> +	if (c->ro_error)
-> +		return -EROFS;
-> +
->   	if (size > UBIFS_MAX_INO_DATA)
->   		return -ERANGE;
->   
-> @@ -564,6 +567,9 @@ static int ubifs_xattr_remove(struct inode *host, const char *name)
->   
->   	ubifs_assert(c, inode_is_locked(host));
->   
-> +	if (c->ro_error)
-> +		return -EROFS;
-> +
->   	if (fname_len(&nm) > UBIFS_MAX_NLEN)
->   		return -ENAMETOOLONG;
->   
-> 
+syzbot found the following issue on:
 
+HEAD commit:    97d73c825122 Merge tag 'arm64-fixes' of git://git.kernel.o..
+git tree:       upstream
+console+strace: https://syzkaller.appspot.com/x/log.txt?x=16c6353d580000
+kernel config:  https://syzkaller.appspot.com/x/.config?x=d16c0eae9c338e3c
+dashboard link: https://syzkaller.appspot.com/bug?extid=3f66416993279938e957
+compiler:       Debian clang version 22.1.8 (1~deb13u4), Debian LLD 22.1.8
+syz repro:      https://syzkaller.appspot.com/x/repro.syz?x=11c6353d580000
+C reproducer:   https://syzkaller.appspot.com/x/repro.c?x=13609bed580000
+
+Downloadable assets:
+disk image: https://storage.googleapis.com/syzbot-assets/3968468419c5/disk-97d73c82.raw.xz
+vmlinux: https://storage.googleapis.com/syzbot-assets/1066269755a7/vmlinux-97d73c82.xz
+kernel image: https://storage.googleapis.com/syzbot-assets/ec6230abb854/bzImage-97d73c82.xz
+mounted in repro: https://storage.googleapis.com/syzbot-assets/28571daccc92/mount_0.gz
+  fsck result: OK (log: https://syzkaller.appspot.com/x/fsck.log?x=136fc9ad580000)
+
+AI-generated root cause summary:
+In fs/ocfs2/xattr.c, OCFS2_IP_ALLOC_SEM_UNPUBLISHED was defined as 1 to allow
+down_write_nested(&OCFS2_I(inode)->ip_alloc_sem, ...) within an active
+transaction during inode creation without tripping lockdep against the standard
+ip_alloc_sem -> transaction lock order. However, subclass 1
+(SINGLE_DEPTH_NESTING) was already in use by ocfs2_remap_file_range() in
+fs/ocfs2/file.c when locking the destination inode's ip_alloc_sem. When
+ocfs2_remap_file_range() locks the destination inode under subclass 1 and
+invokes ocfs2_reflink_remap_blocks() -> ocfs2_duplicate_inline_data(),
+ocfs2_start_trans() is called, acquiring sb_internal and j_trans_barrier;
+lockdep sees both transaction -> ip_alloc_sem/1 and ip_alloc_sem/1 ->
+transaction, reporting a circular locking dependency false positive due to the
+subclass collision.
+
+full analysis:  https://syzkaller.appspot.com/x/ai_root_cause?x=3f66416993279938e957
+
+IMPORTANT: if you fix the issue, please add the following tag to the commit:
+Reported-by: syzbot+3f66416993279938e957@syzkaller.appspotmail.com
+
+======================================================
+WARNING: possible circular locking dependency detected
+syzkaller #0 Not tainted
+------------------------------------------------------
+syz-executor238/5619 is trying to acquire lock:
+ffff88803fb38818 (sb_internal#2){.+.+}-{0:0}, at: ocfs2_duplicate_inline_data+0x16a/0x570 fs/ocfs2/refcounttree.c:3991
+
+but task is already holding lock:
+ffff88803559db90 (&oi->ip_alloc_sem/1){+.+.}-{4:4}, at: ocfs2_remap_file_range+0x342/0x700 fs/ocfs2/file.c:2780
+
+which lock already depends on the new lock.
+
+
+the existing dependency chain (in reverse order) is:
+
+-> #2 (&oi->ip_alloc_sem/1){+.+.}-{4:4}:
+       down_write_nested+0x39/0x50 kernel/locking/rwsem.c:1757
+       ocfs2_xattr_set_handle+0x3fc/0x820 fs/ocfs2/xattr.c:3941
+       ocfs2_init_security_set+0x151/0x210 fs/ocfs2/xattr.c:7996
+       ocfs2_mknod+0x13dd/0x2190 fs/ocfs2/namei.c:422
+       ocfs2_create+0x195/0x460 fs/ocfs2/namei.c:677
+       lookup_open+0x103d/0x1b00 fs/namei.c:4575
+       open_last_lookups fs/namei.c:4774 [inline]
+       path_openat+0x711/0x2100 fs/namei.c:5013
+       do_file_open+0x23e/0x4a0 fs/namei.c:5045
+       do_sys_openat2+0x115/0x200 fs/open.c:1443
+       do_sys_open fs/open.c:1449 [inline]
+       __do_sys_creat fs/open.c:1527 [inline]
+       __se_sys_creat fs/open.c:1521 [inline]
+       __x64_sys_creat+0x8f/0xc0 fs/open.c:1521
+       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+       do_syscall_64+0x16a/0x530 arch/x86/entry/syscall_64.c:89
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #1 (&journal->j_trans_barrier){.+.+}-{4:4}:
+       down_read+0x92/0x200 kernel/locking/rwsem.c:1574
+       ocfs2_start_trans+0x3aa/0x700 fs/ocfs2/journal.c:379
+       ocfs2_block_group_alloc fs/ocfs2/suballoc.c:801 [inline]
+       ocfs2_reserve_suballoc_bits+0x7b7/0x4850 fs/ocfs2/suballoc.c:950
+       ocfs2_reserve_new_metadata_blocks+0x415/0x9a0 fs/ocfs2/suballoc.c:1100
+       ocfs2_mknod+0xe79/0x2190 fs/ocfs2/namei.c:350
+       ocfs2_create+0x195/0x460 fs/ocfs2/namei.c:677
+       lookup_open+0x103d/0x1b00 fs/namei.c:4575
+       open_last_lookups fs/namei.c:4774 [inline]
+       path_openat+0x711/0x2100 fs/namei.c:5013
+       do_file_open+0x23e/0x4a0 fs/namei.c:5045
+       do_sys_openat2+0x115/0x200 fs/open.c:1443
+       do_sys_open fs/open.c:1449 [inline]
+       __do_sys_creat fs/open.c:1527 [inline]
+       __se_sys_creat fs/open.c:1521 [inline]
+       __x64_sys_creat+0x8f/0xc0 fs/open.c:1521
+       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+       do_syscall_64+0x16a/0x530 arch/x86/entry/syscall_64.c:89
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+-> #0 (sb_internal#2){.+.+}-{0:0}:
+       check_prev_add kernel/locking/lockdep.c:3209 [inline]
+       check_prevs_add kernel/locking/lockdep.c:3328 [inline]
+       validate_chain kernel/locking/lockdep.c:3952 [inline]
+       __lock_acquire+0x164c/0x2de0 kernel/locking/lockdep.c:5288
+       lock_acquire+0x115/0x350 kernel/locking/lockdep.c:5942
+       percpu_down_read_internal include/linux/percpu-rwsem.h:53 [inline]
+       percpu_down_read_freezable include/linux/percpu-rwsem.h:83 [inline]
+       __sb_start_write include/linux/fs/super.h:19 [inline]
+       sb_start_intwrite include/linux/fs/super.h:177 [inline]
+       ocfs2_start_trans+0x2a7/0x700 fs/ocfs2/journal.c:377
+       ocfs2_duplicate_inline_data+0x16a/0x570 fs/ocfs2/refcounttree.c:3991
+       ocfs2_reflink_remap_blocks+0x4aa/0x1ab0 fs/ocfs2/refcounttree.c:4684
+       ocfs2_remap_file_range+0x457/0x700 fs/ocfs2/file.c:2788
+       vfs_copy_file_range+0xe39/0x1430 fs/read_write.c:1581
+       __do_sys_copy_file_range fs/read_write.c:1664 [inline]
+       __se_sys_copy_file_range+0x2fb/0x480 fs/read_write.c:1631
+       do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+       do_syscall_64+0x16a/0x530 arch/x86/entry/syscall_64.c:89
+       entry_SYSCALL_64_after_hwframe+0x77/0x7f
+
+other info that might help us debug this:
+
+Chain exists of:
+  sb_internal#2 --> &journal->j_trans_barrier --> &oi->ip_alloc_sem/1
+
+ Possible unsafe locking scenario:
+
+       CPU0                    CPU1
+       ----                    ----
+  lock(&oi->ip_alloc_sem/1);
+                               lock(&journal->j_trans_barrier);
+                               lock(&oi->ip_alloc_sem/1);
+  rlock(sb_internal#2);
+
+ *** DEADLOCK ***
+
+locks held by syz-executor238/5619: 5, on CPU#0:
+ #0: ffff88803fb38528 (sb_writers#8){.+.+}-{0:0}, at: file_start_write include/linux/fs.h:2765 [inline]
+ #0: ffff88803fb38528 (sb_writers#8){.+.+}-{0:0}, at: vfs_copy_file_range+0xa29/0x1430 fs/read_write.c:1569
+ #1: ffff88803559ce80 (&sb->s_type->i_mutex_key#17){+.+.}-{4:4}, at: inode_lock include/linux/fs.h:1027 [inline]
+ #1: ffff88803559ce80 (&sb->s_type->i_mutex_key#17){+.+.}-{4:4}, at: lock_two_nondirectories+0xe7/0x180 fs/inode.c:1275
+ #2: ffff88803559df40 (&sb->s_type->i_mutex_key#17/4){+.+.}-{4:4}, at: ocfs2_reflink_inodes_lock+0x11a/0xc20 fs/ocfs2/refcounttree.c:4772
+ #3: ffff88803559cad0 (&oi->ip_alloc_sem#2){++++}-{4:4}, at: ocfs2_remap_file_range+0x31e/0x700 fs/ocfs2/file.c:2778
+ #4: ffff88803559db90 (&oi->ip_alloc_sem/1){+.+.}-{4:4}, at: ocfs2_remap_file_range+0x342/0x700 fs/ocfs2/file.c:2780
+
+stack backtrace:
+CPU: 0 UID: 0 PID: 5619 Comm: syz-executor238 Not tainted syzkaller #0 PREEMPT_{RT,(full)} 
+Hardware name: Google Google Compute Engine/Google Compute Engine, BIOS Google 11/06/2026
+Call Trace:
+ <TASK>
+ dump_stack_lvl+0xe8/0x150 lib/dump_stack.c:120
+ print_circular_bug+0x2e2/0x300 kernel/locking/lockdep.c:2087
+ check_noncircular+0x12f/0x150 kernel/locking/lockdep.c:2219
+ check_prev_add kernel/locking/lockdep.c:3209 [inline]
+ check_prevs_add kernel/locking/lockdep.c:3328 [inline]
+ validate_chain kernel/locking/lockdep.c:3952 [inline]
+ __lock_acquire+0x164c/0x2de0 kernel/locking/lockdep.c:5288
+ lock_acquire+0x115/0x350 kernel/locking/lockdep.c:5942
+ percpu_down_read_internal include/linux/percpu-rwsem.h:53 [inline]
+ percpu_down_read_freezable include/linux/percpu-rwsem.h:83 [inline]
+ __sb_start_write include/linux/fs/super.h:19 [inline]
+ sb_start_intwrite include/linux/fs/super.h:177 [inline]
+ ocfs2_start_trans+0x2a7/0x700 fs/ocfs2/journal.c:377
+ ocfs2_duplicate_inline_data+0x16a/0x570 fs/ocfs2/refcounttree.c:3991
+ ocfs2_reflink_remap_blocks+0x4aa/0x1ab0 fs/ocfs2/refcounttree.c:4684
+ ocfs2_remap_file_range+0x457/0x700 fs/ocfs2/file.c:2788
+ vfs_copy_file_range+0xe39/0x1430 fs/read_write.c:1581
+ __do_sys_copy_file_range fs/read_write.c:1664 [inline]
+ __se_sys_copy_file_range+0x2fb/0x480 fs/read_write.c:1631
+ do_syscall_x64 arch/x86/entry/syscall_64.c:61 [inline]
+ do_syscall_64+0x16a/0x530 arch/x86/entry/syscall_64.c:89
+ entry_SYSCALL_64_after_hwframe+0x77/0x7f
+RIP: 0033:0x7fee8fd74a09
+Code: c0 79 93 eb d5 48 8d 7c 1d 00 eb 99 0f 1f 44 00 00 48 89 f8 48 89 f7 48 89 d6 48 89 ca 4d 89 c2 4d 89 c8 4c 8b 4c 24 08 0f 05 <48> 3d 01 f0 ff ff 73 01 c3 48 c7 c1 d8 ff ff ff f7 d8 64 89 01 48
+RSP: 002b:00007ffecd787a88 EFLAGS: 00000246 ORIG_RAX: 0000000000000146
+RAX: ffffffffffffffda RBX: 0000000000000000 RCX: 00007fee8fd74a09
+RDX: 0000000000000004 RSI: 0000200000004d40 RDI: 0000000000000005
+RBP: 0000000000000001 R08: fffffffffffffff8 R09: 0000000000000000
+R10: 0000000000000000 R11: 0000000000000246 R12: 00007ffecd787ac0
+R13: 0000000000000002 R14: 431bde82d7b634db R15: 00007fee8fdd404b
+ </TASK>
+
+
+---
+This report is generated by a bot. It may contain errors.
+See https://goo.gl/tpsmEJ for more information about syzbot.
+syzbot engineers can be reached at syzkaller@googlegroups.com.
+
+syzbot will keep track of this issue. See:
+https://goo.gl/tpsmEJ#status for how to communicate with syzbot.
+
+If the report is already addressed, let syzbot know by replying with:
+#syz fix: exact-commit-title
+
+If you want to overwrite report's subsystems, reply with:
+#syz set subsystems: new-subsystem
+(See the list of subsystem names on the web dashboard)
+
+If the report is a duplicate of another one, reply with:
+#syz dup: exact-subject-of-another-report
+
+If you want to undo deduplication, reply with:
+#syz undup
