@@ -1,95 +1,65 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=74.125.82.171
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=100.103.45.18
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794739623;
-	b=jHhBBDlbBjm6FTvO6zVxL6o6LqN8j6d4FjcDFG2XIEkz83L9mQKtzUSmp+Q/XAvDp/2J
-	 CQa0nQZ3KYufWkaQ1w8bqU095f6WtfZ4AfwRCTprmMwAl3rDYGOSElUGcrLBWlfGr38GZ
-	 boxh8hStYh+lrHgn3rwOnjZmnFvjGF6WEOfgVS+WjuUabITeUHLb9CMb3ScxrGjTKF/ss
-	 cWlhgnxBPhvee7+TT9D7EJY7rA/yX1cESMWeMM+h1jST2ldnorZ0rJz8rE5kuDLtziT/X
-	 DI7Z22S1zY4RICOQFURmWxXi3a7jE/qCATlAU2FU3ABIesSX9flTsV/Jy6pa8J7GCPQ==
+	t=1794743271;
+	b=BdK9H1y+HNRqD/jOpQfiJ8CK50RxEZMCjwgIS48DNkylfGZf+h7yYt+dLR/rohWShFPk
+	 wfY+Vi1XUiR4xQoz/9dl0reIiXKOG5wLW7gkB4jYbbvKAp0onbjRpWAq3h6DDbAxHfbTR
+	 5/PaQlaVaf7TtFwba6zsHiW9KlQbLjzo0EerdKKIi48ZFuJLc3WH+ltRAnMLBo+gAqRpL
+	 ov61lFfeKEVmTbros4bY5hLqTBfdHKhysZz363XUX2UJKA7MroJWDEdJE++rHrOfqDHYG
+	 NlZSY4qxT1OqOgEdTD541oNseZI8+FDCzpXM+gOKg5I+2qmGEiQp5Da0bFa+VHsozfA==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794739623;
-	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
-	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
-	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=rZeatOF2xnBGrPevhx5lyGz8NiH/abT6xKA3mZc4/us=;
-	b=RHdgQl7nbC3A52UGhF1WnVY3wLPVzSdm+M6spoWJYhrhnbbRhFQmESw9quApyPR/kpfW
-	 kMhcmFCSIY7uVnGxJ3+JUX28blvoy+4/OlWOn/FY6/MkXCl80mj9e8g8Wfs3uGuIeG+C6
-	 svlL/kYYEmi8E4OM1QcB9Zrub9jzK3rSKs+3YTczQMOEDO2r8bB/Gpg+9zJex17xp4h9y
-	 JkFnWCaG1JXhSm76+YqQ06CO7SA2Ei5LFgt/mAfbQA6+9JJ9sGaj017YjkcJelzfwWihR
-	 0KRH7tq7y31RzDtJgN9vcsPFfah1D1Jy9XV/C7f+dnrTHvpwFgTQeTFBX3ysNLzmtNA==
+	a=rsa-sha256; c=relaxed/relaxed; t=1794743271;
+	h=Received:DKIM-Signature:Date:From:To:Cc:Subject:Message-ID:
+	 References:MIME-Version:Content-Type:Content-Disposition:
+	 Content-Transfer-Encoding:In-Reply-To;
+	bh=dUUoDFkPJkBg6tiiX+gwUNqdlWB0vRGU4J1TlhHh7ZE=;
+	b=iuKSIOwNdjXAi2+nKsqu7pIfpzXuLtuj3wXCa1g9MN5BFnFnH+efqOzfUtJXvT2zUGGl
+	 V9IfHEzKQzynFa9Fuo1ssXUF+7C+Eoevg9R/uDVp3b207QzEgfuu6a4+z5JoRhmzh2QN0
+	 9vJY2NJZgqRfrAE94UuSb7lSNUhcz8q8wGqjWRw5n7k7BXCLYZBSkg22ZgvSiHJnnwpNY
+	 2bXzqhTqJYzU82V3hEswRLXZDMXOPwMPocN2bf1yYrFAEINhs1DN1LNIND4gakdX7BwOF
+	 /NBQXI11IeC+qk96wRGrOuIRB815lx2fweUabl5k2cTyNpurMwEGTlfjb0o79097iFQ==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=xmOnuSaH;
-	arc=none smtp.remote-ip=74.125.82.171
-Received: from mail-dy1-f171.google.com (mail-dy1-f171.google.com [74.125.82.171])
-	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
-	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
+	dkim=pass header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=O5UCROmp;
+	arc=none smtp.remote-ip=100.103.45.18
+Received: from smtp.kernel.org (quasi.space.kernel.org [100.103.45.18])
+	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
+	 key-exchange X25519 server-signature ECDSA (prime256v1))
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95168606A31E
-	for <ocfs2-devel@lists.linux.dev>; Sun, 15 Nov 2026 10:47:02 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 95168606A31E
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id E5C6D606A32E;
+	Sun, 15 Nov 2026 11:47:50 +0000 (UTC)
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=xmOnuSaH
-Received: by mail-dy1-f171.google.com with SMTP id 5a478bee46e88-36a315ed211so2419696eec.0
-        for <ocfs2-devel@lists.linux.dev>; Sun, 15 Nov 2026 02:47:02 -0800 (PST)
-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1794739622; x=1795344422; darn=lists.linux.dev;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=rZeatOF2xnBGrPevhx5lyGz8NiH/abT6xKA3mZc4/us=;
-        b=xmOnuSaHUFpYIk8QzJqVbscAqSIBM4KucaV8YDfYLqqI6/wEBa6K7r81k5fRoRMYCK
-         HVOgkFHlfqen8aKnxKyMFi3nK1GWf1evyXNuTFUN7jxzGoeTGZgbCLABQmnMHWGQcnYE
-         kiijEAGk9/tSG0g9wOcxxcR0O0xzxg/lsjrXQ1YPz/OxJ+MW3QNwAjUh9XaTjFCt24ru
-         WVLT3NuXQ1Z0OiKSyQpqjCDSbHdE78p/xNrw85DD0UttDWz+sEpSjPkrEjZ6+KrQsI7g
-         +DWPvrr03FZVmz9DWvuYBYmId30YkrpirlZYZMILLQWmrZKn498mEWqYaEa5W7uHC48z
-         yRaA==
-X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794739622; x=1795344422;
-        h=content-transfer-encoding:mime-version:message-id:date:subject:cc
-         :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
-         :message-id:reply-to:content-type;
-        bh=rZeatOF2xnBGrPevhx5lyGz8NiH/abT6xKA3mZc4/us=;
-        b=LksLcKDdZMtYYmuJH9TZr8bsi0h48bG0hHfprIPOUwJDbswUfnuVcmDKCRrX6IwEDE
-         JtPing7uj62xzEJRnKaPZp+CvqIRSsI7hBLGq9nWGfsSntc/D7+LTj95UoyUSmS70ELA
-         eBJyvti6E3vMPHGy5dMY6ovjcZFdU3i4QSTwCmytkZuO+3gUt0crQhQ9fOVDvGXguRFs
-         9zo9+x57qY1qfrd0f4dbla7jYoCnLJVJv+JFaCmtJzGvtSzYQ1+dedA9Tn5J9crfjylf
-         k2YXDmYq/LgY99RJobqTRKzvCBV62Y1etmbko50yym9rC4FHW6SykSQ29+HUB+G8D92f
-         IL9w==
-X-Forwarded-Encrypted: i=1; AL+hErHizzSMBQERHBQRYGySVxm3C213SqTo7LMeRr0Uvuf1pYWGu57OntazTfDLG8bhA/75uGgYn1krcAiPnA==@lists.linux.dev
-X-Gm-Message-State: APuU4Z/YLd5OWBHhDz/M8JIPRfXYX8J8c8ekyaUh4N/7iuB5kgADbm84
-	we0vZIiq8x2L9xkj+6aTIsfTFRacnvVxwouiyZAV+LOdV6Gz2XFKbfUS
-X-Gm-Gg: AYBFou1fweWbyoOCk3XWdQ0wTYTto9qaycC84sHuBKW2Vt1gGHhAWBVdB1RgCLM3W2a
-	56AWkDi06LCpH9wcVXUCPvSf6Gv720ItcbNRife7KEHnhyGCkNNc7NJZ7AHFAl20pi4yJVfewuF
-	0GkMxsey47jVo7vInzY9fQd5LTD2QmQ21WIEwDPFd5JOpapB0MRftnB+yafSP1+aJ/cvn44hQOq
-	woFVGHN/eflT0AQ4qDrt26YSAj5z17TIdfjgYS5g6lbI3oh2CjVPzxqL9VND2zXMFaaBTCqPluV
-	0VoMfKdfkl9QyeXTt05Gd37+7qbCqh3mRGcPuQ3vFl73zUisaOp9J8QmqDDy7V+Z11ysWu/uB12
-	HeKg4lq7O1R8JoL7u2eimX8Wk0eTmxRxW2c49VrAUluYYPD+bHgCFQCHKFkIEiWfyTx73N/KSTW
-	+kvuActYQXPJ/xS8sOj8ZEsCg/OWshUk7P5oPvF9uR5L5ump96iu3BZfJb50QIbeynZCCu2uzAa
-	rIOIyEcdSb7KHJzz1gy2E1Xea0k275x2wsiH4EOfyZE86a3Ucp9ZoO/U5G8B14JarD05wlXhkh8
-	5+6s5XDDhXCLMxnDBG+5tdtHbpx7CBFq1y+c6RaWYuE51CQwiA==
-X-Received: by 2002:a05:693c:87d4:10b0:371:197b:5ade with SMTP id 5a478bee46e88-377e1016802mr10069978eec.11.1794739621412;
-        Sun, 15 Nov 2026 02:47:01 -0800 (PST)
-Received: from thangnn-ASUS.. ([2a09:bac5:d45c:e6::17:34a])
-        by smtp.gmail.com with ESMTPSA id 5a478bee46e88-379559189e8sm24543858eec.11.2026.11.15.02.46.58
-        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
-        Sun, 15 Nov 2026 02:47:00 -0800 (PST)
-From: Nguyen Ngoc Thang <ngocthang2710.1999@gmail.com>
-To: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Joseph Qi <joseph.qi@linux.alibaba.com>
-Cc: Heming Zhao <heming.zhao@suse.com>,
-	Andrew Morton <akpm@linux-foundation.org>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	syzbot+3f66416993279938e957@syzkaller.appspotmail.com
-Subject: [PATCH] ocfs2: don't reuse SINGLE_DEPTH_NESTING for unpublished inode ip_alloc_sem
-Date: Sun, 15 Nov 2026 17:46:56 +0700
-Message-ID: <20261115104656.210945-1-ngocthang2710.1999@gmail.com>
-X-Mailer: git-send-email 2.43.0
+	dkim=pass (2048-bit key) header.d=kernel.org header.i=@kernel.org header.a=rsa-sha256 header.s=k20260515 header.b=O5UCROmp
+Received: by smtp.kernel.org (Postfix) with ESMTPSA id 0FF671F000C4;
+	Sun, 15 Nov 2026 11:47:43 +0000 (UTC)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=kernel.org;
+	s=k20260515; t=1794743270;
+	bh=dUUoDFkPJkBg6tiiX+gwUNqdlWB0vRGU4J1TlhHh7ZE=;
+	h=Date:From:To:Cc:Subject:References:In-Reply-To;
+	b=O5UCROmpYOxPof//EVMXlzhE8CwpBAuLxySuhjVJTwgdWIcUjDEHfxQDjag+uTRua
+	 Z+qDIjnj4mqHBNrUw8Ko1zjkZMcqAeFq8ldvZlzCVbByFB+ptCuml13g6R68XiAcOc
+	 tTmUPUcRTu4mDvyiHtXFi/q4pZoMhhtkVDTdv1WqLRxEzoDBelkcsk5jYXJt2EAUob
+	 xjg6qsjtw4gR2WGGuYhHVN3Y9VjEoACQTHM3FtneMm5yNVilA99bE1xWageT1rHDiS
+	 UNAqlNNFNjgatsQNOofsxEUu3m18tcJw6JldfrHIojxyBAVmlXl979klg5KOmmNJfI
+	 Ivyq26TJMKVYg==
+Date: Sun, 15 Nov 2026 12:47:41 +0100
+From: Christian Brauner <brauner@kernel.org>
+To: Amir Goldstein <amir73il@gmail.com>
+Cc: Chris Down <chris@chrisdown.name>, linux-fsdevel@vger.kernel.org, 
+	Jann Horn <jannh@google.com>, Chris Mason <mason@kernel.org>, 
+	Josef Bacik <josef@toxicpanda.com>, Christoph Hellwig <hch@lst.de>, linux-block@vger.kernel.org, 
+	linux-kernel@vger.kernel.org, linux-nvme@lists.infradead.org, 
+	Alexander Viro <viro@zeniv.linux.org.uk>, Jan Kara <jack@suse.cz>, linux-scsi@vger.kernel.org, 
+	target-devel@vger.kernel.org, driver-core@lists.linux.dev, linux-mm@kvack.org, 
+	bpf@vger.kernel.org, linux-security-module@vger.kernel.org, selinux@vger.kernel.org, 
+	apparmor@lists.ubuntu.com, linux-nfs@vger.kernel.org, netdev@vger.kernel.org, 
+	fuse-devel@lists.linux.dev, linux-efi@vger.kernel.org, xen-devel@lists.xenproject.org, 
+	ocfs2-devel@lists.linux.dev, linux-s390@vger.kernel.org, linuxppc-dev@lists.ozlabs.org, 
+	linux-usb@vger.kernel.org, linux-erofs@lists.ozlabs.org, linux-kselftest@vger.kernel.org
+Subject: Re: [PATCH RFC v2 33/42] fs: add file_check_backing()
+Message-ID: <20261115-boxen-mundschutz-jacht-0ab871beca58@brauner>
+References: <20261114-work-loop-pseudo-v2-0-98639a2286fb@kernel.org>
+ <20261114-work-loop-pseudo-v2-33-98639a2286fb@kernel.org>
+ <20261114120557.4bc1eb6e57218cdc@chrisdown.name>
+ <CAOQ4uxhGxpBtMZ5kfuzR1tQAewiecoX7UjXQRo91QjJHH9T_Yw@mail.gmail.com>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -99,60 +69,70 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+Content-Disposition: inline
 Content-Transfer-Encoding: 8bit
+In-Reply-To: <CAOQ4uxhGxpBtMZ5kfuzR1tQAewiecoX7UjXQRo91QjJHH9T_Yw@mail.gmail.com>
 
-Commit c204bf5ac3ee ("ocfs2: fix deadlock in inline-data truncate
-transactions") made ocfs2_xattr_set_handle() take ip_alloc_sem of a
-not-yet-published inode inside the create transaction, under subclass
-OCFS2_IP_ALLOC_SEM_UNPUBLISHED = 1, so lockdep records:
+On Sun, Nov 15, 2026 at 12:19:57AM +0100, Amir Goldstein wrote:
+> On Sat, Nov 14, 2026 at 9:06 PM Chris Down <chris@chrisdown.name> wrote:
+> >
+> > Hi Christian,
+> >
+> > Christian Brauner writes:
+> > >+      /* Look through stacking filesystems at the inode with the data. */
+> > >+      if (d_real_inode(file->f_path.dentry)->i_sb->s_iflags & SB_I_PSEUDO)
+> > >+              return -EINVAL;
+> >
+> > This looks good in general, but what the bots said about O_PATH files
+> > here is real. With FMODE_PATH this is reached for a file that was never
+> > opened, so on overlayfs nothing has been through ovl_open() to look up
+> > the lowerdata of a metacopy file yet. ovl_d_real() then does the lookup
+> > itself, and when that fails it hits the WARN(1) at its end and returns
+> > the overlayfs dentry, so the check passes as well.
+> >
+> > Only fuse passes FMODE_PATH, so it takes CAP_SYS_ADMIN to get there, but
+> > it's easy to trigger with that. From a quick test with a metacopy file
+> > whose redirect into a data-only layer points at nothing, registering an
+> > O_PATH fd of it with FUSE_DEV_IOC_BACKING_OPEN gives
+> >
+> >      ovl_d_real(/f, 0): real dentry not found
+> >      WARNING: fs/overlayfs/super.c:79 at ovl_d_real+0xc9/0x210
+> >      [...]
+> >       file_check_backing+0x308/0x5e0
+> >       fuse_backing_new+0x219/0x4a0
+> >       fuse_backing_open+0xe8/0x390
+> >       fuse_dev_ioctl+0x53a/0x7d0
+> >
+> > and the ioctl still succeeds. A normal open of that file fails with
+> > ENOENT, so nothing could have used it as a backing file anyway, but with
+> > panic_on_warn this is now a panic.
+> >
+> > Maybe ovl_d_real() should just stop warning when the lookup fails, now
+> > that it has a caller that isn't trace_uprobe?
+> 
+> Yeh I guess that this needs to be a Fixes for lazy data lookup.
 
-  sb_internal -> j_trans_barrier -> ip_alloc_sem/1
+I have a fix for that.
 
-But subclass 1 is SINGLE_DEPTH_NESTING, which ocfs2_remap_file_range()
-already uses for the destination inode, and the remap then starts a
-transaction in ocfs2_duplicate_inline_data():
+> The correct fix would be to teach all the callers to deal with an error.
 
-  ip_alloc_sem/1 -> sb_internal
+I've also implemented that. It wasn't that hard and it's also a bug. Not
+a bad one but still.
 
-Lockdep merges the two and reports a circular dependency.  It cannot
-deadlock, since the unpublished inode is unreachable by anyone else,
-but the warning hides real reports.
+> > The check would still pass
+> > for an O_PATH file whose lowerdata couldn't be looked up at that point,
+> > though.
+> 
+> One observation relevant to this patch set is that a datadir layer has no
+> business being a pseudo fs and that can and should be blocked explicitly
+> at overlayfs mount time.
 
-Give the unpublished subclass its own value past SINGLE_DEPTH_NESTING.
+I agree.
 
-Fixes: c204bf5ac3ee ("ocfs2: fix deadlock in inline-data truncate transactions")
-Reported-by: syzbot+3f66416993279938e957@syzkaller.appspotmail.com
-Closes: https://syzkaller.appspot.com/bug?extid=3f66416993279938e957
-Signed-off-by: Nguyen Ngoc Thang <ngocthang2710.1999@gmail.com>
----
-Tested in QEMU (x86_64, syzbot config with lockdep) using the syzbot C
-reproducer on top of 23c62304dde2:
-  - before: "possible circular locking dependency" after ~8s
-  - after:  no lockdep report in 3 x 180s runs, debug_locks stays 1;
-            /proc/lockdep shows both ip_alloc_sem/2 (create) and
-            ip_alloc_sem/1 (remap) exercised.
+> The other observation is that fuse_passthrough_open() should probably
+> check the backing_file that was opened for io in addition to checking
+> in fuse_backing_open(), which could have different FMODE and specifically
+> could be FMODE_PATH.
 
- fs/ocfs2/xattr.c | 5 +++--
- 1 file changed, 3 insertions(+), 2 deletions(-)
-
-diff --git a/fs/ocfs2/xattr.c b/fs/ocfs2/xattr.c
-index 71e5986bafaa..9f2d5797e4d6 100644
---- a/fs/ocfs2/xattr.c
-+++ b/fs/ocfs2/xattr.c
-@@ -3867,10 +3867,11 @@ static int __ocfs2_xattr_set_handle(struct inode *inode,
-  * ip_alloc_sem there adds a transaction -> ip_alloc_sem order that would
-  * form a lockdep cycle with the ip_alloc_sem -> transaction order used
-  * elsewhere, if not for this separate subclass.  The inode is unpublished
-- * so the acquisition can never contend.
-+ * so the acquisition can never contend.  It must not collide with the
-+ * SINGLE_DEPTH_NESTING subclass ocfs2_remap_file_range() uses.
-  */
- enum {
--	OCFS2_IP_ALLOC_SEM_UNPUBLISHED = 1,
-+	OCFS2_IP_ALLOC_SEM_UNPUBLISHED = SINGLE_DEPTH_NESTING + 1,
- };
- 
- /*
--- 
-2.43.0
-
+Sounds good.
