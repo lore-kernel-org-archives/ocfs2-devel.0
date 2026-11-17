@@ -1,96 +1,94 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.221.46
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=209.85.218.42
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1794927522;
-	b=CqjQ3lnvnhRciUaWzwBPmylZgHm1PuTMkNYdrH1oMwtvsr2tqmdafxk20hxTQQn8LcuJ
-	 GMqMJD74s3gCxJP6FmWw/YoEMgEhIWMm84A4HFHpYQ5UxRWfdztvocXooCz9eyKRZeJUW
-	 j0UTNdoOvrjUBtSZSbfikSOCyrKKI4YUTZRxRwQ4ZKigc1DG1Spfr/wOFoY0MSBOjm8sN
-	 QB4RHbNFIK9GCUslIfjq1IjebtakWmx1WsOOSCwDxaNNqwlHM7S66eYsfXzQxwbs7spg8
-	 ovcalpp0bwQkqLb3YPB3SvTXOZviMc16NFDU0Zo8PtDuq8lybp9UPb+goThlUgYs/lQ==
+	t=1794927666;
+	b=lOeImLDCGdZ2ml9cdLqQ0HHw9OxXo9KqUrPBzsEFGqFw9Ve66UYKYx8YUW8mQnnc/PRs
+	 duF6Q8u69SBpUxs3zLJs66ecNHefG787ka7w8zLLixZGD/eXg7xTJc8n36DUGeLNo8bV4
+	 7arXTQQ7khe67VT52r6sqmZ/fJ3dM+qx3tCmEkqmgVQePUOoKRCUBpFwfvBiPg9NjNifD
+	 4WnDb1AQ2kBIZWn3SGVbJ2NK41anhlKGzW8TPbMnmuSnFExIRD4gE8hyaur1TsMPQqTn+
+	 1ZwOJRr2W7utM1dDvxm/jTSJiJWKDNugPqASzWC1RXgz6HtDH7eSSEu/J6PdE3WCKgw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1794927522;
+	a=rsa-sha256; c=relaxed/relaxed; t=1794927666;
 	h=DMARC-Filter:Received:DKIM-Signature:X-Google-DKIM-Signature:
 	 X-Forwarded-Encrypted:X-Gm-Message-State:X-Gm-Gg:X-Received:Received:
 	 From:To:Cc:Subject:Date:Message-ID:X-Mailer:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=j8h+fbCcAHktdAk9o4fEVE0qSmIF6dWv8V2qc2pMyUY=;
-	b=LOxl31JCuG8NPhpMkdkZ01I95ucq97dMOkJeekdKLEqgFMAjQnGXx65Ng6B6Izw9C07X
-	 oacDnu9GQv1S5l+DLztZqjqV1zNSpN5so1SYkUjYuA8bLe70lacFkUP+3jtwGedKqsCwm
-	 WNbR8X8PLwCmONCc1dvTps77IsqQt+zTQCbKNa/q/Pj64svHBjaa4mHg9UH5X/bxx3Qnv
-	 saM2g4VDGvToJPqTkbev7gt84BGsvlx0NZdFAnQ1Q2+RM/TyI8kcaJmIUlKLg6hhI07LM
-	 jLI8jUCY+Cb2hvxYe2AjCJg+zXBF+8Cej8M/aETaDWdEcZt3vEE5IlNBBp/gz/9pFqg==
+	bh=xI3AfZOEgNPU8zapOEdxP2eG9d0gL1f+DDTmnD/NVrU=;
+	b=Ih8eMRzKygzP6WADtTeHOm3jmivuXSFV1KAVpXsk5LtbbWUknT5ey2cLf9jE8KBT7E7z
+	 OB6RIu7s1f5e4gZ/TCz39jMAK2BoZt9AunQCeuWfeJ3By9UuuvYPJ96CsUQYk/GVVC0lt
+	 CrNHWco982YMdMU4zOcbNsuzlPyB6/bgmNFvKjqbCd0i3phVIdl01Vv1bUqbDy5Gr59V+
+	 mzWK2d45BMTGircdMHuHGWeXentemtmRcWx10Ke9whkup5HhjXErzbz4OSD2Pdvv6ijEx
+	 +g+6qII13gwrZqCmbyxfXUviJ8PLs1e8vDpD+hXVhRhpnmnJ6of7isWU7LXEjjzkTNA==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
-	dmarc=pass header.from=gmail.com;
-	spf=pass smtp.mailfrom=gmail.com;
-	dkim=pass header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=tkAjMR1D;
-	arc=none smtp.remote-ip=209.85.221.46
-Received: from mail-wr1-f46.google.com (mail-wr1-f46.google.com [209.85.221.46])
+	dmarc=pass header.from=suse.com;
+	spf=pass smtp.mailfrom=suse.com;
+	dkim=pass header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b="ZcYly4z/";
+	arc=none smtp.remote-ip=209.85.218.42
+Received: from mail-ej1-f42.google.com (mail-ej1-f42.google.com [209.85.218.42])
 	(using TLSv1.3 with cipher TLS_AES_128_GCM_SHA256 (128/128 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 95D50606A32C
-	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Nov 2026 14:58:41 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 95D50606A32C
-Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=gmail.com
-Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=gmail.com
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0EBA3606A32A
+	for <ocfs2-devel@lists.linux.dev>; Tue, 17 Nov 2026 15:01:04 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0EBA3606A32A
+Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=quarantine dis=none) header.from=suse.com
+Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=suse.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (2048-bit key) header.d=gmail.com header.i=@gmail.com header.a=rsa-sha256 header.s=20260707 header.b=tkAjMR1D
-Received: by mail-wr1-f46.google.com with SMTP id ffacd0b85a97d-49a92144733so1976069f8f.0
-        for <ocfs2-devel@lists.linux.dev>; Tue, 17 Nov 2026 06:58:41 -0800 (PST)
+	dkim=pass (2048-bit key) header.d=suse.com header.i=@suse.com header.a=rsa-sha256 header.s=google header.b=ZcYly4z/
+Received: by mail-ej1-f42.google.com with SMTP id a640c23a62f3a-c50537f731eso56085666b.1
+        for <ocfs2-devel@lists.linux.dev>; Tue, 17 Nov 2026 07:01:04 -0800 (PST)
 DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=gmail.com; s=20260707; t=1794927520; x=1795532320; darn=lists.linux.dev;
+        d=suse.com; s=google; t=1794927663; x=1795532463; darn=lists.linux.dev;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:from:to:cc:subject:date:message-id:reply-to:content-type;
-        bh=j8h+fbCcAHktdAk9o4fEVE0qSmIF6dWv8V2qc2pMyUY=;
-        b=tkAjMR1DDB+bF5iZbPURo1gZ/ZZOSZnPSsKnSuqf1svVl3uxILP/pKPJ1DD2ol/8v2
-         77J+f1U4rnEYETpYX15/UBfTkOxgog7Wip+5UJifim13oiZHrn/vDuhyaE6nrHLOKg3D
-         lVRkhVIsfANTdyN0RsDAohnK9Xwvw9F/t4YusfqykJ0+tA8uDYqjr+BL5SxArG9Rvyll
-         gOPsdFe0EIsYpN+hrV+oC6qiUZUzKEucCL2L0DBDEepjk/rRbMLh/G5tjKcCd4dRYUlm
-         HFX3fnKT/RLMhmYeqoALjP9v7rP8D/mczRyWeJnxuGkBpRcFPU7/yf8TadPqvIlPlEFC
-         iaWg==
+        bh=xI3AfZOEgNPU8zapOEdxP2eG9d0gL1f+DDTmnD/NVrU=;
+        b=ZcYly4z/XgQ9ZHTqbJ2t71nUAl2GvJTqDrgOEUdludC2KlVpfCSMK0XM4ZN6qAtRmY
+         zkLh8LJwDqYNJedULfdOvcXN4//41ncomqAXgKke1c4W/AARqY1qFgG5zGJdloxKpsgL
+         6XXAZBzIxZHo0u9CsZbiRRedBpcsFmiXUbIRIQwZFXiDjd2uE2ZYlmTyE8pwuiui3r7i
+         nmc7oXD1W8Za6oIBOHHpOQBLb3G3jyM6Owt5Mzr0zjA5cyrLnHgVMss42apGGxLPKIh0
+         YeXCXIsVMr7oxp8H1r8XgvuW/R11L8WFfkcySZb7Ljz4SWHE21P52wv0uhed8HhS4Dqt
+         YI8Q==
 X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
-        d=1e100.net; s=20260707; t=1794927520; x=1795532320;
+        d=1e100.net; s=20260707; t=1794927663; x=1795532463;
         h=content-transfer-encoding:mime-version:message-id:date:subject:cc
          :to:from:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
          :message-id:reply-to:content-type;
-        bh=j8h+fbCcAHktdAk9o4fEVE0qSmIF6dWv8V2qc2pMyUY=;
-        b=GCqVfoULF2VMeA1S4yChkq0+ggd0hTWfb9z3IvES3ujKKlC6gNEr8OaPBtqQum/25i
-         AAPChehZh7oxdvZg8e0p3negzqkbes91KnIvLiH1lpE9BkjAjcMFumYHF9/JqWHDGFga
-         UQHD9ZDKxkzmTXnztb2J3TElsMuAuZpwCegD/NICoZDjZ/UNmI/hwmIFgSraTfcaiBTI
-         znMz40kKzJrWqemnoskLF0WR9wPrjJQqIoTQsWXFh7rCQg0DDiWGf+32cSydb5HOpxyV
-         bR3JwI6+QDiL8PZt+sYAak/OxE3BtrGCLKrTa08Qnz2Pxo/QatnMDsirRQpRNa9Srg8/
-         CHDA==
-X-Forwarded-Encrypted: i=1; AL+hErGu879aLPSVrgKsSUMj7988I953BD9Lv0zolDPBZGC+6GvHbPTU46nZ8nGF2ip290ESm9VX1uvl3oToFw==@lists.linux.dev
-X-Gm-Message-State: APuU4Z8p5jG89qkHh3l8YRJS0LwcmFXyki7d7qA/WlGuJrJBnHKElLGM
-	a1n67HwWXku78a/9eu52mQD1RjRJjEWDVgSvwJTpesRvGtL4iD6cxNEO
-X-Gm-Gg: AZFdTZfbr7obAjOu5iKkkD5Xn4Cl1kznu5AIQxghw+P0r8bnVfHcU9XdCMXG/67qZ56
-	52e+0aM0nhQkeMdjFMhGMdac9NUXYok520Wu2W4iG02KcRI7sAckGaKvhf0zKXc3FCtW/p+hPk7
-	sMsVVuL8hZc8OBH/jBbEYe/I7B2Ib0t9vZXcWhrDzm2rbwsth4kZLB7TrI/oB6JhK+4kURB5AJ+
-	3Gz+r3+Zv+6i09yFYew30prWdrseN7oRApAtTI+Fr6E5Bi8YJzWVlarH0OryZqUY+do+ecRc8WO
-	hkz6xb/trTaDfax75GyE7/yejvXvSM9eorx7SPFPBXi/ltFfgbKC+loUrJnvDZ9y6arEFq9CX+8
-	QKfTtbl/X6QLcwBAacsxjVuxuZdDshGZ3026uHNV75Bf42QDfbuzUyC1f0dIH8RrvmF7U+iHMJQ
-	LvN7a9rw1FitIwMFQwtr4/adukns4cDhN6ZRNscVyCj8wfBjHvfoESy07y21K5eQ8e/UKa2E695
-	1YfYsWFzosXWr2xFytP5aZ+0EXyR7rH86tK5l/AHSRNARahYXCBGPrEDnFderMur9WXiwxU8CVe
-	IoWJN+85+7QDvsi0p8R/ZUmGjDBmkKT9hg567KN/iuVK1oRxJrDKATsRLnqCO07DGSBEt2pv4sc
-	pywsoaIdKZNfllJQ7nqwqY714HsUAtRIFR6aUV1ktFg==
-X-Received: by 2002:a05:6000:310a:b0:48d:ef7a:e59f with SMTP id ffacd0b85a97d-49c712ac8d6mr31599361f8f.17.1794927519691;
-        Tue, 17 Nov 2026 06:58:39 -0800 (PST)
-Received: from localhost.localdomain (cl-hedp4-wifi-nat.herts.ac.uk. [147.197.250.34])
-        by smtp.gmail.com with ESMTPSA id ffacd0b85a97d-49c604ee47dsm28996090f8f.38.2026.11.17.06.58.38
-        (version=TLS1_3 cipher=TLS_CHACHA20_POLY1305_SHA256 bits=256/256);
-        Tue, 17 Nov 2026 06:58:39 -0800 (PST)
-From: Zhiyuan Zhang <zhiyuanzhang912@gmail.com>
-To: Joseph Qi <joseph.qi@linux.alibaba.com>,
-	Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Cc: Andrew Morton <akpm@linux-foundation.org>,
+        bh=xI3AfZOEgNPU8zapOEdxP2eG9d0gL1f+DDTmnD/NVrU=;
+        b=cRWIKGMWp8TCL4YGrNdqi0gEslRe6pvWFmE1l7TXmlPuOUSBMrwKxLsENqdmiSsRVY
+         Ed0x4UIr+6zEkzBb+1aKa79sCSzXgbpaHSJNxQItOChuQ7j2kKDoDTd842ijLf4dF8bN
+         Wh8Y31Fbhleb/S7UtlkmuXy9H1snxt5hjyCqpZ6BD9Jmc6xvJLDMeVRlPhkYYPqdObmZ
+         1raWRNTilmGpqf4vlqsBHN8t/sM1/ey27WM6Mx07Zpqe1IJsIWaJ8WHGgTczIvCfNQJ0
+         hcNY40Amn+eqYcBcYk6BQ5qAEAvjk2zp8vsBoqQci39HzzQq3srlahqg6AX1NzhxT9Cl
+         b0QQ==
+X-Forwarded-Encrypted: i=1; AL+hErG+Nr37YNOMn9rGFdl1Cr/17RGiDIY8DIbEmA49xCSAdfVWkAcWL5zzozOK23fhcKz43GhimKKe+a3mog==@lists.linux.dev
+X-Gm-Message-State: APuU4Z8ApzhEcbmR7l3AZCZfeQACi49sI1696SpFkfKwRzHkvEcu3+rE
+	vWgIU9iCXi6ToOqkRkxBUA8bkF9zsETUiYqmn3bV5JkW1kc7GNh0P9Mbt75uAKshMAY=
+X-Gm-Gg: AYBFou3VC2aXXtxt73+RR/v78HrDSK+Ht6BlyFR9qbWWxZhoyePO3/LMV0Ju5LO1LGA
+	WOEg7gyYj9PB1iWztyaQ6wDwJ4AFgXfgJc5z2jDMHHrsMeOQqkTm5h53rFGGtR8Zp2TdhRRGsqM
+	huwBCWD4IVlDciRWf4i6fSf+XJi72v1+lBHJRrxlEUtv6mslvfwxrufBx8ZWZ0GhlHEkfuEFe+1
+	0cGTdaTl8N8a40PN/Pevigb/rVBJuhrKGy/zheqxfLXMY/t5zZThzd0Lgad5pDsMcgSAS4lfcWX
+	DfbA2FlbQUVm/uifUQPNGolRb5lw+YDuoMbDClfXK/dY+KKtOk2uhFHrecTbiwI4NhglCbTRLSR
+	p9c9MYL0kz2nGREUy/wuO03gw9Gfwelfia0lX7nBGxaI7kn0QxiSyqKEqT9afZQ0c+9kRFvcZ5W
+	LACITT+NUE+lX4kXqtmjp7h+1Vrr8gy9He9fQKVgD+g+TTZo4x/Oic064iqncbO/3Zyx07nqG/O
+	JjO90ko+Bcw8XgjpcpuwRKoO7gHFCfcQ6B4Wa07xvtL/QMcg5yNSqRbOHeaYnlew9a0yzfDych1
+	gJ5wbw7pMO07SaEtT03eQZo4dJCJ5ry/qrsxcojB1nE=
+X-Received: by 2002:a17:906:130b:b0:c32:8cbb:fac with SMTP id a640c23a62f3a-c509630ec16mr1209113366b.3.1794927663112;
+        Tue, 17 Nov 2026 07:01:03 -0800 (PST)
+Received: from localhost.localdomain ([202.127.77.110])
+        by smtp.gmail.com with ESMTPSA id a92af1059eb24-1b50309b2b5sm35904028c88.1.2026.11.17.07.00.59
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 17 Nov 2026 07:01:01 -0800 (PST)
+From: Heming Zhao <heming.zhao@suse.com>
+To: joseph.qi@linux.alibaba.com,
+	mark@fasheh.com,
+	jlbec@evilplan.org,
+	hch@lst.de
+Cc: Heming Zhao <heming.zhao@suse.com>,
 	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org,
-	Zhiyuan Zhang <zhiyuanzhang912@gmail.com>
-Subject: [PATCH] ocfs2: fix local_alloc_bh leak in ocfs2_shutdown_local_alloc()
-Date: Tue, 17 Nov 2026 14:58:30 +0000
-Message-ID: <20261117145830.59864-1-zhiyuanzhang912@gmail.com>
-X-Mailer: git-send-email 2.50.1
+	linux-kernel@vger.kernel.org
+Subject: [RFC PATCH v7 0/3] migrate ocfs2 DIO from buffer_head to iomap
+Date: Tue, 17 Nov 2026 23:00:49 +0800
+Message-ID: <20261117150053.18417-1-heming.zhao@suse.com>
+X-Mailer: git-send-email 2.55.0
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -102,88 +100,99 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-From: Zhiyuan Zhang <zhiyuanzhang912@gmail.com>
+This patch set migrates ocfs2 Direct I/O (DIO) from buffer_head mode
+to iomap mode. And the code base is commit aebb72744764 (v7.4-rc3),
+and also merge Joseph's code and ideas from [1]:
 
-ocfs2_shutdown_local_alloc() owns the buffer_head reference stored in
-osb->local_alloc_bh, but only its success path drops it: after clearing
-and journalling the local alloc inode it calls brelse() and clears the
-pointer.  Every error exit after the local allocator has been enabled
-returns with the reference still held:
+V7 changelog:
 
-  - failure to look up the local alloc or global bitmap system inode
-  - ocfs2_inode_lock() failure on the global bitmap
-  - ocfs2_start_trans() failure, e.g. on an aborted journal
-  - kmemdup() of the local alloc dinode returning NULL
-  - ocfs2_journal_access_di() failure
+Address sashiko's review comments. Main changes:
 
-Nothing else releases it, so the buffer_head and its page stay pinned
-after the unmount.
+1. Adopt the latest iomap API and remove the iomap_ops structure.
+2. Add a retry mechanism in ocfs2_dio_wr_map_blocks() to fix a data loss
+   bug. Multiple concurrent writes are serialized by i_rwsem at submission
+   time but completed asynchronously by ocfs2_dio_end_io(). When the
+   unwritten extent conversion fails and finishes first, other threads'
+   submissions would lose data but still return success.
+3. Fix DIO alignment issues.
+4. Fix several edge-case handling problems in the DIO write path.
 
-Drop the reference at the common out: label and clear the pointer
-there.  The success path has already set osb->local_alloc_bh to NULL
-before it reaches out:, so nothing is released twice.  The reservation
-path is not affected: it takes its own reference with get_bh() and
-drops it in ocfs2_free_ac_resource().  Also mark the local allocator
-unused when the buffer is dropped, so that a NULL local_alloc_bh is
-never left behind with the allocator still marked as in use.
+[1]:
+https://gitee.com/anolis/storage-cloud-kernel/commit/ea3fe75e2060118ba093e90b1cd34fa382914b29
 
-Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-Assisted-by: Claude:claude-fable-5-2
-Signed-off-by: Zhiyuan Zhang <zhiyuanzhang912@gmail.com>
----
+[2]:
+https://sashiko.dev/#/patchset/20261103135605.22943-1-heming.zhao%40suse.com
 
-Notes:
-    Testing: QEMU (x86_64), local mount on a loop device, kernel built with
-    KASAN, PROVE_LOCKING, DEBUG_ATOMIC_SLEEP, DEBUG_VM and DEBUG_LIST.  A
-    test-only pr_info() printed the pfn and b_count of local_alloc_bh on
-    entry and exit of ocfs2_shutdown_local_alloc(), and the page was looked
-    up in /proc/kpageflags after umount, losetup -d and drop_caches.
-    
-    All six error exits were exercised, twice per boot, two boots per
-    kernel.  The ocfs2_start_trans() failure is the real one: the loop
-    device is shrunk under the mounted filesystem so that jbd2 aborts the
-    journal.  The other five were forced with a test-only knob.
-    
-     - Unpatched, 24 of 24: the function returns with b_count still 1, and
-       the page is still allocated at the end of the run.
-     - Patched, 24 of 24: the reference is dropped and the page is free.
-     - A clean unmount frees the page on both kernels (8 of 8).
-     - No KASAN, lockdep or other warnings on either kernel.
-    
-    The leak is one page per failed shutdown.  kmemleak does not report it,
-    and neither Buffers in /proc/meminfo nor the buffer_head slab count
-    shows it.
-    
-    AI assistants were used to find the leak, to write the patch and the
-    changelog, and to run the tests above.
+v1 patch set:
+https://lore.kernel.org/ocfs2-devel/20260724052559.15409-1-heming.zhao@suse.com/
+v2 patch set:
+https://lore.kernel.org/ocfs2-devel/20260727061802.18485-1-heming.zhao@suse.com/
+v3 patch set:
+https://lore.kernel.org/ocfs2-devel/20261018143319.22329-1-heming.zhao@suse.com/
+v3 sashiko review:
+https://sashiko.dev/#/patchset/20261018143319.22329-1-heming.zhao%40suse.com
+v4 patch set:
+https://lore.kernel.org/ocfs2-devel/20261103135605.22943-1-heming.zhao@suse.com/
+v4 sashiko review:
+https://sashiko.dev/#/patchset/20261103135605.22943-1-heming.zhao%40suse.com
+v5 patch set:
+https://lore.kernel.org/ocfs2-devel/20261105071930.16399-1-heming.zhao@suse.com/
+v5 sashiko review:
+https://sashiko.dev/#/patchset/20261105071930.16399-1-heming.zhao%40suse.com
+v6 patch set:
+https://lore.kernel.org/ocfs2-devel/20261115154013.9379-1-heming.zhao@suse.com/
+v6 sashiko review:
+https://sashiko.dev/#/patchset/20261115154013.9379-1-heming.zhao%40suse.com
 
- fs/ocfs2/localalloc.c | 11 +++++++++++
- 1 file changed, 11 insertions(+)
+--------------
+# test report
 
-diff --git a/fs/ocfs2/localalloc.c b/fs/ocfs2/localalloc.c
-index 82d290cf4432..d8d81cef92fc 100644
---- a/fs/ocfs2/localalloc.c
-+++ b/fs/ocfs2/localalloc.c
-@@ -462,6 +462,17 @@ void ocfs2_shutdown_local_alloc(struct ocfs2_super *osb)
- 	iput(main_bm_inode);
- 
- out:
-+	/*
-+	 * The success path has already dropped the reference and cleared
-+	 * the pointer, so this is a no-op there.  Every error exit after
-+	 * the local allocator was enabled used to leak local_alloc_bh.
-+	 */
-+	if (osb->local_alloc_bh) {
-+		brelse(osb->local_alloc_bh);
-+		osb->local_alloc_bh = NULL;
-+		osb->local_alloc_state = OCFS2_LA_UNUSED;
-+	}
-+
- 	iput(local_alloc_inode);
- 
- 	kfree(alloc_copy);
+This patch set has been tested on 7.4-rc3 kernel with the following test cases.
 
-base-commit: 666539eecdf4db623f5e3c3e55cf9f2dfad24aa4
+The current code still needs some polishing. I hope sashiko can continue to
+find issues in v7, so I've only done a few basic tests so far.
+
+
+## ltp
+
+runltp -f dio -d /mnt/ocfs2/
+
+results: passed
+
+## xfstests
+
+./check -g quick -T -b -s ocfs2 -e generic/081 \
+-e generic/266 -e generic/272 -e generic/281 \
+-e generic/338 -e generic/347 -e generic/361 \
+-e generic/628 -e generic/629 -e generic/648 -e generic/650 
+
+OCFS2_MKFS_LOCAL_OPT="-b 2K -C 8K --fs-features=local --fs-feature-level=max-features"
+Failures: generic/003 generic/056 generic/075 generic/091 generic/094 generic/112
+generic/177 generic/211 generic/225 generic/263 generic/319 generic/321 generic/322
+generic/329 generic/331 generic/370 generic/376 generic/424 generic/448 generic/467
+generic/477 generic/481 generic/498 generic/510 generic/512 generic/513 generic/534
+generic/537 generic/552 generic/557 generic/563 generic/564 generic/578 generic/588
+generic/607 generic/620 generic/630 generic/755 generic/759 generic/760 generic/771
+generic/777 generic/779 generic/784 ocfs2/001
+Failed 45 of 632 tests
+
+
+-----------------------
+Heming Zhao (3):
+  ocfs2: Add new ocfs2_map_blocks() to introduce iomap feature
+  ocfs2: switch DIO read path from buffer_head to iomap
+  ocfs2: switch dio write path from buffer_head to iomap
+
+ fs/ocfs2/Kconfig |    2 +-
+ fs/ocfs2/aops.c  | 1628 ++++++++++++++++++++++++++++++++++++----------
+ fs/ocfs2/aops.h  |   42 +-
+ fs/ocfs2/file.c  |  243 ++++++-
+ fs/ocfs2/inode.h |    6 +
+ fs/ocfs2/mmap.c  |    2 +-
+ fs/ocfs2/ocfs2.h |   25 +-
+ fs/ocfs2/super.c |    1 +
+ 8 files changed, 1532 insertions(+), 417 deletions(-)
+
 -- 
-2.50.1 (Apple Git-155)
+2.55.0
 
