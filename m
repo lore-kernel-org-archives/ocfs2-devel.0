@@ -1,49 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.101
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.113
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795400154;
-	b=T30c7PNX3cDHj2GVaCJ3Re8C060uPlttExgmnrtPlforoWTbfnCTpRWez4PeiENEmX9+
-	 RuTZlAB5yIVtx9XHZhp8Q5FhWXNm2faY3i8C2perst58iiiZKb1cOxkrNPLnygqhubfrx
-	 bcs0C6W11zqEWpjJocX+9KHOSA7ebr3a9KwLoLEjlQTj4f2TQRVAidqJy1JMIoMLL4KF/
-	 cZSmS4mbAkqremYmwSy7uo5x6ZHzxkLdt6ZZs//HqA6DRozVBycfGjrHMUu0tnnwlrh+m
-	 JNly6yjP3SSDlKRnQjbYiS2LMrbL+43x6bYIkeZ2i+jFJALb3sHTg3JMtMBTwE/s+4A==
+	t=1795400752;
+	b=YmwuhfTHULN9P2WjBYoUjD1trbhHkCcwZfzs4nnbyRB+e9NSXpU+e7t7p60UTUoMdEgn
+	 fmedkszsk2nkWIdiTftu1PJeN4engrnBPgXvRv/xG9bmAdBiB5oU5WXexhuv72dyX2/TH
+	 sE562n9Jr4ipwzT+nhd/443em7qOL0yqB97yxNB/9nBXF/9G1Bpx8E87J/o3LpHLZOGbL
+	 rYB/MbYzt9xeYM6KW4iN9Ofk5317EtaJ35mX3oITKj9hgFNFSmQVbNPnHz/oazOxAM8XE
+	 U3nrnt71wmyzc4Q//bpWALvmP3WiAdfgex14iyprt6OK1kLtk3OfaYtMkRu/TGb7xQw==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795400154;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795400752;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
-	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 Date:MIME-Version:User-Agent:Subject:From:To:Cc:References:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=A5EcU1Lg1Ma9qxZTix9rmQZ3P98LCFvEPpqV0GoynFA=;
-	b=gvlivokXSO9gu6VBrQprrfbiAVYi+Srl8t6+fXK00A5sBATP47xC4L64KTSst4E8+QPC
-	 ZLk1Y0QMnNzwkL6mV+u/rn0GZN8XdUH2eeiDJV+JewfJ9yoRaBu4HtRB6SG0Erjaa5XlP
-	 /P0CtqLnCiYV6h3KhLW+90P/evqpQh9s2rZr3YTevPml2uaOzDrf34htT917dDMjHP5yr
-	 bTpXrlKnftmvGQzBAN9LSOzqtqxky205kDXMedgc2xDB0Jvpj9Ho3Vojmj4xCUKL9yEUd
-	 sZeb/J7CcBi0EqGELn9x19j7oSXMiOK1N+UfQLB2QHNoQ+ebHK+bazGgoq8jHwXSPLQ==
+	bh=0jf05AivAf9iRp9AP9BjA4tTMOtS7Al7ccSsRTpnHXE=;
+	b=5RRFEO+wfZqfwFJpqv8RAMuQv5qJS825/pdhUFIEa473uc7UKAqxocMWHxdwF9SkTkcN
+	 d99TbTvkwdP/k/WD58FFqWuQcuSAX+KkLWbO+pXGRAgWt+ZiK04ufgmTG3yC73WE1DvZa
+	 airmMD3OiMNTLQGiAM3yDuN/nqpLmIGvkr1UvrSCZ/qDhidbkAXnyw6AFRBN3lTkY982p
+	 gNkUwgCzfkOiLAbom6oNUWm2a/kYAMO3YN1nfrZDZm3o3B8unpbbTZWdr9SQYwLZ/fnjj
+	 BkJMqXwMWMfFRpzZiYxRIpO+rB50PZQ63K2mFdfbrLqYwX6HLxNhCJQdj1dGK2yjpgg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=p4u7ET1b;
-	arc=none smtp.remote-ip=115.124.30.101
-Received: from out30-101.freemail.mail.aliyun.com (out30-101.freemail.mail.aliyun.com [115.124.30.101])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=cwmAQPIy;
+	arc=none smtp.remote-ip=115.124.30.113
+Received: from out30-113.freemail.mail.aliyun.com (out30-113.freemail.mail.aliyun.com [115.124.30.113])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 228A5606A320
-	for <ocfs2-devel@lists.linux.dev>; Mon, 23 Nov 2026 02:15:52 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 228A5606A320
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 0944F606A31A
+	for <ocfs2-devel@lists.linux.dev>; Mon, 23 Nov 2026 02:25:50 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 0944F606A31A
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=p4u7ET1b
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=cwmAQPIy
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1795400149; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=A5EcU1Lg1Ma9qxZTix9rmQZ3P98LCFvEPpqV0GoynFA=;
-	b=p4u7ET1bl5fttrDywtEPILUs71OHZSe/6dQ3ZhKJ42ghxj+/iJVZyyCzEkG+TYUtyk6dt0eWRaAtN6tPJYIWx0bmJMhqj+0qae9w9nv2Phm5gAUygGpbsHIHqMgli0BkVBi6rn4FEbEJJ6mOnuoexsNOz9lN6f3BVnbmYAa+S9I=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R121e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XFC5MQr_1795400148;
-Received: from 30.222.33.45(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFC5MQr_1795400148 cluster:ay36)
+	t=1795400743; h=Message-ID:Date:MIME-Version:Subject:From:To:Content-Type;
+	bh=0jf05AivAf9iRp9AP9BjA4tTMOtS7Al7ccSsRTpnHXE=;
+	b=cwmAQPIyBw/yCkBBMVYczVCDnvo+wdd4uuYUqpekQZwpjTU451JV6swqq3pCvJTO/r1uMBGT1PIOMXwWgi4DLi9LeIWytYsrWDO16g1bbalrhS6HHYmvoRRrLQfHNn4nua8SjyRWh0QPXMgQ/2T6mkPDle3Ket/2cpLbjf4C5Qc=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R151e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XFC-hGu_1795400741;
+Received: from 30.222.33.45(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFC-hGu_1795400741 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Mon, 23 Nov 2026 10:15:49 +0800
-Message-ID: <f946ba25-6454-4831-9d0a-83fc58721ee2@linux.alibaba.com>
-Date: Mon, 23 Nov 2026 10:15:48 +0800
+          Mon, 23 Nov 2026 10:25:41 +0800
+Message-ID: <f178e3d2-5770-4f97-8b7f-f943fbd8cd8f@linux.alibaba.com>
+Date: Mon, 23 Nov 2026 10:25:41 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -54,176 +54,197 @@ List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
 User-Agent: Mozilla Thunderbird
-Subject: Re: [PATCH] ocfs2: unregister the JBD2 shrinker before journal
- shutdown
-To: Andrew Morton <akpm@linux-foundation.org>
-Cc: ocfs2-devel@lists.linux.dev,
- syzbot+38fdbb551940270021f1@syzkaller.appspotmail.com,
- Cen Zhang <zzzccc427@gmail.com>, Mark Fasheh <mark@fasheh.com>,
- Joel Becker <jlbec@evilplan.org>, Heming Zhao <heming.zhao@suse.com>,
- Theodore Ts'o <tytso@mit.edu>, Jan Kara <jack@suse.cz>,
- stable@vger.kernel.org
-References: <920f7558ba0e4458b74cfb107e9dd77f.1@linux-foundation.org>
- <731d0ec6-d610-4e09-a01f-1d4733410853@linux.alibaba.com>
- <20261122180802.682f887a35850f7a6f362db5@linux-foundation.org>
+Subject: Re: [RFC PATCH v9 0/3] migrate ocfs2 DIO from buffer_head to iomap
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
-In-Reply-To: <20261122180802.682f887a35850f7a6f362db5@linux-foundation.org>
+To: Heming Zhao <heming.zhao@suse.com>, hch@lst.de,
+ Andrew Morton <akpm@linux-foundation.org>
+Cc: mark@fasheh.com, jlbec@evilplan.org, ocfs2-devel@lists.linux.dev,
+ linux-kernel@vger.kernel.org
+References: <20261120060014.12087-1-heming.zhao@suse.com>
+ <c57890bc-6085-461f-9f7c-47b72e104b65@linux.alibaba.com>
+In-Reply-To: <c57890bc-6085-461f-9f7c-47b72e104b65@linux.alibaba.com>
 Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 7bit
+Content-Transfer-Encoding: 8bit
 
 
 
-On 11/23/26 10:08 AM, Andrew Morton wrote:
-> On Mon, 23 Nov 2026 09:56:36 +0800 Joseph Qi <joseph.qi@linux.alibaba.com> wrote:
-> 
->>
->>
->>> --- a/fs/ocfs2/journal.c~ocfs2-unregister-the-jbd2-shrinker-before-journal-shutdown
->>> +++ a/fs/ocfs2/journal.c
->>> @@ -1119,6 +1119,7 @@ void ocfs2_journal_shutdown(struct ocfs2
->>>  	 * Exclude the final JBD2 inode cleanup in ocfs2_clear_inode() while
->>>  	 * the journal is destroyed and freed.
->>>  	 */
->>> +	jbd2_journal_unregister_shrinker(journal->j_journal);
->>
->> The comment above just explains why down_write() is taken, and the new
->> jbd2_journal_unregister_shrinker() call is outside the exclusion the
->> comment describes.
->> So it seems we'd better move the new call above the comment, or carry a
->> short note that it must stay outside journal_shutdown_sem.
->>
-> 
-> Thanks,  this?
+On 11/21/26 9:12 AM, Joseph Qi wrote:
+> Thanks for this work.
+> I'll apply this series on top of next-20261119 and run a full test first.
 > 
 
-Yes, it's fine now.
+I've run ocfs2test as well as xfstests 90-test DIO-focused set, and found
+no regressions.
+
+For ocfs2test,
+  direct-aio (writeback, ordered)	PASSED
+  aio-stress (writeback, ordered)	PASSED
+  fill_verify_holes — 9 variants incl. -M mmap, -U unwritten, 512/4096 blocks, 4K–1M clusters	PASSED
+  mmap_truncate — 6 variants	PASSED
+  splice, sendfile, mmap	PASSED
+  rename_write_race, create_and_open, filesizelimits	PASSED
+  reserve_space, inline_data, xattr_test (1786 s), mkfs, tunefs, backup_super	PASSED
+  80 passed, 2 harness-path failures, no kernel-related failure
+
+For xfstests DIO-focused set,
+  base   : PASS=52  FAIL=10  NOTRUN=28  EXPUNGED=6   (Failed 10 of 90)
+  iomap  : PASS=52  FAIL=10  NOTRUN=28  EXPUNGED=6   (Failed 10 of 90)
+  Failures (both): 091 094 219 263 326 328 521 587 617 733
 
 Thanks,
 Joseph
 
-> From: Andrew Morton <akpm@linux-foundation.org>
-> Subject: ocfs2: unregister the JBD2 shrinker before journal shutdown
-> Date: Sat, 21 Nov 2026 19:34:56 -0800
 > 
-> sysbot reports a lockdep cycle through shrinker_mutex, filesystem reclaim
-> and osb->journal_shutdown_sem.  Unmount holds the superblock's s_umount
-> exclusively, while the OCFS2 reclaim path must first get its read side
-> with super_trylock_shared().  That excludes the two paths for the same
-> superblock; the report does not establish a runtime deadlock.  Still, the
-> lock ordering is visible to lockdep and produces the warning.
+> On 11/20/26 2:00 PM, Heming Zhao wrote:
+>> This patch set migrates ocfs2 Direct I/O (DIO) from buffer_head mode
+>> to iomap mode. It is based on commit aebb72744764 (v7.4-rc3), and
+>> also incorporates Joseph's code and ideas from [1]:
+>>
+>> V9 changelog:
+>>
+>> Address sashiko's review comments [3] (all changes are in patch [3/3]):
+>>
+>> ocfs2_file_write_to_iter():
+>> - switch pr lock to ex when DIO falls back to buffered IO
+>> - Fall back to buffered I/O for a direct write when block size is smaller
+>>   than the page size and the write does not cover whole pages
+>> - clear orphan when rw_lock is still held
+>>
+>> ocfs2_dio_wr_map_blocks may use a value beyand u32 to call
+>> ocfs2_clusters_to_blocks()
+>>
+>> initialize oi->ip_dio_orphan_pid and oi->ip_dio_orphan_end in
+>> ocfs2_inode_init_once()
+>>
+>> --------------
+>> # test report
+>>
+>> This patch set has been tested on 7.4-rc3 kernel
+>>
+>> ## ltp
+>>
+>> runltp -f dio -d /mnt/ocfs2/
+>>
+>> results: passed
+>>
+>> ## xfstests
+>>
+>> ./check -g quick -T -b -s ocfs2 -e generic/081 \
+>> -e generic/266 -e generic/272 -e generic/281 \
+>> -e generic/338 -e generic/347 -e generic/361 \
+>> -e generic/628 -e generic/629 -e generic/648 -e generic/650 
+>>
+>> OCFS2_MKFS_LOCAL_OPT="-b 2K -C 4K --fs-features=local --fs-feature-level=max-features"
+>> Failures: generic/003 generic/056 generic/091 generic/094 generic/177
+>> generic/211 generic/225 generic/263 generic/321 generic/322 generic/329
+>> generic/331 generic/370 generic/376 generic/424 generic/448 generic/467
+>> generic/477 generic/481 generic/498 generic/510 generic/512 generic/513
+>> generic/534 generic/537 generic/552 generic/557 generic/563 generic/578
+>> generic/588 generic/607 generic/620 generic/630 generic/755 generic/760
+>> generic/771 generic/777 generic/779 generic/784
+>> Failed 39 of 632 tests
+>>
+>> OCFS2_MKFS_LOCAL_OPT="-b 4K -C 4K --fs-features=local --fs-feature-level=max-features"
+>> Failures: generic/003 generic/056 generic/070 generic/091 generic/094
+>> generic/177 generic/211 generic/225 generic/263 generic/321 generic/322
+>> generic/329 generic/331 generic/370 generic/376 generic/424 generic/448
+>> generic/467 generic/477 generic/481 generic/498 generic/510 generic/512
+>> generic/513 generic/534 generic/537 generic/552 generic/557 generic/563
+>> generic/578 generic/588 generic/607 generic/620 generic/630 generic/755
+>> generic/760 generic/771 generic/777 generic/779 generic/784
+>> Failed 40 of 632 tests
+>>
+>> OCFS2_MKFS_LOCAL_OPT="-b 2K -C 8K --fs-features=local --fs-feature-level=max-features"
+>> Failures: generic/003 generic/056 generic/075 generic/091 generic/094
+>> generic/112 generic/177 generic/211 generic/225 generic/263 generic/321
+>> generic/322 generic/329 generic/331 generic/370 generic/376 generic/424
+>> generic/448 generic/467 generic/477 generic/481 generic/498 generic/510
+>> generic/512 generic/513 generic/534 generic/537 generic/552 generic/557
+>> generic/563 generic/564 generic/578 generic/588 generic/607 generic/620
+>> generic/630 generic/755 generic/759 generic/760 generic/771 generic/777
+>> generic/779 generic/784 ocfs2/001
+>> Failed 44 of 632 tests
+>>
+>> ## fio
+>>
+>> (4k blocksize 4k clustersize, local mount)
+>>
+>> fio --direct=1 --iodepth=32 --rw=write --ioengine=libaio --bs=128k --size=1g \
+>> --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
+>> before patch: write: IOPS=32.2k, BW=4028MiB/s
+>> after  patch: write: IOPS=38.6k, BW=4824MiB/s
+>>
+>> fio --direct=1 --iodepth=32 --rw=read --ioengine=libaio --bs=128k --size=1g \
+>> --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
+>> before patch: read: IOPS=49.1k, BW=6132MiB/s
+>> after  patch: read: IOPS=50.9k, BW=6360MiB/s
+>>
+>> fio --direct=1 --iodepth=32 --rw=randwrite --ioengine=libaio --bs=4k \
+>> --size=1g --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
+>> before patch: write: IOPS=14.4k, BW=56.4MiB/s
+>> after  patch: write: IOPS=14.4k, BW=56.1MiB/s
+>>
+>> fio --direct=1 --iodepth=32 --rw=randwrite --ioengine=libaio --bs=4k \
+>> --size=1g --numjobs=4 --runtime=100 --group_reporting --filename=/mnt/ocfs2/write.1g --name=tst
+>> before patch: read: IOPS=382k, BW=1492MiB/s
+>> after  patch: read: IOPS=419k, BW=1637MiB/s
+>>
+>> ------
+>> [1]:
+>> https://gitee.com/anolis/storage-cloud-kernel/commit/ea3fe75e2060118ba093e90b1cd34fa382914b29
+>>
+>> [2]:
+>> https://sashiko.dev/#/patchset/20261103135605.22943-1-heming.zhao%40suse.com
+>>
+>> [3]:
+>> v1 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20260724052559.15409-1-heming.zhao@suse.com/
+>> v2 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20260727061802.18485-1-heming.zhao@suse.com/
+>> v3 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20261018143319.22329-1-heming.zhao@suse.com/
+>> v3 sashiko review:
+>> https://sashiko.dev/#/patchset/20261018143319.22329-1-heming.zhao%40suse.com
+>> v4 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20261103135605.22943-1-heming.zhao@suse.com/
+>> v4 sashiko review:
+>> https://sashiko.dev/#/patchset/20261103135605.22943-1-heming.zhao%40suse.com
+>> v5 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20261105071930.16399-1-heming.zhao@suse.com/
+>> v5 sashiko review:
+>> https://sashiko.dev/#/patchset/20261105071930.16399-1-heming.zhao%40suse.com
+>> v6 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20261115154013.9379-1-heming.zhao@suse.com/
+>> v6 sashiko review:
+>> https://sashiko.dev/#/patchset/20261115154013.9379-1-heming.zhao%40suse.com
+>> v7 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20261118002050.9019-1-heming.zhao@suse.com/
+>> v7 sashiko review:
+>> - https://sashiko.dev/#/patchset/20261117150053.18417-1-heming.zhao%40suse.com
+>> - https://sashiko.dev/#/patchset/20261118002050.9019-1-heming.zhao%40suse.com
+>> v8 patch set:
+>> https://lore.kernel.org/ocfs2-devel/20261119064029.11910-1-heming.zhao@suse.com/
+>> v8 sashiko review:
+>> https://sashiko.dev/#/patchset/20261119064029.11910-1-heming.zhao%40suse.com
+>>
+>> -----------------------
+>>
+>> Heming Zhao (3):
+>>   ocfs2: Add new ocfs2_map_blocks() to introduce iomap feature
+>>   ocfs2: switch DIO read path from buffer_head to iomap
+>>   ocfs2: switch dio write path from buffer_head to iomap
+>>
+>>  fs/ocfs2/Kconfig      |    2 +-
+>>  fs/ocfs2/aops.c       | 1685 ++++++++++++++++++++++++++++++++---------
+>>  fs/ocfs2/aops.h       |   43 +-
+>>  fs/ocfs2/extent_map.c |   34 +-
+>>  fs/ocfs2/extent_map.h |    3 +
+>>  fs/ocfs2/file.c       |  314 +++++++-
+>>  fs/ocfs2/inode.h      |    9 +
+>>  fs/ocfs2/mmap.c       |    2 +-
+>>  fs/ocfs2/ocfs2.h      |   25 +-
+>>  fs/ocfs2/super.c      |    3 +
+>>  10 files changed, 1690 insertions(+), 430 deletions(-)
+>>
 > 
-> The write side of journal_shutdown_sem must cover all of
-> jbd2_journal_destroy(): ocfs2_clear_inode() can otherwise release a JBD2
-> inode through a journal that is being destroyed.  Move only the JBD2
-> shrinker unregister operation before taking the semaphore. 
-> shrinker_free() waits for active shrinker users, so the journal and its
-> checkpoint counter remain alive while they finish.  A successfully
-> initialized JBD2 journal always has a checkpoint counter.  Destroy it
-> after unregistering the shrinker, whether unregistering happened here or
-> before taking the OCFS2 semaphore.  The semaphore continues to protect
-> JBD2 destruction, removal of osb->journal and freeing the OCFS2 journal.
-> 
-> The userspace-visible result is removal of this lockdep warning during
-> OCFS2 unmount; the report does not demonstrate a hung unmount.
-> 
-> Link: https://lore.kernel.org/6b0257ca.6ccd1e40.868ea.001a.GAE@google.com
-> Fixes: f277230d002d ("ocfs2: serialize inode journal access with shutdown")
-> Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
-> Reported-by: <syzbot+38fdbb551940270021f1@syzkaller.appspotmail.com>
-> Closes: https://syzkaller.appspot.com/bug?extid=38fdbb551940270021f1
-> Tested-by: Andrew Morton <akpm@linux-foundation.org>
->   Link: https://lore.kernel.org/20261122093400.b726ecddf154f493dec1c892@linux-foundation.org
-> Reviewed-by: Joseph Qi <joseph.qi@linux.alibaba.com>
-> Cc: Cen Zhang <zzzccc427@gmail.com>
-> Cc: Mark Fasheh <mark@fasheh.com>
-> Cc: Joel Becker <jlbec@evilplan.org>
-> Cc: Heming Zhao <heming.zhao@suse.com>
-> Cc: Theodore Ts'o <tytso@mit.edu>
-> Cc: Jan Kara <jack@suse.cz>
-> Cc: <stable@vger.kernel.org>
-> ---
-> Tested with CONFIG_PROVE_LOCKING=y in x86-64 QEMU guests. A omitted
-> this patch; B added it alone. OCFS2 and JBD2 were built in.
-> 
-> Syzbot's C reproducer mounted a local OCFS2 image, accessed 200 files,
-> exercised reclaim and unmounted it. A reproduced the reported circular
-> locking warning: shrinker_free() ran from jbd2_journal_destroy() while
-> ocfs2_journal_shutdown() held journal_shutdown_sem. The unmount
-> completed; this test did not show a runtime deadlock.
-> 
-> B completed the same sequence without a warning. Three further
-> mount/reclaim/unmount cycles on B also completed without warnings.
-> An ext4 read/write/unmount control passed on both kernels.
-> 
-> Both builds needed the same temporary correction for an unrelated
-> mm/util.c compile error in another queued patch. The correction was
-> removed after testing. The test did not force an active JBD2 shrinker
-> callback to overlap unmount or exercise failed-mount cleanup.
-> 
->  fs/jbd2/journal.c    |   17 +++++++++++++----
->  fs/ocfs2/journal.c   |    1 +
->  include/linux/jbd2.h |    1 +
->  3 files changed, 15 insertions(+), 4 deletions(-)
-> 
-> --- a/fs/jbd2/journal.c~ocfs2-unregister-the-jbd2-shrinker-before-journal-shutdown
-> +++ a/fs/jbd2/journal.c
-> @@ -75,6 +75,7 @@ EXPORT_SYMBOL(jbd2_journal_check_availab
->  EXPORT_SYMBOL(jbd2_journal_set_features);
->  EXPORT_SYMBOL(jbd2_journal_load);
->  EXPORT_SYMBOL(jbd2_journal_destroy);
-> +EXPORT_SYMBOL(jbd2_journal_unregister_shrinker);
->  EXPORT_SYMBOL(jbd2_journal_abort);
->  EXPORT_SYMBOL(jbd2_journal_errno);
->  EXPORT_SYMBOL(jbd2_journal_ack_err);
-> @@ -2100,6 +2101,16 @@ int jbd2_journal_load(journal_t *journal
->  	return 0;
->  }
->  
-> +void jbd2_journal_unregister_shrinker(journal_t *journal)
-> +{
-> +	struct shrinker *shrinker = journal->j_shrinker;
-> +
-> +	if (!shrinker)
-> +		return;
-> +	journal->j_shrinker = NULL;
-> +	shrinker_free(shrinker);
-> +}
-> +
->  /**
->   * jbd2_journal_destroy() - Release a journal_t structure.
->   * @journal: Journal to act on.
-> @@ -2173,10 +2184,8 @@ int jbd2_journal_destroy(journal_t *jour
->  		brelse(journal->j_sb_buffer);
->  	}
->  
-> -	if (journal->j_shrinker) {
-> -		percpu_counter_destroy(&journal->j_checkpoint_jh_count);
-> -		shrinker_free(journal->j_shrinker);
-> -	}
-> +	jbd2_journal_unregister_shrinker(journal);
-> +	percpu_counter_destroy(&journal->j_checkpoint_jh_count);
->  	if (journal->j_proc_entry)
->  		jbd2_stats_proc_exit(journal);
->  	iput(journal->j_inode);
-> --- a/fs/ocfs2/journal.c~ocfs2-unregister-the-jbd2-shrinker-before-journal-shutdown
-> +++ a/fs/ocfs2/journal.c
-> @@ -1115,6 +1115,7 @@ void ocfs2_journal_shutdown(struct ocfs2
->  			mlog_errno(status);
->  	}
->  
-> +	jbd2_journal_unregister_shrinker(journal->j_journal);
->  	/*
->  	 * Exclude the final JBD2 inode cleanup in ocfs2_clear_inode() while
->  	 * the journal is destroyed and freed.
-> --- a/include/linux/jbd2.h~ocfs2-unregister-the-jbd2-shrinker-before-journal-shutdown
-> +++ a/include/linux/jbd2.h
-> @@ -1566,6 +1566,7 @@ extern void	   jbd2_journal_clear_featur
->  		   (journal_t *, unsigned long, unsigned long, unsigned long);
->  extern int	   jbd2_journal_load       (journal_t *journal);
->  extern int	   jbd2_journal_destroy    (journal_t *);
-> +extern void	   jbd2_journal_unregister_shrinker(journal_t *);
->  extern int	   jbd2_journal_recover    (journal_t *journal);
->  extern int	   jbd2_journal_wipe       (journal_t *, int);
->  extern int	   jbd2_journal_skip_recovery	(journal_t *);
-> _
 
