@@ -1,47 +1,47 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.131
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.130
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795521263;
-	b=Vz3TgyUvs6QfVjxHL5y/b/Z6Ijxwv3ALn5mHdJYdsXQctWEKC1iHl3PrWN5HKmgacuIs
-	 FwL/rs8Ssqire2E3FduIjBzHN3JO/db49MqQK8UTeOfanqGz25gvkQqG2MnqtSQSWe0BC
-	 WZZA9ZaVVScyXKYu6fCg9eSduAtIdOn8PCamX89aPS2kmYNHrSs/Y/CzXevWrOCF21v1S
-	 1VkwG8tS+cN395hp4kvPYUCPtLvZvZF0Wn079Z5lUNrtaehAFNANiQzb5I8+bJJWjRj36
-	 1p8nnOe49x00Y8WFBATyN/akbxxt+fu9ziXULPTFrsFxSL92P3uPKv1HBPEGEZeiXMg==
+	t=1795521269;
+	b=lMpRRIw8gYFVwEzDchxmE7zYG49/MLB2fx/yd5ikUBQXYVOBkC2u/QcA0OcG/qWUhSIR
+	 hz6GyEunMAD1RCIfLRe/mBDGvFqO4KAFQJWSuL4y662jn/qCEVJ3Mqd3jBetXfaTlftUf
+	 WdSyeucGGdq71WJxfmjfEwAGDHpM65Vh9Jg1YeZI+wT/VpLofqNWit64eonYTUfc4oBe5
+	 0YPMyxa9Wm7vmist7Q9tExc73NuWiJdBHGPSE6+QO0Mot8nFvS7NpLuLR40mxTxgLRV94
+	 MGWJ4PVoCW2Gphx/gwe71epK0ip53ZHidBNjP2BbUFcNHhyq/9oqoRCuXLLDK/15+0Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795521263;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795521269;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
-	 Subject:Date:Message-Id:X-Mailer:MIME-Version:
+	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
 	 Content-Transfer-Encoding;
-	bh=+LHmSjFHbgyWKmL7yVgkW6mPxr/StaHasiq5EyXuvZo=;
-	b=bweE4LpKVExens5wTgFsf7muXo7rXL0eWktNG6VwXXf97fmxRV32a69VHgOdQhuAPB3i
-	 SB9sdobO9wUWaATY3fvbf/dC7boY/rAtSXaHac5+F3k7YOF1DCflikMAnNmhHm75e01/H
-	 zLnhZ0Y5XcL2gsR6ijwgAW0faDbXSrlqsjofibOGMedmoRGwryeZPwAeTAizxyLIHv4Du
-	 gfh0qw6iXBY6KX340nkWJuxRQCnAtiMETRWxPk2DKvo8+2tkzTR6Xvk22aZe426JuRVcb
-	 ioOwhZQIi7X1hymZ6XLb4NGebJFUsTuqQlS0s9tDG6Treng+PA8LETnUV+ejVyGg0uQ==
+	bh=n+bbDitwFOC5zeuyG/CW8fmalYtQ3G5tL/oxdvJcz8M=;
+	b=yWanr6kFEck8+Caylbr78WJNLwX86o6vtCrJBmDZFpZqT/JEBla7zQ/XyDTiQMsi2HmK
+	 VHP4SYa8Ab0AkJsWAA6jC/iJC+u/4wJMiB/PZ1C+TlhYs1/dRUMW8RyBWeh1motJRq0t9
+	 FWk9/Q7aRfTrfWPWNQfVnDBUJ0STjtC/BKPa7uAu2fSmym6P8WX2RXEA9g2LoSpF18+Lh
+	 6+oB8Pi8lYyWNR4tZow7Mj2o1+CSQ9khboWDt3jQLUt/PXlJgbRAPg/oqkHYwb4FmT5Wh
+	 hndJoA8T0EevJUdwlwOFf1B+HMYj9s34J+DO84l6y+0wzjDuFvZA6bZscGiyNSJ7G7A==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=TXoDZmhH;
-	arc=none smtp.remote-ip=115.124.30.131
-Received: from out30-131.freemail.mail.aliyun.com (out30-131.freemail.mail.aliyun.com [115.124.30.131])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=SNn2JYWy;
+	arc=none smtp.remote-ip=115.124.30.130
+Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id AC1E4606A32D
-	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Nov 2026 11:54:21 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org AC1E4606A32D
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id F09C0606A322
+	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Nov 2026 11:54:28 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org F09C0606A322
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=TXoDZmhH
+	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=SNn2JYWy
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1795521259; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=+LHmSjFHbgyWKmL7yVgkW6mPxr/StaHasiq5EyXuvZo=;
-	b=TXoDZmhH2VIzspWJIzOpRJIe1toQuoHaX90AiSzkiyWiyVDw/bJG0nKj6cdiuL5WAbh8F1fgRBVcp3bX/aq9NKWPR4dRzj9xXi4kDjTnKp76qeioPYFWSrpZCdRUnNXmeieh0fijsVeoHtRAs7IJHEw10o9+2gZvGqoLPcQF8S4=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=10;SR=0;TI=SMTPD_---0XFOMdbI_1795521257;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFOMdbI_1795521257 cluster:ay36)
+	t=1795521265; h=From:To:Subject:Date:Message-Id:MIME-Version;
+	bh=n+bbDitwFOC5zeuyG/CW8fmalYtQ3G5tL/oxdvJcz8M=;
+	b=SNn2JYWyfNmpKMBKYEg0KMdMiqDb5BurCtBbd7Rsblp6ao4aldxHxDEKkgzYZ6xCqaDvVIJFZqTwfll28u7ni7qUtLROFVp7D0g+dc5GIIE8Bbu+Yfw2Qf2T6EmzpSGRQYXdAth5oNgs9+f9uorAOAMe4NdUldQGx1Xb74IV+YM=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R431e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=7;SR=0;TI=SMTPD_---0XFOMddf_1795521264;
+Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFOMddf_1795521264 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 24 Nov 2026 19:54:18 +0800
+          Tue, 24 Nov 2026 19:54:25 +0800
 From: Joseph Qi <joseph.qi@linux.alibaba.com>
 To: Andrew Morton <akpm@linux-foundation.org>,
 	Heming Zhao <heming.zhao@suse.com>
@@ -49,14 +49,13 @@ Cc: Mark Fasheh <mark@fasheh.com>,
 	Joel Becker <jlbec@evilplan.org>,
 	ocfs2-devel@lists.linux.dev,
 	linux-kernel@vger.kernel.org,
-	Joseph Qi <joseph.qi@linux.alibaba.com>,
-	syzbot+487e39304129321dd253@syzkaller.appspotmail.com,
-	CJ <firefly0158@163.com>,
-	stable@vger.kernel.org
-Subject: [PATCH 1/3] ocfs2: don't BUG_ON when a group extend leaves too few free bits
-Date: Tue, 24 Nov 2026 19:54:02 +0800
-Message-Id: <20261124115404.2937581-1-joseph.qi@linux.alibaba.com>
+	Joseph Qi <joseph.qi@linux.alibaba.com>
+Subject: [PATCH 2/3] ocfs2: validate chain allocator clusters per group
+Date: Tue, 24 Nov 2026 19:54:03 +0800
+Message-Id: <20261124115404.2937581-2-joseph.qi@linux.alibaba.com>
 X-Mailer: git-send-email 2.39.3
+In-Reply-To: <20261124115404.2937581-1-joseph.qi@linux.alibaba.com>
+References: <20261124115404.2937581-1-joseph.qi@linux.alibaba.com>
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -68,71 +67,85 @@ Precedence: list
 MIME-Version: 1.0
 Content-Transfer-Encoding: 8bit
 
-ocfs2_reserve_suballoc_bits() extends a metadata chain allocator by
-one block group when it holds fewer free bits than the caller wants,
-then asserts that the extend satisfied the request.
+ocfs2_validate_inode_block() checks cl_count, cl_next_free_rec and
+cl_bpc on a chain allocator dinode, but never cl_cpg, even though the
+suballocator reads it straight off disk to size every new block group.
+A crafted value therefore survives all of the read time checks.
 
-That assertion trusts the on-disk allocator geometry.  With
-id2.i_chain.cl_cpg and cl_bpc both set to 1, ocfs2_bits_per_group()
-returns 1, so the only bit of the new group is consumed by its own
-descriptor and ocfs2_block_group_fill() leaves bg_free_bits_count at
-0.  The extend then adds 1 to both i_total and i_used, free_bits
-stays 0, and BUG_ON(bits_wanted > i_total - i_used) fires on a plain
-open(O_CREAT):
+cl_cpg of 0 makes ocfs2_bits_per_group() return 0.  The cluster
+reservation then succeeds with ac_bits_wanted of 0, and
+__ocfs2_claim_clusters() trips BUG_ON(ac->ac_bits_given >=
+ac->ac_bits_wanted) on the same open(O_CREAT) path that extends a
+metadata allocator.
 
-    ocfs2_reserve_suballoc_bits
-    ocfs2_reserve_new_metadata_blocks
-    ocfs2_mknod
-    ocfs2_create
-    path_openat
+Reject a bits_per_group outside [2, U16_MAX] on every chain allocator
+but the global bitmap, which is exempted exactly as in
+ocfs2_dinode_has_bad_chain_bpc().  The lower bound is the invariant
+the group extend relies on: bit 0 of a new group is its own
+descriptor, so a group of fewer than two bits has nothing to hand
+out.  The upper bound catches the product being truncated when
+ocfs2_block_group_fill() stores it through cpu_to_le16() into the u16
+bg_bits, which otherwise updates i_total, i_used and
+bg_free_bits_count with a count that does not match the group
+actually built.
 
-The reservation runs before ocfs2_start_trans(), so no transaction is
-open and no dquot is charged when it fires.
+No valid volume is affected.  mkfs writes the same cl_cpg into the
+initial groups it creates, and geometry that either did not fit the
+u16 bg_bits or left no allocatable bit would have made the allocator
+unusable from the start.
 
-Report the volume as errored instead, the way the missing
-OCFS2_CHAIN_FL check just above already does.  The status is not
--ENOSPC, so callers propagate it rather than falling back to stealing
-from another slot.  No new unwind is needed: ac->ac_bh is not set yet
-on this path, so the bail label only releases the local bh, and the
-allocation context is freed by the callers' existing error paths.
-ocfs2_block_group_alloc() has already committed its own transaction,
-so the degenerate group stays on disk - which is what every other
-ocfs2_error() corruption path leaves behind.
+The dinode is now rejected at read time, so iget fails and the
+operation returns an error instead of reaching the suballocator.
 
-Reported-by: syzbot+487e39304129321dd253@syzkaller.appspotmail.com
-Cc: CJ <firefly0158@163.com>
-Fixes: ccd979bdbce9 ("[PATCH] OCFS2: The Second Oracle Cluster Filesystem")
-Cc: <stable@vger.kernel.org>
 Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
 ---
- fs/ocfs2/suballoc.c | 14 ++++++++++----
- 1 file changed, 10 insertions(+), 4 deletions(-)
+ fs/ocfs2/inode.c | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
 
-diff --git a/fs/ocfs2/suballoc.c b/fs/ocfs2/suballoc.c
-index 624152e4f7fe..23c9fbb31cbd 100644
---- a/fs/ocfs2/suballoc.c
-+++ b/fs/ocfs2/suballoc.c
-@@ -957,10 +957,16 @@ static int ocfs2_reserve_suballoc_bits(struct ocfs2_super *osb,
- 		}
- 		atomic_inc(&osb->alloc_stats.bg_extends);
+diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
+index 8e5f7a240381..e6f89d1e3091 100644
+--- a/fs/ocfs2/inode.c
++++ b/fs/ocfs2/inode.c
+@@ -254,6 +254,26 @@ static bool ocfs2_dinode_has_bad_chain_bpc(struct super_block *sb,
+ 		le16_to_cpu(di->id2.i_chain.cl_bpc) != bpc;
+ }
  
--		/* You should never ask for this much metadata */
--		BUG_ON(bits_wanted >
--		       (le32_to_cpu(fe->id1.bitmap1.i_total)
--			- le32_to_cpu(fe->id1.bitmap1.i_used)));
-+		/* Corrupt geometry can extend by a group with no usable bits. */
-+		free_bits = le32_to_cpu(fe->id1.bitmap1.i_total) -
-+			le32_to_cpu(fe->id1.bitmap1.i_used);
-+		if (bits_wanted > free_bits) {
-+			status = ocfs2_error(alloc_inode->i_sb,
-+					     "Invalid chain allocator %llu: %u free bits after group extend, %u wanted\n",
-+					     (unsigned long long)le64_to_cpu(fe->i_blkno),
-+					     free_bits, bits_wanted);
++static bool ocfs2_dinode_has_bad_chain_cpg(struct super_block *sb,
++					   struct ocfs2_dinode *di)
++{
++	u32 bits_per_group = (u32)le16_to_cpu(di->id2.i_chain.cl_cpg) *
++		(u32)le16_to_cpu(di->id2.i_chain.cl_bpc);
++
++	/*
++	 * A block group holds cl_cpg * cl_bpc bits, the first of which is its
++	 * own descriptor, and records that count in the u16 bg_bits.  Outside
++	 * [2, U16_MAX] the group either has no allocatable bit at all or
++	 * silently truncates the allocator accounting.  The global bitmap is
++	 * exempt as in the bits-per-cluster check above: it never grows, and
++	 * its group size comes from ocfs2_group_bitmap_size() rather than
++	 * from cl_cpg.
++	 */
++	return OCFS2_SB(sb)->bitmap_blkno &&
++		OCFS2_SB(sb)->bitmap_blkno != le64_to_cpu(di->i_blkno) &&
++		(bits_per_group < 2 || bits_per_group > U16_MAX);
++}
++
+ static bool ocfs2_dinode_has_refcount_without_loc(struct ocfs2_dinode *di)
+ {
+ 	return (le16_to_cpu(di->i_dyn_features) & OCFS2_HAS_REFCOUNT_FL) &&
+@@ -1919,6 +1939,12 @@ int ocfs2_validate_inode_block(struct super_block *sb,
+ 					 le16_to_cpu(cl->cl_bpc));
+ 			goto bail;
+ 		}
++		if (ocfs2_dinode_has_bad_chain_cpg(sb, di)) {
++			rc = ocfs2_error(sb, "Invalid dinode %llu: clusters per group %u\n",
++					 (unsigned long long)bh->b_blocknr,
++					 le16_to_cpu(cl->cl_cpg));
 +			goto bail;
 +		}
  	}
  
- 	get_bh(bh);
+ 	if (ocfs2_dinode_has_refcount_without_loc(di)) {
 -- 
 2.39.3
 
