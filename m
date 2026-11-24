@@ -1,49 +1,49 @@
 Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.99
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795517826;
-	b=ZR58A7hkiloA1jeOncRZjynBL8QsEV8/8Drmm35XSrUfhXIa5wBUba3TmfnkXDKVF437
-	 +2mnAb/DEy+bt91sOBNOL3Ai9UcL4ogcxow1BsPADAXzH3YCiLA/+ezH68FPM/Qa9kTak
-	 lhctbcqmoawsKX38v0A3LOksZ8YuzypYjQ2395xMCVBTKI//4BlSh/Xatf2P4S8mCsJEq
-	 fVQV/SCCfuSdIG96f6jd/yHigcUa0KXmLQ3QIO4GaoZgH9tGGBxjrmO4FS0aLC+d95L3d
-	 1MHnSf4bGKUmIc6Y2AkWreNVGbNyOlXtk5DBKTebmiero68lQR9pd+Z6+oUOfiXoTHw==
+	t=1795518285;
+	b=t8x6cCuBa9Z9vRhGEZ0GqJx/wjhgTNHyAUqxjGCL8O1kSUaNtVBhmkfgSCqMj7c9Fhvc
+	 lq9y1CRDsbpyx/kRbdkTGqBH38ja+npJivGj4qKxZC+nWVTCvHMu5L4u9/YrcoRRBrBlY
+	 yCrOazX+Hb9LvdE6g+aHJsG6mA1hGZx4teqZYZFZ8zGa+2udf4n0SR90wEse72zPQ2rbV
+	 BjobnCBk5LMKMwZ9RqYa0Q2gJO9VzFKWvnPxk1I/GOJZ2oOHCSVVixM7YrN+wgZlakx97
+	 NrZgyOtK1CIq6EoYTUEWKOYwVy87O/QZFUghCDao9+2IA+399ftHSzMkDAdHROIcvmQ==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795517826;
+	a=rsa-sha256; c=relaxed/relaxed; t=1795518285;
 	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
 	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
 	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
-	bh=eWfNs5UKK6nPf+1ag3e5zkit4hCoF6BydMaQazyRAfw=;
-	b=EmDMjKdkR7QHTzzB+oreBa3MpyIuHcZvrvvqrwFTyfrTTAYKfDVYhCQpZwpcWHIR+tPe
-	 6+XbArvmOPp84xhZqfnHwIaCdYABa+PF1PE95wOpckVLi9Bt41AgdgOQeBlLxQBtpuUvb
-	 osNyJ6QAmKfGov8M3D5741OxfSLEeoIMCyQX6d07K7v0y0OocHnmiz4mpyHHD93SaBUo5
-	 2hdciCAX+e6Q9tuIMSvUowDzKnox6tGqf20C49TYVs+M1liM2lEwKObv6t9kqNF2f2PXw
-	 8kjx7xl05cjuIXx7jibZ9BhwmvfxPHUub9d4Evb+/yk48a5zyezxff3c31De/Sz34ig==
+	bh=BymQS6GK987uNfZbDCjncL57Qqv9/djtgx0zK7uytsg=;
+	b=29PF44fJvcMUDKDePb6gbPgxUY8LA8j0ohFj8L/N1+AF8YGnrT1srWWHIxnfNrbJAj0m
+	 Gfp8av0fp4Q163hAYfArMNDA/W5vmD8Z3BpW2YARZFLKMORJ47WfRSS0SCWA2T28nbanz
+	 Ww7Hx+wAgFG+5o1lsvuW2Cp87+R+qQqZQRKU5Oo7KrbKNF/XrfriSKjz0sVLjEtJExuvq
+	 JOuU437V6oYPFohlghxm12F7d1mQ33Pqpc92IVu0PhF6RMmdwpAzxVL9uK/oyZlxGHayQ
+	 Eke3AgPHeOknAJAnuwwYnzbnzjt9W4oqZLKVSvzBJxMNRtRlsuCEDw4lShh5Q1sB4Dg==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=pYfbCTAF;
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b="h+S/qozl";
 	arc=none smtp.remote-ip=115.124.30.99
 Received: from out30-99.freemail.mail.aliyun.com (out30-99.freemail.mail.aliyun.com [115.124.30.99])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 2E537606A321
-	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Nov 2026 10:57:03 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 2E537606A321
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 6F393606A31E
+	for <ocfs2-devel@lists.linux.dev>; Tue, 24 Nov 2026 11:04:43 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 6F393606A31E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=pYfbCTAF
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=h+S/qozl
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1795517821; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
-	bh=eWfNs5UKK6nPf+1ag3e5zkit4hCoF6BydMaQazyRAfw=;
-	b=pYfbCTAF558Xnz1Pkmz87Ok9XMSj7GcPc8fegugk04daaHNEHSb+cfxPzCL2Eh1MPl4bbFE7cKDWObDvXTVFPm24DuyT7FkaNgrMIRSRPD9Ct5ErF6gVXxrB1lgsGRDNuiupxfPnkxg18jxnb/WHXpdp48uiAiIFQ3Liu4oKRg0=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R111e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037009110;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XFOG4e2_1795517820;
-Received: from 30.221.129.142(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFOG4e2_1795517820 cluster:ay36)
+	t=1795518279; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=BymQS6GK987uNfZbDCjncL57Qqv9/djtgx0zK7uytsg=;
+	b=h+S/qozlqfgAVbRVx/bVx7+RMQtbh7Odl1UXNGa4zCP5gPWUbUCKbFJ23Qy3ZVYiyjzhdSrabKoUMmRfbNe7cNTGfD+hc9ijgS4Mo885Zu0lJy+XRVeLaJYPacaSdgJHCOw33QElQELb3yRb8c89GvUrFaEScJiiILVfhndG13I=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R121e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045133197;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XFOMQtm_1795518278;
+Received: from 30.221.129.142(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFOMQtm_1795518278 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Tue, 24 Nov 2026 18:57:00 +0800
-Message-ID: <f59ba679-8c22-4ec2-8799-af24d4fd7158@linux.alibaba.com>
-Date: Tue, 24 Nov 2026 18:56:59 +0800
+          Tue, 24 Nov 2026 19:04:38 +0800
+Message-ID: <98371fed-7bd3-4dd4-8142-bb59edec135a@linux.alibaba.com>
+Date: Tue, 24 Nov 2026 19:04:37 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -129,58 +129,77 @@ On 11/24/26 12:54 PM, Heming Zhao wrote:
 >  9 files changed, 1509 insertions(+), 461 deletions(-)
 > 
 ...
-> +	/* The allocation below sleeps on locks. */
-> +	if (flags & IOMAP_NOWAIT)
-> +		return -EAGAIN;
+> +/*
+> + * Prepare the area between i_size and a direct write that starts or ends
+> + * beyond it. Must be called once per dio, before any io is issued, with
+> + * i_rwsem and the rw lock held.
+> + */
+> +int ocfs2_dio_zero_eof(struct inode *inode, loff_t pos, size_t count)
+>  {
+> -	struct ocfs2_dio_write_ctxt *dwc = NULL;
+> +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+> +	struct buffer_head *di_bh = NULL;
+> +	int ret;
+>  
+> -	if (bh->b_private)
+> -		return bh->b_private;
+> +	if (pos + count <= i_size_read(inode))
+> +		return 0;
 >  
 
-I've made a mistake in last review thread.
-We can't just move this check before fast path, but have to use trylock in
-ocfs2_lock_map_blocks().
+On a sparse volume ocfs2_zero_tail() only acts when pos > i_size, so an
+extending write starting at or before i_size locks around a no-op and
+then immediately re-locks in ocfs2_dio_wr_map_blocks().
+We can return early in this case.
 
-e.g.
-static int ocfs2_lock_map_blocks(struct inode *inode,
-				struct ocfs2_map_block *map, int flags,
-				bool nowait)
-{
+	loff_t isize = i_size_read(inode);
 	...
-	if (nowait) {
-		if (!down_read_trylock(&oi->ip_alloc_sem))
-			return -EAGAIN;
-	} else {
-		down_read(&oi->ip_alloc_sem);
-	}
-	...
-}
 
-And pass 'flags & IOMAP_NOWAIT' in caller.
+	if (pos + count <= isize)
+		return 0;
+
+	/*
+	 * ocfs2_zero_tail() only zeroes a gap past i_size, so on a sparse
+	 * volume there is nothing to do here and no need to take the cluster
+	 * lock.  The non-sparse path below always has allocation work left.
+	 */
+	if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)) && pos <= isize)
+                return 0;
+	...
 
 Thanks,
 Joseph
 
-> -	dwc = ocfs2_dio_alloc_write_ctx(bh_result, &first_get_block);
-> -	if (unlikely(dwc == NULL)) {
-> -		ret = -ENOMEM;
-> -		mlog_errno(ret);
-> -		goto out;
-> +	/*
-> +	 * This is the fast path for re-write.  The range which is in the file
-> +	 * has nothing to allocate nor to convert if it is mapped already. What
-> +	 * changes the file size is done at the end of io, no matter what the
-> +	 * mappings were.
-> +	 */
-> +	if (lblk < eof_blk) {
-> +		probe = *map;
-> +		probe.flags = 0;
-> +		ret = ocfs2_lock_map_blocks(inode, &probe,
-> +					    OCFS2_GET_BLOCKS_CREATE);
-> +		if (ret == 0 && (probe.flags & OCFS2_MAP_MAPPED) &&
-> +		    !(probe.flags & OCFS2_MAP_NEW)) {
-> +			*map = probe;
-> +			return 0;
-> +		}
-> +		ret = 0;
->  	}
+> -	dwc = kmalloc_obj(struct ocfs2_dio_write_ctxt, GFP_NOFS);
+> -	if (dwc == NULL)
+> -		return NULL;
+> -	INIT_LIST_HEAD(&dwc->dw_zero_list);
+> -	dwc->dw_zero_count = 0;
+> -	dwc->dw_orphaned = 0;
+> -	dwc->dw_writer_pid = task_pid_nr(current);
+> -	bh->b_private = dwc;
+> -	*alloc = 1;
+> +	ret = ocfs2_inode_lock(inode, &di_bh, 1);
+> +	if (ret) {
+> +		mlog_errno(ret);
+> +		return ret;
+> +	}
+>  
+> -	return dwc;
+> +	down_write(&oi->ip_alloc_sem);
+> +	if (ocfs2_sparse_alloc(OCFS2_SB(inode->i_sb)))
+> +		ret = ocfs2_zero_tail(inode, di_bh, pos);
+> +	else
+> +		ret = ocfs2_expand_nonsparse_inode(inode, di_bh, pos, count,
+> +						   NULL);
+> +	if (ret < 0)
+> +		mlog_errno(ret);
+> +	up_write(&oi->ip_alloc_sem);
+> +
+> +	ocfs2_inode_unlock(inode, 1);
+> +	brelse(di_bh);
+> +	return ret;
+>  }
 >  
 ...
 
