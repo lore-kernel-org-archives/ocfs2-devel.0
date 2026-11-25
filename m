@@ -1,60 +1,49 @@
-Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.130
+Authentication-Results: smtp.subspace.kernel.org; arc=none smtp.remote-ip=115.124.30.118
 ARC-Seal: i=1; d=subspace.kernel.org; s=arc20261015; a=rsa-sha256; cv=none;
-	t=1795575314;
-	b=RA3dsg7oB6/TqwrMtnkPlTn1vsYPIU3nVraRF7hoa1lrRobfY9eNyX/4TsA6ZR1tqZd2
-	 +xez4mClfPozWyBzgbG7oETw4MXVpvS3/w7pWeAuz2gIoVigVKRhsgeIn6YKCZSk8mDwR
-	 wGGdsVnzHaetyVQf004Iy6cHUyUdCzwzTW0SzIs35zwK1/FFxHti1HJ+KAnsi22086+UH
-	 noeiJ3o0TUSVQRrKZiwxfdIZQ4T6kh5q3bFWvaMcV9//QvWtLwcz4O+n9hYV1kz25i8zE
-	 EB9F99pbxmI0WTmZ7FzifsM5Iga0yk3xEWhZdNlTG+Rl943xwPCkzJYzW1U8sLKsdAw==
+	t=1795604471;
+	b=Hoqd7fm2BJKoG2qTsrJDqdwmuOgw0V5XU2iGaRCv/aSPudmSYGrqPIgiW+lEZWikwoaU
+	 vm09zylYaWPPQplHVup0fep5IuaeHa0gxamZkPq0zQQ8PKTmSCDBH0HbqmhBWg4XxJS28
+	 78CGHlSepeGMn/pyauEf7hJ34yg1Ul/FeKRQnxwDh6AA9sP/tlvXH4ee3JYseXiXWgDLh
+	 trAqOXXALhIDyN91n9lvDLm/q30UBl1bP2s1IHV4kInkgEmlRxfHA9QrT+c+orctuYYlf
+	 0y47B4NrQwrM5+Y9Hc/94PtmQIo2vOco6HWhAVqwODkhDU1sN45x945dCPMKDT3zI2Q==
 ARC-Message-Signature: i=1; d=subspace.kernel.org; s=arc20261015;
-	a=rsa-sha256; c=relaxed/relaxed; t=1795575314;
-	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:From:To:Cc:
-	 Subject:Date:Message-Id:X-Mailer:In-Reply-To:References:MIME-Version:
-	 Content-Transfer-Encoding;
-	bh=7erDcdDpY9NgN6nZQZC3/oBpIWFULdc3fCICAN/BOIA=;
-	b=oU1cPmFIpGNW47QItxElRe0oKg25u38SerTGX3F0yFM5GGDFN0EOC9LumWdGnRSb9OZB
-	 DmJzzVQJf/hDo68lP/lOGiKgNL0tmnZ7M/Ikwn05bw7qVQPjTKY4MR07lYiiX7etMXpbf
-	 05ZUuVW7+vrIScEBcf9un8y/HqhXsYSEEAsrdlHYoPvgJWJhVFHyBMokaSOeJ0IuXL1x3
-	 i7O9DU5CDixWvqDhzdVUA1uLTVUrKkYn8v9y1Gtq+jk4XI+MibXvNnUerLgT1UN6NXteX
-	 fQLpbYF8WfWcjE8Jcz5mbb4Gq9HhkH1h8k8FVTDM0ZpqnZKAinV5OLTQyZ5FayV7ibw==
+	a=rsa-sha256; c=relaxed/relaxed; t=1795604471;
+	h=DMARC-Filter:DKIM-Signature:X-Alimail-AntiSpam:Received:Message-ID:
+	 Date:MIME-Version:User-Agent:Subject:To:Cc:References:From:
+	 In-Reply-To:Content-Type:Content-Transfer-Encoding;
+	bh=l8QZXZ1mwB0NxVpnp+2hfJVr5Kbw7vufDkeTMP+pm48=;
+	b=nD0CitofYMAf7/IhFadvWI1DZf+0Bf0NVtxlMXfPfQl81NvT1H0vD8haHaIOwfqzhbHU
+	 bKqDTn6/BK5ZOm04QuwAN+Elz7gVzuvzQiwynqKRYJOSQo6VDfdhs2rTmiHSoTjv/WF7l
+	 eeIrQIjS9S3Xmb9rzR6WBYoS0bZzhookIlBXl9GzjEcrnC6ODLTBr4CQGY3nN4XXMBEkb
+	 sOyS8dfHLiGHWs/SbpVth5byj9GktPKbMVOFYkq3FxEvv16Uz9yekMxADiBRT6g1SSzgp
+	 bKCIAUnV+L2wfSFnwvXT6YlWvM5t2CXytI/wZpElnkO7lhoIxw0rFHM/6SBVUaU7PZw==
 ARC-Authentication-Results: i=1; smtp.subspace.kernel.org; 
 	dmarc=pass header.from=linux.alibaba.com;
 	spf=pass smtp.mailfrom=linux.alibaba.com;
-	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=NnZ9gMHZ;
-	arc=none smtp.remote-ip=115.124.30.130
-Received: from out30-130.freemail.mail.aliyun.com (out30-130.freemail.mail.aliyun.com [115.124.30.130])
+	dkim=pass header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=DZ+v7oFJ;
+	arc=none smtp.remote-ip=115.124.30.118
+Received: from out30-118.freemail.mail.aliyun.com (out30-118.freemail.mail.aliyun.com [115.124.30.118])
 	(using TLSv1.3 with cipher TLS_AES_256_GCM_SHA384 (256/256 bits)
 	 key-exchange X25519 server-signature ECDSA (prime256v1) server-digest SHA256)
 	(No client certificate requested)
-	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 1BAC1606A68B
-	for <ocfs2-devel@lists.linux.dev>; Wed, 25 Nov 2026 02:55:12 +0000 (UTC)
-DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 1BAC1606A68B
+	by smtp.subspace.kernel.org (Postfix) with ESMTPS id 5F601606A31E;
+	Wed, 25 Nov 2026 11:01:08 +0000 (UTC)
+DMARC-Filter: OpenDMARC Filter v1.4.2 smtp.subspace.kernel.org 5F601606A31E
 Authentication-Results: smtp.subspace.kernel.org; dmarc=pass (p=none dis=none) header.from=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org; spf=pass smtp.mailfrom=linux.alibaba.com
 Authentication-Results: smtp.subspace.kernel.org;
-	dkim=pass (1024-bit key) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=NnZ9gMHZ
+	dkim=pass (1024-bit key, unprotected) header.d=linux.alibaba.com header.i=@linux.alibaba.com header.a=rsa-sha256 header.s=default header.b=DZ+v7oFJ
 DKIM-Signature:v=1; a=rsa-sha256; c=relaxed/relaxed;
 	d=linux.alibaba.com; s=default;
-	t=1795575309; h=From:To:Subject:Date:Message-Id:MIME-Version;
-	bh=7erDcdDpY9NgN6nZQZC3/oBpIWFULdc3fCICAN/BOIA=;
-	b=NnZ9gMHZZ2ZpX7gMR0Y9k6gljIGMpK5+Ypg77fDSif0tNWseB/rrwo+0vxZ42FgJkzWJzge4678hsKnI8WxqtRVjIyWM4n8YaUOom/VTPBbju5SkMqnVXN3NzsZjU8m5s9wMlzikw+eHyqWMlTt+FlaTV3mT/oORKwuAIv02gyM=
-X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R691e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033037033178;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XFQ97YH_1795575307;
-Received: from localhost(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFQ97YH_1795575307 cluster:ay36)
+	t=1795604465; h=Message-ID:Date:MIME-Version:Subject:To:From:Content-Type;
+	bh=l8QZXZ1mwB0NxVpnp+2hfJVr5Kbw7vufDkeTMP+pm48=;
+	b=DZ+v7oFJy9WGHCz7twqa5bKhDpOMYKYUKf2hVntggMoiaCD0GYJkYHN0fmFQOlCJGT9Np+Q1WtN90mHYKAqncoT2+/vCwbOzDZkv/rzSmOtv67Kq/CSeYzmFjiXZ7nuW56+1zNXhFexwFNeYm/Q1d4BOgJLZAcAaaBT/e4pPj9Q=
+X-Alimail-AntiSpam:AC=PASS;BC=-1|-1;BR=01201311R811e4;CH=green;DM=||false|;DS=||;FP=0|-1|-1|-1|0|-1|-1|-1;HT=maildocker-contentspam033045098064;MF=joseph.qi@linux.alibaba.com;NM=1;PH=DS;RN=6;SR=0;TI=SMTPD_---0XFRM263_1795604464;
+Received: from 30.180.33.101(mailfrom:joseph.qi@linux.alibaba.com fp:SMTPD_---0XFRM263_1795604464 cluster:ay36)
           by smtp.aliyun-inc.com;
-          Wed, 25 Nov 2026 10:55:07 +0800
-From: Joseph Qi <joseph.qi@linux.alibaba.com>
-To: Andrew Morton <akpm@linux-foundation.org>,
-	Heming Zhao <heming.zhao@suse.com>
-Cc: Mark Fasheh <mark@fasheh.com>,
-	Joel Becker <jlbec@evilplan.org>,
-	ocfs2-devel@lists.linux.dev,
-	linux-kernel@vger.kernel.org
-Subject: [PATCH v2 3/3] ocfs2: check chain allocator clusters per group in online filecheck
-Date: Wed, 25 Nov 2026 10:55:05 +0800
-Message-Id: <20261125025505.343454-3-joseph.qi@linux.alibaba.com>
-X-Mailer: git-send-email 2.39.3
-In-Reply-To: <20261125025505.343454-1-joseph.qi@linux.alibaba.com>
-References: <20261125025505.343454-1-joseph.qi@linux.alibaba.com>
+          Wed, 25 Nov 2026 19:01:04 +0800
+Message-ID: <7cf75ca9-ff9e-4cca-a043-8881706bee98@linux.alibaba.com>
+Date: Wed, 25 Nov 2026 19:01:02 +0800
 X-Mailing-List: ocfs2-devel@lists.linux.dev
 List-Id: <ocfs2-devel.lists.linux.dev>
 List-Post: <mailto:ocfs2-devel@lists.linux.dev>
@@ -64,43 +53,503 @@ List-Unsubscribe: <mailto:ocfs2-devel+unsubscribe@lists.linux.dev>
 List-Owner: <mailto:ocfs2-devel+owner@lists.linux.dev>
 Precedence: list
 MIME-Version: 1.0
+User-Agent: Mozilla Thunderbird
+Subject: Re: [RFC PATCH v11 3/3] ocfs2: switch dio write path from buffer_head
+ to iomap
+To: sashiko-reviews@lists.linux.dev, Heming Zhao <heming.zhao@suse.com>
+Cc: Mark Fasheh <mark@fasheh.com>, Joel Becker <jlbec@evilplan.org>,
+ Andrew Morton <akpm@linux-foundation.org>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>,
+ "ocfs2-devel@lists.linux.dev" <ocfs2-devel@lists.linux.dev>
+References: <20261124152623.7838-1-heming.zhao@suse.com>
+ <20261124152623.7838-4-heming.zhao@suse.com>
+ <sashiko-outbox-231534@kernel.org>
+From: Joseph Qi <joseph.qi@linux.alibaba.com>
+In-Reply-To: <sashiko-outbox-231534@kernel.org>
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
 
-The online filecheck validator reports every dinode condition that
-ocfs2_validate_inode_block() checks, with its own message and an
--OCFS2_FILECHECK_ERR_INVALIDINO code instead of ocfs2_error().
+Hi,
 
-Add the clusters per group check there too, so a corrupt cl_cpg is
-reported by the filecheck interface as well rather than only being
-discovered when the suballocator extends the allocator.  As for the
-other chain list conditions this is not repairable, so it reports
-INVALIDINO and leaves the block untouched.
+On 11/25/26 12:11 AM, sashiko-bot@kernel.org wrote:
+> Thank you for your contribution! Sashiko AI review found 7 potential
+> issues to consider:
+> - [High] ocfs2: missing IOMAP_F_DIRTY in ocfs2_iomap_begin() skips
+>   O_DSYNC JBD2 commit
+> - [High] ocfs2: partial DIO failure in ocfs2_dio_end_io() skips
+>   unwritten conversion
+> - [High] ocfs2: buffered and mmap writes do not wait in
+>   ocfs2_unwritten_check()
+> - [High] ocfs2: orphan entry and block leak on failed or short DIO write
+> - [Medium] ocfs2: preallocated extents truncated in
+>   ocfs2_dio_clear_orphan_locked()
+> - [Medium] ocfs2: per-cluster kvcalloc and ip_lock scan in
+>   ocfs2_alloc_write_ctxt()
+> - [Medium] ocfs2: ocfs2_should_use_dio() forces buffered I/O for
+>   sub-page DIO overwrites
 
-Signed-off-by: Joseph Qi <joseph.qi@linux.alibaba.com>
----
- fs/ocfs2/inode.c | 9 +++++++++
- 1 file changed, 9 insertions(+)
+Seems the above Sashiko review comments are mostly new.
 
-diff --git a/fs/ocfs2/inode.c b/fs/ocfs2/inode.c
-index 0ef1e06840f0..bf3b30da86d2 100644
---- a/fs/ocfs2/inode.c
-+++ b/fs/ocfs2/inode.c
-@@ -2221,6 +2221,15 @@ static int ocfs2_filecheck_validate_inode_block(struct super_block *sb,
- 			rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
- 			goto bail;
- 		}
-+
-+		if (ocfs2_dinode_has_bad_chain_cpg(sb, di)) {
-+			mlog(ML_ERROR,
-+			     "Filecheck: invalid dinode #%llu: clusters per group %u\n",
-+			     (unsigned long long)bh->b_blocknr,
-+			     le16_to_cpu(cl->cl_cpg));
-+			rc = -OCFS2_FILECHECK_ERR_INVALIDINO;
-+			goto bail;
-+		}
- 	}
- 
- 	if (ocfs2_dinode_has_refcount_without_loc(di)) {
--- 
-2.39.3
+> --
+> 
+> commit b5b57d5ded817baa5742865c157d167ab85796b4
+> Author: Heming Zhao <heming.zhao@suse.com>
+> 
+> ocfs2: switch dio write path from buffer_head to iomap
+> 
+> This commit converts the OCFS2 direct I/O write path from the legacy
+> buffer_head infrastructure to the iomap framework, mapping multi-cluster
+> extents in ocfs2_dio_wr_map_blocks() and handling unwritten extent
+> conversion and i_size updates in ocfs2_dio_end_io().
+> 
+>> diff --git a/fs/ocfs2/aops.c b/fs/ocfs2/aops.c
+>> index 21cdc5c29331d..7a0778914d69b 100644
+>> --- a/fs/ocfs2/aops.c
+>> +++ b/fs/ocfs2/aops.c
+> 
+> [ ... ]
+> 
+>> @@ -914,10 +967,46 @@ static int ocfs2_alloc_write_ctxt(struct ocfs2_write_ctxt **wcp,
+>>  	if (!wc)
+>>  		return -ENOMEM;
+>>  
+>> +	wc->w_desc = wc->w_desc_inline;
+>> +	wc->w_folios = wc->w_folios_inline;
+>> +	wc->w_owner = owner;
+>>  	wc->w_cpos = pos >> osb->s_clustersize_bits;
+>>  	wc->w_first_new_cpos = UINT_MAX;
+>>  	cend = (pos + len - 1) >> osb->s_clustersize_bits;
+>>  	wc->w_clen = cend - wc->w_cpos + 1;
+>> +
+>> +	/*
+>> +	 * Only a direct write can span more clusters than fit in a page.
+>> +	 * It needs the folios of the first and of the last cluster at most,
+>> +	 * see ocfs2_grab_folios_for_write().
+>> +	 */
+>> +	if (wc->w_clen > ARRAY_SIZE(wc->w_desc_inline)) {
+>> +		if (WARN_ON_ONCE(type != OCFS2_WRITE_DIRECT)) {
+>> +			ocfs2_release_write_ctxt(wc);
+>> +			return -EINVAL;
+>> +		}
+>> +		wc->w_desc = kvcalloc(wc->w_clen, sizeof(*wc->w_desc),
+>> +				      GFP_NOFS);
+>> +		if (!wc->w_desc) {
+>> +			wc->w_desc = wc->w_desc_inline;
+>> +			ocfs2_release_write_ctxt(wc);
+>> +			return -ENOMEM;
+>> +		}
+>> +	}
+> 
+> [Severity: Medium]
+> Does a direct write need to allocate one ocfs2_write_cluster_desc per
+> cluster in wc->w_desc and call ocfs2_unwritten_check() on every cluster?
+> 
+> Before calling ocfs2_write_begin_nolock(), ocfs2_dio_wr_map_blocks()
+> already clamps map->len with ocfs2_map_blocks() to a single contiguous
+> extent record or hole.  With 4KB clusters and a 16MB mapping
+> (OCFS2_DIO_MAX_MAP_BYTES), wc->w_clen is 4096, so every mapping call
+> allocates and frees a 96KB (order-5) array under ocfs2_inode_lock() and
+> ip_alloc_sem, and ocfs2_populate_write_desc() takes oi->ip_lock 4096 times
+> to scan oi->ip_unwritten_list (even for holes where c_new is 1).
+> 
+> [ ... ]
+> 
+>> +static void ocfs2_unwritten_check(struct inode *inode,
+>> +				  struct ocfs2_write_ctxt *wc,
+>> +				  struct ocfs2_write_cluster_desc *desc)
+>>  {
+>> +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>> +	struct ocfs2_unwritten_extent *ue;
+>> +
+>> +	if (!desc->c_needs_zero)
+>> +		return;
+>> +
+>> +	spin_lock(&oi->ip_lock);
+>> +	ue = ocfs2_find_unwritten(oi, desc->c_cpos);
+>> +	/* A hole (c_new is 1) can not be on the list, don't trust it if it is. */
+>> +	if (ue && !WARN_ON_ONCE(desc->c_new)) {
+>>  		/*
+>> +		 * Needs not to zero no matter buffer or direct. The one who is
+>> +		 * zero the cluster is doing zero. And he will clear unwritten
+>> +		 * after all cluster io finished.
+>>  		 */
+>> +		desc->c_needs_zero = 0;
+>> +		desc->c_clear_unwritten = 0;
+>> +		/* match its own entry */
+>> +		if (wc->w_type == OCFS2_WRITE_DIRECT && wc->w_owner &&
+>> +		    ue->ue_owner == wc->w_owner)
+>> +			desc->c_dio_unwritten = 1;
+>> +		else
+>> +			/*
+>> +			 * Not ours. A direct write never gets here, it waits
+>> +			 * for the entries of the other dios before it maps,
+>> +			 * see ocfs2_dio_wr_map_blocks().
+>> +			 */
+>> +			WARN_ON_ONCE(wc->w_type == OCFS2_WRITE_DIRECT);
+>> +	} else if (wc->w_type == OCFS2_WRITE_DIRECT) {
+>> +		/* This direct write will doing zero. */
+>> +		desc->c_clear_unwritten = 0;
+>>  	}
+>>  	spin_unlock(&oi->ip_lock);
+>> +}
+> 
+> [Severity: High]
+> What happens when a buffered write or mmap page_mkwrite fault hits a
+> cluster that an in-flight direct write has placed on
+> oi->ip_unwritten_list?
+> 
+> Unlike ocfs2_dio_wr_map_blocks(), which waits on oi->ip_unwritten_wq for
+> foreign unwritten entries to finish, buffered and mmap writes clear
+> desc->c_needs_zero and desc->c_clear_unwritten here and proceed assuming
+> the direct write has zeroed the cluster and will convert it to written:
+> 
+> 1. If the in-flight direct write later fails (for example with -EFAULT on
+>    a subsequent mapping) or ends short before this cluster,
+>    ocfs2_dio_end_io() skips conversion of that cluster, while
+>    ocfs2_write_cluster() also skipped ocfs2_mark_extent_written() because
+>    c_clear_unwritten was 0.  Once the dirty page cache folio is written
+>    back and evicted, the cluster remains marked OCFS2_EXT_UNWRITTEN on
+>    disk and subsequent reads return zeroes instead of the written data.
+> 
+> 2. When cluster_size > PAGE_SIZE, ocfs2_grab_folios_direct() only zeroes
+>    folios outside the direct write's [target_index, end_index] up to
+>    max(user_pos + user_len, i_size).  If a concurrent buffered write
+>    extends i_size further within the same unwritten cluster, or does a
+>    partial-page write inside [target_index, end_index] where new = 0
+>    causes ocfs2_map_folio_blocks() to issue bh_read_nowait() on the
+>    unwritten block, unzeroed disk blocks are exposed once the direct write
+>    marks the cluster written.
+> 
+> [ ... ]
+> 
+>> +static void ocfs2_dio_clear_orphan_locked(struct inode *inode,
+>> +				   struct buffer_head *di_bh)
+>> +{
+>> +	struct ocfs2_super *osb = OCFS2_SB(inode->i_sb);
+>> +	struct ocfs2_inode_info *oi = OCFS2_I(inode);
+>> +	struct ocfs2_dinode *di = (struct ocfs2_dinode *)di_bh->b_data;
+>> +	loff_t end = READ_ONCE(oi->ip_dio_orphan_end);
+>> +	int ret = 0;
+>> +
+>> +	/*
+>> +	 * The write has not reached the end it asked for. Free whatever it
+>> +	 * allocated beyond i_size before the orphan entry.
+>> +	 */
+>> +	if (i_size_read(inode) < end)
+>> +		ret = ocfs2_truncate_file(inode, di_bh, i_size_read(inode));
+> 
+> [Severity: Medium]
+> As noted in the TODO comment above this function, if a file has unwritten
+> extents preallocated beyond i_size via fallocate(FALLOC_FL_KEEP_SIZE),
+> won't any extending direct write that ends short, fails before submitting
+> I/O, or bounces to buffered I/O and writes short truncate away all
+> pre-existing preallocated clusters beyond i_size?
+> 
+> In addition, because ocfs2_file_write_iter() checks
+> ocfs2_clusters_for_bytes(..., iocb->ki_pos + count) against i_size_read()
+> rather than against the inode's allocated clusters, every extending direct
+> write into space already preallocated with FALLOC_FL_KEEP_SIZE
+> unnecessarily adds and removes the inode in the slot's global orphan
+> directory.
+> 
+> [ ... ]
+> 
+>> @@ -2567,10 +3311,11 @@ static int ocfs2_iomap_begin(struct inode *inode, loff_t offset, loff_t length,
+>>  	map.flags = 0;
+>>  
+>>  	if (flags & IOMAP_WRITE) {
+>> -		return -EOPNOTSUPP;
+>> +		ret = ocfs2_dio_wr_map_blocks(inode, &map, flags, owner);
+>> +	} else {
+>> +		ret = ocfs2_lock_map_blocks(inode, &map, 0, flags & IOMAP_NOWAIT);
+>>  	}
+> 
+> [ ... ]
+> 
+>>  	if (map.flags & OCFS2_MAP_NEW)
+>>  		iomap->flags |= IOMAP_F_NEW;
+>>  
+>>  	return 0;
+>>  }
+> 
+> [Severity: High]
+> Should ocfs2_iomap_begin() set IOMAP_F_DIRTY when the write extends i_size
+> or when the inode has uncommitted metadata transactions in JBD2?
+> 
+> For O_DSYNC / RWF_DSYNC direct writes, ocfs2_file_write_iter() skips its
+> post-write jbd2_journal_force_commit() when use_dio is true and relies on
+> iomap.  When ocfs2_dio_wr_map_blocks() returns an already-allocated extent
+> (IOMAP_MAPPED without IOMAP_F_NEW)—for example when extending an unaligned
+> i_size within an already-allocated tail block (lblk < eof_blk), or after
+> ocfs2_prepare_inode_for_write() performed refcount CoW—and the block
+> device supports REQ_FUA, iomap sees neither IOMAP_F_NEW nor IOMAP_F_DIRTY,
+> issues a REQ_FUA bio, clears IOMAP_DIO_NEED_SYNC, and skips
+> generic_write_sync() (ocfs2_sync_file()).  The write then returns success
+> to userspace while the JBD2 transaction updating i_size or extent metadata
+> is still uncommitted.
+> 
+
+Seems we have to do it like:
+
+	if ((flags & IOMAP_WRITE) && offset + length > i_size_read(inode))
+	        iomap->flags |= IOMAP_F_DIRTY;
+
+> [ ... ]
+> 
+>> +static int ocfs2_dio_end_io(struct kiocb *iocb, ssize_t size,
+>> +			int error, unsigned int flags, int level)
+>> +{
+>> +	struct inode *inode = file_inode(iocb->ki_filp);
+>> +	loff_t offset = iocb->ki_pos;
+>> +	bool recorded = error || (flags & IOMAP_DIO_UNWRITTEN);
+>> +	LIST_HEAD(unwritten);
+>> +	int ret = 0;
+>> +
+>> +	if (recorded)
+>> +		ocfs2_dio_collect_unwritten(inode, iocb, &unwritten);
+>> +
+>> +	if (error)
+>> +		mlog_ratelimited(ML_ERROR, "Direct IO failed, bytes = %lld errno:%d",
+>> +				 (long long)size, error);
+>> +
+>> +	/* bounced back to buffered I/O, leave the rw_lock held */
+>> +	if (size == 0 && error == 0) {
+>> +		ocfs2_free_unwritten_list(inode, &unwritten);
+>> +		return 0;
+>> +	}
+>> +
+>> +	if (size && error == 0 &&
+>> +	    (!list_empty(&unwritten) ||
+>> +	     (offset + size > i_size_read(inode)))) {
+>> +		ret = ocfs2_dio_end_io_write(inode, offset, size, &unwritten);
+>> +		if (ret < 0)
+>> +			mlog_errno(ret);
+>> +	}
+>> +
+>> +	ocfs2_free_unwritten_list(inode, &unwritten);
+> 
+> [Severity: High]
+> What happens if a multi-mapping direct write to unwritten or newly
+> allocated clusters completes some I/O (size > 0) and then fails on a later
+> mapping or bio (error != 0), for example with -ENOSPC in
+> ocfs2_dio_wr_map_blocks() or -EFAULT in bio_iov_iter_get_pages()?
+> 
+> During ocfs2_dio_wr_map_blocks(), any unaligned head or tail folios in the
+> page cache for the first and last clusters of the earlier mapping were
+> already zeroed, mapped to the cluster's physical blocks, and marked dirty
+> and uptodate via block_commit_write().  Because error != 0,
+> ocfs2_dio_end_io() skips ocfs2_dio_end_io_write() and discards the
+> unwritten list, and iomap_dio_complete() skips
+> kiocb_invalidate_post_direct_write().  That leaves dirty, mapped page
+> cache buffers pointing at an extent that is still marked
+> OCFS2_EXT_UNWRITTEN on disk.
+> 
+>> diff --git a/fs/ocfs2/file.c b/fs/ocfs2/file.c
+>> index 3d717200d53a4..18aee5372eebe 100644
+>> --- a/fs/ocfs2/file.c
+>> +++ b/fs/ocfs2/file.c
+> 
+> [ ... ]
+> 
+>> @@ -2417,9 +2426,52 @@ static bool ocfs2_should_use_dio(struct kiocb *iocb, struct iov_iter *iter,
+>>  	    !ocfs2_supports_append_dio(osb))
+>>  		return false;
+>>  
+>> +	/*
+>> +	 * A direct write which does not cover whole pages leaves the rest of
+>> +	 * the page untouched. iomap only zeroes the padding up to the file
+>> +	 * system block size, so on a file system with a block size smaller
+>> +	 * than the page size the untouched blocks would expose stale data
+>> +	 * once the cluster is marked written. Let buffered I/O handle it.
+>> +	 *
+>> +	 * TODO: Avoid unnecessarily demoting in-place sub-page overwrites
+>> +	 * to buffered I/O when i_blocksize(inode) < PAGE_SIZE.
+>> +	 */
+>> +	if (iov_iter_rw(iter) == WRITE && i_blocksize(inode) < PAGE_SIZE &&
+>> +	    (!IS_ALIGNED(iocb->ki_pos, PAGE_SIZE) ||
+>> +	     !IS_ALIGNED(iocb->ki_pos + iter->count, PAGE_SIZE)))
+>> +		return false;
+>> +
+>>  	return true;
+>>  }
+> 
+> [Severity: Medium]
+> When i_blocksize(inode) < PAGE_SIZE (including all OCFS2 filesystems on
+> 16KB or 64KB PAGE_SIZE kernels), doesn't checking page alignment in
+> ocfs2_should_use_dio() demote all sub-page O_DIRECT overwrites of
+> already-written blocks to synchronous buffered I/O?
+> 
+> Because use_dio becomes false before block mapping is checked, pure
+> in-place overwrites take an exclusive EX cluster rw_lock instead of a
+> shared PR lock under coherency=buffered, reject IOCB_NOWAIT writes with
+> -EAGAIN, and fall back to generic_perform_write() and page-cache
+> writeback/invalidation.  Returning -ENOTBLK from ocfs2_dio_wr_map_blocks()
+> only when the fast-path overwrite check misses would keep in-place
+> sub-page overwrites on the direct I/O path.
+> 
+> [ ... ]
+> 
+>> +	if (use_dio) {
+>> +		if (!IS_ALIGNED(iocb->ki_pos | iov_iter_alignment(from),
+>> +				dio_align)) {
+>> +			ret = -EINVAL;
+>> +			goto out;
+>> +		}
+>>  
+>> +		/*
+>> +		 * Extending the file requires cluster locks and
+>> +		 * transactions, which IOCB_NOWAIT forbids.
+>> +		 */
+>> +		if (nowait &&
+>> +		    ((iocb->ki_pos + count) > i_size_read(inode))) {
+>> +			ret = -EAGAIN;
+>> +			goto out;
+>> +		}
+>> +
+>> +		if (iocb->ki_pos > i_size_read(inode) &&
+>> +		    fault_in_iov_iter_readable(from, count)) {
+>> +			ret = -EFAULT;
+>> +			goto out;
+>> +		}
+>> +
+>> +		if ((iocb->ki_pos + count) > i_size_read(inode)) {
+>> +			/*
+>> +			 * Complete before i_rwsem is dropped: i_size is only
+>> +			 * updated by ->end_io(), and the next writer would
+>> +			 * zero the gap between the size it still sees and its
+>> +			 * own write, over the data this one has just written.
+>> +			 */
+>> +			dio_flags |= IOMAP_DIO_FORCE_WAIT;
+>> +
+>> +			if (ocfs2_clusters_for_bytes(inode->i_sb,
+>> +						     iocb->ki_pos + count) >
+>> +			    ocfs2_clusters_for_bytes(inode->i_sb,
+>> +						     i_size_read(inode))) {
+>> +				/*
+>> +				 * when we are going to alloc extents beyond file
+>> +				 * size, add the inode to orphan dir, so we can
+>> +				 * recall those spaces when system crashed during
+>> +				 * write.
+>> +				 */
+>> +				ret = ocfs2_add_inode_to_orphan(osb, inode);
+>> +				if (ret < 0) {
+>> +					mlog_errno(ret);
+>> +					goto out;
+>> +				}
+>> +				WRITE_ONCE(OCFS2_I(inode)->ip_dio_orphan_pid,
+>> +					   task_pid_nr(current));
+>> +				WRITE_ONCE(OCFS2_I(inode)->ip_dio_orphan_end,
+>> +					   iocb->ki_pos + count);
+>> +			}
+>> +		}
+>> +
+>> +		ret = ocfs2_dio_zero_eof(inode, iocb->ki_pos, count);
+>> +		if (ret < 0)
+>> +			goto out;
+>> +
+>> +		const struct iomap_dio_ops *dops = rw_level ?
+>> +			&ocfs2_iomap_dio_ops_w_ex : &ocfs2_iomap_dio_ops_w_pr;
+>> +		struct iomap_dio *dio;
+>> +
+>> +		/*
+>> +		 * The kiocb is the owner of the unwritten clusters which
+>> +		 * ->iomap_begin() records for ->end_io() to convert, see
+>> +		 * ocfs2_iomap_next().
+>> +		 */
+>> +		dio = __iomap_dio_rw(iocb, from, ocfs2_iomap_next,
+>> +				     dops, dio_flags, iocb, 0);
+>> +		if (dio == NULL) {
+>> +			/* No I/O issued; rw_lock still held. */
+>> +			written = 0;
+>> +		} else if (IS_ERR(dio)) {
+>> +			written = PTR_ERR(dio);
+>> +			/*
+>> +			 * -EIOCBQUEUED: async I/O; end_io will drop the lock on
+>> +			 * completion. Any other error means no I/O started and
+>> +			 * end_io was not called, so the cleanup path below drops
+>> +			 * the lock.
+>> +			 */
+>> +			if (written == -EIOCBQUEUED)
+>> +				rw_level = -1;
+>> +		} else {
+>> +			/*
+>> +			 * Synchronous completion. iomap_dio_complete() runs
+>> +			 * end_io, which drops the lock unless the mapping
+>> +			 * bounced us back to buffered I/O (returns 0, lock
+>> +			 * retained).
+>> +			 */
+>> +			written = iomap_dio_complete(dio);
+>> +			if (written != 0)
+>> +				rw_level = -1;
+>> +		}
+> 
+> [ ... ]
+> 
+>>  out:
+>> +	/*
+>> +	 * IOMAP_DIO_FORCE_WAIT made an extending dio complete synchronously,
+>> +	 * so its end_io has already updated i_size.
+>> +	 */
+>>  	if (saved_ki_complete)
+>>  		xchg(&iocb->ki_complete, saved_ki_complete);
+>>  
+>> -	if (rw_level != -1)
+>> +	if (rw_level != -1) {
+>> +		/*
+>> +		 * The orphan entry this write added is still there when no io
+>> +		 * was issued at all, or when the write bailed out before
+>> +		 * submitting it. The conversion in ocfs2_dio_end_io_write()
+>> +		 * has removed it on the success path; a failed io is left to
+>> +		 * the recovery. Remove it here for the former, while the
+>> +		 * rw_lock is still held
+>> +		 */
+>> +		ocfs2_dio_clear_orphan(inode);
+>>  		ocfs2_rw_unlock(inode, rw_level);
+>> +	}
+>> +
+>> +	/* The marker must not outlive this write. */
+>> +	if (READ_ONCE(OCFS2_I(inode)->ip_dio_orphan_pid) ==
+>> +	    task_pid_nr(current))
+>> +		WRITE_ONCE(OCFS2_I(inode)->ip_dio_orphan_pid, 0);
+> 
+> [Severity: High]
+> Does an extending direct write that fails inside __iomap_dio_rw() after
+> inode_dio_begin() (or ends short at or below i_size without unwritten
+> extents) leave the inode orphaned and any newly allocated clusters beyond
+> i_size leaked?
+> 
+> For example, when appending at ki_pos == i_size with an unmapped user
+> buffer, fault_in_iov_iter_readable() is skipped because ki_pos > i_size is
+> false.  ocfs2_add_inode_to_orphan() adds the dio- orphan entry and sets
+> OCFS2_DIO_ORPHANED_FL on disk, and inside __iomap_dio_rw(),
+> ocfs2_dio_wr_map_blocks() allocates unwritten clusters before
+> bio_iov_iter_get_pages() fails with -EFAULT.  Because
+> IOMAP_DIO_FORCE_WAIT is set, __iomap_dio_rw() returns the dio pointer and
+> iomap_dio_complete() runs ocfs2_dio_end_io(), which skips
+> ocfs2_dio_end_io_write() on error, unlocks rw_lock, and returns -EFAULT.
+> ocfs2_file_write_iter() then sets rw_level = -1, so at out: it skips
+> ocfs2_dio_clear_orphan() and resets ip_dio_orphan_pid to 0.
+> 
+> The same happens if an extending write starting below i_size on an
+> already-written prefix stops short at or before i_size (where
+> list_empty(&unwritten) and offset + size <= i_size_read(inode), so
+> ocfs2_dio_end_io() skips ocfs2_dio_end_io_write()).  With
+> OCFS2_DIO_ORPHANED_FL left set on the dinode, subsequent unlink cannot
+> wipe the inode in ocfs2_delete_inode():
+> 
+> fs/ocfs2/inode.c:ocfs2_delete_inode() {
+>     ...
+> 	if (unlikely(di->i_flags & cpu_to_le32(OCFS2_DIO_ORPHANED_FL))) {
+> 		ocfs2_cleanup_delete_inode(inode, 0);
+> 		goto bail_unlock_inode;
+> 	}
+>     ...
+> }
+> 
+> Because background and clean-mount orphan scans skip dio- entries
+> (ORPHAN_NO_NEED_TRUNCATE), the unlinked inode, its orphan entry, and the
+> clusters allocated beyond i_size remain on disk until an unclean recovery
+> or another extending direct write on the same inode triggers orphan
+> cleanup.
+> 
 
